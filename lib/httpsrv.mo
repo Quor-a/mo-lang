@@ -14,6 +14,66 @@ var HS_BODY: [16384] byte = 0;
 var HS_HVAL: [512] byte = 0;      # 最近一次查的头值
 var HS_HOSTBUF: [256] byte = 0;   # v1.296:请求 Host 头
 var HS_XHDR: [256] byte = "";      # v1.302:附加响应头(如 Content-Disposition)
+var HS_DATEB: [64] byte = 0;      # v1.307:Date 头缓冲
+var HS_TV: [16] byte = 0;          # v1.280:gettimeofday 结果
+var HS_UTCD: i64 = 0;
+var HS_UTCY: i64 = 0;
+var HS_UTCMO: i64 = 0;
+var HS_UTCDAY: i64 = 0;
+var HS_UTCHH: i64 = 0;
+var HS_UTCMM: i64 = 0;
+var HS_UTCSS: i64 = 0;
+var HS_UTCLEAP: i64 = 0;
+
+# v1.307:HTTP Date 头(RFC 1123,如 Tue, 27 Oct 2026 19:09:25 GMT)
+fn http_date_rfc1123() -> i64 {
+    http_log_ts(&HS_DATEB);
+    # 星期:1970-01-01 是周四,wd=(days+4)%7,0=Sun..6=Sat
+    let e0: i64 = load64(&HS_TV);
+    let wd: i64 = (e0 / 86400 + 4) % 7;
+    if wd == 0 { strcpy(&HS_DATEB, "Sun, "); }
+    if wd == 1 { strcpy(&HS_DATEB, "Mon, "); }
+    if wd == 2 { strcpy(&HS_DATEB, "Tue, "); }
+    if wd == 3 { strcpy(&HS_DATEB, "Wed, "); }
+    if wd == 4 { strcpy(&HS_DATEB, "Thu, "); }
+    if wd == 5 { strcpy(&HS_DATEB, "Fri, "); }
+    if wd == 6 { strcpy(&HS_DATEB, "Sat, "); }
+    let nb: [24] byte = 0;
+    utoa(HS_UTCDAY, &nb, 10);
+    if HS_UTCDAY < 10 { strcat(&HS_DATEB, "0"); }
+    strcat(&HS_DATEB, &nb);
+    strcat(&HS_DATEB, " ");
+    if HS_UTCMO == 0 { strcat(&HS_DATEB, "Jan"); }
+    if HS_UTCMO == 1 { strcat(&HS_DATEB, "Feb"); }
+    if HS_UTCMO == 2 { strcat(&HS_DATEB, "Mar"); }
+    if HS_UTCMO == 3 { strcat(&HS_DATEB, "Apr"); }
+    if HS_UTCMO == 4 { strcat(&HS_DATEB, "May"); }
+    if HS_UTCMO == 5 { strcat(&HS_DATEB, "Jun"); }
+    if HS_UTCMO == 6 { strcat(&HS_DATEB, "Jul"); }
+    if HS_UTCMO == 7 { strcat(&HS_DATEB, "Aug"); }
+    if HS_UTCMO == 8 { strcat(&HS_DATEB, "Sep"); }
+    if HS_UTCMO == 9 { strcat(&HS_DATEB, "Oct"); }
+    if HS_UTCMO == 10 { strcat(&HS_DATEB, "Nov"); }
+    if HS_UTCMO == 11 { strcat(&HS_DATEB, "Dec"); }
+    strcat(&HS_DATEB, " ");
+    utoa(HS_UTCY, &nb, 10);
+    strcat(&HS_DATEB, &nb);
+    strcat(&HS_DATEB, " ");
+    utoa(HS_UTCHH, &nb, 10);
+    if HS_UTCHH < 10 { strcat(&HS_DATEB, "0"); }
+    strcat(&HS_DATEB, &nb);
+    strcat(&HS_DATEB, ":");
+    utoa(HS_UTCMM, &nb, 10);
+    if HS_UTCMM < 10 { strcat(&HS_DATEB, "0"); }
+    strcat(&HS_DATEB, &nb);
+    strcat(&HS_DATEB, ":");
+    utoa(HS_UTCSS, &nb, 10);
+    if HS_UTCSS < 10 { strcat(&HS_DATEB, "0"); }
+    strcat(&HS_DATEB, &nb);
+    strcat(&HS_DATEB, " GMT");
+    return 0;
+}
+
 var HS_RT_M: [32] i64 = 0;        # method ptr 数组
 var HS_RT_P: [32] i64 = 0;        # path ptr
 var HS_RT_F: [32] i64 = 0;        # fn idx
@@ -148,6 +208,9 @@ fn http_make_resp(code: i64, text: ptr, ctype: ptr, body: ptr, blen: i64) -> i64
     strcat(&HS_RESP, ctype);
     strcat(&HS_RESP, "\r\nContent-Length: ");
     strcat_i64(&HS_RESP, blen);
+    strcat(&HS_RESP, "\r\nDate: ");
+    http_date_rfc1123();
+    strcat(&HS_RESP, &HS_DATEB);
     strcat(&HS_RESP, "\r\nConnection: close\r\nX-Content-Type-Options: nosniff\r\nReferrer-Policy: no-referrer\r\n");
     if strlen(&HS_XHDR) > 0 {
         strcat(&HS_RESP, &HS_XHDR);
@@ -243,7 +306,10 @@ fn http_make_resp_etag(code: i64, text: ptr, ctype: ptr, body: ptr, blen: i64) -
         strcat(&HS_RESP, ctype);
         strcat(&HS_RESP, "\r\nETag: ");
         strcat(&HS_RESP, &HS_ET);
-        strcat(&HS_RESP, "\r\nContent-Length: 0\r\nConnection: close\r\n\r\n");
+        strcat(&HS_RESP, "\r\nContent-Length: 0\r\nDate: ");
+    http_date_rfc1123();
+    strcat(&HS_RESP, &HS_DATEB);
+    strcat(&HS_RESP, "\r\nConnection: close\r\n\r\n");
         return strlen(&HS_RESP);
     }
     strcpy(&HS_RESP, "HTTP/1.1 ");
@@ -556,16 +622,7 @@ fn http_log(path: ptr) -> i64 {
     return 0;
 }
 
-var HS_TV: [16] byte = 0;
 var HS_TSB: [32] byte = 0;
-var HS_UTCD: i64 = 0;
-var HS_UTCY: i64 = 0;
-var HS_UTCMO: i64 = 0;
-var HS_UTCDAY: i64 = 0;
-var HS_UTCHH: i64 = 0;
-var HS_UTCMM: i64 = 0;
-var HS_UTCSS: i64 = 0;
-var HS_UTCLEAP: i64 = 0;
 
 # v1.280:epoch 秒 → UTC "YYYY-MM-DD HH:MM:SS"(日志可读时间)
 fn http_log_ts(buf: i64) -> i64 {

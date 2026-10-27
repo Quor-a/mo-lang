@@ -1,3 +1,11 @@
+## [1.307.0]
+
+- httpsrv 所有响应加 HTTP Date 头（RFC 1123 格式，如 Tue, 27 Oct 2026 19:11:42 GMT）。
+- http_date_rfc1123 复用 http_log_ts 的 UTC 分解 + 英文星期/月份映射。
+- HS_TV/HS_UTC*/HS_DATEB 声明移至文件顶部（满足先定义后使用）。
+- E2E：普通/404 响应均带 Date，与 date -u 一致。
+- 门禁：tests 247/247、projcheck 11/11、自举三级一致、sweep 全绿。
+
 ## [1.306.0]
 
 - mopkg 缓存上限可配置：环境变量 MOPKG_CACHE_MAX（默认 32），两处超限清理改用 PKG_CACHE_MAX。
