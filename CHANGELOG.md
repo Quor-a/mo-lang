@@ -1,3 +1,9 @@
+## [1.313.0]
+
+- httpsrv 所有响应加 Content-Security-Policy: default-src 'self'（与 nosniff/Referrer-Policy 一致）。
+- E2E：响应头含 CSP。
+- 门禁：tests 247/247、projcheck 11/11、自举三级一致、sweep 全绿。
+
 ## [1.312.0]
 
 - mopkg fetch --quiet：抑制逐包进度（[i/n] name），只显示校验/安装/结果。

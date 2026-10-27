@@ -187,7 +187,7 @@ fn http_make_resp(code: i64, text: ptr, ctype: ptr, body: ptr, blen: i64) -> i64
                         strcat(&HS_RESP, ctype);
                         strcat(&HS_RESP, "\r\nContent-Encoding: gzip\r\nContent-Length: ");
                         strcat_i64(&HS_RESP, rn);
-                        strcat(&HS_RESP, "\r\nConnection: close\r\nX-Content-Type-Options: nosniff\r\nReferrer-Policy: no-referrer\r\n");
+                        strcat(&HS_RESP, "\r\nConnection: close\r\nX-Content-Type-Options: nosniff\r\nReferrer-Policy: no-referrer\r\nContent-Security-Policy: default-src 'self'\r\n");
                         if strlen(&HS_XHDR) > 0 {
                             strcat(&HS_RESP, &HS_XHDR);
                             strcat(&HS_RESP, "\r\n");
@@ -212,7 +212,7 @@ fn http_make_resp(code: i64, text: ptr, ctype: ptr, body: ptr, blen: i64) -> i64
     strcat(&HS_RESP, "\r\nDate: ");
     http_date_rfc1123();
     strcat(&HS_RESP, &HS_DATEB);
-    strcat(&HS_RESP, "\r\nConnection: close\r\nX-Content-Type-Options: nosniff\r\nReferrer-Policy: no-referrer\r\n");
+    strcat(&HS_RESP, "\r\nConnection: close\r\nX-Content-Type-Options: nosniff\r\nReferrer-Policy: no-referrer\r\nContent-Security-Policy: default-src 'self'\r\n");
     if strlen(&HS_XHDR) > 0 {
         strcat(&HS_RESP, &HS_XHDR);
         strcat(&HS_RESP, "\r\n");
