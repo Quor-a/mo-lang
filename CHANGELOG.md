@@ -1,3 +1,10 @@
+## [1.314.0]
+
+- mopkg remove --cache：本地移除包时同步清理 /tmp/mopkg_cache/<name>.tgz+.sha。
+- 新增 pkg_rm_cache 辅助函数。
+- E2E：remove dummy314 --cache 输出 "✓ 已移除" + "✓ 已清理缓存"，缓存残留 0。
+- 门禁：tests 247/247、projcheck 11/11、自举三级一致、sweep 全绿。
+
 ## [1.313.0]
 
 - httpsrv 所有响应加 Content-Security-Policy: default-src 'self'（与 nosniff/Referrer-Policy 一致）。

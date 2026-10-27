@@ -1482,6 +1482,31 @@ fn pkg_cmd_remove(nm: ptr) -> i64 {
     return 0;
 }
 
+# v1.314:清理本地缓存副本 /tmp/mopkg_cache/<nm>.tgz+.sha
+var RM_CACHE2: [256] byte = 0;
+fn pkg_rm_cache(nm: ptr) -> i64 {
+    strcpy(&RM_CACHE2, "/tmp/mopkg_cache/");
+    strcat(&RM_CACHE2, nm);
+    strcat(&RM_CACHE2, ".tgz");
+    let c1: i64 = fopen(&RM_CACHE2, 0, 0);
+    if c1 >= 0 {
+        fclose(c1);
+        syscall(87, &RM_CACHE2, 0, 0, 0, 0);
+        print("✓ 已清理缓存 ");
+        print(nm);
+        print_nl();
+    }
+    strcpy(&RM_CACHE2, "/tmp/mopkg_cache/");
+    strcat(&RM_CACHE2, nm);
+    strcat(&RM_CACHE2, ".sha");
+    let c2: i64 = fopen(&RM_CACHE2, 0, 0);
+    if c2 >= 0 {
+        fclose(c2);
+        syscall(87, &RM_CACHE2, 0, 0, 0, 0);
+    }
+    return 0;
+}
+
 # update <name>：删掉该包再重新 fetch（拿新 commit）
 fn pkg_cmd_update(nm: ptr) -> i64 {
     if strlen(nm) == 0 {
@@ -2595,6 +2620,13 @@ fn pkg_dispatch(cmd: ptr) -> i64 {
                 print_i64(drc);
                 print_nl();
                 return 1;
+            }
+        }
+        if argc() > 3 {
+            if streq(pkg_arg3(), "--cache") == 1 {
+                let rc2: i64 = pkg_cmd_remove(pkg_arg2());
+                if rc2 == 0 { pkg_rm_cache(pkg_arg2()); }
+                return rc2;
             }
         }
         return pkg_cmd_remove(pkg_arg2());
