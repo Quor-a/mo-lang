@@ -1,3 +1,9 @@
+## [1.309.0]
+
+- mopkg publish 成功输出增强：包大小（B/KB/MB 人性化）+ sha256 前16。
+- E2E：publish 输出 "大小: 110 B" + "sha256: 4e31bf73a2e9a870"。
+- 门禁：tests 247/247、projcheck 11/11、自举三级一致、sweep 全绿。
+
 ## [1.308.0]
 
 - mopkg pack 支持 --html：打包成功后输出 HTML 文件清单（<h1>/<ul>/<li>）。

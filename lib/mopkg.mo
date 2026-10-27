@@ -1721,6 +1721,8 @@ fn pkg_cmd_pack(dir: ptr, outg: ptr) -> i64 {
     return 0;
 }
 
+var PKG_PUB_SHA: [128] byte = 0;   # v1.309:publish sha 前16
+var PKG_PUB_SZB: [32] byte = 0;   # v1.309:publish 大小缓冲
 var PKG_ARG3: [256] byte = 0;
 fn pkg_arg3() -> i64 {
     store8(&PKG_ARG3, 0);
@@ -2580,6 +2582,29 @@ fn pkg_dispatch(cmd: ptr) -> i64 {
             # 远程 publish：publish <tar> <name> <ver> http://host:port
             let pkr: i64 = pkg_http_put_tok(pkg_arg5(), pkg_arg2(), pkg_arg3(), pkg_arg4(), pkg_arg6());
             if pkr == 0 {
+                # v1.309:打印包大小(人性化)+sha256 前16
+                let pfd: i64 = fopen(pkg_arg2(), 0, 0);
+                if pfd >= 0 {
+                    let pn: i64 = fread(pfd, &PKG_PUB_SHA, 128);
+                    fclose(pfd);
+                    print("  大小: ");
+                    if pn < 1024 {
+                        print_i64(pn);
+                        print(" B\n");
+                    } else if pn < 1048576 {
+                        print_i64(pn / 1024);
+                        print(" KB\n");
+                    } else {
+                        print_i64(pn / 1048576);
+                        print(" MB\n");
+                    }
+                    let pnb: [64] byte = 0;
+                    sha256_hex(&PKG_PUB_SHA, pn, &pnb);
+                    store8(&pnb + 16, 0);
+                    print("  sha256: ");
+                    print(&pnb);
+                    print_nl();
+                }
                 print("✓ 已推送 ");
                 print(pkg_arg3());
                 print("@");
