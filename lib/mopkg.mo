@@ -1553,6 +1553,7 @@ fn pkg_abspath(p: ptr, out: ptr) -> i64 {
 # v1.305:.moignore 支持（每行一个模式，精确或 * 前缀匹配）
 var PKG_IGN: [1024] byte = 0;
 var PKG_IGN_N: i64 = 0;
+var PKG_IGN_NUM: i64 = 0;   # v1.311:被 .moignore 排除的文件数
 
 fn pkg_ignored(name: ptr) -> i64 {
     if PKG_IGN_N <= 0 { return 0; }
@@ -1597,11 +1598,15 @@ fn pkg_walk_rel(names: i64, maxn: i64) -> i64 {
     let i: i64 = 0;
     while i < n {
         # v1.303:跳过目录、中间 tar、输出 tar.gz(tar_pack 只收普通文件)
-        # v1.305:.moignore 命中跳过
-        if is_dir(sub[i]) == 0 && strstr(sub[i], ".tmp.tar") < 0 && strstr(sub[i], ".tar.gz") < 0 && pkg_ignored(sub[i]) == 0 {
-            if PKG_FN < maxn {
-                PKG_FL[PKG_FN] = pbuf_save(sub[i]);
-                PKG_FN = PKG_FN + 1;
+        # v1.305:.moignore 命中跳过;v1.311:统计忽略数
+        if is_dir(sub[i]) == 0 && strstr(sub[i], ".tmp.tar") < 0 && strstr(sub[i], ".tar.gz") < 0 {
+            if pkg_ignored(sub[i]) == 1 {
+                PKG_IGN_NUM = PKG_IGN_NUM + 1;
+            } else {
+                if PKG_FN < maxn {
+                    PKG_FL[PKG_FN] = pbuf_save(sub[i]);
+                    PKG_FN = PKG_FN + 1;
+                }
             }
         }
         i = i + 1;
@@ -1630,6 +1635,7 @@ fn pkg_cmd_pack(dir: ptr, outg: ptr) -> i64 {
     }
     PKG_FN = 0;
     PKG_PBI = 0;
+    PKG_IGN_NUM = 0;
     # v1.305:读 .moignore（若无则 PKG_IGN_N=0）
     PKG_IGN_N = 0;
     let igh: i64 = fopen(".moignore", 0, 0);
@@ -1669,7 +1675,13 @@ fn pkg_cmd_pack(dir: ptr, outg: ptr) -> i64 {
             } else {
                 print("共 ");
                 print_i64(PKG_FN);
-                print(" 个文件\n");
+                print(" 个文件");
+                if PKG_IGN_NUM > 0 {
+                    print(" (忽略 ");
+                    print_i64(PKG_IGN_NUM);
+                    print(" 个)");
+                }
+                print("\n");
             }
             sh_chdir("..");
             return 0;
@@ -1711,6 +1723,12 @@ fn pkg_cmd_pack(dir: ptr, outg: ptr) -> i64 {
     print(" 个文件 -> ");
     print(&PKG_ROOT);
     print_nl();
+    # v1.311:显示忽略文件数
+    if PKG_IGN_NUM > 0 {
+        print("  (忽略 ");
+        print_i64(PKG_IGN_NUM);
+        print(" 个 .moignore 文件)\n");
+    }
     let li: i64 = 0;
     while li < PKG_FN {
         print("  ");

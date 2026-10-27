@@ -1,3 +1,10 @@
+## [1.311.0]
+
+- mopkg pack 显示忽略文件数：打包/--list 时输出 "(忽略 N 个 .moignore 文件)"。
+- pkg_walk_rel 统计被 .moignore 排除的文件数（PKG_IGN_NUM）。
+- E2E：pack 输出 "✓ 已打包 1 个文件 ... (忽略 1 个 .moignore 文件)"。
+- 门禁：tests 247/247、projcheck 11/11、自举三级一致、sweep 全绿。
+
 ## [1.310.0]
 
 - httpsrv 所有响应加 Server 头：Server: mo-httpsrv（主响应 + ETag 响应）。
