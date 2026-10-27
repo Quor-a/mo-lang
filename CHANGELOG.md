@@ -1,3 +1,9 @@
+## [1.310.0]
+
+- httpsrv 所有响应加 Server 头：Server: mo-httpsrv（主响应 + ETag 响应）。
+- E2E：curl 响应头含 "Server: mo-httpsrv"。
+- 门禁：tests 247/247、projcheck 11/11、自举三级一致、sweep 全绿。
+
 ## [1.309.0]
 
 - mopkg publish 成功输出增强：包大小（B/KB/MB 人性化）+ sha256 前16。

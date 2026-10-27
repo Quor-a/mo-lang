@@ -208,6 +208,7 @@ fn http_make_resp(code: i64, text: ptr, ctype: ptr, body: ptr, blen: i64) -> i64
     strcat(&HS_RESP, ctype);
     strcat(&HS_RESP, "\r\nContent-Length: ");
     strcat_i64(&HS_RESP, blen);
+    strcat(&HS_RESP, "\r\nServer: mo-httpsrv");
     strcat(&HS_RESP, "\r\nDate: ");
     http_date_rfc1123();
     strcat(&HS_RESP, &HS_DATEB);
@@ -306,7 +307,7 @@ fn http_make_resp_etag(code: i64, text: ptr, ctype: ptr, body: ptr, blen: i64) -
         strcat(&HS_RESP, ctype);
         strcat(&HS_RESP, "\r\nETag: ");
         strcat(&HS_RESP, &HS_ET);
-        strcat(&HS_RESP, "\r\nContent-Length: 0\r\nDate: ");
+        strcat(&HS_RESP, "\r\nContent-Length: 0\r\nServer: mo-httpsrv\r\nDate: ");
     http_date_rfc1123();
     strcat(&HS_RESP, &HS_DATEB);
     strcat(&HS_RESP, "\r\nConnection: close\r\n\r\n");
