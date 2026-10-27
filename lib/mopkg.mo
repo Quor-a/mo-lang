@@ -1297,11 +1297,16 @@ fn pkg_write_lock() -> i64 {
 }
 
 var PKG_QUIET: i64 = 0;   # v1.312:fetch --quiet 静默模式
+var PKG_FORCE: i64 = 0;   # v1.315:fetch --force 强制重装
 fn pkg_cmd_fetch() -> i64 {
     let i: i64 = 0;
     let nm: i64 = 0;
     PKG_QUIET = 0;
-    if argc() > 2 { if streq(pkg_arg2(), "--quiet") == 1 { PKG_QUIET = 1; } }
+    PKG_FORCE = 0;
+    if argc() > 2 {
+        if streq(pkg_arg2(), "--quiet") == 1 { PKG_QUIET = 1; }
+        if streq(pkg_arg2(), "--force") == 1 { PKG_FORCE = 1; }
+    }
     QN_N = 0;
     QPI = 0;
     if pkg_load_toml(&PKG_TOML) < 0 {
@@ -1326,7 +1331,7 @@ fn pkg_cmd_fetch() -> i64 {
             print(nm);
             print("\n");
         }
-        if pkg_have(nm) == 0 {
+        if PKG_FORCE == 1 || pkg_have(nm) == 0 {
             if pkg_install(nm, QU[i], QR[i], QV[i], QP[i], QF[i]) < 0 { return 1; }
         }
         # 装好后再扫它自己的 mo.toml；新发现的名字追加到队列尾，

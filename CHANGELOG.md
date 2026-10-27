@@ -1,3 +1,10 @@
+## [1.315.0]
+
+- mopkg fetch --force：即使依赖已安装也强制重新下载安装。
+- 与 --quiet 并存（arg2 判断）。
+- E2E：已装包 --force 会重装（"已安装"出现），普通 fetch 跳过。
+- 门禁：tests 247/247、projcheck 11/11、自举三级一致、sweep 全绿。
+
 ## [1.314.0]
 
 - mopkg remove --cache：本地移除包时同步清理 /tmp/mopkg_cache/<name>.tgz+.sha。
