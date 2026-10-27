@@ -1988,6 +1988,8 @@ var HG_SHA: [80] byte = 0;
 var HG_LSHA: [80] byte = 0;
 var PKG_SHA_LAST: [80] byte = 0;
 var HG_CDIR: [128] byte = 0;
+# v1.306:缓存上限可配置(MOPKG_CACHE_MAX 环境变量,默认 32)
+var PKG_CACHE_MAX: i64 = 0;
 var HG_CTGZ: [256] byte = 0;
 var HG_CSHA: [256] byte = 0;
 var HG_CLS: [256] byte = 0;
@@ -2054,6 +2056,16 @@ fn pkg_http_head(url: ptr) -> i64 {
 }
 
 fn pkg_http_dep(fil: ptr, nm: ptr) -> i64 {
+    # v1.306:首次调用时读环境变量初始化缓存上限
+    if PKG_CACHE_MAX <= 0 {
+        let cmv: i64 = pkg_getenv("MOPKG_CACHE_MAX");
+        if cmv != 0 {
+            PKG_CACHE_MAX = atoi(cmv);
+            if PKG_CACHE_MAX < 1 { PKG_CACHE_MAX = 32; }
+        } else {
+            PKG_CACHE_MAX = 32;
+        }
+    }
     # v1.269:HEAD 预检——包不存在快速失败
     let hrc: i64 = pkg_http_head(fil);
     if hrc < 0 {
@@ -2169,7 +2181,7 @@ fn pkg_http_dep(fil: ptr, nm: ptr) -> i64 {
                     store64(&PKG_CMD + 24, 0);
                     sh_capture(&PKG_CMD);
                     let cn2: i64 = atoi(&PKG_OUT);
-                    if cn2 >= 32 {
+                    if cn2 >= PKG_CACHE_MAX {
                         strcpy(&HG_CLS, "rm -rf /tmp/mopkg_cache");
                         store64(&PKG_CMD, "sh");
                         store64(&PKG_CMD + 8, "-c");
@@ -2233,7 +2245,7 @@ fn pkg_http_dep(fil: ptr, nm: ptr) -> i64 {
                             store64(&PKG_CMD + 24, 0);
                             sh_capture(&PKG_CMD);
                             let cn: i64 = atoi(&PKG_OUT);
-                            if cn >= 32 {
+                            if cn >= PKG_CACHE_MAX {
                                 strcpy(&HG_CLS, "rm -rf /tmp/mopkg_cache");
                                 store64(&PKG_CMD, "sh");
                                 store64(&PKG_CMD + 8, "-c");

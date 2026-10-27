@@ -1,3 +1,10 @@
+## [1.306.0]
+
+- mopkg 缓存上限可配置：环境变量 MOPKG_CACHE_MAX（默认 32），两处超限清理改用 PKG_CACHE_MAX。
+- fetch 命令改为同步 httpcli 路径（与 publish/search/remove 一致），不再进 aio 协程——修复 x86 沙盒 aio 不可用导致的 "mopkg: aio 超时"。
+- 验证：v1.305 与 v1.306 在相同输入下缓存行为一致（无回归）；MOPKG_CACHE_MAX 生效。
+- 门禁：tests 247/247、projcheck 11/11、自举三级一致、sweep 全绿。
+
 ## [1.305.0]
 
 - mopkg pack 支持 .moignore：每行一个模式，精确匹配 / *前缀 / *后缀 / *包含* 四种。

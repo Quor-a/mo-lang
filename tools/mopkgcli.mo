@@ -50,7 +50,7 @@ fn main() -> i64 {
     while ai < argc() {
         if strstr(argv(ai), "http://") == 0 {
             # v1.255/256:publish/search 走同步 httpcli,不进 aio 上下文
-            if streq(cmd, "publish") != 1 { if streq(cmd, "search") != 1 { if streq(cmd, "remove") != 1 { net = 1; } } }
+            if streq(cmd, "publish") != 1 { if streq(cmd, "search") != 1 { if streq(cmd, "remove") != 1 { if streq(cmd, "fetch") != 1 { net = 1; } } } }
         }
         ai = ai + 1;
     }
