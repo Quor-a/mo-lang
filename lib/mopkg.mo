@@ -1549,6 +1549,45 @@ fn pkg_abspath(p: ptr, out: ptr) -> i64 {
     return 0;
 }
 
+# v1.305:.moignore 支持（每行一个模式，精确或 * 前缀匹配）
+var PKG_IGN: [1024] byte = 0;
+var PKG_IGN_N: i64 = 0;
+
+fn pkg_ignored(name: ptr) -> i64 {
+    if PKG_IGN_N <= 0 { return 0; }
+    let line: i64 = &PKG_IGN;
+    let end: i64 = &PKG_IGN + PKG_IGN_N;
+    while line < end {
+        let nl: i64 = strstr(line, "\n");
+        if nl < 0 { nl = end - line; }
+        if nl > 0 {
+            store8(line + nl, 0);
+            # 通配：模式以 * 结尾则前缀匹配
+            let patlen: i64 = strlen(line);
+            if patlen > 0 {
+                if load8(line) == 42 && load8(line + patlen - 1) == 42 {
+                    # 首尾都是 *：包含匹配
+                    if strstr(name, line + 1) >= 0 { store8(line + nl, 10); return 1; }
+                } else if load8(line + patlen - 1) == 42 {
+                    # 尾部 *：前缀匹配（比较去掉 * 后的头部）
+                    if strstr(name, line) == 0 { store8(line + nl, 10); return 1; }
+                } else if load8(line) == 42 {
+                    # 首部 *：后缀匹配（name 尾部 == line+1）
+                    let tail: i64 = line + 1;
+                    let nl2: i64 = strlen(name);
+                    let tl: i64 = strlen(tail);
+                    if nl2 >= tl && streq(name + nl2 - tl, tail) == 1 { store8(line + nl, 10); return 1; }
+                } else {
+                    if streq(name, line) == 1 { store8(line + nl, 10); return 1; }
+                }
+            }
+            store8(line + nl, 10);
+        }
+        line = line + nl + 1;
+    }
+    return 0;
+}
+
 # walk 收集相对名（调用方需已 chdir(dir)），返回个数
 fn pkg_walk_rel(names: i64, maxn: i64) -> i64 {
     let sub: [64] i64 = 0;
@@ -1557,7 +1596,8 @@ fn pkg_walk_rel(names: i64, maxn: i64) -> i64 {
     let i: i64 = 0;
     while i < n {
         # v1.303:跳过目录、中间 tar、输出 tar.gz(tar_pack 只收普通文件)
-        if is_dir(sub[i]) == 0 && strstr(sub[i], ".tmp.tar") < 0 && strstr(sub[i], ".tar.gz") < 0 {
+        # v1.305:.moignore 命中跳过
+        if is_dir(sub[i]) == 0 && strstr(sub[i], ".tmp.tar") < 0 && strstr(sub[i], ".tar.gz") < 0 && pkg_ignored(sub[i]) == 0 {
             if PKG_FN < maxn {
                 PKG_FL[PKG_FN] = pbuf_save(sub[i]);
                 PKG_FN = PKG_FN + 1;
@@ -1589,6 +1629,13 @@ fn pkg_cmd_pack(dir: ptr, outg: ptr) -> i64 {
     }
     PKG_FN = 0;
     PKG_PBI = 0;
+    # v1.305:读 .moignore（若无则 PKG_IGN_N=0）
+    PKG_IGN_N = 0;
+    let igh: i64 = fopen(".moignore", 0, 0);
+    if igh >= 0 {
+        PKG_IGN_N = fread(igh, &PKG_IGN, 1023);
+        fclose(igh);
+    }
     pkg_walk_rel(&PKG_FL, 256);
     # v1.303:pack <dir> <out> --list 只列文件不打
     if argc() > 4 {

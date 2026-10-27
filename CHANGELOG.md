@@ -1,3 +1,10 @@
+## [1.305.0]
+
+- mopkg pack 支持 .moignore：每行一个模式，精确匹配 / *前缀 / *后缀 / *包含* 四种。
+- pack --list 同时生效；.moignore 自身默认被忽略。
+- E2E：*.txt 模式正确排除 secret.txt，只打 main.mo。
+- 门禁：tests 247/247、projcheck 11/11、自举三级一致、sweep 全绿。
+
 ## [1.304.0]
 
 - registry 搜索 HTML 结果页分页导航：上一页/下一页链接（kw 保留，pg±1）。
