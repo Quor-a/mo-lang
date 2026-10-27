@@ -1,3 +1,10 @@
+## [1.302.0]
+
+- registry 下载响应加 Content-Disposition：浏览器保存为正确文件名（attachment; filename="pkg-1.0.0.tar.gz"）。
+- httpsrv 新增附加响应头钩子 HS_XHDR（普通 / ETag / gzip 三条响应路径均支持）。
+- E2E：curl 下载返回 Content-Disposition 头。
+- 门禁：tests 247/247、projcheck 11/11、自举三级一致、sweep 全绿。
+
 ## [1.301.0]
 
 - httpsrv 所有响应加安全头：X-Content-Type-Options: nosniff + Referrer-Policy: no-referrer。

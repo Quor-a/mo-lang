@@ -23,6 +23,7 @@
 | `tools/sitetest.sh` | 用真实内容验证 `examples/site.mo`：目录遍历 / front-matter / Markdown 渲染 / 排序 / 转义 / RSS |
 | `tools/diag_android.sh` | 在 ARM64 + qemu 下定位测试失败：md5 比对，区分"编译侧字节不同"还是"运行时环境差异" |
 | `tools/bignumtest.sh` | 用 **Python 当标准答案**，与墨语言的大数计算逐字节比对 |
+| `tools/f64test.sh` | 让 `print_f64` 与 Python `%.6f` 逐行比对，验证浮点格式化 |
 | `tools/wavtest.sh` | 端到端验证 `examples/wavinfo.mo`：真解析 WAV + 三种错误路径 |
 | `tools/diag_runtime.sh` | 打印 `argc` / 栈未初始化值 / `brk` 地址，找出 qemu、proot 与原生 Linux 的环境差别 |
 | `tools/fmttest.sh` | 格式化改写了代码（判据：代码段逐字节相同 + 幂等） |

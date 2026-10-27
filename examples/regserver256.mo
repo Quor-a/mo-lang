@@ -18,6 +18,7 @@ var RS_EPOCH_BUF: [24] byte = 0;
 var RS_TV: [16] byte = 0;
 var RS_TIME_BUF: [32] byte = 0;
 var RS_PATH: [512] byte = 0;
+var RS_HDR: [256] byte = 0;
 var RS_IDX: [32768] byte = 0;
 var RS_OUT: [32768] byte = 0;
 var RS_FD: i64 = 0;
@@ -46,7 +47,14 @@ fn h_pkg(u: i64, a: i64) -> i64 {
     RS_N = fread(RS_FD, &RS_BUF, 65536);
     fclose(RS_FD);
     if RS_N <= 0 { return http_make_resp(404, "Not Found", "text/plain", "404", 3); }
-    return http_make_resp(200, "OK", "application/gzip", &RS_BUF, RS_N);
+    # v1.302:Content-Disposition 让浏览器保存为正确文件名
+    strcpy(&RS_HDR, "Content-Disposition: attachment; filename=\"");
+    strcat(&RS_HDR, &HS_PARAM);
+    strcat(&RS_HDR, "\"");
+    strcpy(&HS_XHDR, &RS_HDR);
+    let rlen: i64 = http_make_resp(200, "OK", "application/gzip", &RS_BUF, RS_N);
+    strcpy(&HS_XHDR, "");
+    return rlen;
 }
 
 # v1.277:epoch 秒 → UTC "YYYY-MM-DD HH:MM:SS"

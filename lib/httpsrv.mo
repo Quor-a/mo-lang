@@ -13,6 +13,7 @@ var HS_QUERY: [512] byte = 0;
 var HS_BODY: [16384] byte = 0;
 var HS_HVAL: [512] byte = 0;      # 最近一次查的头值
 var HS_HOSTBUF: [256] byte = 0;   # v1.296:请求 Host 头
+var HS_XHDR: [256] byte = "";      # v1.302:附加响应头(如 Content-Disposition)
 var HS_RT_M: [32] i64 = 0;        # method ptr 数组
 var HS_RT_P: [32] i64 = 0;        # path ptr
 var HS_RT_F: [32] i64 = 0;        # fn idx
@@ -126,7 +127,12 @@ fn http_make_resp(code: i64, text: ptr, ctype: ptr, body: ptr, blen: i64) -> i64
                         strcat(&HS_RESP, ctype);
                         strcat(&HS_RESP, "\r\nContent-Encoding: gzip\r\nContent-Length: ");
                         strcat_i64(&HS_RESP, rn);
-                        strcat(&HS_RESP, "\r\nConnection: close\r\nX-Content-Type-Options: nosniff\r\nReferrer-Policy: no-referrer\r\n\r\n");
+                        strcat(&HS_RESP, "\r\nConnection: close\r\nX-Content-Type-Options: nosniff\r\nReferrer-Policy: no-referrer\r\n");
+                        if strlen(&HS_XHDR) > 0 {
+                            strcat(&HS_RESP, &HS_XHDR);
+                            strcat(&HS_RESP, "\r\n");
+                        }
+                        strcat(&HS_RESP, "\r\n");
                         memcpy(&HS_RESP + strlen(&HS_RESP), &HS_GZB, rn);
                         return strlen(&HS_RESP) + rn;
                     }
@@ -142,7 +148,12 @@ fn http_make_resp(code: i64, text: ptr, ctype: ptr, body: ptr, blen: i64) -> i64
     strcat(&HS_RESP, ctype);
     strcat(&HS_RESP, "\r\nContent-Length: ");
     strcat_i64(&HS_RESP, blen);
-    strcat(&HS_RESP, "\r\nConnection: close\r\nX-Content-Type-Options: nosniff\r\nReferrer-Policy: no-referrer\r\n\r\n");
+    strcat(&HS_RESP, "\r\nConnection: close\r\nX-Content-Type-Options: nosniff\r\nReferrer-Policy: no-referrer\r\n");
+    if strlen(&HS_XHDR) > 0 {
+        strcat(&HS_RESP, &HS_XHDR);
+        strcat(&HS_RESP, "\r\n");
+    }
+    strcat(&HS_RESP, "\r\n");
     memcpy(&HS_RESP + strlen(&HS_RESP), body, blen);
     return strlen(&HS_RESP) + blen;
 }
@@ -245,7 +256,12 @@ fn http_make_resp_etag(code: i64, text: ptr, ctype: ptr, body: ptr, blen: i64) -
     strcat(&HS_RESP, &HS_ET);
     strcat(&HS_RESP, "\r\nContent-Length: ");
     strcat_i64(&HS_RESP, blen);
-    strcat(&HS_RESP, "\r\nConnection: close\r\n\r\n");
+    strcat(&HS_RESP, "\r\nConnection: close\r\n");
+    if strlen(&HS_XHDR) > 0 {
+        strcat(&HS_RESP, &HS_XHDR);
+        strcat(&HS_RESP, "\r\n");
+    }
+    strcat(&HS_RESP, "\r\n");
     memcpy(&HS_RESP + strlen(&HS_RESP), body, blen);
     return strlen(&HS_RESP) + blen;
 }
