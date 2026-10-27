@@ -1,3 +1,10 @@
+## [1.304.0]
+
+- registry 搜索 HTML 结果页分页导航：上一页/下一页链接（kw 保留，pg±1）。
+- 🔴 修复：下一页条件 (pg+1)*sz < hit（初版 hit>sz 导致末页仍显示下一页）。
+- E2E：25 个包 size=20 → page0 仅下一页，page1 仅上一页。
+- 门禁：tests 247/247、projcheck 11/11、自举三级一致、sweep 全绿。
+
 ## [1.303.0]
 
 - mopkg pack --list：只列出将打包的文件清单（不打 tar）。

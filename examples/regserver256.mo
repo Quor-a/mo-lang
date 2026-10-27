@@ -539,7 +539,31 @@ fn h_search(u: i64, a: i64) -> i64 {
             }
             hi = hi + he + 1;
         }
-        strcat(&RS_HTML, "</table><p><a href=\"/\">back</a></p></body></html>");
+        strcat(&RS_HTML, "</table>");
+        # v1.304:分页导航
+        if hit > sz {
+            strcat(&RS_HTML, "<p>");
+            if pg > 0 {
+                strcat(&RS_HTML, "<a href=\"/search?kw=");
+                strcat(&RS_HTML, &RS_KW);
+                strcat(&RS_HTML, "&fmt=html&page=");
+                let pbu: [24] byte = 0;
+                utoa(pg - 1, &pbu, 10);
+                strcat(&RS_HTML, pbu);
+                strcat(&RS_HTML, "\">上一页</a> ");
+            }
+            if (pg + 1) * sz < hit {
+                let pbu2: [24] byte = 0;
+                utoa(pg + 1, &pbu2, 10);
+                strcat(&RS_HTML, "<a href=\"/search?kw=");
+                strcat(&RS_HTML, &RS_KW);
+                strcat(&RS_HTML, "&fmt=html&page=");
+                strcat(&RS_HTML, pbu2);
+                strcat(&RS_HTML, "\">下一页</a>");
+            }
+            strcat(&RS_HTML, "</p>");
+        }
+        strcat(&RS_HTML, "<p><a href=\"/\">back</a></p></body></html>");
         return http_make_resp(200, "OK", "text/html", &RS_HTML, strlen(&RS_HTML));
     }
     return http_make_resp(200, "OK", "text/plain", &RS_OUT, strlen(&RS_OUT));
