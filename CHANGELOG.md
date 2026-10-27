@@ -1,3 +1,11 @@
+## [1.303.0]
+
+- mopkg pack --list：只列出将打包的文件清单（不打 tar）。
+- pack 成功后打印文件清单。
+- 🔴 修复：pkg_walk_rel 跳过目录、*.tmp.tar 中间文件、*.tar.gz 输出文件——此前 tar_pack 会读到自身中间文件导致 "tar 失败"。
+- E2E：pack . out.tar.gz 输出 "✓ 已打包 1 个文件" + 清单；--list 只列不打。
+- 门禁：tests 247/247、projcheck 11/11、自举三级一致、sweep 全绿。
+
 ## [1.302.0]
 
 - registry 下载响应加 Content-Disposition：浏览器保存为正确文件名（attachment; filename="pkg-1.0.0.tar.gz"）。

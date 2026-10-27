@@ -1556,9 +1556,12 @@ fn pkg_walk_rel(names: i64, maxn: i64) -> i64 {
     if n < 0 { return 0; }
     let i: i64 = 0;
     while i < n {
-        if PKG_FN < maxn {
-            PKG_FL[PKG_FN] = pbuf_save(sub[i]);
-            PKG_FN = PKG_FN + 1;
+        # v1.303:跳过目录、中间 tar、输出 tar.gz(tar_pack 只收普通文件)
+        if is_dir(sub[i]) == 0 && strstr(sub[i], ".tmp.tar") < 0 && strstr(sub[i], ".tar.gz") < 0 {
+            if PKG_FN < maxn {
+                PKG_FL[PKG_FN] = pbuf_save(sub[i]);
+                PKG_FN = PKG_FN + 1;
+            }
         }
         i = i + 1;
     }
@@ -1587,6 +1590,23 @@ fn pkg_cmd_pack(dir: ptr, outg: ptr) -> i64 {
     PKG_FN = 0;
     PKG_PBI = 0;
     pkg_walk_rel(&PKG_FL, 256);
+    # v1.303:pack <dir> <out> --list 只列文件不打
+    if argc() > 4 {
+        if streq(pkg_arg4(), "--list") == 1 {
+            let li: i64 = 0;
+            while li < PKG_FN {
+                print("  ");
+                print(PKG_FL[li]);
+                print_nl();
+                li = li + 1;
+            }
+            print("共 ");
+            print_i64(PKG_FN);
+            print(" 个文件\n");
+            sh_chdir("..");
+            return 0;
+        }
+    }
     let rc: i64 = tar_pack(&PKG_VAL, &PKG_FL, PKG_FN);
     sh_chdir("..");
     if rc != 0 {
@@ -1604,6 +1624,13 @@ fn pkg_cmd_pack(dir: ptr, outg: ptr) -> i64 {
     print(" 个文件 -> ");
     print(&PKG_ROOT);
     print_nl();
+    let li: i64 = 0;
+    while li < PKG_FN {
+        print("  ");
+        print(PKG_FL[li]);
+        print_nl();
+        li = li + 1;
+    }
     return 0;
 }
 
