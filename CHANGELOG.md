@@ -1,3 +1,10 @@
+## [1.312.0]
+
+- mopkg fetch --quiet：抑制逐包进度（[i/n] name），只显示校验/安装/结果。
+- 进度打印用 if 包裹，安装逻辑不受影响。
+- E2E：fetch --quiet 不显示 [1/2]，正常显示"✓ 已处理 2 个包"。
+- 门禁：tests 247/247、projcheck 11/11、自举三级一致、sweep 全绿。
+
 ## [1.311.0]
 
 - mopkg pack 显示忽略文件数：打包/--list 时输出 "(忽略 N 个 .moignore 文件)"。

@@ -1296,9 +1296,12 @@ fn pkg_write_lock() -> i64 {
     return 0;
 }
 
+var PKG_QUIET: i64 = 0;   # v1.312:fetch --quiet 静默模式
 fn pkg_cmd_fetch() -> i64 {
     let i: i64 = 0;
     let nm: i64 = 0;
+    PKG_QUIET = 0;
+    if argc() > 2 { if streq(pkg_arg2(), "--quiet") == 1 { PKG_QUIET = 1; } }
     QN_N = 0;
     QPI = 0;
     if pkg_load_toml(&PKG_TOML) < 0 {
@@ -1313,14 +1316,16 @@ fn pkg_cmd_fetch() -> i64 {
     i = 0;
     while i < QN_N {
         nm = QN[i];
-        # v1.264:逐包进度 [i+1] name
-        print("[");
+        # v1.264:逐包进度 [i+1] name;v1.312:--quiet 抑制进度
+        if PKG_QUIET == 0 {
+            print("[");
         print_i64(i + 1);
         print("/");
         print_i64(QN_N);
         print("] ");
-        print(nm);
-        print("\n");
+            print(nm);
+            print("\n");
+        }
         if pkg_have(nm) == 0 {
             if pkg_install(nm, QU[i], QR[i], QV[i], QP[i], QF[i]) < 0 { return 1; }
         }
