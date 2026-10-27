@@ -1489,6 +1489,7 @@ fn pkg_cmd_update(nm: ptr) -> i64 {
 
 # ---------- pack / file= tarball 依赖（v1.193.0）----------
 var PKG_FL: [256] i64 = 0;      # 文件路径指针数组（PBUF 池）
+var PKG_PACK_HTML: [8192] byte = 0;   # v1.308:pack --html 清单
 var PKG_FN: i64 = 0;
 var PKG_PBUF: [16384] byte = 0;
 var PKG_PBI: i64 = 0;
@@ -1638,18 +1639,38 @@ fn pkg_cmd_pack(dir: ptr, outg: ptr) -> i64 {
     }
     pkg_walk_rel(&PKG_FL, 256);
     # v1.303:pack <dir> <out> --list 只列文件不打
+    let want_html: i64 = 0;
+    if argc() > 4 { if streq(pkg_arg4(), "--html") == 1 { want_html = 1; } }
+    if argc() > 5 { if streq(pkg_arg5(), "--html") == 1 { want_html = 1; } }
     if argc() > 4 {
         if streq(pkg_arg4(), "--list") == 1 {
+            if want_html == 1 {
+                strcpy(&PKG_PACK_HTML, "<html><body><h1>pack 清单</h1><ul>");
+            }
             let li: i64 = 0;
             while li < PKG_FN {
-                print("  ");
-                print(PKG_FL[li]);
-                print_nl();
+                if want_html == 1 {
+                    strcat(&PKG_PACK_HTML, "<li>");
+                    strcat(&PKG_PACK_HTML, PKG_FL[li]);
+                    strcat(&PKG_PACK_HTML, "</li>");
+                } else {
+                    print("  ");
+                    print(PKG_FL[li]);
+                    print_nl();
+                }
                 li = li + 1;
             }
-            print("共 ");
-            print_i64(PKG_FN);
-            print(" 个文件\n");
+            if want_html == 1 {
+                strcat(&PKG_PACK_HTML, "</ul><p>共 ");
+                strcat_i64(&PKG_PACK_HTML, PKG_FN);
+                strcat(&PKG_PACK_HTML, " 个文件</p></body></html>");
+                print(&PKG_PACK_HTML);
+                print_nl();
+            } else {
+                print("共 ");
+                print_i64(PKG_FN);
+                print(" 个文件\n");
+            }
             sh_chdir("..");
             return 0;
         }
@@ -1665,6 +1686,25 @@ fn pkg_cmd_pack(dir: ptr, outg: ptr) -> i64 {
     if rc != 0 {
         print("✗ pack: gzip 失败\n");
         return 1;
+    }
+    if want_html == 1 {
+        strcpy(&PKG_PACK_HTML, "<html><body><h1>pack 成功</h1><p>");
+        strcat(&PKG_PACK_HTML, "✓ 已打包 ");
+        strcat_i64(&PKG_PACK_HTML, PKG_FN);
+        strcat(&PKG_PACK_HTML, " 个文件 -> ");
+        strcat(&PKG_PACK_HTML, &PKG_ROOT);
+        strcat(&PKG_PACK_HTML, "</p><ul>");
+        let li2: i64 = 0;
+        while li2 < PKG_FN {
+            strcat(&PKG_PACK_HTML, "<li>");
+            strcat(&PKG_PACK_HTML, PKG_FL[li2]);
+            strcat(&PKG_PACK_HTML, "</li>");
+            li2 = li2 + 1;
+        }
+        strcat(&PKG_PACK_HTML, "</ul></body></html>");
+        print(&PKG_PACK_HTML);
+        print_nl();
+        return 0;
     }
     print("✓ 已打包 ");
     print_i64(PKG_FN);

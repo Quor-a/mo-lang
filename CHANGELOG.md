@@ -1,3 +1,11 @@
+## [1.308.0]
+
+- mopkg pack 支持 --html：打包成功后输出 HTML 文件清单（<h1>/<ul>/<li>）。
+- pack --list --html：只列清单的 HTML 版（<h1>pack 清单</h1>）。
+- 全局 PKG_PACK_HTML 声明移至 pkg_cmd_pack 前（满足先定义后使用）。
+- E2E：pack . out.tar.gz --html 输出完整 HTML；--list --html 正常。
+- 门禁：tests 247/247、projcheck 11/11、自举三级一致、sweep 全绿。
+
 ## [1.307.0]
 
 - httpsrv 所有响应加 HTTP Date 头（RFC 1123 格式，如 Tue, 27 Oct 2026 19:11:42 GMT）。
