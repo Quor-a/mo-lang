@@ -1,0 +1,5 @@
+arith 9793168
+call 8857887
+recur 463581
+array 6727822
+local 10197238

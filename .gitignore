@@ -1,0 +1,30 @@
+# 构建产物
+bin/seed
+bin/moc
+bin/mo2x
+bin/mopkg
+bin/mo2x2
+bin/moc_seed
+bin/moc_self
+bin/mo2c
+bin/dwmo
+bin/lsptest
+bin/modb
+bin/mols
+bin/molink
+bin/seed_dbg
+out.elf
+*.o
+*.elf
+*.tar
+*.gz
+
+# 构建临时目录
+build/
+
+# 依赖
+.deps/
+mo.lock
+
+# 日志
+*.log
