@@ -1,3 +1,13 @@
+## [1.348.0]
+
+- lib/uic.mo 新增样式支持：
+  - uc_style / uc_style_text：设置单元格/文本样式（1=粗体 2=下划线 4=闪烁）
+  - uc_style_out：输出 ANSI 样式序列（自动重设颜色）
+  - uc_render / uc_render_at 自动使用样式
+- tests/101_uic.mo 覆盖样式。
+- E2E：粗体/下划线/闪烁文本正确渲染。
+- 门禁：tests 249/249、projcheck 11/11、自举三级一致、sweep 全绿。
+
 ## [1.347.0]
 
 - lib/uic.mo 新增 256 色支持：

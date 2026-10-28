@@ -36,6 +36,7 @@ var UC_H: i64 = 25;
 var UC_CH: [6000] byte = 0;    # 120*50
 var UC_FG: [6000] byte = 0;
 var UC_BG: [6000] byte = 0;
+var UC_ST: [6000] byte = 0;    # 样式位：1=粗体 2=下划线 4=闪烁
 
 # 颜色常量
 var UC_BLACK: i64 = 0;
@@ -241,11 +242,58 @@ fn uc_color256(fg: i64, bg: i64) -> i64 {
     return 0;
 }
 
+# v1.348: 样式支持 —— 设置单元格样式（1=粗体 2=下划线 4=闪烁，可组合）
+fn uc_style(x: i64, y: i64, st: i64) -> i64 {
+    if x >= 0 && x < UC_W && y >= 0 && y < UC_H {
+        UC_ST[y * UC_W + x] = st;
+    }
+    return 0;
+}
+
+# 输出 ANSI 样式序列到 UC_RB 并打印（样式变化时调用）
+# 正常=0，粗体=1，下划线=2，闪烁=4
+var UC_LASTST: i64 = 0;
+
+fn uc_style_out(st: i64) -> i64 {
+    let i: i64 = 0;
+    let k: i64 = 0;
+    let n: [24] byte = 0;
+    UC_LASTST = st;
+    i = 0;
+    # [0m 重置，然后设置对应样式
+    UC_RB[i] = 27; i=i+1;
+    UC_RB[i] = 91; i=i+1;
+    UC_RB[i] = 48; i=i+1;
+    UC_RB[i] = 109; i=i+1;
+    if (st & 1) != 0 {
+        UC_RB[i] = 27; i=i+1;
+        UC_RB[i] = 91; i=i+1;
+        UC_RB[i] = 49; i=i+1;
+        UC_RB[i] = 109; i=i+1;
+    }
+    if (st & 2) != 0 {
+        UC_RB[i] = 27; i=i+1;
+        UC_RB[i] = 91; i=i+1;
+        UC_RB[i] = 52; i=i+1;
+        UC_RB[i] = 109; i=i+1;
+    }
+    if (st & 4) != 0 {
+        UC_RB[i] = 27; i=i+1;
+        UC_RB[i] = 91; i=i+1;
+        UC_RB[i] = 53; i=i+1;
+        UC_RB[i] = 109; i=i+1;
+    }
+    UC_RB[i] = 0;
+    print(&UC_RB);
+    return 0;
+}
+
 fn uc_render() -> i64 {
     let y: i64 = 0;
     let x: i64 = 0;
     UC_LASTFG = 999;
     UC_LASTBG = 999;
+    UC_LASTST = 999;
     ui_clear();
     y = 0;
     while y < UC_H {
@@ -254,8 +302,12 @@ fn uc_render() -> i64 {
             let idx: i64 = y * UC_W + x;
             let fg: i64 = UC_FG[idx];
             let bg: i64 = UC_BG[idx];
+            let st: i64 = UC_ST[idx];
             if fg != UC_LASTFG || bg != UC_LASTBG {
                 uc_color256(fg, bg);
+            }
+            if st != UC_LASTST {
+                uc_style_out(st);
             }
             # 输出字符（用单字节输出）
             let c: i64 = UC_CH[idx];
@@ -277,6 +329,7 @@ fn uc_render_at(row: i64, col: i64) -> i64 {
     let x: i64 = 0;
     UC_LASTFG = 999;
     UC_LASTBG = 999;
+    UC_LASTST = 999;
     y = 0;
     while y < UC_H {
         ui_gotoxy(row + y, col);
@@ -285,8 +338,12 @@ fn uc_render_at(row: i64, col: i64) -> i64 {
             let idx: i64 = y * UC_W + x;
             let fg: i64 = UC_FG[idx];
             let bg: i64 = UC_BG[idx];
+            let st: i64 = UC_ST[idx];
             if fg != UC_LASTFG || bg != UC_LASTBG {
                 uc_color256(fg, bg);
+            }
+            if st != UC_LASTST {
+                uc_style_out(st);
             }
             let c: i64 = UC_CH[idx];
             UC_RB[0] = c;
@@ -931,5 +988,18 @@ fn uc_icon_folder(x: i64, y: i64, fg: i64, bg: i64) -> i64 {
 # 心形
 fn uc_icon_heart(x: i64, y: i64, fg: i64, bg: i64) -> i64 {
     uc_sprite(x, y, ".##..##.,#######,.#####.,..###...,...#....", fg, bg);
+    return 0;
+}
+
+# v1.348: 给一段文本的所有字符设置样式（1=粗体 2=下划线 4=闪烁）
+fn uc_style_text(x: i64, y: i64, text: ptr, st: i64) -> i64 {
+    let i: i64 = 0;
+    let len: i64 = 0;
+    len = strlen(text);
+    i = 0;
+    while i < len {
+        uc_style(x + i, y, st);
+        i = i + 1;
+    }
     return 0;
 }

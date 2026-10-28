@@ -37,6 +37,8 @@ fn main() -> i64 {
     uc_icon_warn(14, 1, UC_YELLOW, UC_BLUE);
     uc_clear(196, 236);
     uc_text(2, 2, "256color", 196, 236);
+    uc_text(2, 4, "Bold", UC_WHITE, UC_BLUE);
+    uc_style_text(2, 4, "Bold", 1);
     uc_render();
     return 0;
 }
