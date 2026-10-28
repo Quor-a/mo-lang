@@ -1365,6 +1365,50 @@ fn pkg_cmd_size(fil: ptr) -> i64 {
     return 0;
 }
 
+# v1.326:head <file> [n] —— 显示前 n 行（默认 10）
+fn pkg_cmd_head(fil: ptr, n: i64) -> i64 {
+    if strlen(fil) == 0 {
+        print("✗ head 需要文件名\n");
+        return 1;
+    }
+    if n < 1 { n = 1; }
+    let fd: i64 = fopen(fil, 0, 0);
+    if fd < 0 {
+        print("✗ 无法打开 ");
+        print(fil);
+        print_nl();
+        return 1;
+    }
+    let rn: i64 = fread(fd, &HX_BUF, 65535);
+    fclose(fd);
+    if rn < 0 { rn = 0; }
+    let lines: i64 = 0;
+    let li: i64 = 0;
+    let i: i64 = 0;
+    while i < rn && lines < n {
+        let c: i64 = HX_BUF[i];
+        if c == 10 {
+            store8(&HX_LINE + li, 0);
+            print(&HX_LINE);
+            print_nl();
+            lines = lines + 1;
+            li = 0;
+        } else {
+            if li < 120 {
+                store8(&HX_LINE + li, c);
+                li = li + 1;
+            }
+        }
+        i = i + 1;
+    }
+    if lines < n && li > 0 {
+        store8(&HX_LINE + li, 0);
+        print(&HX_LINE);
+        print_nl();
+    }
+    return 0;
+}
+
 # ---------------------------------------------------------------- fetch
 
 fn pkg_install(nm: ptr, url: ptr, ref: ptr, want: ptr, path: ptr, fil: ptr) -> i64 {
@@ -2974,6 +3018,11 @@ fn pkg_dispatch(cmd: ptr) -> i64 {
     if streq(cmd, "sha256") == 1 { return pkg_cmd_sha(pkg_arg2()); }
     if streq(cmd, "wc") == 1 { return pkg_cmd_wc(pkg_arg2()); }
     if streq(cmd, "size") == 1 { return pkg_cmd_size(pkg_arg2()); }
+    if streq(cmd, "head") == 1 {
+        let hn: i64 = 10;
+        if argc() > 3 { hn = atoi(pkg_arg3()); }
+        return pkg_cmd_head(pkg_arg2(), hn);
+    }
     if streq(cmd, "pack") == 1 { return pkg_cmd_pack(pkg_arg2(), pkg_arg3()); }
     if streq(cmd, "remove") == 1 {
         if argc() > 3 {

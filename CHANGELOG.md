@@ -1,3 +1,10 @@
+## [1.326.0]
+
+- mopkg 新增 head 命令：显示文件前 n 行（默认 10）。
+- usage 更新。
+- E2E：head h.txt 显示 1-10 行；head h.txt 3 显示 1-3 行。
+- 门禁：tests 247/247、projcheck 11/11、自举三级一致、sweep 全绿。
+
 ## [1.325.0]
 
 - mopkg 新增 size 命令：文件大小可读格式（B/KB/MB，复用 fs_file_size）。

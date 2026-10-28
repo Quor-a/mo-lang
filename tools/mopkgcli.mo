@@ -31,6 +31,7 @@ fn mopkg_usage() -> i64 {
     print("  sha256   输出文件 sha256 校验和\n");
     print("  wc       行数/词数/字节数统计\n");
     print("  size     文件大小（B/KB/MB 可读格式）\n");
+    print("  head     显示文件前 n 行（默认 10）\n");
     print("\n");
     return 2;
 }
