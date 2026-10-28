@@ -1403,6 +1403,49 @@ fn pkg_cmd_cat(fil: ptr) -> i64 {
     return 0;
 }
 
+# v1.329:cp <src> <dst> —— 文件复制
+fn pkg_cmd_cp(src: ptr, dst: ptr) -> i64 {
+    if strlen(src) == 0 || strlen(dst) == 0 {
+        print("✗ cp 需要源文件和目标文件\n");
+        return 1;
+    }
+    let fds: i64 = fopen(src, 0, 0);
+    if fds < 0 {
+        print("✗ 无法打开 ");
+        print(src);
+        print_nl();
+        return 1;
+    }
+    let fdd: i64 = fopen(dst, 577, 438);
+    if fdd < 0 {
+        print("✗ 无法写入 ");
+        print(dst);
+        print_nl();
+        return 1;
+    }
+    let total: i64 = 0;
+    let rn: i64 = fread(fds, &HX_BUF, 65535);
+    while rn > 0 {
+        let wr: i64 = fwrite(fdd, &HX_BUF, rn);
+        if wr != rn {
+            print("✗ 写入不完整\n");
+            return 1;
+        }
+        total = total + wr;
+        rn = fread(fds, &HX_BUF, 65535);
+    }
+    fclose(fds);
+    fclose(fdd);
+    print("✓ 已复制 ");
+    print_i64(total);
+    print(" 字节 ");
+    print(src);
+    print(" -> ");
+    print(dst);
+    print_nl();
+    return 0;
+}
+
 # v1.327:tail <file> [n] —— 显示末尾 n 行（默认 10）
 fn pkg_cmd_tail(fil: ptr, n: i64) -> i64 {
     if strlen(fil) == 0 {
@@ -3133,6 +3176,7 @@ fn pkg_dispatch(cmd: ptr) -> i64 {
         return pkg_cmd_tail(pkg_arg2(), tn);
     }
     if streq(cmd, "cat") == 1 { return pkg_cmd_cat(pkg_arg2()); }
+    if streq(cmd, "cp") == 1 { return pkg_cmd_cp(pkg_arg2(), pkg_arg3()); }
     if streq(cmd, "pack") == 1 { return pkg_cmd_pack(pkg_arg2(), pkg_arg3()); }
     if streq(cmd, "remove") == 1 {
         if argc() > 3 {
