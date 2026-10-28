@@ -997,6 +997,10 @@ fn pkg_cmd_verify() -> i64 {
             if VR_HTML == 1 { print("</pre></body></html>\n"); VR_HTML = 0; }
             return 1;
         }
+        # v1.318:显示校验的包数量
+        print("共 ");
+        print_i64(n);
+        print(" 个包校验通过\n");
         if VR_HTML == 1 { print("</pre></body></html>\n"); VR_HTML = 0; }
         return 0;
     }
