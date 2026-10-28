@@ -1484,6 +1484,25 @@ fn pkg_cmd_touch(fil: ptr) -> i64 {
     return 0;
 }
 
+# v1.332:rm <file> —— 删除文件
+fn pkg_cmd_rm(fil: ptr) -> i64 {
+    if strlen(fil) == 0 {
+        print("✗ rm 需要文件名\n");
+        return 1;
+    }
+    let ur: i64 = syscall(87, fil, 0, 0, 0, 0, 0);
+    if ur != 0 {
+        print("✗ 无法删除 ");
+        print(fil);
+        print_nl();
+        return 1;
+    }
+    print("✓ 已删除 ");
+    print(fil);
+    print_nl();
+    return 0;
+}
+
 # v1.327:tail <file> [n] —— 显示末尾 n 行（默认 10）
 fn pkg_cmd_tail(fil: ptr, n: i64) -> i64 {
     if strlen(fil) == 0 {
@@ -3217,6 +3236,7 @@ fn pkg_dispatch(cmd: ptr) -> i64 {
     if streq(cmd, "cp") == 1 { return pkg_cmd_cp(pkg_arg2(), pkg_arg3()); }
     if streq(cmd, "mv") == 1 { return pkg_cmd_mv(pkg_arg2(), pkg_arg3()); }
     if streq(cmd, "touch") == 1 { return pkg_cmd_touch(pkg_arg2()); }
+    if streq(cmd, "rm") == 1 { return pkg_cmd_rm(pkg_arg2()); }
     if streq(cmd, "pack") == 1 { return pkg_cmd_pack(pkg_arg2(), pkg_arg3()); }
     if streq(cmd, "remove") == 1 {
         if argc() > 3 {
