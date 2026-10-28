@@ -1,3 +1,14 @@
+## [1.346.0]
+
+- lib/uic.mo 新增图标库：
+  - uc_icon_check（对勾）/ uc_icon_cross（叉）/ uc_icon_warn（警告）
+  - uc_icon_search（放大镜）/ uc_icon_lock（锁）/ uc_icon_file（文件）
+  - uc_icon_folder（文件夹）/ uc_icon_heart（心形）
+  - 用字符 sprite 绘制，开发者可直接调用或自由组合
+- tests/101_uic.mo 覆盖图标库。
+- E2E：8 种图标全部正确渲染。
+- 门禁：tests 249/249、projcheck 11/11、自举三级一致、sweep 全绿。
+
 ## [1.345.0]
 
 - lib/uic.mo 新增主题系统：

@@ -32,6 +32,9 @@ fn main() -> i64 {
     uc_slider(20, 25, 14, 60, UC_YELLOW, UC_BLUE);
     uc_theme_dark();
     uc_apply_theme();
+    uc_icon_check(2, 1, UC_GREEN, UC_BLUE);
+    uc_icon_heart(8, 1, UC_RED, UC_BLUE);
+    uc_icon_warn(14, 1, UC_YELLOW, UC_BLUE);
     uc_render();
     return 0;
 }

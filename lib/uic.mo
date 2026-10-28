@@ -824,3 +824,56 @@ fn uc_apply_theme() -> i64 {
     uc_clear(UC_TC, UC_TB);
     return 0;
 }
+
+# ============ v1.346 图标库 ============
+
+# 常用图标（用字符 sprite 拼出，开发者可直接调用）
+# 每个图标用 uc_sprite 绘制，透明用 '.'
+
+# 对勾 ✓
+fn uc_icon_check(x: i64, y: i64, fg: i64, bg: i64) -> i64 {
+    uc_sprite(x, y, "....#..,.....#.,......#,.......#", fg, bg);
+    return 0;
+}
+
+# 叉 ✗
+fn uc_icon_cross(x: i64, y: i64, fg: i64, bg: i64) -> i64 {
+    uc_sprite(x, y, "#......#,.#....#.,..#..#..,...##...,..#..#..,.#....#.,#......#", fg, bg);
+    return 0;
+}
+
+# 警告 !
+fn uc_icon_warn(x: i64, y: i64, fg: i64, bg: i64) -> i64 {
+    uc_sprite(x, y, "...##...,..####..,..####..,.##..##.,.##..##.,.######.,..####..,..##....", fg, bg);
+    return 0;
+}
+
+# 放大镜
+fn uc_icon_search(x: i64, y: i64, fg: i64, bg: i64) -> i64 {
+    uc_sprite(x, y, ".#####.,##...##,##...#,##...#,##...#,##...##,.#####.,....#..", fg, bg);
+    return 0;
+}
+
+# 锁
+fn uc_icon_lock(x: i64, y: i64, fg: i64, bg: i64) -> i64 {
+    uc_sprite(x, y, "..###..,.#...#.,#.....#,#.....#,#######,#.....#,#.....#,#######", fg, bg);
+    return 0;
+}
+
+# 文件
+fn uc_icon_file(x: i64, y: i64, fg: i64, bg: i64) -> i64 {
+    uc_sprite(x, y, "######.,#....#,#....#,#....#,#....#,#....#,######.", fg, bg);
+    return 0;
+}
+
+# 文件夹
+fn uc_icon_folder(x: i64, y: i64, fg: i64, bg: i64) -> i64 {
+    uc_sprite(x, y, "#######,#.....#,#.....#,#######,#.....#,#.....#,#######", fg, bg);
+    return 0;
+}
+
+# 心形
+fn uc_icon_heart(x: i64, y: i64, fg: i64, bg: i64) -> i64 {
+    uc_sprite(x, y, ".##..##.,#######,.#####.,..###...,...#....", fg, bg);
+    return 0;
+}
