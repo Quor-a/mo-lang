@@ -1,3 +1,12 @@
+## [1.383.0]
+
+- lib/uic.mo 新增标签页：
+  - uc_tabs：标签页栏（'|' 分隔，选中页反色高亮）
+  - 用于设置界面、多面板、对话框
+- tests/101_uic.mo 覆盖标签页。
+- E2E：Home/Files/About 标签，Files 反色。
+- 门禁：tests 249/249、projcheck 11/11、自举三级一致、sweep 全绿。
+
 ## [1.382.0]
 
 - 新增 examples/uic_desktop.mo：桌面 UI 示例。

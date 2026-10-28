@@ -2296,3 +2296,61 @@ fn uc_face(x: i64, y: i64, type_: i64, fg: i64, bg: i64) -> i64 {
     }
     return 0;
 }
+
+# ============ v1.383 标签页 ============
+
+# uc_tabs：绘制标签页（tab 栏）
+# tabs 为 '|' 分隔的标签名，active_idx 为选中页（反色高亮）。
+# 选中页下方显示横线。用于设置界面、多面板。
+fn uc_tabs(x: i64, y: i64, tabs: ptr, active_idx: i64, fg: i64, bg: i64) -> i64 {
+    let len: i64 = 0;
+    let i: i64 = 0;
+    let idx: i64 = 0;
+    let cx: i64 = 0;
+    let start: i64 = 0;
+    let active_start: i64 = 0;
+    let active_len: i64 = 0;
+    len = strlen(tabs);
+    cx = x;
+    start = x;
+    idx = 0;
+    i = 0;
+    while i < len {
+        if tabs[i] == 124 {  # '|'
+            if idx == active_idx {
+                active_start = start;
+                active_len = cx - start;
+            }
+            idx = idx + 1;
+            start = cx + 1;
+            cx = cx + 1;
+        } else {
+            uc_set(cx, y, tabs[i], fg, bg);
+            cx = cx + 1;
+        }
+        i = i + 1;
+    }
+    if idx == active_idx {
+        active_start = start;
+        active_len = cx - start;
+    }
+    # 选中页反色
+    if active_len > 0 {
+        uc_reverse(active_start, y, active_len, 1);
+    }
+    # 底部分隔线
+    i = x;
+    while i < cx {
+        if i < active_start {
+            uc_set(i, y + 1, '-', fg, bg);
+        } else {
+            if i >= active_start + active_len {
+                uc_set(i, y + 1, '-', fg, bg);
+            } else {
+                uc_set(i, y + 1, ' ', fg, bg);
+            }
+        }
+        i = i + 1;
+    }
+    return 0;
+}
