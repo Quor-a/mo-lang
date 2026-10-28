@@ -1809,3 +1809,62 @@ fn uc_reverse(x: i64, y: i64, w: i64, h: i64) -> i64 {
     }
     return 0;
 }
+
+# ============ v1.369 按钮组件 ============
+
+# uc_button：绘制一个按钮
+# x,y 左上角，w 宽度，label 按钮文本（居中显示）
+# active=1 时反色（选中/按下态），否则普通凸起风格。
+fn uc_button(x: i64, y: i64, w: i64, label: ptr, fg: i64, bg: i64, active: i64) -> i64 {
+    let len: i64 = 0;
+    let pad: i64 = 0;
+    let i: i64 = 0;
+    if w < 4 { w = 4; }
+    len = strlen(label);
+    # 计算左右 padding 使文本居中
+    pad = (w - len) / 2;
+    if pad < 1 { pad = 1; }
+    # 顶部边框
+    uc_set(x, y, '[', fg, bg);
+    uc_set(x + w - 1, y, ']', fg, bg);
+    i = 1;
+    while i < w - 1 {
+        uc_set(x + i, y, '-', fg, bg);
+        i = i + 1;
+    }
+    # 按钮文本行
+    i = 0;
+    while i < w {
+        if i == 0 {
+            uc_set(x, y + 1, '|', fg, bg);
+        } else {
+            if i == w - 1 {
+                uc_set(x + i, y + 1, '|', fg, bg);
+            } else {
+                if i >= pad {
+                    if i - pad < len {
+                        uc_set(x + i, y + 1, label[i - pad], fg, bg);
+                    } else {
+                        uc_set(x + i, y + 1, 32, fg, bg);
+                    }
+                } else {
+                    uc_set(x + i, y + 1, 32, fg, bg);
+                }
+            }
+        }
+        i = i + 1;
+    }
+    # 底部边框
+    uc_set(x, y + 2, '[', fg, bg);
+    uc_set(x + w - 1, y + 2, ']', fg, bg);
+    i = 1;
+    while i < w - 1 {
+        uc_set(x + i, y + 2, '-', fg, bg);
+        i = i + 1;
+    }
+    # active 时反色整个按钮区域
+    if active == 1 {
+        uc_reverse(x, y, w, 3);
+    }
+    return 0;
+}
