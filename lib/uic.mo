@@ -1392,3 +1392,47 @@ fn uc_fill_round(x: i64, y: i64, w: i64, h: i64, ch: i64, fg: i64, bg: i64) -> i
     uc_set(x + w - 1, y + h - 1, 32, fg, bg);
     return 0;
 }
+
+# ============ v1.358 网格与坐标轴 ============
+
+# uc_grid：绘制网格 —— 指定区域画网格线（水平/垂直，间距 step）
+fn uc_grid(x: i64, y: i64, w: i64, h: i64, step: i64, ch: i64, fg: i64, bg: i64) -> i64 {
+    let i: i64 = 0;
+    if step < 1 { step = 1; }
+    # 垂直线
+    i = 0;
+    while i <= w {
+        uc_vline(x + i, y, h, ch, fg, bg);
+        i = i + step;
+    }
+    # 水平线
+    i = 0;
+    while i <= h {
+        uc_hline(x, y + i, w, ch, fg, bg);
+        i = i + step;
+    }
+    return 0;
+}
+
+# uc_axis：绘制坐标轴 —— 原点 (ox,oy)，向右为 X，向上为 Y
+# 带箭头字符（X 轴右端 '>', Y 轴上端 '^'）和刻度标记
+fn uc_axis(ox: i64, oy: i64, len_x: i64, len_y: i64, fg: i64, bg: i64) -> i64 {
+    let i: i64 = 0;
+    # X 轴（水平向右）
+    i = 0;
+    while i <= len_x {
+        uc_set(ox + i, oy, '-', fg, bg);
+        i = i + 1;
+    }
+    uc_set(ox + len_x, oy, '>', fg, bg);
+    # Y 轴（垂直向上）
+    i = 0;
+    while i <= len_y {
+        uc_set(ox, oy - i, '|', fg, bg);
+        i = i + 1;
+    }
+    uc_set(ox, oy - len_y, '^', fg, bg);
+    # 原点
+    uc_set(ox, oy, '+', fg, bg);
+    return 0;
+}

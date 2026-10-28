@@ -51,6 +51,8 @@ fn main() -> i64 {
     uc_flip_h();
     uc_round_rect(2, 5, 10, 3, UC_CYAN, UC_BLUE);
     uc_fill_round(16, 5, 8, 3, '=', UC_GREEN, UC_BLUE);
+    uc_axis(5, 8, 12, 5, UC_CYAN, UC_BLUE);
+    uc_grid(2, 2, 4, 2, 2, '.', UC_GREEN, UC_BLUE);
     uc_render();
     return 0;
 }
