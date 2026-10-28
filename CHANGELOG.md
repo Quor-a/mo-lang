@@ -1,3 +1,10 @@
+## [1.328.0]
+
+- mopkg 新增 cat 命令：输出文件全部内容（逐行）。
+- usage 更新。
+- E2E：cat cat.txt 输出 "Hello Mo!\nLine two."。
+- 门禁：tests 247/247、projcheck 11/11、自举三级一致、sweep 全绿。
+
 ## [1.327.0]
 
 - mopkg 新增 tail 命令：显示文件末尾 n 行（默认 10）。

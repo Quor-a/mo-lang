@@ -1365,6 +1365,44 @@ fn pkg_cmd_size(fil: ptr) -> i64 {
     return 0;
 }
 
+# v1.328:cat <file> —— 输出文件全部内容（逐行）
+fn pkg_cmd_cat(fil: ptr) -> i64 {
+    if strlen(fil) == 0 {
+        print("✗ cat 需要文件名\n");
+        return 1;
+    }
+    let fd: i64 = fopen(fil, 0, 0);
+    if fd < 0 {
+        print("✗ 无法打开 ");
+        print(fil);
+        print_nl();
+        return 1;
+    }
+    let rn: i64 = fread(fd, &HX_BUF, 65535);
+    fclose(fd);
+    if rn < 0 { rn = 0; }
+    let li: i64 = 0;
+    let i: i64 = 0;
+    while i < rn {
+        let c: i64 = HX_BUF[i];
+        if c == 10 {
+            store8(&HX_LINE + li, 0);
+            print(&HX_LINE);
+            print_nl();
+            li = 0;
+        } else {
+            if li < 120 { store8(&HX_LINE + li, c); li = li + 1; }
+        }
+        i = i + 1;
+    }
+    if li > 0 {
+        store8(&HX_LINE + li, 0);
+        print(&HX_LINE);
+        print_nl();
+    }
+    return 0;
+}
+
 # v1.327:tail <file> [n] —— 显示末尾 n 行（默认 10）
 fn pkg_cmd_tail(fil: ptr, n: i64) -> i64 {
     if strlen(fil) == 0 {
@@ -3094,6 +3132,7 @@ fn pkg_dispatch(cmd: ptr) -> i64 {
         if argc() > 3 { tn = atoi(pkg_arg3()); }
         return pkg_cmd_tail(pkg_arg2(), tn);
     }
+    if streq(cmd, "cat") == 1 { return pkg_cmd_cat(pkg_arg2()); }
     if streq(cmd, "pack") == 1 { return pkg_cmd_pack(pkg_arg2(), pkg_arg3()); }
     if streq(cmd, "remove") == 1 {
         if argc() > 3 {

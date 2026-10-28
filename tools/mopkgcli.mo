@@ -33,6 +33,7 @@ fn mopkg_usage() -> i64 {
     print("  size     文件大小（B/KB/MB 可读格式）\n");
     print("  head     显示文件前 n 行（默认 10）\n");
     print("  tail     显示文件末尾 n 行（默认 10）\n");
+    print("  cat      输出文件全部内容\n");
     print("\n");
     return 2;
 }
