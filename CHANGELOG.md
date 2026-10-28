@@ -1,3 +1,12 @@
+## [1.360.0]
+
+- lib/uic.mo 新增键盘交互：
+  - uc_read_key：阻塞读取一个按键（用于交互式画布应用）
+  - uc_has_key：非阻塞检查是否有按键（select syscall）
+- 新增 examples/uic_input.mo：交互式画布（w/a/s/d 移动 @，q 退出）。
+- E2E：管道喂 "ddq" 程序正常退出，@ 正确移动。
+- 门禁：tests 249/249、projcheck 11/11、自举三级一致、sweep 全绿。
+
 ## [1.359.0]
 
 - lib/uic.mo 新增 SVG 导出：

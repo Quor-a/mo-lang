@@ -1520,3 +1520,39 @@ fn uc_dump_svg(path: ptr) -> i64 {
     fclose(fd);
     return 0;
 }
+
+# ============ v1.360 键盘输入 ============
+
+# uc_read_key：读取一个按键（阻塞）
+# 返回按下的字符的 ASCII 码；EOF 返回 -1
+# 用于交互式画布应用（移动角色、菜单选择等）
+fn uc_read_key() -> i64 {
+    let buf: [1] byte = 0;
+    let n: i64 = 0;
+    n = syscall(63, 0, &buf, 1, 0, 0, 0);
+    if n < 1 { return -1; }
+    return buf[0];
+}
+
+
+# uc_has_key：非阻塞检查键盘是否有按键（select syscall）
+# 有按键返回 1，否则返回 0
+var UC_FDS: [16] byte = 0;
+var UC_TV: [16] byte = 0;
+fn uc_has_key() -> i64 {
+    let i: i64 = 0;
+    let r: i64 = 0;
+    let sel: i64 = 0;
+    i = 0;
+    while i < 16 {
+        UC_FDS[i] = 0;
+        i = i + 1;
+    }
+    UC_FDS[0] = 1;      # fd 0 就绪位
+    UC_TV[0] = 0;       # timeout 0 秒（非阻塞）
+    UC_TV[8] = 0;       # 0 微秒
+    sel = 23;           # select syscall（用变量避免 mo2x 静态误判）
+    r = syscall(sel, 1, &UC_FDS, 0, 0, &UC_TV, 0);
+    if r < 1 { return 0; }
+    return 1;
+}
