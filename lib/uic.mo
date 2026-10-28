@@ -1556,3 +1556,42 @@ fn uc_has_key() -> i64 {
     if r < 1 { return 0; }
     return 1;
 }
+
+# ============ v1.361 渐变填充 ============
+
+# uc_gradient：垂直渐变填充区域
+# 用字符密度模拟亮度渐变（密 → 疏）：@ % # * + = - . [空格]
+# 适用于图表、仪表盘、游戏血条、视觉装饰。
+fn uc_gradient(x: i64, y: i64, w: i64, h: i64, fg: i64, bg: i64) -> i64 {
+    let i: i64 = 0;
+    let j: i64 = 0;
+    let chars: [11] byte = 0;
+    let step: i64 = 0;
+    let idx: i64 = 0;
+    chars[0] = 64;   # @
+    chars[1] = 37;   # %
+    chars[2] = 35;   # #
+    chars[3] = 42;   # *
+    chars[4] = 43;   # +
+    chars[5] = 61;   # =
+    chars[6] = 45;   # -
+    chars[7] = 46;   # .
+    chars[8] = 32;   # 空格
+    chars[9] = 32;
+    chars[10] = 32;
+    if h < 1 { return 0; }
+    step = h / 10;
+    if step < 1 { step = 1; }
+    j = 0;
+    while j < h {
+        idx = j / step;
+        if idx > 10 { idx = 10; }
+        i = 0;
+        while i < w {
+            uc_set(x + i, y + j, chars[idx], fg, bg);
+            i = i + 1;
+        }
+        j = j + 1;
+    }
+    return 0;
+}
