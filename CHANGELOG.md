@@ -1,3 +1,10 @@
+## [1.330.0]
+
+- mopkg 新增 mv 命令：文件移动 <src> <dst>（复制后删除源）。
+- usage 更新。
+- E2E：mv mvs.txt mvd.txt 后源文件消失、目标内容正确。
+- 门禁：tests 247/247、projcheck 11/11、自举三级一致、sweep 全绿。
+
 ## [1.329.0]
 
 - mopkg 新增 cp 命令：文件复制 <src> <dst>（分块读写，支持大文件）。

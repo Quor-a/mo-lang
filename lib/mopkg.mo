@@ -1446,6 +1446,24 @@ fn pkg_cmd_cp(src: ptr, dst: ptr) -> i64 {
     return 0;
 }
 
+# v1.330:mv <src> <dst> —— 文件移动（复制后删除源）
+fn pkg_cmd_mv(src: ptr, dst: ptr) -> i64 {
+    if strlen(src) == 0 || strlen(dst) == 0 {
+        print("✗ mv 需要源文件和目标文件\n");
+        return 1;
+    }
+    let rc: i64 = pkg_cmd_cp(src, dst);
+    if rc != 0 { return rc; }
+    let ur: i64 = syscall(87, src, 0, 0, 0, 0, 0);
+    if ur != 0 {
+        print("✗ 删除源文件失败 ");
+        print(src);
+        print_nl();
+        return 1;
+    }
+    return 0;
+}
+
 # v1.327:tail <file> [n] —— 显示末尾 n 行（默认 10）
 fn pkg_cmd_tail(fil: ptr, n: i64) -> i64 {
     if strlen(fil) == 0 {
@@ -3177,6 +3195,7 @@ fn pkg_dispatch(cmd: ptr) -> i64 {
     }
     if streq(cmd, "cat") == 1 { return pkg_cmd_cat(pkg_arg2()); }
     if streq(cmd, "cp") == 1 { return pkg_cmd_cp(pkg_arg2(), pkg_arg3()); }
+    if streq(cmd, "mv") == 1 { return pkg_cmd_mv(pkg_arg2(), pkg_arg3()); }
     if streq(cmd, "pack") == 1 { return pkg_cmd_pack(pkg_arg2(), pkg_arg3()); }
     if streq(cmd, "remove") == 1 {
         if argc() > 3 {

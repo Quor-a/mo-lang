@@ -35,6 +35,7 @@ fn mopkg_usage() -> i64 {
     print("  tail     显示文件末尾 n 行（默认 10）\n");
     print("  cat      输出文件全部内容\n");
     print("  cp       复制文件 <src> <dst>\n");
+    print("  mv       移动文件 <src> <dst>\n");
     print("\n");
     return 2;
 }
