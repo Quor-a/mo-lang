@@ -181,11 +181,71 @@ fn uc_vline(x: i64, y1: i64, y2: i64, ch: i64, fg: i64, bg: i64) -> i64 {
 }
 
 # 一次性渲染整块画布到终端
+# v1.347: 256 色支持 —— 前景/背景值 >7 时输出 ANSI 256 色序列
+# 0-7 用基础色，8-255 用 256 色序列。
+var UC_LASTFG: i64 = 0;
+var UC_LASTBG: i64 = 0;
+
+# 输出 ANSI 256 色前景+背景序列到 UC_RB 并打印
+fn uc_color256(fg: i64, bg: i64) -> i64 {
+    let i: i64 = 0;
+    let k: i64 = 0;
+    let n: [24] byte = 0;
+    UC_LASTFG = fg;
+    UC_LASTBG = bg;
+    i = 0;
+    # 前景：[38;5;Fm
+    if fg > 7 {
+        UC_RB[i] = 27; i=i+1;
+        UC_RB[i] = 91; i=i+1;
+        UC_RB[i] = 51; i=i+1;
+        UC_RB[i] = 56; i=i+1;
+        UC_RB[i] = 59; i=i+1;
+        UC_RB[i] = 53; i=i+1;
+        UC_RB[i] = 59; i=i+1;
+        utoa(fg, &n, 10);
+        k = 0;
+        while n[k] != 0 {
+            UC_RB[i] = n[k]; i=i+1; k=k+1;
+        }
+        UC_RB[i] = 109; i=i+1;
+    } else {
+        UC_RB[i] = 27; i=i+1;
+        UC_RB[i] = 91; i=i+1;
+        UC_RB[i] = 48 + fg; i=i+1;   # '3X'
+        UC_RB[i] = 109; i=i+1;
+    }
+    # 背景：[48;5;Bm
+    if bg > 7 {
+        UC_RB[i] = 27; i=i+1;
+        UC_RB[i] = 91; i=i+1;
+        UC_RB[i] = 52; i=i+1;
+        UC_RB[i] = 56; i=i+1;
+        UC_RB[i] = 59; i=i+1;
+        UC_RB[i] = 53; i=i+1;
+        UC_RB[i] = 59; i=i+1;
+        utoa(bg, &n, 10);
+        k = 0;
+        while n[k] != 0 {
+            UC_RB[i] = n[k]; i=i+1; k=k+1;
+        }
+        UC_RB[i] = 109; i=i+1;
+    } else {
+        UC_RB[i] = 27; i=i+1;
+        UC_RB[i] = 91; i=i+1;
+        UC_RB[i] = 48 + bg; i=i+1;   # '4X'
+        UC_RB[i] = 109; i=i+1;
+    }
+    UC_RB[i] = 0;
+    print(&UC_RB);
+    return 0;
+}
+
 fn uc_render() -> i64 {
     let y: i64 = 0;
     let x: i64 = 0;
-    let lastfg: i64 = -1;
-    let lastbg: i64 = -1;
+    UC_LASTFG = 999;
+    UC_LASTBG = 999;
     ui_clear();
     y = 0;
     while y < UC_H {
@@ -194,10 +254,8 @@ fn uc_render() -> i64 {
             let idx: i64 = y * UC_W + x;
             let fg: i64 = UC_FG[idx];
             let bg: i64 = UC_BG[idx];
-            if fg != lastfg || bg != lastbg {
-                ui_color(30 + fg, 40 + bg);
-                lastfg = fg;
-                lastbg = bg;
+            if fg != UC_LASTFG || bg != UC_LASTBG {
+                uc_color256(fg, bg);
             }
             # 输出字符（用单字节输出）
             let c: i64 = UC_CH[idx];
@@ -217,8 +275,8 @@ fn uc_render() -> i64 {
 fn uc_render_at(row: i64, col: i64) -> i64 {
     let y: i64 = 0;
     let x: i64 = 0;
-    let lastfg: i64 = -1;
-    let lastbg: i64 = -1;
+    UC_LASTFG = 999;
+    UC_LASTBG = 999;
     y = 0;
     while y < UC_H {
         ui_gotoxy(row + y, col);
@@ -227,10 +285,8 @@ fn uc_render_at(row: i64, col: i64) -> i64 {
             let idx: i64 = y * UC_W + x;
             let fg: i64 = UC_FG[idx];
             let bg: i64 = UC_BG[idx];
-            if fg != lastfg || bg != lastbg {
-                ui_color(30 + fg, 40 + bg);
-                lastfg = fg;
-                lastbg = bg;
+            if fg != UC_LASTFG || bg != UC_LASTBG {
+                uc_color256(fg, bg);
             }
             let c: i64 = UC_CH[idx];
             UC_RB[0] = c;
