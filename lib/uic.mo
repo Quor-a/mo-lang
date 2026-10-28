@@ -1868,3 +1868,18 @@ fn uc_button(x: i64, y: i64, w: i64, label: ptr, fg: i64, bg: i64, active: i64) 
     }
     return 0;
 }
+
+# ============ v1.370 旋转指示器 ============
+
+# uc_spinner：绘制旋转加载指示器
+# frame 为帧序号（0-3 循环），产生旋转动画效果。
+# 显示字符：| / - \ 依次旋转。用于加载中状态。
+fn uc_spinner(x: i64, y: i64, frame: i64, fg: i64, bg: i64) -> i64 {
+    let c: i64 = 0;
+    if frame % 4 == 0 { c = 124; }     # |
+    if frame % 4 == 1 { c = 47; }      # /
+    if frame % 4 == 2 { c = 45; }      # -
+    if frame % 4 == 3 { c = 92; }      # \
+    uc_set(x, y, c, fg, bg);
+    return 0;
+}
