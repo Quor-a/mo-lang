@@ -1324,6 +1324,47 @@ fn pkg_cmd_wc(fil: ptr) -> i64 {
     return 0;
 }
 
+# v1.325:size <file> —— 文件大小（B/KB/MB 可读）
+fn pkg_cmd_size(fil: ptr) -> i64 {
+    if strlen(fil) == 0 {
+        print("✗ size 需要文件名\n");
+        return 1;
+    }
+    let n: i64 = fs_file_size(fil);
+    if n < 0 {
+        print("✗ 无法打开 ");
+        print(fil);
+        print_nl();
+        return 1;
+    }
+    print(fil);
+    print(" = ");
+    print_i64(n);
+    print(" B (");
+    let kb: i64 = n / 1024;
+    if kb < 1024 {
+        if kb == 0 {
+            print("0");
+        } else {
+            print_i64(kb);
+            print(".");
+            let frac: i64 = (n % 1024) * 100 / 1024;
+            if frac < 10 { print("0"); }
+            print_i64(frac);
+        }
+        print(" KB)\n");
+    } else {
+        let mb: i64 = kb / 1024;
+        print_i64(mb);
+        print(".");
+        let frac2: i64 = (kb % 1024) * 100 / 1024;
+        if frac2 < 10 { print("0"); }
+        print_i64(frac2);
+        print(" MB)\n");
+    }
+    return 0;
+}
+
 # ---------------------------------------------------------------- fetch
 
 fn pkg_install(nm: ptr, url: ptr, ref: ptr, want: ptr, path: ptr, fil: ptr) -> i64 {
@@ -2932,6 +2973,7 @@ fn pkg_dispatch(cmd: ptr) -> i64 {
     if streq(cmd, "cmp") == 1 { return pkg_cmd_cmp(pkg_arg2(), pkg_arg3()); }
     if streq(cmd, "sha256") == 1 { return pkg_cmd_sha(pkg_arg2()); }
     if streq(cmd, "wc") == 1 { return pkg_cmd_wc(pkg_arg2()); }
+    if streq(cmd, "size") == 1 { return pkg_cmd_size(pkg_arg2()); }
     if streq(cmd, "pack") == 1 { return pkg_cmd_pack(pkg_arg2(), pkg_arg3()); }
     if streq(cmd, "remove") == 1 {
         if argc() > 3 {
