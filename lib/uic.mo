@@ -2226,3 +2226,39 @@ fn uc_listbox(x: i64, y: i64, w: i64, items: ptr, active_idx: i64, fg: i64, bg: 
     }
     return 0;
 }
+# ============ v1.380 模拟时钟 ============
+
+# uc_clock_face：绘制模拟时钟钟面
+# cx,cy 为钟面中心，r 为半径。显示 12/3/6/9 数字。
+# hh,mm 为时分（12 小时制），用 'H' 标记时针位置。
+fn uc_clock_face(cx: i64, cy: i64, r: i64, hh: i64, mm: i64, fg: i64, bg: i64) -> i64 {
+    let i: i64 = 0;
+    let hpos: i64 = 0;
+    if r < 3 { r = 3; }
+    # 钟面圆圈（用矩形近似）
+    uc_round_rect(cx - r, cy - r, r * 2 + 1, r * 2 + 1, fg, bg);
+    # 12 点
+    uc_set(cx, cy - r + 1, '^', fg, bg);
+    # 3 点
+    uc_set(cx + r - 1, cy, '>', fg, bg);
+    # 6 点
+    uc_set(cx, cy + r - 1, 'v', fg, bg);
+    # 9 点
+    uc_set(cx - r + 1, cy, '<', fg, bg);
+    # 中心
+    uc_set(cx, cy, '+', fg, bg);
+    # 时针位置（简化：按小时映射到钟面）
+    hpos = (hh % 12) * (2 * r) / 12;
+    i = 0;
+    while i < hpos {
+        uc_set(cx - hpos + i, cy, '-', fg, bg);
+        i = i + 1;
+    }
+    # 分针位置（简化：向右延伸）
+    i = 0;
+    while i < mm * (r - 1) / 60 {
+        uc_set(cx + i, cy, '.', fg, bg);
+        i = i + 1;
+    }
+    return 0;
+}
