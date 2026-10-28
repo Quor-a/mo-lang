@@ -1278,3 +1278,63 @@ fn uc_paste(x: i64, y: i64) -> i64 {
     }
     return 0;
 }
+
+# ============ v1.355 翻转与旋转 ============
+
+# uc_flip_h：水平翻转整个画布
+fn uc_flip_h() -> i64 {
+    let x: i64 = 0;
+    let y: i64 = 0;
+    let tmpc: i64 = 0;
+    let tmpf: i64 = 0;
+    let tmpb: i64 = 0;
+    y = 0;
+    while y < UC_H {
+        x = 0;
+        while x < UC_W / 2 {
+            let a: i64 = y * UC_W + x;
+            let b: i64 = y * UC_W + (UC_W - 1 - x);
+            tmpc = UC_CH[a];
+            tmpf = UC_FG[a];
+            tmpb = UC_BG[a];
+            UC_CH[a] = UC_CH[b];
+            UC_FG[a] = UC_FG[b];
+            UC_BG[a] = UC_BG[b];
+            UC_CH[b] = tmpc;
+            UC_FG[b] = tmpf;
+            UC_BG[b] = tmpb;
+            x = x + 1;
+        }
+        y = y + 1;
+    }
+    return 0;
+}
+
+# uc_flip_v：垂直翻转整个画布
+fn uc_flip_v() -> i64 {
+    let x: i64 = 0;
+    let y: i64 = 0;
+    let tmpc: i64 = 0;
+    let tmpf: i64 = 0;
+    let tmpb: i64 = 0;
+    y = 0;
+    while y < UC_H / 2 {
+        x = 0;
+        while x < UC_W {
+            let a: i64 = y * UC_W + x;
+            let b: i64 = (UC_H - 1 - y) * UC_W + x;
+            tmpc = UC_CH[a];
+            tmpf = UC_FG[a];
+            tmpb = UC_BG[a];
+            UC_CH[a] = UC_CH[b];
+            UC_FG[a] = UC_FG[b];
+            UC_BG[a] = UC_BG[b];
+            UC_CH[b] = tmpc;
+            UC_FG[b] = tmpf;
+            UC_BG[b] = tmpb;
+            x = x + 1;
+        }
+        y = y + 1;
+    }
+    return 0;
+}

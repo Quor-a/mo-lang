@@ -47,6 +47,8 @@ fn main() -> i64 {
     uc_scroll(1, 1, 32, UC_WHITE, UC_BLUE);
     uc_copy(5, 2, 4, 1);
     uc_paste(15, 2);
+    uc_text(5, 3, "AB", UC_YELLOW, UC_BLUE);
+    uc_flip_h();
     uc_render();
     return 0;
 }
