@@ -775,3 +775,52 @@ fn uc_slider(x: i64, y: i64, width: i64, value: i64, fg: i64, bg: i64) -> i64 {
     uc_set(x + width - 1, y, ']', UC_WHITE, bg);
     return 0;
 }
+
+# ============ v1.345 主题系统 ============
+
+# 全局主题变量（默认浅色主题）
+var UC_TC: i64 = 7;    # 主文本色
+var UC_TB: i64 = 0;    # 主背景色
+var UC_AC: i64 = 6;    # 强调色（边框/高亮）
+var UC_SB: i64 = 1;    # 标题栏背景
+var UC_SC: i64 = 3;    # 状态栏前景
+var UC_WB: i64 = 0;    # 窗口内容背景
+
+# uc_theme_dark：应用深色主题（白字黑底）
+fn uc_theme_dark() -> i64 {
+    UC_TC = 7;
+    UC_TB = 0;
+    UC_AC = 6;
+    UC_SB = 4;
+    UC_SC = 3;
+    UC_WB = 0;
+    return 0;
+}
+
+# uc_theme_light：应用浅色主题（黑字白底）
+fn uc_theme_light() -> i64 {
+    UC_TC = 0;
+    UC_TB = 7;
+    UC_AC = 4;
+    UC_SB = 7;
+    UC_SC = 0;
+    UC_WB = 7;
+    return 0;
+}
+
+# uc_theme_custom：自定义主题
+fn uc_theme_custom(tc: i64, tb: i64, ac: i64, sb: i64, sc: i64, wb: i64) -> i64 {
+    UC_TC = tc;
+    UC_TB = tb;
+    UC_AC = ac;
+    UC_SB = sb;
+    UC_SC = sc;
+    UC_WB = wb;
+    return 0;
+}
+
+# uc_apply_theme：把当前主题应用到整个画布背景
+fn uc_apply_theme() -> i64 {
+    uc_clear(UC_TC, UC_TB);
+    return 0;
+}

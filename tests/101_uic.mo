@@ -30,6 +30,8 @@ fn main() -> i64 {
     uc_radio(30, 23, "A", 1, UC_WHITE, UC_BLUE);
     uc_input(2, 25, "admin", 8, UC_BLACK, UC_WHITE);
     uc_slider(20, 25, 14, 60, UC_YELLOW, UC_BLUE);
+    uc_theme_dark();
+    uc_apply_theme();
     uc_render();
     return 0;
 }

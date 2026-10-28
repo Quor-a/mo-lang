@@ -1,3 +1,13 @@
+## [1.345.0]
+
+- lib/uic.mo 新增主题系统：
+  - uc_theme_dark / uc_theme_light / uc_theme_custom：定义配色主题
+  - uc_apply_theme：把主题应用到整个画布背景
+  - 主题变量：主文本色、背景色、强调色、标题栏背景、状态栏前景、窗口内容背景
+- tests/101_uic.mo 覆盖主题系统。
+- E2E：深色/浅色主题一键切换。
+- 门禁：tests 249/249、projcheck 11/11、自举三级一致、sweep 全绿。
+
 ## [1.344.0]
 
 - lib/uic.mo 新增表单组件：
