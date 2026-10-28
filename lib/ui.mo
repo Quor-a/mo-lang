@@ -430,3 +430,49 @@ fn ui_table_line(row: i64, c: i64, s: ptr, ncols: i64, colw: i64) -> i64 {
     }
     return 0;
 }
+
+# v1.336:模态对话框 —— 在指定区域绘制带标题的对话框，中央显示消息 + 按钮
+# 宽度 dw，高度 dh，标题 title，消息 msg，按钮 label（如 "OK,Cancel"）
+fn ui_dialog(r: i64, c: i64, dw: i64, dh: i64, title: ptr, msg: ptr, btns: ptr) -> i64 {
+    let i: i64 = 0;
+    let k: i64 = 0;
+    let len: i64 = 0;
+    let buf: [128] byte = 0;
+    if dw < 12 { dw = 12; }
+    if dh < 5 { dh = 5; }
+    ui_box(r, c, dw, dh, title);
+    # 消息（居中）
+    len = strlen(msg);
+    if len > dw - 4 { len = dw - 4; }
+    ui_gotoxy(r + 1, c + 1);
+    print(" ");
+    k = 0;
+    while k < len {
+        buf[k] = msg[k];
+        k = k + 1;
+    }
+    buf[k] = 0;
+    print(&buf);
+    # 按钮（底部居中）
+    len = strlen(btns);
+    k = 0;
+    ui_gotoxy(r + dh - 1, c + 1);
+    print(" ");
+    while k < len {
+        buf[k] = btns[k];
+        k = k + 1;
+    }
+    buf[k] = 0;
+    print(&buf);
+    return 0;
+}
+
+# v1.336:带百分比进度条 —— 进度条右侧直接显示 NN%
+fn ui_progress_pct(r: i64, c: i64, w: i64, pct: i64) -> i64 {
+    ui_progress(r, c, w, pct);
+    ui_gotoxy(r, c + w + 2);
+    if pct < 10 { print("0"); }
+    print_i64(pct);
+    print("%");
+    return 0;
+}

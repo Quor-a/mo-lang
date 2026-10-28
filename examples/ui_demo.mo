@@ -46,6 +46,10 @@ fn main() -> i64 {
     ui_text(14, 1, "表格:");
     ui_table(15, 1, "ID,Name,Age", "1,Tom,20;2,Ann,21;3,Leo,22", 3, 6);
 
+    # 带百分比进度条
+    ui_text(20, 1, "下载:");
+    ui_progress_pct(20, 7, 20, 78);
+
     # 底部水平线
     ui_hline(25, 1, 54);
     ui_text(26, 1, "按 Ctrl+C 退出");

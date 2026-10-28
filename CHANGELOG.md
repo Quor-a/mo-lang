@@ -1,3 +1,13 @@
+## [1.336.0]
+
+- lib/ui.mo 新增 2 个组件：
+  - ui_dialog：模态对话框（带标题、居中消息、底部按钮）
+  - ui_progress_pct：带百分比显示的进度条（右侧直接显示 NN%）
+- examples/ui_demo.mo 增加带百分比进度条。
+- tests/100_ui.mo 覆盖 ui_dialog / ui_progress_pct。
+- E2E：对话框输出 " 提示 / 保存成功 / 确定"；进度条输出 "[======------------] 35%"。
+- 门禁：tests 248/248、projcheck 11/11、自举三级一致、sweep 全绿。
+
 ## [1.335.0]
 
 - lib/ui.mo 新增完整表格组件 ui_table：自动画边框 + 表头 + 数据行。

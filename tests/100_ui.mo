@@ -25,6 +25,8 @@ fn main() -> i64 {
     ui_center(16, 1, 20, "center");
     ui_pct(17, 1, 65);
     ui_table(18, 1, "ID,Name,Age", "1,Tom,20;2,Ann,21", 3, 6);
+    ui_dialog(2, 45, 24, 6, " 提示 ", "保存成功", "确定");
+    ui_progress_pct(22, 1, 16, 35);
     ui_reset();
     return 0;
 }
