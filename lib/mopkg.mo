@@ -1195,6 +1195,63 @@ fn pkg_cmd_b64(arg2: ptr, arg3: ptr, arg4: ptr) -> i64 {
     return 0;
 }
 
+# v1.322:cmp <f1> <f2> —— 比较两个文件，输出首个不同偏移
+var CMP_A: [65536] byte = 0;
+var CMP_B: [65536] byte = 0;
+
+fn pkg_cmd_cmp(f1: ptr, f2: ptr) -> i64 {
+    if strlen(f1) == 0 || strlen(f2) == 0 {
+        print("✗ cmp 需要两个文件名\n");
+        return 1;
+    }
+    let fda: i64 = fopen(f1, 0, 0);
+    if fda < 0 {
+        print("✗ 无法打开 ");
+        print(f1);
+        print_nl();
+        return 1;
+    }
+    let fdb: i64 = fopen(f2, 0, 0);
+    if fdb < 0 {
+        print("✗ 无法打开 ");
+        print(f2);
+        print_nl();
+        return 1;
+    }
+    let na: i64 = fread(fda, &CMP_A, 65535);
+    fclose(fda);
+    let nb: i64 = fread(fdb, &CMP_B, 65535);
+    fclose(fdb);
+    if na < 0 { na = 0; }
+    if nb < 0 { nb = 0; }
+    if na != nb {
+        print("✗ 文件长度不同: ");
+        print_i64(na);
+        print(" vs ");
+        print_i64(nb);
+        print_nl();
+        return 1;
+    }
+    let i: i64 = 0;
+    while i < na {
+        if CMP_A[i] != CMP_B[i] {
+            print("✗ 首个不同偏移 ");
+            print_i64(i);
+            print(": ");
+            print_i64(CMP_A[i]);
+            print(" vs ");
+            print_i64(CMP_B[i]);
+            print_nl();
+            return 1;
+        }
+        i = i + 1;
+    }
+    print("✓ 两文件完全相同 (");
+    print_i64(na);
+    print(" 字节)\n");
+    return 0;
+}
+
 # ---------------------------------------------------------------- fetch
 
 fn pkg_install(nm: ptr, url: ptr, ref: ptr, want: ptr, path: ptr, fil: ptr) -> i64 {
@@ -2800,6 +2857,7 @@ fn pkg_dispatch(cmd: ptr) -> i64 {
     if streq(cmd, "hex") == 1 { return pkg_cmd_hex(pkg_arg2()); }
     if streq(cmd, "rev") == 1 { return pkg_cmd_rev(pkg_arg2()); }
     if streq(cmd, "base64") == 1 { return pkg_cmd_b64(pkg_arg2(), pkg_arg3(), pkg_arg4()); }
+    if streq(cmd, "cmp") == 1 { return pkg_cmd_cmp(pkg_arg2(), pkg_arg3()); }
     if streq(cmd, "pack") == 1 { return pkg_cmd_pack(pkg_arg2(), pkg_arg3()); }
     if streq(cmd, "remove") == 1 {
         if argc() > 3 {
