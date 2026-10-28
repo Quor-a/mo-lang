@@ -2144,3 +2144,35 @@ fn uc_status_bar(x: i64, y: i64, w: i64, text: ptr, level: i64, max: i64, batter
     uc_set(x + w - 2, y, ']', fg, bg);
     return 0;
 }
+
+# ============ v1.378 垂直刻度条 ============
+
+# uc_thermo：垂直刻度条（温度计/水位/内存）
+# x,y 为底部坐标，h 为高度，pct 为百分比（0-100）
+# 底部 pct% 填充 '#'，上部留空，带边框。
+fn uc_thermo(x: i64, y: i64, h: i64, pct: i64, fg: i64, bg: i64) -> i64 {
+    let i: i64 = 0;
+    let fill_h: i64 = 0;
+    if h < 3 { h = 3; }
+    if pct < 0 { pct = 0; }
+    if pct > 100 { pct = 100; }
+    fill_h = h * pct / 100;
+    if fill_h < 0 { fill_h = 0; }
+    if fill_h > h { fill_h = h; }
+    # 边框
+    i = 0;
+    while i < h {
+        uc_set(x, y - i, '|', fg, bg);
+        uc_set(x + 2, y - i, '|', fg, bg);
+        i = i + 1;
+    }
+    # 填充
+    i = 0;
+    while i < fill_h {
+        uc_set(x + 1, y - i, '#', fg, bg);
+        i = i + 1;
+    }
+    # 顶部圆盖
+    uc_set(x + 1, y - h, '.', fg, bg);
+    return 0;
+}
