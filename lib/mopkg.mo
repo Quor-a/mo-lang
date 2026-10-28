@@ -1008,6 +1008,76 @@ fn pkg_cmd_verify() -> i64 {
     return 1;
 }
 
+# ---------------------------------------------------------------- v1.319:hex 转储
+
+var HX_BUF: [65536] byte = 0;
+var HX_LINE: [128] byte = 0;
+
+fn pkg_cmd_hex(fil: ptr) -> i64 {
+    if strlen(fil) == 0 {
+        print("✗ hex 需要文件名\n");
+        return 1;
+    }
+    let fd: i64 = fopen(fil, 0, 0);
+    if fd < 0 {
+        print("✗ 无法打开 ");
+        print(fil);
+        print_nl();
+        return 1;
+    }
+    let n: i64 = fread(fd, &HX_BUF, 65535);
+    fclose(fd);
+    if n < 0 { n = 0; }
+    let i: i64 = 0;
+    let off: i64 = 0;
+    while i < n {
+        let nb: [32] byte = 0;
+        # 偏移(8 位 hex)
+        let hb: [24] byte = 0;
+        utoa(off, &hb, 16);
+        let hl: i64 = strlen(&hb);
+        let pad: i64 = 8 - hl;
+        while pad > 0 {
+            print("0");
+            pad = pad - 1;
+        }
+        print(&hb);
+        print("  ");
+        # 16 字节 hex + ASCII
+        strcpy(&HX_LINE, "");
+        let j: i64 = 0;
+        while j < 16 && i + j < n {
+            let b: i64 = HX_BUF[i + j];
+            let hexb: [8] byte = 0;
+            utoa(b, &hexb, 16);
+            if b < 16 { print("0"); }
+            print(&hexb);
+            print(" ");
+            # ASCII 收集
+            if b >= 32 && b < 127 {
+                store8(&HX_LINE + j, b);
+            } else {
+                store8(&HX_LINE + j, 46);
+            }
+            j = j + 1;
+        }
+        while j < 16 {
+            print("   ");
+            store8(&HX_LINE + j, 32);
+            j = j + 1;
+        }
+        store8(&HX_LINE + 16, 0);
+        print(" |");
+        print(&HX_LINE);
+        print("|\n");
+        i = i + 16;
+        off = off + 16;
+    }
+    print_i64(n);
+    print(" bytes\n");
+    return 0;
+}
+
 # ---------------------------------------------------------------- fetch
 
 fn pkg_install(nm: ptr, url: ptr, ref: ptr, want: ptr, path: ptr, fil: ptr) -> i64 {
@@ -2610,6 +2680,7 @@ fn pkg_dispatch(cmd: ptr) -> i64 {
     if streq(cmd, "tree") == 1 { return pkg_cmd_tree(); }
     if streq(cmd, "verify") == 1 { return pkg_cmd_verify(); }
     if streq(cmd, "fetch") == 1 { return pkg_cmd_fetch(); }
+    if streq(cmd, "hex") == 1 { return pkg_cmd_hex(pkg_arg2()); }
     if streq(cmd, "pack") == 1 { return pkg_cmd_pack(pkg_arg2(), pkg_arg3()); }
     if streq(cmd, "remove") == 1 {
         if argc() > 3 {

@@ -24,6 +24,7 @@ fn mopkg_usage() -> i64 {
     print("  pack     打包目录为 .mo.tar.gz\n");
     print("  remove   删除已安装的包\n");
     print("  update   更新包到最新 commit\n");
+    print("  hex      十六进制转储文件（xxd 风格）\n");
     print("\n");
     return 2;
 }

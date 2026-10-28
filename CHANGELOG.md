@@ -1,3 +1,10 @@
+## [1.319.0]
+
+- mopkg 新增 hex 命令：十六进制转储文件（xxd 风格：8 位偏移 + 16 字节 hex + ASCII）。
+- usage 更新。
+- E2E：hex hx.bin 输出 "00000000  48 65 6c 6c 6f 20 4d 6f 21 01 02 ff 00  |Hello Mo!....   |" + "13 bytes"。
+- 门禁：tests 247/247、projcheck 11/11、自举三级一致、sweep 全绿。
+
 ## [1.318.0]
 
 - mopkg verify 成功末尾显示校验的包数量："共 N 个包校验通过"。
