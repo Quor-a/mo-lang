@@ -1655,3 +1655,28 @@ fn uc_diamond(cx: i64, cy: i64, rw: i64, rh: i64, ch: i64, fg: i64, bg: i64) -> 
     }
     return 0;
 }
+
+# ============ v1.365 精灵图 ============
+
+# uc_draw_sprite：从字符串模板绘制 2D 精灵
+# sprite 是 w*h 个字符，按行排列。
+# 字符为空格 ' ' 表示透明（跳过不绘制），其他字符绘制到画布。
+# 用于游戏角色、图标库、复杂图案复用。
+fn uc_draw_sprite(x: i64, y: i64, sprite: ptr, w: i64, h: i64, fg: i64, bg: i64) -> i64 {
+    let i: i64 = 0;
+    let j: i64 = 0;
+    let c: i64 = 0;
+    j = 0;
+    while j < h {
+        i = 0;
+        while i < w {
+            c = sprite[j * w + i];
+            if c != 32 {
+                uc_set(x + i, y + j, c, fg, bg);
+            }
+            i = i + 1;
+        }
+        j = j + 1;
+    }
+    return 0;
+}
