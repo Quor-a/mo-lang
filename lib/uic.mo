@@ -1084,3 +1084,67 @@ fn uc_polygon(xs: ptr, ys: ptr, n: i64, ch: i64, fg: i64, bg: i64) -> i64 {
     uc_line(px[xi-1], py[xi-1], px[0], py[0], ch, fg, bg);
     return 0;
 }
+
+# ============ v1.351 动态与动画 ============
+
+# uc_progress_anim：动画进度条 —— 渲染带百分比的进度条
+# 调用多次（值变化）配合 uc_render_at 实现动画效果
+fn uc_progress_anim(x: i64, y: i64, width: i64, pct: i64, fg: i64, bg: i64) -> i64 {
+    let i: i64 = 0;
+    let filled: i64 = 0;
+    if width < 10 { width = 10; }
+    if pct < 0 { pct = 0; }
+    if pct > 100 { pct = 100; }
+    uc_set(x, y, '[', UC_WHITE, bg);
+    filled = (pct * (width - 2)) / 100;
+    i = 1;
+    while i <= width - 2 {
+        if i <= filled {
+            uc_set(x + i, y, '=', fg, bg);
+        } else {
+            uc_set(x + i, y, '-', UC_WHITE, bg);
+        }
+        i = i + 1;
+    }
+    uc_set(x + width - 1, y, ']', UC_WHITE, bg);
+    # 百分比
+    if pct < 10 {
+        uc_set(x + width + 1, y, 32, UC_WHITE, bg);
+        uc_set(x + width + 2, y, 48 + pct, UC_WHITE, bg);
+        uc_set(x + width + 3, y, 37, UC_WHITE, bg);
+    } else {
+        if pct < 100 {
+            uc_set(x + width + 1, y, 48 + (pct / 10), UC_WHITE, bg);
+            uc_set(x + width + 2, y, 48 + (pct - (pct / 10) * 10), UC_WHITE, bg);
+        } else {
+            uc_set(x + width + 1, y, 49, UC_WHITE, bg);
+            uc_set(x + width + 2, y, 48, UC_WHITE, bg);
+            uc_set(x + width + 3, y, 48, UC_WHITE, bg);
+        }
+        uc_set(x + width + 3, y, 37, UC_WHITE, bg);
+    }
+    return 0;
+}
+
+# uc_digital_clock：数字时钟 —— 把小时:分钟绘制到画布（两位数字，用冒号）
+# 用 3x5 点阵数字（'0'-'9' 的字符表示），复用 uc_sprite
+fn uc_digit(x: i64, y: i64, d: i64, fg: i64, bg: i64) -> i64 {
+    if d == 0 { uc_sprite(x, y, "###,#.#,#.#,#.#,###", fg, bg); }
+    if d == 1 { uc_sprite(x, y, "..#,##.,..#,..#,###", fg, bg); }
+    if d == 2 { uc_sprite(x, y, "###,..#,###,#..,###", fg, bg); }
+    if d == 3 { uc_sprite(x, y, "###,..#,###,..#,###", fg, bg); }
+    if d == 4 { uc_sprite(x, y, "#.#,#.#,###,..#,..#", fg, bg); }
+    if d == 5 { uc_sprite(x, y, "###,#..,###,..#,###", fg, bg); }
+    if d == 6 { uc_sprite(x, y, "###,#..,###,#.#,###", fg, bg); }
+    if d == 7 { uc_sprite(x, y, "###,..#,..#,..#,..#", fg, bg); }
+    if d == 8 { uc_sprite(x, y, "###,#.#,###,#.#,###", fg, bg); }
+    if d == 9 { uc_sprite(x, y, "###,#.#,###,..#,###", fg, bg); }
+    return 0;
+}
+
+# uc_digit2：两位数字（10-99），用于分钟/秒
+fn uc_digit2(x: i64, y: i64, v: i64, fg: i64, bg: i64) -> i64 {
+    uc_digit(x, y, v / 10, fg, bg);
+    uc_digit(x + 4, y, v - (v / 10) * 10, fg, bg);
+    return 0;
+}

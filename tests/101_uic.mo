@@ -41,6 +41,8 @@ fn main() -> i64 {
     uc_style_text(2, 4, "Bold", 1);
     uc_fill_circle(30, 3, 2, '#', UC_YELLOW, UC_BLUE);
     uc_polygon("5,8,7,4", "8,4,7,8", 4, '*', UC_GREEN, UC_BLUE);
+    uc_progress_anim(20, 6, 16, 65, UC_GREEN, UC_BLUE);
+    uc_digit2(20, 8, 12, UC_YELLOW, UC_BLUE);
     uc_render();
     return 0;
 }
