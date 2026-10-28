@@ -25,6 +25,8 @@ fn mopkg_usage() -> i64 {
     print("  remove   删除已安装的包\n");
     print("  update   更新包到最新 commit\n");
     print("  hex      十六进制转储文件（xxd 风格）\n");
+    print("  rev      字节反转文件并写回\n");
+    print("  base64   base64 编码/解码（--decode 解码）\n");
     print("\n");
     return 2;
 }

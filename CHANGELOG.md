@@ -1,3 +1,11 @@
+## [1.321.0]
+
+- mopkg 新增 base64 命令：base64 编码/解码（b64_enc/b64_dec 复用 crypto.mo）。
+- 用法：base64 <file> [out] 编码；base64 --decode <file> [out] 解码。
+- usage 更新。
+- E2E："Hello Mo!" 编码 12 字节 -> SGVsbG8gTW8h；解码回 9 字节 "Hello Mo!"。
+- 门禁：tests 247/247、projcheck 11/11、自举三级一致、sweep 全绿。
+
 ## [1.320.0]
 
 - mopkg 新增 rev 命令：字节反转文件内容并写回。

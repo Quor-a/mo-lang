@@ -1008,6 +1008,7 @@ fn pkg_cmd_verify() -> i64 {
     return 1;
 }
 
+var B64_ZERO: [8] byte = 0;
 # ---------------------------------------------------------------- v1.319:hex 转储
 
 var HX_BUF: [65536] byte = 0;
@@ -1122,6 +1123,75 @@ fn pkg_cmd_rev(fil: ptr) -> i64 {
     print(" 字节 -> ");
     print(fil);
     print_nl();
+    return 0;
+}
+
+# v1.321:base64 <file> [out] —— base64 编码；--decode <file> [out] 解码
+var B64_IN: [65536] byte = 0;
+var B64_OUT: [87384] byte = 0;   # 编码后上限 4/3
+
+fn pkg_cmd_b64(arg2: ptr, arg3: ptr, arg4: ptr) -> i64 {
+    let dec: i64 = 0;
+    let inf: ptr = arg2;
+    let outf: ptr = &B64_ZERO;
+    let hasout: i64 = 0;
+    if streq(arg2, "--decode") == 1 {
+        dec = 1;
+        inf = arg3;
+        if strlen(arg4) > 0 { outf = arg4; hasout = 1; }
+    } else {
+        if strlen(arg3) > 0 { outf = arg3; hasout = 1; }
+    }
+    if strlen(inf) == 0 {
+        print("✗ base64 需要文件名\n");
+        return 1;
+    }
+    let fd: i64 = fopen(inf, 0, 0);
+    if fd < 0 {
+        print("✗ 无法打开 ");
+        print(inf);
+        print_nl();
+        return 1;
+    }
+    let n: i64 = fread(fd, &B64_IN, 65535);
+    fclose(fd);
+    if n < 0 { n = 0; }
+    let o: i64 = 0;
+    if dec == 0 {
+        o = b64_enc(&B64_IN, n, &B64_OUT);
+    } else {
+        o = b64_dec(&B64_IN, n, &B64_OUT);
+        if o < 0 {
+            print("✗ base64 解码失败（非法字符）\n");
+            return 1;
+        }
+    }
+    if hasout == 1 {
+        let fdw: i64 = fopen(outf, 577, 438);
+        if fdw < 0 {
+            print("✗ 无法写入 ");
+            print(outf);
+            print_nl();
+            return 1;
+        }
+        let wr: i64 = fwrite(fdw, &B64_OUT, o);
+        fclose(fdw);
+        if wr != o {
+            print("✗ 写入不完整\n");
+            return 1;
+        }
+        print("✓ 已");
+        if dec == 1 { print("解码"); } else { print("编码"); }
+        print(" ");
+        print_i64(o);
+        print(" 字节 -> ");
+        print(outf);
+        print_nl();
+    } else {
+        store8(&B64_OUT + o, 0);
+        print(&B64_OUT);
+        print_nl();
+    }
     return 0;
 }
 
@@ -2729,6 +2799,7 @@ fn pkg_dispatch(cmd: ptr) -> i64 {
     if streq(cmd, "fetch") == 1 { return pkg_cmd_fetch(); }
     if streq(cmd, "hex") == 1 { return pkg_cmd_hex(pkg_arg2()); }
     if streq(cmd, "rev") == 1 { return pkg_cmd_rev(pkg_arg2()); }
+    if streq(cmd, "base64") == 1 { return pkg_cmd_b64(pkg_arg2(), pkg_arg3(), pkg_arg4()); }
     if streq(cmd, "pack") == 1 { return pkg_cmd_pack(pkg_arg2(), pkg_arg3()); }
     if streq(cmd, "remove") == 1 {
         if argc() > 3 {
