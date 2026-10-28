@@ -1,3 +1,12 @@
+## [1.379.0]
+
+- lib/uic.mo 新增列表框：
+  - uc_listbox：列表选择框（'|' 分隔项，选中行反色高亮）
+  - 用于表单选择、菜单、选项列表
+- tests/101_uic.mo 覆盖列表框。
+- E2E：Apple/Banana/Cherry 列表，Banana 反色高亮。
+- 门禁：tests 249/249、projcheck 11/11、自举三级一致、sweep 全绿。
+
 ## [1.378.0]
 
 - lib/uic.mo 新增垂直刻度条：

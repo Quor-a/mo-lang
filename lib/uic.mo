@@ -2176,3 +2176,53 @@ fn uc_thermo(x: i64, y: i64, h: i64, pct: i64, fg: i64, bg: i64) -> i64 {
     uc_set(x + 1, y - h, '.', fg, bg);
     return 0;
 }
+
+# ============ v1.379 列表框 ============
+
+# uc_listbox：绘制列表选择框
+# items 为换行/空格分隔的列表项字符串（用 '|' 分隔更直观）
+# active_idx 为选中项（反色高亮），x,y 左上角，w 宽度
+fn uc_listbox(x: i64, y: i64, w: i64, items: ptr, active_idx: i64, fg: i64, bg: i64) -> i64 {
+    let len: i64 = 0;
+    let i: i64 = 0;
+    let idx: i64 = 0;
+    let row: i64 = 0;
+    let col: i64 = 0;
+    let nrows: i64 = 0;
+    len = strlen(items);
+    # 计算行数
+    nrows = 1;
+    i = 0;
+    while i < len {
+        if items[i] == 124 { nrows = nrows + 1; }
+        i = i + 1;
+    }
+    if nrows < 1 { nrows = 1; }
+    # 绘制边框（高度 = 行数 + 2）
+    uc_border(x, y, w + 2, nrows + 2, 1, fg, bg);
+    # 绘制列表项
+    row = y + 1;
+    col = x + 1;
+    idx = 0;
+    i = 0;
+    while i < len {
+        if items[i] == 124 {
+            idx = idx + 1;
+            row = row + 1;
+            col = x + 1;
+        } else {
+            if col < x + 1 + w {
+                uc_set(col, row, items[i], fg, bg);
+            }
+            col = col + 1;
+        }
+        i = i + 1;
+    }
+    # 反色选中行
+    if active_idx >= 0 {
+        if active_idx < nrows {
+            uc_reverse(x + 1, y + 1 + active_idx, w, 1);
+        }
+    }
+    return 0;
+}
