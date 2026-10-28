@@ -1,3 +1,13 @@
+## [1.340.0]
+
+- lib/uic.mo 新增导出与工具：
+  - uc_dump_text：把画布输出为纯文本（无 ANSI 颜色），便于保存/分享
+  - uc_dump_file(path)：把画布保存为纯文本文件
+- uic.mo 补充 import fs.mo（文件 IO）。
+- tests/101_uic.mo 覆盖导出功能。
+- E2E：窗口画布成功导出为 .txt 文件。
+- 门禁：tests 249/249、projcheck 11/11、自举三级一致、sweep 全绿。
+
 ## [1.339.0]
 
 - lib/uic.mo 新增高级组件层（基于画布原语组合）：

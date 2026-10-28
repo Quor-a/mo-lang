@@ -19,6 +19,8 @@ fn main() -> i64 {
     uc_panel(30, 12, 20, 6, " 面板 ", UC_GREEN, UC_BLUE);
     uc_gauge(3, 19, 16, 60, UC_GREEN, UC_BLUE);
     uc_scrollbar(55, 12, 8, 40, 2, UC_YELLOW, UC_BLUE);
+    uc_dump_text();
+    uc_dump_file("/tmp/uic_dump_test.txt");
     uc_render();
     return 0;
 }

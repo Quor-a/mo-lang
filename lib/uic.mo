@@ -22,6 +22,7 @@
 import "str.mo";
 import "io.mo";
 import "ui.mo";
+import "fs.mo";
 
 # 画布大小上限
 var UC_MAXW: i64 = 120;
@@ -447,5 +448,79 @@ fn uc_scrollbar(x: i64, y: i64, h: i64, pos: i64, thumb_h: i64, fg: i64, bg: i64
         }
         i = i + 1;
     }
+    return 0;
+}
+
+# ============ v1.340 导出与工具 ============
+
+# uc_dump_text：把画布输出为纯文本（不含 ANSI 颜色），便于保存/分享
+# 每行字符直接打印，末尾去除行尾空格
+fn uc_dump_text() -> i64 {
+    let y: i64 = 0;
+    let x: i64 = 0;
+    let last: i64 = 0;
+    let c: i64 = 0;
+    y = 0;
+    while y < UC_H {
+        # 找本行最后一个非空格位置
+        last = UC_W - 1;
+        while last >= 0 {
+            if UC_CH[y * UC_W + last] != 32 { break; }
+            last = last - 1;
+        }
+        x = 0;
+        while x <= last {
+            c = UC_CH[y * UC_W + x];
+            if c == 0 { c = 32; }
+            UC_RB[0] = c;
+            UC_RB[1] = 0;
+            print(&UC_RB);
+            x = x + 1;
+        }
+        print_nl();
+        y = y + 1;
+    }
+    return 0;
+}
+
+# uc_dump_file：把画布保存为纯文本文件
+fn uc_dump_file(path: ptr) -> i64 {
+    let y: i64 = 0;
+    let x: i64 = 0;
+    let last: i64 = 0;
+    let c: i64 = 0;
+    let fd: i64 = 0;
+    let line: [128] byte = 0;
+    let li: i64 = 0;
+    fd = fopen(path, 577, 438);
+    if fd < 0 {
+        print("✗ 无法写入 ");
+        print(path);
+        print_nl();
+        return 1;
+    }
+    y = 0;
+    while y < UC_H {
+        last = UC_W - 1;
+        while last >= 0 {
+            if UC_CH[y * UC_W + last] != 32 { break; }
+            last = last - 1;
+        }
+        x = 0;
+        li = 0;
+        while x <= last {
+            c = UC_CH[y * UC_W + x];
+            if c == 0 { c = 32; }
+            if li < 120 {
+                line[li] = c;
+                li = li + 1;
+            }
+            x = x + 1;
+        }
+        line[li] = 10;   # '\n'
+        fwrite(fd, &line, li + 1);
+        y = y + 1;
+    }
+    fclose(fd);
     return 0;
 }
