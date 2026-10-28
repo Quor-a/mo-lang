@@ -703,8 +703,15 @@ fn pkg_cmd_list() -> i64 {
         i = i + 1;
     }
     if LST_HTML == 1 {
-        print("</ul></body></html>\n");
+        print("</ul>\n<p>共 ");
+        print_i64(n);
+        print(" 个依赖</p></body></html>\n");
         LST_HTML = 0;
+    } else {
+        # v1.316:文本模式末尾显示依赖数
+        print("共 ");
+        print_i64(n);
+        print(" 个依赖\n");
     }
     return 0;
 }
