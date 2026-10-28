@@ -2066,3 +2066,26 @@ fn uc_tooltip(x: i64, y: i64, text: ptr, fg: i64, bg: i64, bfg: i64) -> i64 {
     }
     return 0;
 }
+
+# ============ v1.376 信号强度指示器 ============
+
+# uc_signal：绘制信号强度指示器（阶梯状）
+# level 为当前强度（0..max），max 为总格数。
+# 每格用 '|' 表示已激活，空格表示未激活。
+# 用于网络强度、电池电量、信号指示。
+fn uc_signal(x: i64, y: i64, level: i64, max: i64, fg: i64, bg: i64) -> i64 {
+    let i: i64 = 0;
+    if max < 1 { max = 1; }
+    if level < 0 { level = 0; }
+    if level > max { level = max; }
+    i = 0;
+    while i < max {
+        if i < level {
+            uc_set(x + i, y, '|', fg, bg);
+        } else {
+            uc_set(x + i, y, '.', fg, bg);
+        }
+        i = i + 1;
+    }
+    return 0;
+}

@@ -75,6 +75,7 @@ fn main() -> i64 {
     uc_menu_bar(1, 2, 20, "File Edit View", 1, UC_WHITE, UC_BLUE);
     uc_badge(15, 2, "tests", "249", UC_CYAN, UC_GREEN, UC_BLUE);
     uc_tooltip(3, 2, "Tip", UC_YELLOW, UC_BLUE, UC_CYAN);
+    uc_signal(6, 2, 3, 5, UC_GREEN, UC_BLUE);
     uc_dump_svg("/tmp/uic_dump_test.svg");
     uc_render();
     return 0;
