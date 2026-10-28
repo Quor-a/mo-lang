@@ -2089,3 +2089,58 @@ fn uc_signal(x: i64, y: i64, level: i64, max: i64, fg: i64, bg: i64) -> i64 {
     }
     return 0;
 }
+
+# ============ v1.377 系统状态栏 ============
+
+# uc_status_bar：绘制系统状态栏（移动端风格）
+# 左侧文本，中间信号强度（level/max），右侧电池电量（battery 0-100）。
+# 用于移动端 UI、仪表盘、游戏 HUD。
+fn uc_status_bar(x: i64, y: i64, w: i64, text: ptr, level: i64, max: i64, battery: i64, fg: i64, bg: i64) -> i64 {
+    let len: i64 = 0;
+    let i: i64 = 0;
+    let bblocks: i64 = 0;
+    len = strlen(text);
+    if len > w - 8 { len = w - 8; }
+    # 清空状态栏区域
+    i = 0;
+    while i < w {
+        uc_set(x + i, y, 32, fg, bg);
+        i = i + 1;
+    }
+    # 左侧文本
+    i = 0;
+    while i < len {
+        uc_set(x + i, y, text[i], fg, bg);
+        i = i + 1;
+    }
+    # 分隔
+    uc_set(x + len, y, '|', fg, bg);
+    # 信号强度
+    i = 0;
+    while i < max {
+        if i < level {
+            uc_set(x + len + 2 + i, y, '|', fg, bg);
+        } else {
+            uc_set(x + len + 2 + i, y, '.', fg, bg);
+        }
+        i = i + 1;
+    }
+    # 电池
+    if battery < 0 { battery = 0; }
+    if battery > 100 { battery = 100; }
+    bblocks = battery * 3 / 100;
+    if bblocks < 0 { bblocks = 0; }
+    if bblocks > 3 { bblocks = 3; }
+    uc_set(x + w - 6, y, '[', fg, bg);
+    i = 0;
+    while i < 3 {
+        if i < bblocks {
+            uc_set(x + w - 5 + i, y, '=', fg, bg);
+        } else {
+            uc_set(x + w - 5 + i, y, ' ', fg, bg);
+        }
+        i = i + 1;
+    }
+    uc_set(x + w - 2, y, ']', fg, bg);
+    return 0;
+}
