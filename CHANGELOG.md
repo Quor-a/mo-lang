@@ -1,3 +1,14 @@
+## [1.344.0]
+
+- lib/uic.mo 新增表单组件：
+  - uc_checkbox：复选框（[x] / [ ]）
+  - uc_radio：单选按钮（(o) / ( )）
+  - uc_input：输入框（带边框，固定宽度）
+  - uc_slider：滑块（[----o---] 位置可调）
+- tests/101_uic.mo 覆盖表单组件。
+- E2E：复选框/单选/输入框/滑块全部正确渲染。
+- 门禁：tests 249/249、projcheck 11/11、自举三级一致、sweep 全绿。
+
 ## [1.343.0]
 
 - 新增 examples/uic_dashboard.mo：完整 TUI 仪表盘示例。

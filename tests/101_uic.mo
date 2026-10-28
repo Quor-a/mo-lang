@@ -26,6 +26,10 @@ fn main() -> i64 {
     uc_layout_v(40, 20, 2, 3, 1, UC_YELLOW, UC_BLUE);
     uc_label(2, 23, "ON", UC_GREEN, UC_BLUE, 1);
     uc_chart(10, 24, "3,5,2", 4, UC_CYAN, UC_BLUE);
+    uc_checkbox(20, 23, "记住", 1, UC_WHITE, UC_BLUE);
+    uc_radio(30, 23, "A", 1, UC_WHITE, UC_BLUE);
+    uc_input(2, 25, "admin", 8, UC_BLACK, UC_WHITE);
+    uc_slider(20, 25, 14, 60, UC_YELLOW, UC_BLUE);
     uc_render();
     return 0;
 }

@@ -708,3 +708,70 @@ fn uc_chart(x: i64, y: i64, values: ptr, max_h: i64, fg: i64, bg: i64) -> i64 {
     }
     return 0;
 }
+
+# ============ v1.344 表单组件 ============
+
+# uc_checkbox：复选框 —— "[x] 文本" 或 "[ ] 文本"
+# checked 非 0 显示 [x]，否则 [ ]
+fn uc_checkbox(x: i64, y: i64, text: ptr, checked: i64, fg: i64, bg: i64) -> i64 {
+    if checked != 0 {
+        uc_text(x, y, "[x]", UC_GREEN, bg);
+    } else {
+        uc_text(x, y, "[ ]", UC_WHITE, bg);
+    }
+    uc_text(x + 3, y, text, fg, bg);
+    return 0;
+}
+
+# uc_radio：单选按钮 —— "(o) 文本" 或 "( ) 文本"
+fn uc_radio(x: i64, y: i64, text: ptr, selected: i64, fg: i64, bg: i64) -> i64 {
+    if selected != 0 {
+        uc_text(x, y, "(o)", UC_GREEN, bg);
+    } else {
+        uc_text(x, y, "( )", UC_WHITE, bg);
+    }
+    uc_text(x + 3, y, text, fg, bg);
+    return 0;
+}
+
+# uc_input：输入框 —— "[ 文本              ]"
+# width 输入框宽度（不含边框）
+fn uc_input(x: i64, y: i64, value: ptr, width: i64, fg: i64, bg: i64) -> i64 {
+    let i: i64 = 0;
+    let len: i64 = 0;
+    let c: i64 = 0;
+    if width < 1 { width = 1; }
+    len = strlen(value);
+    uc_set(x, y, '[', UC_WHITE, bg);
+    i = 0;
+    while i < width {
+        c = 32;
+        if i < len { c = value[i]; }
+        uc_set(x + 1 + i, y, c, fg, bg);
+        i = i + 1;
+    }
+    uc_set(x + width + 1, y, ']', UC_WHITE, bg);
+    return 0;
+}
+
+# uc_slider：滑块 —— "[----o---]" 表示 0-100 位置
+fn uc_slider(x: i64, y: i64, width: i64, value: i64, fg: i64, bg: i64) -> i64 {
+    let i: i64 = 0;
+    let pos: i64 = 0;
+    if width < 3 { width = 3; }
+    if value < 0 { value = 0; }
+    if value > 100 { value = 100; }
+    pos = (value * (width - 2)) / 100;
+    uc_set(x, y, '[', UC_WHITE, bg);
+    i = 1;
+    while i <= width - 2 {
+        if i == pos + 1 {
+            uc_set(x + i, y, 'o', fg, bg);
+        } else {
+            uc_set(x + i, y, '-', UC_WHITE, bg);
+        }
+        i = i + 1;
+    }
+    uc_set(x + width - 1, y, ']', UC_WHITE, bg);
+    return 0;
+}
