@@ -2034,3 +2034,35 @@ fn uc_badge(x: i64, y: i64, label: ptr, value: ptr, fg1: i64, fg2: i64, bg: i64)
     }
     return 0;
 }
+
+# ============ v1.375 提示框 ============
+
+# uc_tooltip：绘制小提示框（带边框）
+# 在 (x,y) 处显示提示文本，自动包裹边框。
+# 用于悬浮提示、帮助信息、小标签。
+fn uc_tooltip(x: i64, y: i64, text: ptr, fg: i64, bg: i64, bfg: i64) -> i64 {
+    let len: i64 = 0;
+    let i: i64 = 0;
+    len = strlen(text);
+    if len < 2 { len = 2; }
+    # 边框
+    uc_set(x, y, '.', bfg, bg);
+    uc_set(x + len + 1, y, '.', bfg, bg);
+    uc_set(x, y + 2, '.', bfg, bg);
+    uc_set(x + len + 1, y + 2, '.', bfg, bg);
+    i = 1;
+    while i <= len {
+        uc_set(x + i, y, '-', bfg, bg);
+        uc_set(x + i, y + 2, '-', bfg, bg);
+        i = i + 1;
+    }
+    uc_set(x, y + 1, '|', bfg, bg);
+    uc_set(x + len + 1, y + 1, '|', bfg, bg);
+    # 文本
+    i = 0;
+    while i < len {
+        uc_set(x + 1 + i, y + 1, text[i], fg, bg);
+        i = i + 1;
+    }
+    return 0;
+}
