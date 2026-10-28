@@ -1,3 +1,12 @@
+## [1.353.0]
+
+- lib/uic.mo 新增画布滚动：
+  - uc_scroll(dx,dy,fill_ch,fill_fg,fill_bg)：平移整个画布，边缘填充背景
+  - 用于动画帧切换、滚动视图等动态 UI
+- tests/101_uic.mo 覆盖滚动。
+- E2E："MoveMe" 文本正确平移。
+- 门禁：tests 249/249、projcheck 11/11、自举三级一致、sweep 全绿。
+
 ## [1.352.0]
 
 - 新增 examples/uic_clock.mo：数字时钟示例。

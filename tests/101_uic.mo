@@ -43,6 +43,8 @@ fn main() -> i64 {
     uc_polygon("5,8,7,4", "8,4,7,8", 4, '*', UC_GREEN, UC_BLUE);
     uc_progress_anim(20, 6, 16, 65, UC_GREEN, UC_BLUE);
     uc_digit2(20, 8, 12, UC_YELLOW, UC_BLUE);
+    uc_text(5, 2, "MoveMe", UC_YELLOW, UC_BLUE);
+    uc_scroll(1, 1, 32, UC_WHITE, UC_BLUE);
     uc_render();
     return 0;
 }

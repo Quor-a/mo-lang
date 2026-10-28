@@ -1148,3 +1148,68 @@ fn uc_digit2(x: i64, y: i64, v: i64, fg: i64, bg: i64) -> i64 {
     uc_digit(x + 4, y, v - (v / 10) * 10, fg, bg);
     return 0;
 }
+
+# ============ v1.353 画布滚动 ============
+
+# uc_scroll：平移整个画布（dx 水平，dy 垂直）
+# 内容移动后，空出的边缘用背景色填充
+# 用于动画帧切换、滚动视图等动态 UI
+fn uc_scroll(dx: i64, dy: i64, fill_ch: i64, fill_fg: i64, fill_bg: i64) -> i64 {
+    let x: i64 = 0;
+    let y: i64 = 0;
+    let nx: i64 = 0;
+    let ny: i64 = 0;
+    let sxp: [6000] byte = 0;
+    let syp: [6000] byte = 0;
+    let scp: [6000] byte = 0;
+    let sfp: [6000] byte = 0;
+    let sbp: [6000] byte = 0;
+    # 复制当前画布（字符/前景/背景）
+    y = 0;
+    while y < UC_H {
+        x = 0;
+        while x < UC_W {
+            let idx: i64 = y * UC_W + x;
+            scp[idx] = UC_CH[idx];
+            sfp[idx] = UC_FG[idx];
+            sbp[idx] = UC_BG[idx];
+            sxp[idx] = x;
+            syp[idx] = y;
+            x = x + 1;
+        }
+        y = y + 1;
+    }
+    # 清空画布为填充色
+    y = 0;
+    while y < UC_H {
+        x = 0;
+        while x < UC_W {
+            let idx: i64 = y * UC_W + x;
+            UC_CH[idx] = fill_ch;
+            UC_FG[idx] = fill_fg;
+            UC_BG[idx] = fill_bg;
+            UC_ST[idx] = 0;
+            x = x + 1;
+        }
+        y = y + 1;
+    }
+    # 按平移量放置原内容
+    y = 0;
+    while y < UC_H {
+        x = 0;
+        while x < UC_W {
+            let idx: i64 = y * UC_W + x;
+            nx = sxp[idx] + dx;
+            ny = syp[idx] + dy;
+            if nx >= 0 && nx < UC_W && ny >= 0 && ny < UC_H {
+                let nidx: i64 = ny * UC_W + nx;
+                UC_CH[nidx] = scp[idx];
+                UC_FG[nidx] = sfp[idx];
+                UC_BG[nidx] = sbp[idx];
+            }
+            x = x + 1;
+        }
+        y = y + 1;
+    }
+    return 0;
+}
