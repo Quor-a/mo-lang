@@ -1003,3 +1003,84 @@ fn uc_style_text(x: i64, y: i64, text: ptr, st: i64) -> i64 {
     }
     return 0;
 }
+
+# ============ v1.349 实心图形 ============
+
+# uc_fill_circle：实心圆 —— 用扫描线法填充
+fn uc_fill_circle(cx: i64, cy: i64, r: i64, ch: i64, fg: i64, bg: i64) -> i64 {
+    let y: i64 = 0;
+    let dx: i64 = 0;
+    let x: i64 = 0;
+    if r < 1 { r = 1; }
+    y = 0 - r;
+    while y <= r {
+        dx = r * r - y * y;
+        while dx < 0 { dx = 0 - dx; }
+        # 计算该行的半宽
+        let hw: i64 = 0;
+        # 简化：dx 是 r^2-y^2，开方
+        hw = 0;
+        while hw * hw < dx {
+            hw = hw + 1;
+        }
+        if hw * hw > dx { hw = hw - 1; }
+        x = cx - hw;
+        while x <= cx + hw {
+            uc_set(x, cy + y, ch, fg, bg);
+            x = x + 1;
+        }
+        y = y + 1;
+    }
+    return 0;
+}
+
+# uc_polygon：任意多边形边框（顶点用逗号分隔 "x1,y1;x2,y2;..."）
+# 依次连接各顶点并闭合
+fn uc_polygon(xs: ptr, ys: ptr, n: i64, ch: i64, fg: i64, bg: i64) -> i64 {
+    let i: i64 = 0;
+    let px: [32] i64 = 0;
+    let py: [32] i64 = 0;
+    # 解析 xs 和 ys（逗号分隔）
+    let xi: i64 = 0;
+    let yi: i64 = 0;
+    let v: i64 = 0;
+    let k: i64 = 0;
+    # 解析 xs
+    xi = 0; v = 0; k = 0;
+    while xs[k] != 0 {
+        if xs[k] >= 48 && xs[k] <= 57 {
+            v = v * 10 + (xs[k] - 48);
+        } else {
+            if xi < 32 { px[xi] = v; }
+            xi = xi + 1;
+            v = 0;
+        }
+        k = k + 1;
+    }
+    if xi < 32 { px[xi] = v; }
+    xi = xi + 1;
+    # 解析 ys
+    yi = 0; v = 0; k = 0;
+    while ys[k] != 0 {
+        if ys[k] >= 48 && ys[k] <= 57 {
+            v = v * 10 + (ys[k] - 48);
+        } else {
+            if yi < 32 { py[yi] = v; }
+            yi = yi + 1;
+            v = 0;
+        }
+        k = k + 1;
+    }
+    if yi < 32 { py[yi] = v; }
+    yi = yi + 1;
+    if xi > n { xi = n; }
+    if yi > n { yi = n; }
+    if xi < 2 { return 1; }
+    i = 0;
+    while i < xi - 1 {
+        uc_line(px[i], py[i], px[i+1], py[i+1], ch, fg, bg);
+        i = i + 1;
+    }
+    uc_line(px[xi-1], py[xi-1], px[0], py[0], ch, fg, bg);
+    return 0;
+}
