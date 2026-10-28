@@ -1,3 +1,14 @@
+## [1.366.0]
+
+- lib/uic.mo 新增场景快照：
+  - uc_save_scene：保存当前画布到快照
+  - uc_load_scene：从快照恢复画布
+  - uc_swap_scene：交换画布与快照（双缓冲动画）
+  - 用于场景切换、多页面 UI、动画
+- tests/101_uic.mo 覆盖场景快照。
+- E2E：保存 "Scene1" 后画 "Scene2"，恢复显示 "Scene1"。
+- 门禁：tests 249/249、projcheck 11/11、自举三级一致、sweep 全绿。
+
 ## [1.365.0]
 
 - lib/uic.mo 新增精灵图：

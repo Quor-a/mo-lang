@@ -57,6 +57,10 @@ fn main() -> i64 {
     uc_marquee(2, 8, "Hello", 8, 2, UC_YELLOW, UC_BLUE);
     uc_diamond(12, 4, 3, 2, '#', UC_CYAN, UC_BLUE);
     uc_draw_sprite(24, 3, " * ***", 3, 2, UC_MAGENTA, UC_BLUE);
+    uc_text(3, 1, "S1", UC_YELLOW, UC_BLUE);
+    uc_save_scene();
+    uc_text(3, 1, "S2", UC_GREEN, UC_BLUE);
+    uc_load_scene();
     uc_dump_svg("/tmp/uic_dump_test.svg");
     uc_render();
     return 0;

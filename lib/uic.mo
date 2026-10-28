@@ -1680,3 +1680,56 @@ fn uc_draw_sprite(x: i64, y: i64, sprite: ptr, w: i64, h: i64, fg: i64, bg: i64)
     }
     return 0;
 }
+
+# ============ v1.366 场景快照 ============
+
+# 画布快照缓冲（保存整个画布用于场景切换）
+var UC_SNAP: [6000] byte = 0;
+var UC_SNAP_FG: [6000] byte = 0;
+var UC_SNAP_BG: [6000] byte = 0;
+
+# uc_save_scene：保存当前画布到快照缓冲
+fn uc_save_scene() -> i64 {
+    let i: i64 = 0;
+    i = 0;
+    while i < UC_W * UC_H {
+        UC_SNAP[i] = UC_CH[i];
+        UC_SNAP_FG[i] = UC_FG[i];
+        UC_SNAP_BG[i] = UC_BG[i];
+        i = i + 1;
+    }
+    return 0;
+}
+
+# uc_load_scene：从快照缓冲恢复画布
+fn uc_load_scene() -> i64 {
+    let i: i64 = 0;
+    i = 0;
+    while i < UC_W * UC_H {
+        UC_CH[i] = UC_SNAP[i];
+        UC_FG[i] = UC_SNAP_FG[i];
+        UC_BG[i] = UC_SNAP_BG[i];
+        i = i + 1;
+    }
+    return 0;
+}
+
+# uc_swap_scene：交换当前画布与快照（用于动画双缓冲）
+fn uc_swap_scene() -> i64 {
+    let i: i64 = 0;
+    let t: i64 = 0;
+    i = 0;
+    while i < UC_W * UC_H {
+        t = UC_CH[i];
+        UC_CH[i] = UC_SNAP[i];
+        UC_SNAP[i] = t;
+        t = UC_FG[i];
+        UC_FG[i] = UC_SNAP_FG[i];
+        UC_SNAP_FG[i] = t;
+        t = UC_BG[i];
+        UC_BG[i] = UC_SNAP_BG[i];
+        UC_SNAP_BG[i] = t;
+        i = i + 1;
+    }
+    return 0;
+}
