@@ -1078,6 +1078,53 @@ fn pkg_cmd_hex(fil: ptr) -> i64 {
     return 0;
 }
 
+# v1.320:rev <file> —— 字节反转文件内容并写回
+fn pkg_cmd_rev(fil: ptr) -> i64 {
+    if strlen(fil) == 0 {
+        print("✗ rev 需要文件名\n");
+        return 1;
+    }
+    let fd: i64 = fopen(fil, 0, 0);
+    if fd < 0 {
+        print("✗ 无法打开 ");
+        print(fil);
+        print_nl();
+        return 1;
+    }
+    let n: i64 = fread(fd, &HX_BUF, 65535);
+    fclose(fd);
+    if n <= 0 {
+        print("✗ 文件为空或读取失败\n");
+        return 1;
+    }
+    let i: i64 = 0;
+    while i < n / 2 {
+        let t: i64 = HX_BUF[i];
+        HX_BUF[i] = HX_BUF[n - 1 - i];
+        HX_BUF[n - 1 - i] = t;
+        i = i + 1;
+    }
+    let fdw: i64 = fopen(fil, 577, 438);
+    if fdw < 0 {
+        print("✗ 无法写回 ");
+        print(fil);
+        print_nl();
+        return 1;
+    }
+    let wr: i64 = fwrite(fdw, &HX_BUF, n);
+    fclose(fdw);
+    if wr != n {
+        print("✗ 写入不完整\n");
+        return 1;
+    }
+    print("✓ 已反转 ");
+    print_i64(n);
+    print(" 字节 -> ");
+    print(fil);
+    print_nl();
+    return 0;
+}
+
 # ---------------------------------------------------------------- fetch
 
 fn pkg_install(nm: ptr, url: ptr, ref: ptr, want: ptr, path: ptr, fil: ptr) -> i64 {
@@ -2681,6 +2728,7 @@ fn pkg_dispatch(cmd: ptr) -> i64 {
     if streq(cmd, "verify") == 1 { return pkg_cmd_verify(); }
     if streq(cmd, "fetch") == 1 { return pkg_cmd_fetch(); }
     if streq(cmd, "hex") == 1 { return pkg_cmd_hex(pkg_arg2()); }
+    if streq(cmd, "rev") == 1 { return pkg_cmd_rev(pkg_arg2()); }
     if streq(cmd, "pack") == 1 { return pkg_cmd_pack(pkg_arg2(), pkg_arg3()); }
     if streq(cmd, "remove") == 1 {
         if argc() > 3 {

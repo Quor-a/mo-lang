@@ -1,3 +1,10 @@
+## [1.320.0]
+
+- mopkg 新增 rev 命令：字节反转文件内容并写回。
+- usage 更新。
+- E2E：rev rev.bin（"abcd"）输出 "✓ 已反转 4 字节 -> rev.bin"，内容变 "dcba"。
+- 门禁：tests 247/247、projcheck 11/11、自举三级一致、sweep 全绿。
+
 ## [1.319.0]
 
 - mopkg 新增 hex 命令：十六进制转储文件（xxd 风格：8 位偏移 + 16 字节 hex + ASCII）。
