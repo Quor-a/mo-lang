@@ -1949,3 +1949,60 @@ fn uc_move_window(x: i64, y: i64, w: i64, h: i64, nx: i64, ny: i64, fill: i64, f
     uc_paste(nx, ny);
     return 0;
 }
+
+# ============ v1.373 菜单栏 ============
+
+# uc_menu_bar：绘制横向菜单栏
+# items 为空格分隔的菜单项字符串，active_idx 为选中项（反色高亮）
+# x,y 为菜单栏左上角，w 为总宽度（不足自动扩展）
+fn uc_menu_bar(x: i64, y: i64, w: i64, items: ptr, active_idx: i64, fg: i64, bg: i64) -> i64 {
+    let len: i64 = 0;
+    let i: i64 = 0;
+    let idx: i64 = 0;
+    let cx: i64 = 0;
+    let item_start: i64 = 0;
+    let active_x: i64 = 0;
+    let active_w: i64 = 0;
+    len = strlen(items);
+    cx = x;
+    item_start = 0;
+    idx = 0;
+    # 第一遍：先填满背景（避免残留）
+    i = 0;
+    while i < w {
+        uc_set(x + i, y, 32, fg, bg);
+        i = i + 1;
+    }
+    i = 0;
+    while i < len {
+        if items[i] == 32 {
+            # 空格分隔：结束一个菜单项
+            if i > item_start {
+                if idx == active_idx {
+                    active_x = cx - (i - item_start);
+                    active_w = i - item_start;
+                }
+                idx = idx + 1;
+                item_start = i + 1;
+            }
+        } else {
+            if cx < x + w {
+                uc_set(cx, y, items[i], fg, bg);
+            }
+            cx = cx + 1;
+        }
+        i = i + 1;
+    }
+    # 最后一个菜单项
+    if len > item_start {
+        if idx == active_idx {
+            active_x = cx - (len - item_start);
+            active_w = len - item_start;
+        }
+    }
+    # 反色选中项
+    if active_w > 0 {
+        uc_reverse(active_x, y, active_w, 1);
+    }
+    return 0;
+}

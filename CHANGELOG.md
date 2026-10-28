@@ -1,3 +1,12 @@
+## [1.373.0]
+
+- lib/uic.mo 新增菜单栏：
+  - uc_menu_bar：横向菜单栏（空格分隔项，选中项反色高亮）
+  - 用于顶部导航、状态栏、工具栏
+- tests/101_uic.mo 覆盖菜单栏。
+- E2E："File Edit View Help" 中 "Edit" 反色高亮。
+- 门禁：tests 249/249、projcheck 11/11、自举三级一致、sweep 全绿。
+
 ## [1.372.0]
 
 - lib/uic.mo 新增窗口移动：
