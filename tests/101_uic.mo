@@ -21,6 +21,7 @@ fn main() -> i64 {
     uc_scrollbar(55, 12, 8, 40, 2, UC_YELLOW, UC_BLUE);
     uc_dump_text();
     uc_dump_file("/tmp/uic_dump_test.txt");
+    uc_dump_html("/tmp/uic_dump_test.html");
     uc_render();
     return 0;
 }

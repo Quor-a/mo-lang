@@ -1,3 +1,13 @@
+## [1.341.0]
+
+- lib/uic.mo 新增 HTML 导出：
+  - uc_dump_html(path)：把画布导出为彩色 HTML 文件（浏览器可打开）
+  - 每个单元渲染为 <span style="color:...;background:...">字符</span>，等宽 <pre> 布局
+  - 8 色映射到 HTML 颜色名/色值
+- tests/101_uic.mo 覆盖 HTML 导出。
+- E2E：画布成功导出为 .html，颜色正确无空字节。
+- 门禁：tests 249/249、projcheck 11/11、自举三级一致、sweep 全绿。
+
 ## [1.340.0]
 
 - lib/uic.mo 新增导出与工具：

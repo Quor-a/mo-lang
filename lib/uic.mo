@@ -524,3 +524,88 @@ fn uc_dump_file(path: ptr) -> i64 {
     fclose(fd);
     return 0;
 }
+
+# ============ v1.341 HTML 导出 ============
+
+# 颜色名辅助（返回 ANSI 颜色名）
+fn uc_fgname(f: i64) -> ptr {
+    if f == 0 { return "black"; }
+    if f == 1 { return "red"; }
+    if f == 2 { return "green"; }
+    if f == 3 { return "yellow"; }
+    if f == 4 { return "blue"; }
+    if f == 5 { return "magenta"; }
+    if f == 6 { return "cyan"; }
+    return "white";
+}
+
+# 背景色值辅助（返回 HTML 色值）
+fn uc_bgval(f: i64) -> ptr {
+    if f == 0 { return "#000"; }
+    if f == 1 { return "#800"; }
+    if f == 2 { return "#080"; }
+    if f == 3 { return "#880"; }
+    if f == 4 { return "#008"; }
+    if f == 5 { return "#808"; }
+    if f == 6 { return "#088"; }
+    return "#ccc";
+}
+
+# uc_dump_html：把画布导出为彩色 HTML 文件（浏览器可打开）
+fn uc_dump_html(path: ptr) -> i64 {
+    let y: i64 = 0;
+    let x: i64 = 0;
+    let fd: i64 = 0;
+    let c: i64 = 0;
+    let fgc: i64 = 0;
+    let bgc: i64 = 0;
+    let b: [256] byte = 0;
+    let bl: i64 = 0;
+    fd = fopen(path, 577, 438);
+    if fd < 0 {
+        print("✗ 无法写入 ");
+        print(path);
+        print_nl();
+        return 1;
+    }
+    # HTML 头
+    fwrite(fd, "<!DOCTYPE html>\n<html>\n<head>\n<meta charset=\"utf-8\">\n<title>Mo Canvas</title>\n<style>pre{font-family:monospace;line-height:1;}</style>\n</head>\n<body>\n<pre>\n", strlen("<!DOCTYPE html>\n<html>\n<head>\n<meta charset=\"utf-8\">\n<title>Mo Canvas</title>\n<style>pre{font-family:monospace;line-height:1;}</style>\n</head>\n<body>\n<pre>\n"));
+    y = 0;
+    while y < UC_H {
+        x = 0;
+        while x < UC_W {
+            c = UC_CH[y * UC_W + x];
+            fgc = UC_FG[y * UC_W + x];
+            bgc = UC_BG[y * UC_W + x];
+            if c == 0 { c = 32; }
+            if fgc < 0 { fgc = 7; }
+            if fgc > 7 { fgc = 7; }
+            if bgc < 0 { bgc = 0; }
+            if bgc > 7 { bgc = 0; }
+            # <span style="color:NAME;background:VALUE">
+            fwrite(fd, "<span style=\"color:", strlen("<span style=\"color:"));
+            fwrite(fd, uc_fgname(fgc), strlen(uc_fgname(fgc)));
+            fwrite(fd, ";background:", strlen(";background:"));
+            fwrite(fd, uc_bgval(bgc), strlen(uc_bgval(bgc)));
+            fwrite(fd, "\">", strlen("\">"));
+            # 字符（转义 < >）
+            if c == 60 {
+                fwrite(fd, "&lt;", strlen("&lt;"));
+            } else {
+                if c == 62 {
+                    fwrite(fd, "&gt;", strlen("&gt;"));
+                } else {
+                    b[0] = c;
+                    fwrite(fd, &b, 1);
+                }
+            }
+            fwrite(fd, "</span>", strlen("</span>"));
+            x = x + 1;
+        }
+        fwrite(fd, "\n", 1);
+        y = y + 1;
+    }
+    fwrite(fd, "</pre>\n</body>\n</html>\n", strlen("</pre>\n</body>\n</html>\n"));
+    fclose(fd);
+    return 0;
+}
