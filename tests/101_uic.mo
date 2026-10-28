@@ -68,6 +68,8 @@ fn main() -> i64 {
     uc_button(12, 2, 10, "Cancel", UC_GREEN, UC_BLUE, 1);
     uc_spinner(20, 2, 0, UC_GREEN, UC_BLUE);
     uc_spinner(21, 2, 1, UC_GREEN, UC_BLUE);
+    uc_text_shadow(5, 2, "T", UC_YELLOW, UC_BLACK, UC_BLUE);
+    uc_text_center(6, 2, 8, "Hi", UC_GREEN, UC_BLUE);
     uc_dump_svg("/tmp/uic_dump_test.svg");
     uc_render();
     return 0;

@@ -1883,3 +1883,44 @@ fn uc_spinner(x: i64, y: i64, frame: i64, fg: i64, bg: i64) -> i64 {
     uc_set(x, y, c, fg, bg);
     return 0;
 }
+
+# ============ v1.371 文本特效 ============
+
+# uc_text_shadow：带阴影的文本
+# 先绘制阴影（右下偏移 1 格，用 shadow_fg），再绘制正文。
+# 用于标题、Logo、强调文本。
+fn uc_text_shadow(x: i64, y: i64, text: ptr, fg: i64, shadow_fg: i64, bg: i64) -> i64 {
+    let len: i64 = 0;
+    let i: i64 = 0;
+    len = strlen(text);
+    # 阴影
+    i = 0;
+    while i < len {
+        uc_set(x + 1 + i, y + 1, text[i], shadow_fg, bg);
+        i = i + 1;
+    }
+    # 正文
+    i = 0;
+    while i < len {
+        uc_set(x + i, y, text[i], fg, bg);
+        i = i + 1;
+    }
+    return 0;
+}
+
+# uc_text_center：在指定宽度内水平居中显示文本
+# 用于对话框标题、窗口标题居中。
+fn uc_text_center(x: i64, y: i64, w: i64, text: ptr, fg: i64, bg: i64) -> i64 {
+    let len: i64 = 0;
+    let start: i64 = 0;
+    let i: i64 = 0;
+    len = strlen(text);
+    start = x + (w - len) / 2;
+    if start < x { start = x; }
+    i = 0;
+    while i < len {
+        uc_set(start + i, y, text[i], fg, bg);
+        i = i + 1;
+    }
+    return 0;
+}

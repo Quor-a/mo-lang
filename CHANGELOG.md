@@ -1,3 +1,13 @@
+## [1.371.0]
+
+- lib/uic.mo 新增文本特效：
+  - uc_text_shadow：带阴影文本（右下偏移 1 格）
+  - uc_text_center：在指定宽度内水平居中显示文本
+  - 用于标题、Logo、对话框标题
+- tests/101_uic.mo 覆盖文本特效。
+- E2E：阴影 "TITLE" + 居中 "centered" 正确渲染。
+- 门禁：tests 249/249、projcheck 11/11、自举三级一致、sweep 全绿。
+
 ## [1.370.0]
 
 - lib/uic.mo 新增旋转指示器：
