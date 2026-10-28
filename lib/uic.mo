@@ -2006,3 +2006,31 @@ fn uc_menu_bar(x: i64, y: i64, w: i64, items: ptr, active_idx: i64, fg: i64, bg:
     }
     return 0;
 }
+
+# ============ v1.374 徽章 ============
+
+# uc_badge：绘制一个徽章/角标
+# 左侧标签 + 右侧数值，用不同的前景色。
+# 例如 uc_badge(x, y, "tests", "249", ...) 显示 [tests|249]
+fn uc_badge(x: i64, y: i64, label: ptr, value: ptr, fg1: i64, fg2: i64, bg: i64) -> i64 {
+    let l1: i64 = 0;
+    let l2: i64 = 0;
+    let i: i64 = 0;
+    l1 = strlen(label);
+    l2 = strlen(value);
+    # 标签部分
+    i = 0;
+    while i < l1 {
+        uc_set(x + i, y, label[i], fg1, bg);
+        i = i + 1;
+    }
+    # 分隔
+    uc_set(x + l1, y, '|', fg1, bg);
+    # 数值部分
+    i = 0;
+    while i < l2 {
+        uc_set(x + l1 + 1 + i, y, value[i], fg2, bg);
+        i = i + 1;
+    }
+    return 0;
+}
