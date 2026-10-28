@@ -29,6 +29,7 @@ fn mopkg_usage() -> i64 {
     print("  base64   base64 编码/解码（--decode 解码）\n");
     print("  cmp      比较两个文件（首个不同偏移）\n");
     print("  sha256   输出文件 sha256 校验和\n");
+    print("  wc       行数/词数/字节数统计\n");
     print("\n");
     return 2;
 }

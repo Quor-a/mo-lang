@@ -1,3 +1,10 @@
+## [1.324.0]
+
+- mopkg 新增 wc 命令：行数/词数/字节数统计（类 wc）。
+- usage 更新。
+- E2E：wc wc.txt 输出 " 3 8 38 wc.txt"，与系统 wc 完全一致。
+- 门禁：tests 247/247、projcheck 11/11、自举三级一致、sweep 全绿。
+
 ## [1.323.0]
 
 - mopkg 新增 sha256 命令：输出文件 sha256 校验和（复用 crypto.mo sha256_hex）。
