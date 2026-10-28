@@ -1,3 +1,12 @@
+## [1.384.0]
+
+- lib/uic.mo 新增树形视图：
+  - uc_tree：文件树/目录树（'|' 分隔行，保留缩进）
+  - 用于文件浏览器、项目导航
+- tests/101_uic.mo 覆盖树形视图。
+- E2E：proj/src/main.mo/README 树正确渲染。
+- 门禁：tests 249/249、projcheck 11/11、自举三级一致、sweep 全绿。
+
 ## [1.383.0]
 
 - lib/uic.mo 新增标签页：

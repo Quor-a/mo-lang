@@ -2354,3 +2354,31 @@ fn uc_tabs(x: i64, y: i64, tabs: ptr, active_idx: i64, fg: i64, bg: i64) -> i64 
     }
     return 0;
 }
+
+# ============ v1.384 树形视图 ============
+
+# uc_tree：绘制树形视图（文件树/目录树）
+# items 为 '|' 分隔的多行，每行是带缩进和树形前缀的文本。
+# 直接原样绘制，用于文件浏览器、项目导航。
+# 例如 "src|├─ main.mo|├─ lib.mo|└─ README.md"
+fn uc_tree(x: i64, y: i64, items: ptr, fg: i64, bg: i64) -> i64 {
+    let len: i64 = 0;
+    let i: i64 = 0;
+    let row: i64 = 0;
+    let col: i64 = 0;
+    len = strlen(items);
+    row = y;
+    col = x;
+    i = 0;
+    while i < len {
+        if items[i] == 124 {  # '|' 换行
+            row = row + 1;
+            col = x;
+        } else {
+            uc_set(col, row, items[i], fg, bg);
+            col = col + 1;
+        }
+        i = i + 1;
+    }
+    return 0;
+}
