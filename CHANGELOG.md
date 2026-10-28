@@ -1,3 +1,14 @@
+## [1.342.0]
+
+- lib/uic.mo 新增布局管理器与图表：
+  - uc_layout_h：水平排列多个面板
+  - uc_layout_v：垂直排列多个面板
+  - uc_label：带边框的标签/徽章（[ON] / [OFF]）
+  - uc_chart：条形图（逗号分隔数值，按比例高度绘制）
+- tests/101_uic.mo 覆盖新功能。
+- E2E：水平/垂直布局、标签、条形图全部正确渲染。
+- 门禁：tests 249/249、projcheck 11/11、自举三级一致、sweep 全绿。
+
 ## [1.341.0]
 
 - lib/uic.mo 新增 HTML 导出：

@@ -609,3 +609,102 @@ fn uc_dump_html(path: ptr) -> i64 {
     fclose(fd);
     return 0;
 }
+
+# ============ v1.342 布局管理器 ============
+
+# uc_layout_h：水平排列 —— 在 (x,y) 起，按指定间距水平放置多个面板
+# count 个组件，每个宽度 item_w，间距 gap；返回末尾 x 坐标
+fn uc_layout_h(x: i64, y: i64, count: i64, item_w: i64, gap: i64, fg: i64, bg: i64) -> i64 {
+    let i: i64 = 0;
+    let cur: i64 = 0;
+    cur = x;
+    i = 0;
+    while i < count {
+        uc_panel(cur, y, item_w, 3, "", fg, bg);
+        cur = cur + item_w + gap;
+        i = i + 1;
+    }
+    return cur - gap;
+}
+
+# uc_layout_v：垂直排列 —— 在 (x,y) 起，垂直放置多个组件
+# 每个组件高度 item_h，间距 gap；返回末尾 y 坐标
+fn uc_layout_v(x: i64, y: i64, count: i64, item_h: i64, gap: i64, fg: i64, bg: i64) -> i64 {
+    let i: i64 = 0;
+    let cur: i64 = 0;
+    cur = y;
+    i = 0;
+    while i < count {
+        uc_panel(x, cur, 8, item_h, "", fg, bg);
+        cur = cur + item_h + gap;
+        i = i + 1;
+    }
+    return cur - gap;
+}
+
+# uc_label：带边框的标签（小徽章），用于状态栏/徽标
+fn uc_label(x: i64, y: i64, text: ptr, fg: i64, bg: i64, border: i64) -> i64 {
+    let len: i64 = 0;
+    let i: i64 = 0;
+    len = strlen(text);
+    if len < 1 { len = 1; }
+    if border != 0 {
+        uc_set(x, y, '[', UC_WHITE, bg);
+        uc_text(x + 1, y, text, fg, bg);
+        uc_set(x + len + 1, y, ']', UC_WHITE, bg);
+    } else {
+        uc_text(x, y, text, fg, bg);
+    }
+    return 0;
+}
+
+# uc_chart：条形图 —— 用字符列表示数据（逗号分隔数字），每个柱用 # 填充
+# values: "3,5,2,8,4"；max_h 柱最大高度；fg/bg 柱子颜色
+fn uc_chart(x: i64, y: i64, values: ptr, max_h: i64, fg: i64, bg: i64) -> i64 {
+    let i: i64 = 0;
+    let v: i64 = 0;
+    let h: i64 = 0;
+    let n: i64 = 0;
+    let col: i64 = 0;
+    let maxv: i64 = 0;
+    let cur: i64 = 0;
+    let row: i64 = 0;
+    let len: i64 = 0;
+    let vs: [32] i64 = 0;
+    len = strlen(values);
+    i = 0;
+    n = 0;
+    v = 0;
+    while i <= len {
+        if i < len && values[i] >= 48 && values[i] <= 57 {
+            v = v * 10 + (values[i] - 48);
+        } else {
+            vs[n] = v;
+            n = n + 1;
+            v = 0;
+        }
+        i = i + 1;
+    }
+    if n < 1 { n = 1; }
+    if max_h < 1 { max_h = 1; }
+    # 找最大值
+    maxv = 1;
+    i = 0;
+    while i < n {
+        if vs[i] > maxv { maxv = vs[i]; }
+        i = i + 1;
+    }
+    col = 0;
+    while col < n {
+        # 高度 = vs[col] * max_h / maxv
+        h = (vs[col] * max_h) / maxv;
+        if h < 1 && vs[col] > 0 { h = 1; }
+        row = 0;
+        while row < h {
+            uc_set(x + col, y - row, '#', fg, bg);
+            row = row + 1;
+        }
+        col = col + 1;
+    }
+    return 0;
+}

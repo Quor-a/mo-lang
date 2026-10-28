@@ -22,6 +22,10 @@ fn main() -> i64 {
     uc_dump_text();
     uc_dump_file("/tmp/uic_dump_test.txt");
     uc_dump_html("/tmp/uic_dump_test.html");
+    uc_layout_h(2, 21, 3, 8, 1, UC_GREEN, UC_BLUE);
+    uc_layout_v(40, 20, 2, 3, 1, UC_YELLOW, UC_BLUE);
+    uc_label(2, 23, "ON", UC_GREEN, UC_BLUE, 1);
+    uc_chart(10, 24, "3,5,2", 4, UC_CYAN, UC_BLUE);
     uc_render();
     return 0;
 }
