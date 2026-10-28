@@ -61,6 +61,7 @@ fn main() -> i64 {
     uc_save_scene();
     uc_text(3, 1, "S2", UC_GREEN, UC_BLUE);
     uc_load_scene();
+    uc_border(14, 1, 8, 3, 2, UC_GREEN, UC_BLUE);
     uc_dump_svg("/tmp/uic_dump_test.svg");
     uc_render();
     return 0;

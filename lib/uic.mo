@@ -1733,3 +1733,57 @@ fn uc_swap_scene() -> i64 {
     }
     return 0;
 }
+
+# ============ v1.367 多样式边框 ============
+
+# uc_border：绘制多样式边框
+# style: 1=单线(-|+角), 2=双线(=||+角), 3=粗线(#), 4=虚线(- - -)
+fn uc_border(x: i64, y: i64, w: i64, h: i64, style: i64, fg: i64, bg: i64) -> i64 {
+    let i: i64 = 0;
+    let hc: i64 = 0;
+    let vc: i64 = 0;
+    let tl: i64 = 0;
+    let tr: i64 = 0;
+    let bl: i64 = 0;
+    let br: i64 = 0;
+    if style == 2 {
+        hc = 61; vc = 124; tl = 43; tr = 43; bl = 43; br = 43;  # 双线用 = 和 | 和 +
+    } else {
+        if style == 3 {
+            hc = 35; vc = 35; tl = 35; tr = 35; bl = 35; br = 35;  # 粗线 #
+        } else {
+            if style == 4 {
+                hc = 45; vc = 124; tl = 43; tr = 43; bl = 43; br = 43;  # 虚线 - 和 |
+            } else {
+                hc = 45; vc = 124; tl = 43; tr = 43; bl = 43; br = 43;  # 单线
+            }
+        }
+    }
+    if w < 3 { w = 3; }
+    if h < 3 { h = 3; }
+    # 四角
+    uc_set(x, y, tl, fg, bg);
+    uc_set(x + w - 1, y, tr, fg, bg);
+    uc_set(x, y + h - 1, bl, fg, bg);
+    uc_set(x + w - 1, y + h - 1, br, fg, bg);
+    # 上下边
+    i = 1;
+    while i < w - 1 {
+        if style == 4 {
+            if i % 2 == 1 { uc_set(x + i, y, hc, fg, bg); }
+            if (w - 1 - i) % 2 == 1 { uc_set(x + i, y + h - 1, hc, fg, bg); }
+        } else {
+            uc_set(x + i, y, hc, fg, bg);
+            uc_set(x + i, y + h - 1, hc, fg, bg);
+        }
+        i = i + 1;
+    }
+    # 左右边
+    i = 1;
+    while i < h - 1 {
+        uc_set(x, y + i, vc, fg, bg);
+        uc_set(x + w - 1, y + i, vc, fg, bg);
+        i = i + 1;
+    }
+    return 0;
+}
