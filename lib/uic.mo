@@ -243,3 +243,95 @@ fn uc_render_at(row: i64, col: i64) -> i64 {
     ui_reset();
     return 0;
 }
+# v1.338:任意两点直线（Bresenham 画线）—— 让开发者能画任意图形
+fn uc_line(x0: i64, y0: i64, x1: i64, y1: i64, ch: i64, fg: i64, bg: i64) -> i64 {
+    let dx: i64 = 0;
+    let dy: i64 = 0;
+    let sx: i64 = 0;
+    let sy: i64 = 0;
+    let err: i64 = 0;
+    let e2: i64 = 0;
+    dx = x1 - x0; if dx < 0 { dx = 0 - dx; }
+    dy = y1 - y0; if dy < 0 { dy = 0 - dy; }
+    if x0 < x1 { sx = 1; } else { sx = -1; }
+    if y0 < y1 { sy = 1; } else { sy = -1; }
+    err = dx - dy;
+    while 1 == 1 {
+        uc_set(x0, y0, ch, fg, bg);
+        if x0 == x1 && y0 == y1 { break; }
+        e2 = 2 * err;
+        if e2 > 0 - dy {
+            err = err - dy;
+            x0 = x0 + sx;
+        }
+        if e2 < dx {
+            err = err + dx;
+            y0 = y0 + sy;
+        }
+    }
+    return 0;
+}
+
+# v1.338:圆（中点画圆法）
+fn uc_circle(cx: i64, cy: i64, r: i64, ch: i64, fg: i64, bg: i64) -> i64 {
+    let x: i64 = 0;
+    let y: i64 = 0;
+    let d: i64 = 0;
+    if r < 1 { r = 1; }
+    x = 0;
+    y = r;
+    d = 1 - r;
+    while x <= y {
+        uc_set(cx + x, cy + y, ch, fg, bg);
+        uc_set(cx + y, cy + x, ch, fg, bg);
+        uc_set(cx - x, cy + y, ch, fg, bg);
+        uc_set(cx - y, cy + x, ch, fg, bg);
+        uc_set(cx + x, cy - y, ch, fg, bg);
+        uc_set(cx + y, cy - x, ch, fg, bg);
+        uc_set(cx - x, cy - y, ch, fg, bg);
+        uc_set(cx - y, cy - x, ch, fg, bg);
+        if d < 0 {
+            d = d + 2 * x + 3;
+        } else {
+            d = d + 2 * (x - y) + 5;
+            y = y - 1;
+        }
+        x = x + 1;
+    }
+    return 0;
+}
+
+# v1.338:三角形边框（三顶点连线）
+fn uc_tri(x0: i64, y0: i64, x1: i64, y1: i64, x2: i64, y2: i64, ch: i64, fg: i64, bg: i64) -> i64 {
+    uc_line(x0, y0, x1, y1, ch, fg, bg);
+    uc_line(x1, y1, x2, y2, ch, fg, bg);
+    uc_line(x2, y2, x0, y0, ch, fg, bg);
+    return 0;
+}
+
+# v1.338:绘制图案 —— 用逗号分隔的多行字符矩阵绘制任意图标
+# pattern 形如 ".##.,#..#,#..#,.##."，'.'=透明(跳过), 其他字符=绘制
+fn uc_sprite(x: i64, y: i64, pattern: ptr, fg: i64, bg: i64) -> i64 {
+    let i: i64 = 0;
+    let row: i64 = 0;
+    let col: i64 = 0;
+    let len: i64 = 0;
+    len = strlen(pattern);
+    i = 0;
+    row = 0;
+    col = 0;
+    while i < len {
+        let c: i64 = pattern[i];
+        if c == 44 {   # ','
+            row = row + 1;
+            col = 0;
+        } else {
+            if c != 46 {   # 不是 '.'
+                uc_set(x + col, y + row, c, fg, bg);
+            }
+            col = col + 1;
+        }
+        i = i + 1;
+    }
+    return 0;
+}

@@ -11,6 +11,10 @@ fn main() -> i64 {
     uc_fill(1, 3, 20, 1, '=', UC_GREEN, UC_WHITE);
     uc_hline(1, 30, 5, '-', UC_RED, UC_WHITE);
     uc_vline(35, 1, 8, '|', UC_RED, UC_WHITE);
+    uc_line(1, 1, 10, 5, '*', UC_RED, UC_BLUE);
+    uc_circle(20, 5, 3, 'O', UC_YELLOW, UC_BLUE);
+    uc_tri(30, 1, 35, 5, 25, 5, '#', UC_GREEN, UC_BLUE);
+    uc_sprite(2, 7, ".##.,#..#,####", UC_MAGENTA, UC_BLUE);
     uc_render();
     return 0;
 }

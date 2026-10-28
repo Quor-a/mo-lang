@@ -1,3 +1,14 @@
+## [1.338.0]
+
+- lib/uic.mo 新增图形绘制原语，让开发者能画任意图形：
+  - uc_line：任意两点 Bresenham 直线
+  - uc_circle：中点画圆法
+  - uc_tri：三角形边框（三顶点连线）
+  - uc_sprite：字符图案绘制（逗号分隔多行，'.'=透明）
+- tests/101_uic.mo 覆盖新原语。
+- E2E：uic_gfx 渲染出斜线、圆、三角形、sprite 图案。
+- 门禁：tests 249/249、projcheck 11/11、自举三级一致、sweep 全绿。
+
 ## [1.337.0]
 
 - 新增 lib/uic.mo：字符画布标准库，让墨语言开发者用基本原语自由组合任意 UI。
