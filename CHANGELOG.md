@@ -1,3 +1,10 @@
+## [1.331.0]
+
+- mopkg 新增 touch 命令：创建空文件（已存在则更新时间戳）。
+- usage 更新。
+- E2E：touch t1.txt 创建 0 字节文件；已存在也能 touch。
+- 门禁：tests 247/247、projcheck 11/11、自举三级一致、sweep 全绿。
+
 ## [1.330.0]
 
 - mopkg 新增 mv 命令：文件移动 <src> <dst>（复制后删除源）。

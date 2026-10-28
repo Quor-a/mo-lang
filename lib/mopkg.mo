@@ -1464,6 +1464,26 @@ fn pkg_cmd_mv(src: ptr, dst: ptr) -> i64 {
     return 0;
 }
 
+# v1.331:touch <file> —— 创建空文件（已存在则更新时间戳）
+fn pkg_cmd_touch(fil: ptr) -> i64 {
+    if strlen(fil) == 0 {
+        print("✗ touch 需要文件名\n");
+        return 1;
+    }
+    let fd: i64 = fopen(fil, 577, 438);
+    if fd < 0 {
+        print("✗ 无法创建 ");
+        print(fil);
+        print_nl();
+        return 1;
+    }
+    fclose(fd);
+    print("✓ 已 touch ");
+    print(fil);
+    print_nl();
+    return 0;
+}
+
 # v1.327:tail <file> [n] —— 显示末尾 n 行（默认 10）
 fn pkg_cmd_tail(fil: ptr, n: i64) -> i64 {
     if strlen(fil) == 0 {
@@ -3196,6 +3216,7 @@ fn pkg_dispatch(cmd: ptr) -> i64 {
     if streq(cmd, "cat") == 1 { return pkg_cmd_cat(pkg_arg2()); }
     if streq(cmd, "cp") == 1 { return pkg_cmd_cp(pkg_arg2(), pkg_arg3()); }
     if streq(cmd, "mv") == 1 { return pkg_cmd_mv(pkg_arg2(), pkg_arg3()); }
+    if streq(cmd, "touch") == 1 { return pkg_cmd_touch(pkg_arg2()); }
     if streq(cmd, "pack") == 1 { return pkg_cmd_pack(pkg_arg2(), pkg_arg3()); }
     if streq(cmd, "remove") == 1 {
         if argc() > 3 {

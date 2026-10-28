@@ -36,6 +36,7 @@ fn mopkg_usage() -> i64 {
     print("  cat      输出文件全部内容\n");
     print("  cp       复制文件 <src> <dst>\n");
     print("  mv       移动文件 <src> <dst>\n");
+    print("  touch    创建空文件（存在则更新时间）\n");
     print("\n");
     return 2;
 }
