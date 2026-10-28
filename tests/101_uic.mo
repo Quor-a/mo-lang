@@ -49,6 +49,8 @@ fn main() -> i64 {
     uc_paste(15, 2);
     uc_text(5, 3, "AB", UC_YELLOW, UC_BLUE);
     uc_flip_h();
+    uc_round_rect(2, 5, 10, 3, UC_CYAN, UC_BLUE);
+    uc_fill_round(16, 5, 8, 3, '=', UC_GREEN, UC_BLUE);
     uc_render();
     return 0;
 }

@@ -1338,3 +1338,57 @@ fn uc_flip_v() -> i64 {
     }
     return 0;
 }
+
+# ============ v1.357 圆角矩形 ============
+
+# uc_round_rect：圆角矩形边框
+# 四角用圆角字符 '.'，上下边 '-'，左右边 '|'
+fn uc_round_rect(x: i64, y: i64, w: i64, h: i64, fg: i64, bg: i64) -> i64 {
+    let i: i64 = 0;
+    if w < 3 { w = 3; }
+    if h < 3 { h = 3; }
+    # 四角
+    uc_set(x, y, '.', fg, bg);
+    uc_set(x + w - 1, y, '.', fg, bg);
+    uc_set(x, y + h - 1, '.', fg, bg);
+    uc_set(x + w - 1, y + h - 1, '.', fg, bg);
+    # 上下边
+    i = 1;
+    while i < w - 1 {
+        uc_set(x + i, y, '-', fg, bg);
+        uc_set(x + i, y + h - 1, '-', fg, bg);
+        i = i + 1;
+    }
+    # 左右边
+    i = 1;
+    while i < h - 1 {
+        uc_set(x, y + i, '|', fg, bg);
+        uc_set(x + w - 1, y + i, '|', fg, bg);
+        i = i + 1;
+    }
+    return 0;
+}
+
+# uc_fill_round：实心圆角矩形 —— 填充内部区域
+fn uc_fill_round(x: i64, y: i64, w: i64, h: i64, ch: i64, fg: i64, bg: i64) -> i64 {
+    let i: i64 = 0;
+    let j: i64 = 0;
+    if w < 3 { w = 3; }
+    if h < 3 { h = 3; }
+    # 填充整个矩形区域（含边）
+    j = 0;
+    while j < h {
+        i = 0;
+        while i < w {
+            uc_set(x + i, y + j, ch, fg, bg);
+            i = i + 1;
+        }
+        j = j + 1;
+    }
+    # 四角清为背景色
+    uc_set(x, y, 32, fg, bg);
+    uc_set(x + w - 1, y, 32, fg, bg);
+    uc_set(x, y + h - 1, 32, fg, bg);
+    uc_set(x + w - 1, y + h - 1, 32, fg, bg);
+    return 0;
+}

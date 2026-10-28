@@ -1,3 +1,12 @@
+## [1.357.0]
+
+- lib/uic.mo 新增圆角矩形：
+  - uc_round_rect：圆角矩形边框（现代 UI 风格）
+  - uc_fill_round：实心圆角矩形
+- tests/101_uic.mo 覆盖圆角矩形。
+- E2E：圆角边框 + 实心圆角矩形正确渲染。
+- 门禁：tests 249/249、projcheck 11/11、自举三级一致、sweep 全绿。
+
 ## [1.356.0]
 
 - 新增 examples/uic_dclock.mo：动态数字时钟（实时刷新）。
