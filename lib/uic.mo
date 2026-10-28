@@ -1924,3 +1924,28 @@ fn uc_text_center(x: i64, y: i64, w: i64, text: ptr, fg: i64, bg: i64) -> i64 {
     }
     return 0;
 }
+
+# ============ v1.372 窗口移动 ============
+
+# uc_move_window：移动画布上的一个窗口区域到新位置
+# 复制 (x,y,w,h) 的内容到 (nx,ny)，并清空原区域。
+# 用于窗口拖拽、面板重排、游戏对象移动。
+fn uc_move_window(x: i64, y: i64, w: i64, h: i64, nx: i64, ny: i64, fill: i64, fg: i64, bg: i64) -> i64 {
+    let i: i64 = 0;
+    let j: i64 = 0;
+    # 复制到剪贴板
+    uc_copy(x, y, w, h);
+    # 清空原区域
+    j = 0;
+    while j < h {
+        i = 0;
+        while i < w {
+            uc_set(x + i, y + j, fill, fg, bg);
+            i = i + 1;
+        }
+        j = j + 1;
+    }
+    # 粘贴到新位置
+    uc_paste(nx, ny);
+    return 0;
+}
