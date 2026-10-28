@@ -54,6 +54,7 @@ fn main() -> i64 {
     uc_axis(5, 8, 12, 5, UC_CYAN, UC_BLUE);
     uc_grid(2, 2, 4, 2, 2, '.', UC_GREEN, UC_BLUE);
     uc_gradient(20, 5, 8, 4, UC_GREEN, UC_BLUE);
+    uc_marquee(2, 8, "Hello", 8, 2, UC_YELLOW, UC_BLUE);
     uc_dump_svg("/tmp/uic_dump_test.svg");
     uc_render();
     return 0;

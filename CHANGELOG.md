@@ -1,3 +1,12 @@
+## [1.363.0]
+
+- lib/uic.mo 新增滚动文本（跑马灯）：
+  - uc_marquee：在固定宽度窗口内显示滚动文本，offset 控制滚动位置
+  - 用于公告栏、状态栏、游戏字幕
+- tests/101_uic.mo 覆盖跑马灯。
+- E2E："Hello World" 在 10 宽窗口内滚动裁剪正确。
+- 门禁：tests 249/249、projcheck 11/11、自举三级一致、sweep 全绿。
+
 ## [1.362.0]
 
 - 新增 examples/uic_catch.mo：迷你收集游戏。

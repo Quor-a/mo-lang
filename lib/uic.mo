@@ -1595,3 +1595,29 @@ fn uc_gradient(x: i64, y: i64, w: i64, h: i64, fg: i64, bg: i64) -> i64 {
     }
     return 0;
 }
+
+# ============ v1.363 滚动文本（跑马灯） ============
+
+# uc_marquee：在固定宽度窗口内显示滚动文本（跑马灯）
+# x,y 为窗口左上角，w 为窗口宽度
+# offset 为滚动偏移（0 = 文本右端贴窗口右缘；每 +1 文本左移一位）
+# 超出窗口部分的文本被裁剪。返回文本长度。
+fn uc_marquee(x: i64, y: i64, text: ptr, w: i64, offset: i64, fg: i64, bg: i64) -> i64 {
+    let len: i64 = 0;
+    let i: i64 = 0;
+    let scrx: i64 = 0;
+    let ci: i64 = 0;
+    len = strlen(text);
+    # 每个字符在窗口内的屏幕位置 = x + (i - offset + w - 1)
+    i = 0;
+    while i < len {
+        scrx = x + (i - offset + w - 1);
+        if scrx >= x {
+            if scrx < x + w {
+                uc_set(scrx, y, text[i], fg, bg);
+            }
+        }
+        i = i + 1;
+    }
+    return len;
+}
