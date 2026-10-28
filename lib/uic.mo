@@ -1621,3 +1621,37 @@ fn uc_marquee(x: i64, y: i64, text: ptr, w: i64, offset: i64, fg: i64, bg: i64) 
     }
     return len;
 }
+
+# ============ v1.364 更多图形 ============
+
+# uc_diamond：绘制菱形边框（中心 cx,cy，半宽 rw，半高 rh）
+# 用 ASCII 字符画菱形轮廓，用于图标、装饰、游戏。
+fn uc_diamond(cx: i64, cy: i64, rw: i64, rh: i64, ch: i64, fg: i64, bg: i64) -> i64 {
+    let i: i64 = 0;
+    let j: i64 = 0;
+    if rw < 1 { rw = 1; }
+    if rh < 1 { rh = 1; }
+    # 上半部分（从顶点到底部中心）
+    j = 0;
+    while j <= rh {
+        i = 0;
+        while i <= j * rw / rh {
+            uc_set(cx + i, cy + j - rh, ch, fg, bg);
+            uc_set(cx - i, cy + j - rh, ch, fg, bg);
+            i = i + 1;
+        }
+        j = j + 1;
+    }
+    # 下半部分
+    j = rh;
+    while j >= 0 {
+        i = 0;
+        while i <= j * rw / rh {
+            uc_set(cx + i, cy + rh - j, ch, fg, bg);
+            uc_set(cx - i, cy + rh - j, ch, fg, bg);
+            i = i + 1;
+        }
+        j = j - 1;
+    }
+    return 0;
+}
