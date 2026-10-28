@@ -62,6 +62,8 @@ fn main() -> i64 {
     uc_text(3, 1, "S2", UC_GREEN, UC_BLUE);
     uc_load_scene();
     uc_border(14, 1, 8, 3, 2, UC_GREEN, UC_BLUE);
+    uc_text(20, 3, "Hi", UC_WHITE, UC_BLUE);
+    uc_reverse(20, 3, 2, 1);
     uc_dump_svg("/tmp/uic_dump_test.svg");
     uc_render();
     return 0;

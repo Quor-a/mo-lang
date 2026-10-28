@@ -1787,3 +1787,25 @@ fn uc_border(x: i64, y: i64, w: i64, h: i64, style: i64, fg: i64, bg: i64) -> i6
     }
     return 0;
 }
+
+# ============ v1.368 反色区域 ============
+
+# uc_reverse：反色指定区域（前景/背景互换）
+# 用于菜单选中高亮、列表焦点、按钮按下效果。
+fn uc_reverse(x: i64, y: i64, w: i64, h: i64) -> i64 {
+    let i: i64 = 0;
+    let j: i64 = 0;
+    let t: i64 = 0;
+    j = 0;
+    while j < h {
+        i = 0;
+        while i < w {
+            t = UC_FG[(y + j) * UC_W + x + i];
+            UC_FG[(y + j) * UC_W + x + i] = UC_BG[(y + j) * UC_W + x + i];
+            UC_BG[(y + j) * UC_W + x + i] = t;
+            i = i + 1;
+        }
+        j = j + 1;
+    }
+    return 0;
+}
