@@ -335,3 +335,117 @@ fn uc_sprite(x: i64, y: i64, pattern: ptr, fg: i64, bg: i64) -> i64 {
     }
     return 0;
 }
+
+# ============ v1.339 高级组件层（基于画布原语组合） ============
+
+# uc_window：带标题栏的窗口
+# 边框颜色 border_fg，标题栏背景 title_bg，标题文字 title
+fn uc_window(x: i64, y: i64, w: i64, h: i64, title: ptr, border_fg: i64, title_bg: i64) -> i64 {
+    let i: i64 = 0;
+    let tl: i64 = 0;
+    if w < 5 { w = 5; }
+    if h < 3 { h = 3; }
+    # 边框
+    uc_rect(x, y, w, h, '+', border_fg, title_bg);
+    # 上下边框用 '-'，左右用 '|'（覆盖 rect 的 '+' 之外的部分）
+    i = 1;
+    while i < w - 1 {
+        uc_set(x + i, y, '-', border_fg, title_bg);
+        uc_set(x + i, y + h - 1, '-', border_fg, title_bg);
+        i = i + 1;
+    }
+    i = 1;
+    while i < h - 1 {
+        uc_set(x, y + i, '|', border_fg, title_bg);
+        uc_set(x + w - 1, y + i, '|', border_fg, title_bg);
+        i = i + 1;
+    }
+    # 标题（左上角，反色显示：标题用 title_bg 作为前景色不好，直接用黑字白底风格）
+    tl = strlen(title);
+    if tl > w - 3 { tl = w - 3; }
+    uc_text(x + 1, y, title, UC_BLACK, title_bg);
+    return 0;
+}
+
+# uc_panel：面板 —— 边框 + 可选标题，内容由开发者自由填入
+fn uc_panel(x: i64, y: i64, w: i64, h: i64, title: ptr, fg: i64, bg: i64) -> i64 {
+    let i: i64 = 0;
+    if w < 4 { w = 4; }
+    if h < 2 { h = 2; }
+    # 顶部边框 + 标题
+    uc_set(x, y, '+', fg, bg);
+    i = 1;
+    while i < w - 1 {
+        uc_set(x + i, y, '-', fg, bg);
+        i = i + 1;
+    }
+    uc_set(x + w - 1, y, '+', fg, bg);
+    if strlen(title) > 0 {
+        uc_text(x + 2, y, title, UC_YELLOW, bg);
+    }
+    # 底部边框
+    uc_set(x, y + h - 1, '+', fg, bg);
+    i = 1;
+    while i < w - 1 {
+        uc_set(x + i, y + h - 1, '-', fg, bg);
+        i = i + 1;
+    }
+    uc_set(x + w - 1, y + h - 1, '+', fg, bg);
+    # 左右边
+    i = 1;
+    while i < h - 1 {
+        uc_set(x, y + i, '|', fg, bg);
+        uc_set(x + w - 1, y + i, '|', fg, bg);
+        i = i + 1;
+    }
+    return 0;
+}
+
+# uc_gauge：水平仪表盘 —— 刻度条 + 指针
+# pct 0-100；用刻度字符：低段 ':'、中段 '.'、高段 ' ' 太复杂，直接用 `-` 和 `#`
+fn uc_gauge(x: i64, y: i64, w: i64, pct: i64, fg: i64, bg: i64) -> i64 {
+    let i: i64 = 0;
+    let pos: i64 = 0;
+    if w < 6 { w = 6; }
+    if pct < 0 { pct = 0; }
+    if pct > 100 { pct = 100; }
+    # 边框
+    uc_set(x, y, '[', UC_WHITE, bg);
+    uc_set(x + w - 1, y, ']', UC_WHITE, bg);
+    pos = (pct * (w - 2)) / 100;
+    i = 1;
+    while i < w - 1 {
+        if i < pos {
+            uc_set(x + i, y, '#', fg, bg);
+        } else {
+            uc_set(x + i, y, '-', UC_WHITE, bg);
+        }
+        i = i + 1;
+    }
+    return 0;
+}
+
+# uc_scrollbar：垂直滚动条 —— 轨道 `|`，拇指 `#`
+# pos 0-100 表示拇指位置；thumb_h 拇指高度
+fn uc_scrollbar(x: i64, y: i64, h: i64, pos: i64, thumb_h: i64, fg: i64, bg: i64) -> i64 {
+    let i: i64 = 0;
+    let track: i64 = 0;
+    let thumb_top: i64 = 0;
+    if h < 3 { h = 3; }
+    if thumb_h < 1 { thumb_h = 1; }
+    if thumb_h > h { thumb_h = h; }
+    if pos < 0 { pos = 0; }
+    if pos > 100 { pos = 100; }
+    track = h - thumb_h;
+    thumb_top = (pos * track) / 100;
+    i = 0;
+    while i < h {
+        if i >= thumb_top && i < thumb_top + thumb_h {
+            uc_set(x, y + i, '#', fg, bg);
+        } else {
+            uc_set(x, y + i, '|', UC_WHITE, bg);
+        }
+        i = i + 1;
+    }
+    return 0;
+}

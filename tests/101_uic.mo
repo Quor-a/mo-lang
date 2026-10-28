@@ -15,6 +15,10 @@ fn main() -> i64 {
     uc_circle(20, 5, 3, 'O', UC_YELLOW, UC_BLUE);
     uc_tri(30, 1, 35, 5, 25, 5, '#', UC_GREEN, UC_BLUE);
     uc_sprite(2, 7, ".##.,#..#,####", UC_MAGENTA, UC_BLUE);
+    uc_window(3, 12, 20, 6, " 窗口 ", UC_CYAN, UC_WHITE);
+    uc_panel(30, 12, 20, 6, " 面板 ", UC_GREEN, UC_BLUE);
+    uc_gauge(3, 19, 16, 60, UC_GREEN, UC_BLUE);
+    uc_scrollbar(55, 12, 8, 40, 2, UC_YELLOW, UC_BLUE);
     uc_render();
     return 0;
 }
