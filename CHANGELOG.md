@@ -1,3 +1,10 @@
+## [1.323.0]
+
+- mopkg 新增 sha256 命令：输出文件 sha256 校验和（复用 crypto.mo sha256_hex）。
+- usage 更新。
+- E2E：sha256 b64in.txt 与系统 sha256sum 完全一致。
+- 门禁：tests 247/247、projcheck 11/11、自举三级一致、sweep 全绿。
+
 ## [1.322.0]
 
 - mopkg 新增 cmp 命令：比较两个文件，输出首个不同偏移。

@@ -1252,6 +1252,33 @@ fn pkg_cmd_cmp(f1: ptr, f2: ptr) -> i64 {
     return 0;
 }
 
+# v1.323:sha256 <file> —— 输出文件 sha256
+fn pkg_cmd_sha(fil: ptr) -> i64 {
+    if strlen(fil) == 0 {
+        print("✗ sha256 需要文件名\n");
+        return 1;
+    }
+    let fd: i64 = fopen(fil, 0, 0);
+    if fd < 0 {
+        print("✗ 无法打开 ");
+        print(fil);
+        print_nl();
+        return 1;
+    }
+    let n: i64 = fread(fd, &HX_BUF, 65535);
+    fclose(fd);
+    if n < 0 { n = 0; }
+    let hb: [96] byte = 0;
+    let hl: i64 = sha256_hex(&HX_BUF, n, &hb);
+    store8(&hb + hl, 0);
+    print("sha256  ");
+    print(fil);
+    print(" = ");
+    print(&hb);
+    print_nl();
+    return 0;
+}
+
 # ---------------------------------------------------------------- fetch
 
 fn pkg_install(nm: ptr, url: ptr, ref: ptr, want: ptr, path: ptr, fil: ptr) -> i64 {
@@ -2858,6 +2885,7 @@ fn pkg_dispatch(cmd: ptr) -> i64 {
     if streq(cmd, "rev") == 1 { return pkg_cmd_rev(pkg_arg2()); }
     if streq(cmd, "base64") == 1 { return pkg_cmd_b64(pkg_arg2(), pkg_arg3(), pkg_arg4()); }
     if streq(cmd, "cmp") == 1 { return pkg_cmd_cmp(pkg_arg2(), pkg_arg3()); }
+    if streq(cmd, "sha256") == 1 { return pkg_cmd_sha(pkg_arg2()); }
     if streq(cmd, "pack") == 1 { return pkg_cmd_pack(pkg_arg2(), pkg_arg3()); }
     if streq(cmd, "remove") == 1 {
         if argc() > 3 {
