@@ -1,3 +1,20 @@
+## [1.337.0]
+
+- 新增 lib/uic.mo：字符画布标准库，让墨语言开发者用基本原语自由组合任意 UI。
+  - uc_init(w,h)：初始化画布（上限 120x50）
+  - uc_clear(fg,bg)：清空画布
+  - uc_set/uc_get：读写单个单元（字符+前景色+背景色）
+  - uc_text(x,y,s,fg,bg)：绘制字符串
+  - uc_rect(x,y,w,h,ch,fg,bg)：矩形边框
+  - uc_fill(x,y,w,h,ch,fg,bg)：填充矩形
+  - uc_hline/uc_vline：水平/垂直直线
+  - uc_render()/uc_render_at(row,col)：一次性渲染画布到终端
+  - 8 色常量：UC_BLACK/RED/GREEN/YELLOW/BLUE/MAGENTA/CYAN/WHITE
+- 新增 examples/uic_demo.mo：用画布原语自由绘制窗口、图标（房子/心形）、按钮、进度条、状态栏。
+- 新增 tests/101_uic.mo 覆盖画布库。
+- E2E：uic_demo 渲染出带边框窗口 + 房子/心形图标 + 绿色/红色按钮 + 进度条 + 黄色状态栏。
+- 门禁：tests 249/249、projcheck 11/11、自举三级一致、sweep 全绿。
+
 ## [1.336.0]
 
 - lib/ui.mo 新增 2 个组件：
