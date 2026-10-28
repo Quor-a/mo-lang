@@ -333,3 +333,100 @@ fn ui_pct(r: i64, c: i64, v: i64) -> i64 {
     print("%");
     return 0;
 }
+
+# v1.335:完整表格 —— 自动画边框 + 表头 + 数据行
+# headers: 逗号分隔表头 "ID,Name,Age"
+# rows:    分号分隔行，每行逗号分隔单元格 "1,Tom,20;2,Ann,21"
+# colw:    每列内容宽（不含两侧边距）
+fn ui_table(r: i64, c: i64, headers: ptr, rows: ptr, ncols: i64, colw: i64) -> i64 {
+    let i: i64 = 0;
+    let k: i64 = 0;
+    let len: i64 = 0;
+    let row: i64 = r;
+    if colw < 2 { colw = 2; }
+    if ncols < 1 { ncols = 1; }
+    # 顶线
+    ui_sep(row, c, colw, ncols);
+    row = row + 1;
+    # 表头行
+    ui_table_line(row, c, headers, ncols, colw);
+    row = row + 1;
+    # 中分隔线
+    ui_sep(row, c, colw, ncols);
+    row = row + 1;
+    # 数据行
+    len = strlen(rows);
+    i = 0;
+    while i < len {
+        # 找当前行：从 i 到下一个 ';' 或结尾
+        let j: i64 = i;
+        while j < len && rows[j] != 59 { j = j + 1; }
+        # 复制当前行（不含分号）到临时缓冲
+        let lbuf: [256] byte = 0;
+        let t: i64 = 0;
+        k = i;
+        while k < j {
+            if t < 250 { lbuf[t] = rows[k]; t = t + 1; }
+            k = k + 1;
+        }
+        lbuf[t] = 0;
+        ui_table_line(row, c, &lbuf, ncols, colw);
+        row = row + 1;
+        if j < len {
+            ui_sep(row, c, colw, ncols);
+            row = row + 1;
+        }
+        i = j + 1;
+    }
+    # 最后一行下框线
+    ui_sep(row, c, colw, ncols);
+    return 0;
+}
+
+# v1.335:绘制表格一行（| 单元格 | 单元格 |）
+fn ui_table_line(row: i64, c: i64, s: ptr, ncols: i64, colw: i64) -> i64 {
+    let i: i64 = 0;
+    let k: i64 = 0;
+    let len: i64 = 0;
+    let cb: [128] byte = 0;
+    let col: i64 = 0;
+    let clen: i64 = 0;
+    len = strlen(s);
+    i = 0;
+    col = 0;
+    ui_gotoxy(row, c);
+    print("|");
+    while i <= len && col < ncols {
+        if s[i] == 44 || s[i] == 0 {   # 逗号或结尾 = 单元格结束
+            cb[k] = 0;
+            clen = strlen(&cb);
+            print(" ");
+            print(&cb);
+            # 补空格到 colw
+            k = 0;
+            while k < colw - clen {
+                print(" ");
+                k = k + 1;
+            }
+            print(" |");
+            col = col + 1;
+            k = 0;
+        } else {
+            if k < colw { cb[k] = s[i]; k = k + 1; }
+        }
+        i = i + 1;
+    }
+    # 补剩余空列
+    while col < ncols {
+        clen = 0;
+        k = 0;
+        print(" ");
+        while k < colw - clen {
+            print(" ");
+            k = k + 1;
+        }
+        print(" |");
+        col = col + 1;
+    }
+    return 0;
+}

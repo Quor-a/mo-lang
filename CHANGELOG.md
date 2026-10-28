@@ -1,3 +1,13 @@
+## [1.335.0]
+
+- lib/ui.mo 新增完整表格组件 ui_table：自动画边框 + 表头 + 数据行。
+  - ui_table(r,c,headers,rows,ncols,colw)：headers 逗号分隔表头，rows 分号分隔行、逗号分隔单元格。
+  - 辅助函数 ui_table_line（绘制一行）。
+- examples/ui_demo.mo 增加表格展示。
+- tests/100_ui.mo 覆盖 ui_table。
+- E2E：表格输出标准 ASCII 表格（顶/中/底分隔线 + 表头 + 数据行）。
+- 门禁：tests 248/248、projcheck 11/11、自举三级一致、sweep 全绿。
+
 ## [1.334.0]
 
 - lib/ui.mo 扩展 4 个 UI 组件：

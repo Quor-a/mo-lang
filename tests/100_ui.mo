@@ -24,6 +24,7 @@ fn main() -> i64 {
     ui_sep(15, 1, 3, 3);
     ui_center(16, 1, 20, "center");
     ui_pct(17, 1, 65);
+    ui_table(18, 1, "ID,Name,Age", "1,Tom,20;2,Ann,21", 3, 6);
     ui_reset();
     return 0;
 }

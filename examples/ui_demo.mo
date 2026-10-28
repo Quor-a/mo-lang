@@ -42,12 +42,16 @@ fn main() -> i64 {
     ui_box(2, 35, 20, 8, " menu ");
     ui_menu(4, 37, "新建,打开,保存,退出", 1);
 
+    # 表格（下方）
+    ui_text(14, 1, "表格:");
+    ui_table(15, 1, "ID,Name,Age", "1,Tom,20;2,Ann,21;3,Leo,22", 3, 6);
+
     # 底部水平线
-    ui_hline(16, 1, 54);
-    ui_text(17, 1, "按 Ctrl+C 退出");
+    ui_hline(25, 1, 54);
+    ui_text(26, 1, "按 Ctrl+C 退出");
 
     # 光标归位
-    ui_gotoxy(18, 1);
+    ui_gotoxy(28, 1);
     ui_reset();
     return 0;
 }
