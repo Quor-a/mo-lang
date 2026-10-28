@@ -1,3 +1,15 @@
+## [1.333.0]
+
+- 新增 lib/ui.mo：ANSI 终端 UI 组件库，让墨语言能绘制终端界面。
+  - 组件：清屏 ui_clear / 光标定位 ui_gotoxy / 颜色 ui_color / 重置 ui_reset
+  - 文本 ui_text / 数字 ui_num / 水平线 ui_hline / 垂直线 ui_vline
+  - 边框盒子 ui_box（带标题）/ 按钮 ui_button / 进度条 ui_progress
+  - 输入框 ui_input / 菜单 ui_menu（当前项高亮）
+- 新增 examples/ui_demo.mo：演示所有组件（标题、盒子、按钮、进度条、输入框、菜单）。
+- E2E：ui_demo 输出完整 ANSI 序列（清屏/定位/颜色/盒子/按钮/进度条/输入框/菜单）。
+- lib/ui.mo 通过 ARM sweep。
+- 门禁：tests 247/247、projcheck 11/11、自举三级一致、sweep 全绿。
+
 ## [1.332.0]
 
 - mopkg 新增 rm 命令：删除文件。
