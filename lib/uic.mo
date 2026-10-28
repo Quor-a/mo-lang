@@ -2262,3 +2262,37 @@ fn uc_clock_face(cx: i64, cy: i64, r: i64, hh: i64, mm: i64, fg: i64, bg: i64) -
     }
     return 0;
 }
+
+# ============ v1.381 表情符号 ============
+
+# uc_face：绘制表情符号（字符笑脸）
+# type: 0=笑脸 :-)  1=哭脸 :-(  2=惊讶 :-o  3=爱心 <3  4=眨眼 ;-)
+fn uc_face(x: i64, y: i64, type_: i64, fg: i64, bg: i64) -> i64 {
+    if type_ == 0 {
+        uc_set(x, y, ':', fg, bg);
+        uc_set(x + 1, y, '-', fg, bg);
+        uc_set(x + 2, y, ')', fg, bg);
+    } else {
+        if type_ == 1 {
+            uc_set(x, y, ':', fg, bg);
+            uc_set(x + 1, y, '-', fg, bg);
+            uc_set(x + 2, y, '(', fg, bg);
+        } else {
+            if type_ == 2 {
+                uc_set(x, y, ':', fg, bg);
+                uc_set(x + 1, y, '-', fg, bg);
+                uc_set(x + 2, y, 'o', fg, bg);
+            } else {
+                if type_ == 3 {
+                    uc_set(x, y, '<', fg, bg);
+                    uc_set(x + 1, y, '3', fg, bg);
+                } else {
+                    uc_set(x, y, ';', fg, bg);
+                    uc_set(x + 1, y, '-', fg, bg);
+                    uc_set(x + 2, y, ')', fg, bg);
+                }
+            }
+        }
+    }
+    return 0;
+}

@@ -80,6 +80,7 @@ fn main() -> i64 {
     uc_thermo(3, 2, 3, 60, UC_GREEN, UC_BLUE);
     uc_listbox(14, 2, 8, "A|B|C", 1, UC_WHITE, UC_BLUE);
     uc_clock_face(2, 2, 3, 3, 30, UC_GREEN, UC_BLUE);
+    uc_face(8, 2, 0, UC_GREEN, UC_BLUE);
     uc_dump_svg("/tmp/uic_dump_test.svg");
     uc_render();
     return 0;
