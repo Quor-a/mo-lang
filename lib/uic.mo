@@ -1213,3 +1213,68 @@ fn uc_scroll(dx: i64, dy: i64, fill_ch: i64, fill_fg: i64, fill_bg: i64) -> i64 
     }
     return 0;
 }
+
+# ============ v1.354 区域复制/粘贴 ============
+
+# 画布剪贴板（全局）
+var UC_CLIP: [6000] byte = 0;
+var UC_CLIPFG: [6000] byte = 0;
+var UC_CLIPBG: [6000] byte = 0;
+var UC_CLIPW: i64 = 0;
+var UC_CLIPH: i64 = 0;
+
+# uc_copy：复制画布区域到剪贴板
+fn uc_copy(x: i64, y: i64, w: i64, h: i64) -> i64 {
+    let i: i64 = 0;
+    let j: i64 = 0;
+    if w < 0 { w = 0; }
+    if h < 0 { h = 0; }
+    if x + w > UC_W { w = UC_W - x; }
+    if y + h > UC_H { h = UC_H - y; }
+    UC_CLIPW = w;
+    UC_CLIPH = h;
+    j = 0;
+    while j < h {
+        i = 0;
+        while i < w {
+            let sx: i64 = x + i;
+            let sy: i64 = y + j;
+            if sx >= 0 && sx < UC_W && sy >= 0 && sy < UC_H {
+                let sidx: i64 = sy * UC_W + sx;
+                UC_CLIP[j * UC_CLIPW + i] = UC_CH[sidx];
+                UC_CLIPFG[j * UC_CLIPW + i] = UC_FG[sidx];
+                UC_CLIPBG[j * UC_CLIPW + i] = UC_BG[sidx];
+            } else {
+                UC_CLIP[j * UC_CLIPW + i] = 32;
+                UC_CLIPFG[j * UC_CLIPW + i] = 7;
+                UC_CLIPBG[j * UC_CLIPW + i] = 0;
+            }
+            i = i + 1;
+        }
+        j = j + 1;
+    }
+    return 0;
+}
+
+# uc_paste：粘贴剪贴板到画布 (x,y)
+fn uc_paste(x: i64, y: i64) -> i64 {
+    let i: i64 = 0;
+    let j: i64 = 0;
+    j = 0;
+    while j < UC_CLIPH {
+        i = 0;
+        while i < UC_CLIPW {
+            let dx: i64 = x + i;
+            let dy: i64 = y + j;
+            if dx >= 0 && dx < UC_W && dy >= 0 && dy < UC_H {
+                let didx: i64 = dy * UC_W + dx;
+                UC_CH[didx] = UC_CLIP[j * UC_CLIPW + i];
+                UC_FG[didx] = UC_CLIPFG[j * UC_CLIPW + i];
+                UC_BG[didx] = UC_CLIPBG[j * UC_CLIPW + i];
+            }
+            i = i + 1;
+        }
+        j = j + 1;
+    }
+    return 0;
+}

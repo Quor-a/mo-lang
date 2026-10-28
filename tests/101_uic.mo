@@ -45,6 +45,8 @@ fn main() -> i64 {
     uc_digit2(20, 8, 12, UC_YELLOW, UC_BLUE);
     uc_text(5, 2, "MoveMe", UC_YELLOW, UC_BLUE);
     uc_scroll(1, 1, 32, UC_WHITE, UC_BLUE);
+    uc_copy(5, 2, 4, 1);
+    uc_paste(15, 2);
     uc_render();
     return 0;
 }
