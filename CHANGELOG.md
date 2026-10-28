@@ -1,3 +1,10 @@
+## [1.327.0]
+
+- mopkg 新增 tail 命令：显示文件末尾 n 行（默认 10）。
+- usage 更新。
+- E2E：tail h.txt 显示 11-20 行；tail h.txt 3 显示 18-20 行。
+- 门禁：tests 247/247、projcheck 11/11、自举三级一致、sweep 全绿。
+
 ## [1.326.0]
 
 - mopkg 新增 head 命令：显示文件前 n 行（默认 10）。
