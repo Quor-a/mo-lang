@@ -1436,3 +1436,87 @@ fn uc_axis(ox: i64, oy: i64, len_x: i64, len_y: i64, fg: i64, bg: i64) -> i64 {
     uc_set(ox, oy, '+', fg, bg);
     return 0;
 }
+
+# ============ v1.359 SVG 导出 ============
+
+# uc_dump_svg：把画布导出为 SVG 矢量图文件（浏览器可打开，可无限缩放）
+# 每个字符渲染为 <text> 元素，等宽字体，颜色映射。
+fn uc_dump_svg(path: ptr) -> i64 {
+    let y: i64 = 0;
+    let x: i64 = 0;
+    let fd: i64 = 0;
+    let c: i64 = 0;
+    let fgc: i64 = 0;
+    let b: [256] byte = 0;
+    let cw: i64 = 0;
+    let chh: i64 = 0;
+    cw = 10;   # 每字符宽（像素）
+    chh = 16;  # 每字符高（像素）
+    fd = fopen(path, 577, 438);
+    if fd < 0 {
+        print("✗ 无法写入 ");
+        print(path);
+        print_nl();
+        return 1;
+    }
+    # SVG 头（含背景色）
+    fwrite(fd, "<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"", strlen("<svg xmlns=\"http://www.w3.org/2000/svg\" width=\""));
+    # 宽度 = UC_W * cw
+    # 用数字转字符串（简化：写死用 utoa）
+    let n: [24] byte = 0;
+    utoa(UC_W * cw, &n, 10);
+    fwrite(fd, &n, strlen(&n));
+    fwrite(fd, "\" height=\"", strlen("\" height=\""));
+    utoa(UC_H * chh, &n, 10);
+    fwrite(fd, &n, strlen(&n));
+    fwrite(fd, "\" viewBox=\"0 0 ", strlen("\" viewBox=\"0 0 "));
+    utoa(UC_W * cw, &n, 10);
+    fwrite(fd, &n, strlen(&n));
+    fwrite(fd, " ", strlen(" "));
+    utoa(UC_H * chh, &n, 10);
+    fwrite(fd, &n, strlen(&n));
+    fwrite(fd, "\"><rect width=\"100%\" height=\"100%\" fill=\"#008\"/>\n", strlen("\"><rect width=\"100%\" height=\"100%\" fill=\"#008\"/>\n"));
+    y = 0;
+    while y < UC_H {
+        x = 0;
+        while x < UC_W {
+            c = UC_CH[y * UC_W + x];
+            fgc = UC_FG[y * UC_W + x];
+            if c == 0 { c = 32; }
+            if fgc < 0 { fgc = 7; }
+            if fgc > 7 { fgc = 7; }
+            if c != 32 {
+                # <text x="X" y="Y" fill="COLOR" font-family="monospace" font-size="14">c</text>
+                fwrite(fd, "<text x=\"", strlen("<text x=\""));
+                utoa(x * cw, &n, 10);
+                fwrite(fd, &n, strlen(&n));
+                fwrite(fd, "\" y=\"", strlen("\" y=\""));
+                utoa(y * chh + 12, &n, 10);
+                fwrite(fd, &n, strlen(&n));
+                fwrite(fd, "\" fill=\"", strlen("\" fill=\""));
+                fwrite(fd, uc_fgname(fgc), strlen(uc_fgname(fgc)));
+                fwrite(fd, "\" font-family=\"monospace\" font-size=\"14\">", strlen("\" font-family=\"monospace\" font-size=\"14\">"));
+                if c == 60 {
+                    fwrite(fd, "&lt;", strlen("&lt;"));
+                } else {
+                    if c == 62 {
+                        fwrite(fd, "&gt;", strlen("&gt;"));
+                    } else {
+                        if c == 38 {
+                            fwrite(fd, "&amp;", strlen("&amp;"));
+                        } else {
+                            b[0] = c;
+                            fwrite(fd, &b, 1);
+                        }
+                    }
+                }
+                fwrite(fd, "</text>", strlen("</text>"));
+            }
+            x = x + 1;
+        }
+        y = y + 1;
+    }
+    fwrite(fd, "\n</svg>\n", strlen("\n</svg>\n"));
+    fclose(fd);
+    return 0;
+}

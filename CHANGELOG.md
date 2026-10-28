@@ -1,3 +1,12 @@
+## [1.359.0]
+
+- lib/uic.mo 新增 SVG 导出：
+  - uc_dump_svg(path)：把画布导出为 SVG 矢量图（可无限缩放，浏览器可打开）
+  - 每个字符渲染为 <text> 元素，带颜色映射和 XML 转义
+- tests/101_uic.mo 覆盖 SVG 导出。
+- E2E："Hi" 导出为正确 SVG（120x48 viewBox，黄色文本）。
+- 门禁：tests 249/249、projcheck 11/11、自举三级一致、sweep 全绿。
+
 ## [1.358.0]
 
 - lib/uic.mo 新增网格与坐标轴：

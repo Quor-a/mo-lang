@@ -53,6 +53,7 @@ fn main() -> i64 {
     uc_fill_round(16, 5, 8, 3, '=', UC_GREEN, UC_BLUE);
     uc_axis(5, 8, 12, 5, UC_CYAN, UC_BLUE);
     uc_grid(2, 2, 4, 2, 2, '.', UC_GREEN, UC_BLUE);
+    uc_dump_svg("/tmp/uic_dump_test.svg");
     uc_render();
     return 0;
 }
