@@ -1,3 +1,10 @@
+## [1.317.0]
+
+- mopkg tree 末尾显示节点总数（文本 + HTML 两种模式）。
+- 新增 PKG_TREE_N 计数器（pkg_tree_visit 每次进入 +1）。
+- E2E：tree 输出 "共 1 个节点"；--html 输出 "<p>共 1 个节点</p>"。
+- 门禁：tests 247/247、projcheck 11/11、自举三级一致、sweep 全绿。
+
 ## [1.316.0]
 
 - mopkg list 末尾显示依赖总数（文本 + HTML 两种模式）。

@@ -719,7 +719,9 @@ fn pkg_cmd_list() -> i64 {
 # 依赖树（含循环检测）
 var TR_HTML: i64 = 0;
 
+var PKG_TREE_N: i64 = 0;   # v1.317:tree 节点计数
 fn pkg_tree_visit(nm: ptr, depth: i64) -> i64 {
+    PKG_TREE_N = PKG_TREE_N + 1;
     let i: i64 = 0;
     let d: i64 = 0;
     let n: i64 = 0;
@@ -784,6 +786,7 @@ fn pkg_cmd_tree() -> i64 {
     let i: i64 = 0;
     let saved: [64] i64 = 0;
     PKG_BAD = 0;
+    PKG_TREE_N = 0;
     if argc() > 2 {
         if streq(pkg_arg2(), "--html") == 1 { TR_HTML = 1; }
     }
@@ -807,8 +810,14 @@ fn pkg_cmd_tree() -> i64 {
         i = i + 1;
     }
     if TR_HTML == 1 {
-        print("</ul></body></html>\n");
+        print("</ul>\n<p>共 ");
+        print_i64(PKG_TREE_N);
+        print(" 个节点</p></body></html>\n");
         TR_HTML = 0;
+    } else {
+        print("共 ");
+        print_i64(PKG_TREE_N);
+        print(" 个节点\n");
     }
     if PKG_BAD == 1 { return 1; }
     return 0;
