@@ -263,3 +263,73 @@ fn ui_menu(r: i64, c: i64, items: ptr, cur: i64) -> i64 {
     }
     return 0;
 }
+# v1.334:表格行 —— 逗号分隔单元格，输出 "| a | b | c |"
+var UI_ROW: [256] byte = 0;
+fn ui_row(r: i64, c: i64, s: ptr) -> i64 {
+    let i: i64 = 0;
+    let k: i64 = 0;
+    let len: i64 = 0;
+    len = strlen(s);
+    i = 0;
+    k = 0;
+    ui_gotoxy(r, c);
+    print("|");
+    while i <= len {
+        if s[i] == 44 || s[i] == 0 {
+            UI_ROW[k] = 0;
+            print(" ");
+            print(&UI_ROW);
+            print(" |");
+            k = 0;
+        } else {
+            UI_ROW[k] = s[i];
+            k = k + 1;
+        }
+        i = i + 1;
+    }
+    return 0;
+}
+
+# v1.334:表格分隔线 —— 每列宽 colw，n 列
+fn ui_sep(r: i64, c: i64, colw: i64, n: i64) -> i64 {
+    let i: i64 = 0;
+    let j: i64 = 0;
+    ui_gotoxy(r, c);
+    print("+");
+    i = 0;
+    while i < n {
+        j = 0;
+        while j < colw + 2 {
+            print("-");
+            j = j + 1;
+        }
+        print("+");
+        i = i + 1;
+    }
+    return 0;
+}
+
+# v1.334:居中文本 —— 在宽度 w 内居中
+fn ui_center(r: i64, c: i64, w: i64, s: ptr) -> i64 {
+    let l: i64 = 0;
+    let pad: i64 = 0;
+    l = strlen(s);
+    if l >= w {
+        ui_text(r, c, s);
+        return 0;
+    }
+    pad = (w - l) / 2;
+    ui_gotoxy(r, c + pad);
+    print(s);
+    return 0;
+}
+
+# v1.334:百分比数字 —— 在进度条右侧显示 "NN%"
+fn ui_pct(r: i64, c: i64, v: i64) -> i64 {
+    ui_gotoxy(r, c);
+    if v < 100 { print("0"); }
+    if v < 10 { print("0"); }
+    print_i64(v);
+    print("%");
+    return 0;
+}

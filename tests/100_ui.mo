@@ -19,5 +19,11 @@ fn main() -> i64 {
     ui_vline(1, 30, 5);
     ui_menu(12, 1, "new,open,save", 1);
     ui_reset();
+    # v1.334 扩展组件
+    ui_row(14, 1, "A,B,C");
+    ui_sep(15, 1, 3, 3);
+    ui_center(16, 1, 20, "center");
+    ui_pct(17, 1, 65);
+    ui_reset();
     return 0;
 }
