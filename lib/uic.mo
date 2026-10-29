@@ -4018,3 +4018,35 @@ fn uc_pager(x: i64, y: i64, page: i64, total: i64, fg: i64, bg: i64) -> i64 {
     }
     return 0;
 }
+
+# ============ v1.435 权限标签 ============
+
+# uc_permission_tag：绘制权限标签 [R]/[W]/[X]/[RWX]
+# perm 0=读(绿) 1=写(黄) 2=执行(红) 3=全部(青)。
+# 用于文件权限、访问控制。
+fn uc_permission_tag(x: i64, y: i64, perm: i64, fg: i64, bg: i64) -> i64 {
+    if perm == 0 {
+        uc_set(x, y, '[', fg, bg);
+        uc_set(x + 1, y, 'R', UC_GREEN, bg);
+        uc_set(x + 2, y, ']', fg, bg);
+    } else {
+        if perm == 1 {
+            uc_set(x, y, '[', fg, bg);
+            uc_set(x + 1, y, 'W', UC_YELLOW, bg);
+            uc_set(x + 2, y, ']', fg, bg);
+        } else {
+            if perm == 2 {
+                uc_set(x, y, '[', fg, bg);
+                uc_set(x + 1, y, 'X', UC_RED, bg);
+                uc_set(x + 2, y, ']', fg, bg);
+            } else {
+                uc_set(x, y, '[', fg, bg);
+                uc_set(x + 1, y, 'R', UC_CYAN, bg);
+                uc_set(x + 2, y, 'W', UC_CYAN, bg);
+                uc_set(x + 3, y, 'X', UC_CYAN, bg);
+                uc_set(x + 4, y, ']', fg, bg);
+            }
+        }
+    }
+    return 0;
+}

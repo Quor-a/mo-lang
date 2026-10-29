@@ -129,6 +129,7 @@ fn main() -> i64 {
     uc_theme_toggle(12, 2, 1, UC_WHITE, UC_BLUE);
     uc_sort_indicator(1, 2, "N", 1, UC_WHITE, UC_BLUE);
     uc_pager(12, 2, 2, 5, UC_WHITE, UC_BLUE);
+    uc_permission_tag(1, 2, 3, UC_WHITE, UC_BLUE);
     uc_dump_svg("/tmp/uic_dump_test.svg");
     uc_render();
     return 0;
