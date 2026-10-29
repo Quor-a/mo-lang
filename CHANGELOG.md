@@ -1,3 +1,12 @@
+## [1.474.0]
+
+- lib/uic.mo 新增消息状态行：
+  - uc_msg_status_row：[M]  to bob  Sent
+  - 用于消息中心、通知记录
+- tests/101_uic.mo 覆盖消息状态行。
+- E2E：[M] to bob Sent / alice Queued / carol Failed 正确渲染。
+- 门禁：tests 249/249、projcheck 11/11、自举三级一致、sweep 全绿。
+
 ## [1.473.0]
 
 - lib/uic.mo 新增负载均衡行：

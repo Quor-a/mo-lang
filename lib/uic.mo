@@ -5670,3 +5670,49 @@ fn uc_lb_row(x: i64, y: i64, name: ptr, nodes: ptr, state: i64, fg: i64, bg: i64
     }
     return 0;
 }
+# ============ v1.474 消息状态行 ============
+
+# uc_msg_status_row：绘制消息状态行 [M]  to bob  Sent
+# to 为接收者，state 0=排队 1=已发送 2=失败。
+# 用于消息中心、通知记录。
+fn uc_msg_status_row(x: i64, y: i64, to: ptr, state: i64, fg: i64, bg: i64) -> i64 {
+    let tlen: i64 = 0;
+    let i: i64 = 0;
+    tlen = strlen(to);
+    uc_set(x, y, '[', UC_CYAN, bg);
+    uc_set(x + 1, y, 'M', UC_CYAN, bg);
+    uc_set(x + 2, y, ']', UC_CYAN, bg);
+    uc_set(x + 5, y, ' ', fg, bg);
+    uc_set(x + 6, y, 't', fg, bg);
+    uc_set(x + 7, y, 'o', fg, bg);
+    uc_set(x + 9, y, ' ', fg, bg);
+    i = 0;
+    while i < tlen {
+        uc_set(x + 10 + i, y, to[i], UC_WHITE, bg);
+        i = i + 1;
+    }
+    uc_set(x + 12 + tlen, y, ' ', fg, bg);
+    if state == 0 {
+        uc_set(x + 13 + tlen, y, 'Q', fg, bg);
+        uc_set(x + 14 + tlen, y, 'u', fg, bg);
+        uc_set(x + 15 + tlen, y, 'e', fg, bg);
+        uc_set(x + 16 + tlen, y, 'u', fg, bg);
+        uc_set(x + 17 + tlen, y, 'e', fg, bg);
+        uc_set(x + 18 + tlen, y, 'd', fg, bg);
+    } else {
+        if state == 1 {
+            uc_set(x + 13 + tlen, y, 'S', UC_CYAN, bg);
+            uc_set(x + 14 + tlen, y, 'e', UC_CYAN, bg);
+            uc_set(x + 15 + tlen, y, 'n', UC_CYAN, bg);
+            uc_set(x + 16 + tlen, y, 't', UC_CYAN, bg);
+        } else {
+            uc_set(x + 13 + tlen, y, 'F', UC_RED, bg);
+            uc_set(x + 14 + tlen, y, 'a', UC_RED, bg);
+            uc_set(x + 15 + tlen, y, 'i', UC_RED, bg);
+            uc_set(x + 16 + tlen, y, 'l', UC_RED, bg);
+            uc_set(x + 17 + tlen, y, 'e', UC_RED, bg);
+            uc_set(x + 18 + tlen, y, 'd', UC_RED, bg);
+        }
+    }
+    return 0;
+}
