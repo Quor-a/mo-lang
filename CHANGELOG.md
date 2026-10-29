@@ -1,3 +1,12 @@
+## [1.488.0]
+
+- lib/uic.mo 新增配额行：
+  - uc_quota_row：[Q]  storage  3.2/5 GB
+  - 用于配额管理、用量展示
+- tests/101_uic.mo 覆盖配额行。
+- E2E：[Q] storage 3.2/5.0 GB / bandwidth 1.2/2.0 TB 正确渲染。
+- 门禁：tests 249/249、projcheck 11/11、自举三级一致、sweep 全绿。
+
 ## [1.487.0]
 
 - lib/uic.mo 新增密钥行：

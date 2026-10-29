@@ -6269,3 +6269,40 @@ fn uc_secret_row(x: i64, y: i64, name: ptr, state: i64, fg: i64, bg: i64) -> i64
     }
     return 0;
 }
+
+# ============ v1.488 配额行 ============
+
+# uc_quota_row：绘制配额行 [Q]  storage  3.2/5 GB
+# name 为配额名，used 为已用值，total 为总量，unit 为单位。
+# 用于配额管理、用量展示。
+fn uc_quota_row(x: i64, y: i64, name: ptr, used: i64, total: i64, unit: ptr, fg: i64, bg: i64) -> i64 {
+    let nlen: i64 = 0;
+    let ulen: i64 = 0;
+    let i: i64 = 0;
+    nlen = strlen(name);
+    ulen = strlen(unit);
+    uc_set(x, y, '[', UC_YELLOW, bg);
+    uc_set(x + 1, y, 'Q', UC_YELLOW, bg);
+    uc_set(x + 2, y, ']', UC_YELLOW, bg);
+    uc_set(x + 5, y, ' ', fg, bg);
+    i = 0;
+    while i < nlen {
+        uc_set(x + 6 + i, y, name[i], UC_YELLOW, bg);
+        i = i + 1;
+    }
+    uc_set(x + 8 + nlen, y, ' ', fg, bg);
+    uc_set(x + 9 + nlen, y, '0' + used / 10, UC_CYAN, bg);
+    uc_set(x + 10 + nlen, y, '.', UC_CYAN, bg);
+    uc_set(x + 11 + nlen, y, '0' + used % 10, UC_CYAN, bg);
+    uc_set(x + 12 + nlen, y, '/', UC_WHITE, bg);
+    uc_set(x + 13 + nlen, y, '0' + total / 10, UC_WHITE, bg);
+    uc_set(x + 14 + nlen, y, '.', UC_WHITE, bg);
+    uc_set(x + 15 + nlen, y, '0' + total % 10, UC_WHITE, bg);
+    uc_set(x + 16 + nlen, y, ' ', UC_WHITE, bg);
+    i = 0;
+    while i < ulen {
+        uc_set(x + 17 + nlen + i, y, unit[i], UC_WHITE, bg);
+        i = i + 1;
+    }
+    return 0;
+}
