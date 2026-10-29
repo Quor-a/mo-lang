@@ -1,3 +1,12 @@
+## [1.480.0]
+
+- lib/uic.mo 新增工作流步骤行：
+  - uc_wf_step_row：[1]  Build  Success
+  - 用于流水线、CI/CD 视图
+- tests/101_uic.mo 覆盖工作流步骤行。
+- E2E：[1] Build Success 绿 / Test Running 青 / Deploy Pending / Notify Failed 红。
+- 门禁：tests 249/249、projcheck 11/11、自举三级一致、sweep 全绿。
+
 ## [1.479.0]
 
 - lib/uic.mo 新增版本发布行：

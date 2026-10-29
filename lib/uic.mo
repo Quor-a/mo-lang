@@ -5922,3 +5922,71 @@ fn uc_release_row(x: i64, y: i64, tag: ptr, state: i64, fg: i64, bg: i64) -> i64
     }
     return 0;
 }
+
+# ============ v1.480 工作流步骤行 ============
+
+# uc_wf_step_row：绘制工作流步骤行 [1]  Build  Success
+# step 为步骤号，name 为步骤名，state 0=待定 1=运行 2=成功 3=失败。
+# 用于流水线、CI/CD 视图。
+fn uc_wf_step_row(x: i64, y: i64, step: i64, name: ptr, state: i64, fg: i64, bg: i64) -> i64 {
+    let nlen: i64 = 0;
+    let i: i64 = 0;
+    let c: i64 = 0;
+    nlen = strlen(name);
+    uc_set(x, y, '[', fg, bg);
+    if step >= 10 {
+        uc_set(x + 1, y, '0' + step / 10, UC_YELLOW, bg);
+        uc_set(x + 2, y, '0' + step % 10, UC_YELLOW, bg);
+    } else {
+        uc_set(x + 1, y, '0' + step, UC_YELLOW, bg);
+    }
+    uc_set(x + 3, y, ']', fg, bg);
+    uc_set(x + 6, y, ' ', fg, bg);
+    i = 0;
+    while i < nlen {
+        uc_set(x + 7 + i, y, name[i], UC_WHITE, bg);
+        i = i + 1;
+    }
+    uc_set(x + 9 + nlen, y, ' ', fg, bg);
+    if state == 0 {
+        c = fg;
+        uc_set(x + 10 + nlen, y, 'P', c, bg);
+        uc_set(x + 11 + nlen, y, 'e', c, bg);
+        uc_set(x + 12 + nlen, y, 'n', c, bg);
+        uc_set(x + 13 + nlen, y, 'd', c, bg);
+        uc_set(x + 14 + nlen, y, 'i', c, bg);
+        uc_set(x + 15 + nlen, y, 'n', c, bg);
+        uc_set(x + 16 + nlen, y, 'g', c, bg);
+    } else {
+        if state == 1 {
+            c = UC_CYAN;
+            uc_set(x + 10 + nlen, y, 'R', c, bg);
+            uc_set(x + 11 + nlen, y, 'u', c, bg);
+            uc_set(x + 12 + nlen, y, 'n', c, bg);
+            uc_set(x + 13 + nlen, y, 'n', c, bg);
+            uc_set(x + 14 + nlen, y, 'i', c, bg);
+            uc_set(x + 15 + nlen, y, 'n', c, bg);
+            uc_set(x + 16 + nlen, y, 'g', c, bg);
+        } else {
+            if state == 2 {
+                c = UC_GREEN;
+                uc_set(x + 10 + nlen, y, 'S', c, bg);
+                uc_set(x + 11 + nlen, y, 'u', c, bg);
+                uc_set(x + 12 + nlen, y, 'c', c, bg);
+                uc_set(x + 13 + nlen, y, 'c', c, bg);
+                uc_set(x + 14 + nlen, y, 'e', c, bg);
+                uc_set(x + 15 + nlen, y, 's', c, bg);
+                uc_set(x + 16 + nlen, y, 's', c, bg);
+            } else {
+                c = UC_RED;
+                uc_set(x + 10 + nlen, y, 'F', c, bg);
+                uc_set(x + 11 + nlen, y, 'a', c, bg);
+                uc_set(x + 12 + nlen, y, 'i', c, bg);
+                uc_set(x + 13 + nlen, y, 'l', c, bg);
+                uc_set(x + 14 + nlen, y, 'e', c, bg);
+                uc_set(x + 15 + nlen, y, 'd', c, bg);
+            }
+        }
+    }
+    return 0;
+}
