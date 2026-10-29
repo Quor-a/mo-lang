@@ -5025,3 +5025,45 @@ fn uc_net_row(x: i64, y: i64, label: ptr, value: ptr, fg: i64, bg: i64) -> i64 {
     }
     return 0;
 }
+
+# ============ v1.459 Wi-Fi 网络行 ============
+
+# uc_wifi_row：绘制 Wi-Fi 网络行 WiFi  Home_5G   80%
+# ssid 为网络名，signal 信号强度，locked=1 显示锁。
+# 用于 Wi-Fi 设置、网络列表。
+fn uc_wifi_row(x: i64, y: i64, ssid: ptr, signal: i64, locked: i64, fg: i64, bg: i64) -> i64 {
+    let nlen: i64 = 0;
+    let i: i64 = 0;
+    nlen = strlen(ssid);
+    uc_set(x, y, 'W', UC_GREEN, bg);
+    uc_set(x + 1, y, 'i', UC_GREEN, bg);
+    uc_set(x + 2, y, 'F', UC_GREEN, bg);
+    uc_set(x + 3, y, 'i', UC_GREEN, bg);
+    uc_set(x + 6, y, ' ', fg, bg);
+    i = 0;
+    while i < nlen {
+        uc_set(x + 7 + i, y, ssid[i], UC_WHITE, bg);
+        i = i + 1;
+    }
+    if locked != 0 {
+        uc_set(x + 9 + nlen, y, ' ', fg, bg);
+        uc_set(x + 10 + nlen, y, '[', UC_RED, bg);
+        uc_set(x + 11 + nlen, y, 'x', UC_RED, bg);
+        uc_set(x + 12 + nlen, y, ']', UC_RED, bg);
+    }
+    if signal >= 100 {
+        uc_set(x + 15 + nlen, y, '1', UC_CYAN, bg);
+        uc_set(x + 16 + nlen, y, '0', UC_CYAN, bg);
+        uc_set(x + 17 + nlen, y, '0', UC_CYAN, bg);
+        uc_set(x + 18 + nlen, y, '%', UC_CYAN, bg);
+    } else {
+        if signal >= 10 {
+            uc_set(x + 15 + nlen, y, '0' + signal / 10, UC_CYAN, bg);
+            uc_set(x + 16 + nlen, y, '0' + signal % 10, UC_CYAN, bg);
+        } else {
+            uc_set(x + 15 + nlen, y, '0' + signal, UC_CYAN, bg);
+        }
+        uc_set(x + 16 + nlen, y, '%', UC_CYAN, bg);
+    }
+    return 0;
+}

@@ -1,3 +1,12 @@
+## [1.459.0]
+
+- lib/uic.mo 新增 Wi-Fi 网络行：
+  - uc_wifi_row：WiFi  Home_5G   80%
+  - 用于 Wi-Fi 设置、网络列表
+- tests/101_uic.mo 覆盖 Wi-Fi 网络行。
+- E2E：WiFi  Home_5G   [x] 80% 正确渲染。
+- 门禁：tests 249/249、projcheck 11/11、自举三级一致、sweep 全绿。
+
 ## [1.458.0]
 
 - lib/uic.mo 新增网络地址行：
