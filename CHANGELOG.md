@@ -1,3 +1,12 @@
+## [1.388.0]
+
+- lib/uic.mo 新增开关组件：
+  - uc_toggle：开关/切换按钮（[ON] 绿 / [OFF] 红）
+  - 用于设置界面、权限开关
+- tests/101_uic.mo 覆盖开关。
+- E2E：WiFi [ON]、BT [OFF] 正确渲染。
+- 门禁：tests 249/249、projcheck 11/11、自举三级一致、sweep 全绿。
+
 ## [1.387.0]
 
 - lib/uic.mo 新增评分星标：

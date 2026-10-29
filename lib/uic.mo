@@ -2522,3 +2522,24 @@ fn uc_stars(x: i64, y: i64, rating: i64, max: i64, fg: i64, bg: i64) -> i64 {
     }
     return 0;
 }
+
+# ============ v1.388 开关组件 ============
+
+# uc_toggle：绘制开关/切换按钮
+# on=1 显示 [ON]（绿色），on=0 显示 [OFF]（红色）。
+# 用于设置界面、权限开关。
+fn uc_toggle(x: i64, y: i64, on: i64, fg: i64, bg: i64) -> i64 {
+    if on != 0 {
+        uc_set(x, y, '[', UC_GREEN, bg);
+        uc_set(x + 1, y, 'O', UC_GREEN, bg);
+        uc_set(x + 2, y, 'N', UC_GREEN, bg);
+        uc_set(x + 3, y, ']', UC_GREEN, bg);
+    } else {
+        uc_set(x, y, '[', UC_RED, bg);
+        uc_set(x + 1, y, 'O', UC_RED, bg);
+        uc_set(x + 2, y, 'F', UC_RED, bg);
+        uc_set(x + 3, y, 'F', UC_RED, bg);
+        uc_set(x + 4, y, ']', UC_RED, bg);
+    }
+    return 0;
+}
