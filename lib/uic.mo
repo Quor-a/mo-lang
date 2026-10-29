@@ -6025,3 +6025,41 @@ fn uc_branch_row(x: i64, y: i64, name: ptr, state: i64, fg: i64, bg: i64) -> i64
     }
     return 0;
 }
+
+# ============ v1.482 依赖行 ============
+
+# uc_dep_row：绘制依赖行 [D]  lodash  4.17.21   OK
+# name 为依赖名，version 为版本号，state 0=过时 1=最新。
+# 用于包管理、依赖清单。
+fn uc_dep_row(x: i64, y: i64, name: ptr, version: ptr, state: i64, fg: i64, bg: i64) -> i64 {
+    let nlen: i64 = 0;
+    let vlen: i64 = 0;
+    let i: i64 = 0;
+    nlen = strlen(name);
+    vlen = strlen(version);
+    uc_set(x, y, '[', UC_MAGENTA, bg);
+    uc_set(x + 1, y, 'D', UC_MAGENTA, bg);
+    uc_set(x + 2, y, ']', UC_MAGENTA, bg);
+    uc_set(x + 5, y, ' ', fg, bg);
+    i = 0;
+    while i < nlen {
+        uc_set(x + 6 + i, y, name[i], UC_YELLOW, bg);
+        i = i + 1;
+    }
+    uc_set(x + 8 + nlen, y, ' ', fg, bg);
+    i = 0;
+    while i < vlen {
+        uc_set(x + 9 + nlen + i, y, version[i], UC_CYAN, bg);
+        i = i + 1;
+    }
+    uc_set(x + 11 + nlen + vlen, y, ' ', fg, bg);
+    if state != 0 {
+        uc_set(x + 12 + nlen + vlen, y, 'O', UC_GREEN, bg);
+        uc_set(x + 13 + nlen + vlen, y, 'K', UC_GREEN, bg);
+    } else {
+        uc_set(x + 12 + nlen + vlen, y, 'O', UC_RED, bg);
+        uc_set(x + 13 + nlen + vlen, y, 'L', UC_RED, bg);
+        uc_set(x + 14 + nlen + vlen, y, 'D', UC_RED, bg);
+    }
+    return 0;
+}

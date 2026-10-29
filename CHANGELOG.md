@@ -1,3 +1,12 @@
+## [1.482.0]
+
+- lib/uic.mo 新增依赖行：
+  - uc_dep_row：[D]  lodash  4.17.21  OK
+  - 用于包管理、依赖清单
+- tests/101_uic.mo 覆盖依赖行。
+- E2E：[D] lodash 4.17.21 OK 绿 / axios 0.21.0 OLD 红 正确渲染。
+- 门禁：tests 249/249、projcheck 11/11、自举三级一致、sweep 全绿。
+
 ## [1.481.0]
 
 - lib/uic.mo 新增 Git 分支行：
