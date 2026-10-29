@@ -2567,3 +2567,43 @@ fn uc_dropdown(x: i64, y: i64, w: i64, label: ptr, fg: i64, bg: i64) -> i64 {
     uc_set(x + 2 + w, y, ']', fg, bg);
     return 0;
 }
+
+# ============ v1.390 通知横幅 ============
+
+# uc_toast：绘制通知/横幅提示
+# text 为通知文本，w 为横幅宽度，level 决定颜色与图标：
+#   0=信息（青色 'i'） 1=成功（绿色 'OK'） 2=警告（黄色 '!'） 3=错误（红色 'x'）
+# 用于操作反馈、通知提醒。
+fn uc_toast(x: i64, y: i64, w: i64, text: ptr, level: i64, fg: i64, bg: i64) -> i64 {
+    let len: i64 = 0;
+    let i: i64 = 0;
+    let c: i64 = 0;
+    len = strlen(text);
+    # 图标与颜色
+    c = fg;
+    uc_set(x, y, '[', c, bg);
+    if level == 0 {
+        uc_set(x + 1, y, 'i', UC_CYAN, bg);
+    } else {
+        if level == 1 {
+            uc_set(x + 1, y, 'O', UC_GREEN, bg);
+            uc_set(x + 2, y, 'K', UC_GREEN, bg);
+        } else {
+            if level == 2 {
+                uc_set(x + 1, y, '!', UC_YELLOW, bg);
+            } else {
+                uc_set(x + 1, y, 'x', UC_RED, bg);
+            }
+        }
+    }
+    uc_set(x + 3, y, ']', c, bg);
+    # 文本
+    i = 0;
+    while i < len {
+        if x + 5 + i < x + w {
+            uc_set(x + 5 + i, y, text[i], c, bg);
+        }
+        i = i + 1;
+    }
+    return 0;
+}

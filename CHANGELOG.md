@@ -1,3 +1,12 @@
+## [1.390.0]
+
+- lib/uic.mo 新增通知横幅：
+  - uc_toast：通知/横幅（图标 + 文本，4 种级别颜色）
+  - 用于操作反馈、通知提醒
+- tests/101_uic.mo 覆盖通知横幅。
+- E2E：[OK] Saved! / [!] Warning! 正确渲染。
+- 门禁：tests 249/249、projcheck 11/11、自举三级一致、sweep 全绿。
+
 ## [1.389.0]
 
 - lib/uic.mo 新增下拉选择框：
