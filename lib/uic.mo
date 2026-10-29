@@ -5536,3 +5536,45 @@ fn uc_alert_row(x: i64, y: i64, severity: i64, title: ptr, time: ptr, fg: i64, b
     }
     return 0;
 }
+
+# ============ v1.471 数据库行 ============
+
+# uc_db_row：绘制数据库行 [D]  users  MySQL  1.2k rows
+# name 为表名，engine 为引擎，rows 为行数。
+# 用于数据库管理、表列表。
+fn uc_db_row(x: i64, y: i64, name: ptr, engine: ptr, rows: ptr, fg: i64, bg: i64) -> i64 {
+    let nlen: i64 = 0;
+    let elen: i64 = 0;
+    let rlen: i64 = 0;
+    let i: i64 = 0;
+    nlen = strlen(name);
+    elen = strlen(engine);
+    rlen = strlen(rows);
+    uc_set(x, y, '[', UC_GREEN, bg);
+    uc_set(x + 1, y, 'D', UC_GREEN, bg);
+    uc_set(x + 2, y, ']', UC_GREEN, bg);
+    uc_set(x + 5, y, ' ', fg, bg);
+    i = 0;
+    while i < nlen {
+        uc_set(x + 6 + i, y, name[i], UC_YELLOW, bg);
+        i = i + 1;
+    }
+    uc_set(x + 8 + nlen, y, ' ', fg, bg);
+    i = 0;
+    while i < elen {
+        uc_set(x + 9 + nlen + i, y, engine[i], UC_CYAN, bg);
+        i = i + 1;
+    }
+    uc_set(x + 11 + nlen + elen, y, ' ', fg, bg);
+    i = 0;
+    while i < rlen {
+        uc_set(x + 12 + nlen + elen + i, y, rows[i], UC_WHITE, bg);
+        i = i + 1;
+    }
+    uc_set(x + 13 + nlen + elen + rlen, y, ' ', fg, bg);
+    uc_set(x + 14 + nlen + elen + rlen, y, 'r', fg, bg);
+    uc_set(x + 15 + nlen + elen + rlen, y, 'o', fg, bg);
+    uc_set(x + 16 + nlen + elen + rlen, y, 'w', fg, bg);
+    uc_set(x + 17 + nlen + elen + rlen, y, 's', fg, bg);
+    return 0;
+}

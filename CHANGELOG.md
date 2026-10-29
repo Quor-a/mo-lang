@@ -1,3 +1,12 @@
+## [1.471.0]
+
+- lib/uic.mo 新增数据库行：
+  - uc_db_row：[D]  users  MySQL  1.2k rows
+  - 用于数据库管理、表列表
+- tests/101_uic.mo 覆盖数据库行。
+- E2E：[D] users MySQL 1.2k rows / orders Pg 850 rows 正确渲染。
+- 门禁：tests 249/249、projcheck 11/11、自举三级一致、sweep 全绿。
+
 ## [1.470.0]
 
 - lib/uic.mo 新增告警行：
