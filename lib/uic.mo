@@ -4628,3 +4628,19 @@ fn uc_compare_bar(x: i64, y: i64, label: ptr, value: i64, max: i64, fg: i64, bg:
     uc_set(x + llen + 19, y, '%', UC_GREEN, bg);
     return 0;
 }
+
+# ============ v1.449 权限矩阵单元 ============
+
+# uc_permission_cell：绘制权限矩阵单元 [v]/[x]
+# allowed=1 绿勾，=0 红叉。
+# 用于权限矩阵、访问控制表。
+fn uc_permission_cell(x: i64, y: i64, allowed: i64, fg: i64, bg: i64) -> i64 {
+    uc_set(x, y, '[', fg, bg);
+    if allowed != 0 {
+        uc_set(x + 1, y, 'v', UC_GREEN, bg);
+    } else {
+        uc_set(x + 1, y, 'x', UC_RED, bg);
+    }
+    uc_set(x + 2, y, ']', fg, bg);
+    return 0;
+}

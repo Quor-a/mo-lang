@@ -1,3 +1,12 @@
+## [1.449.0]
+
+- lib/uic.mo 新增权限矩阵单元：
+  - uc_permission_cell：[v]/[x] 权限单元
+  - 用于权限矩阵、访问控制表
+- tests/101_uic.mo 覆盖权限矩阵单元。
+- E2E：Read [v] / Write [x] 正确渲染。
+- 门禁：tests 249/249、projcheck 11/11、自举三级一致、sweep 全绿。
+
 ## [1.448.0]
 
 - lib/uic.mo 新增对比条：
