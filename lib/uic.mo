@@ -5421,3 +5421,56 @@ fn uc_sensor_row(x: i64, y: i64, name: ptr, value: ptr, unit: ptr, fg: i64, bg: 
     }
     return 0;
 }
+
+# ============ v1.468 日志行 ============
+
+# uc_log_row：绘制日志行 [i]  Started server
+# level 0=INFO 1=WARN 2=ERROR 3=DEBUG，msg 为日志内容。
+# 用于日志查看器、控制台。
+fn uc_log_row(x: i64, y: i64, level: i64, msg: ptr, fg: i64, bg: i64) -> i64 {
+    let mlen: i64 = 0;
+    let i: i64 = 0;
+    let c: i64 = 0;
+    mlen = strlen(msg);
+    if level == 0 {
+        uc_set(x, y, '[', fg, bg);
+        uc_set(x + 1, y, 'i', UC_CYAN, bg);
+        uc_set(x + 2, y, ']', fg, bg);
+    } else {
+        if level == 1 {
+            uc_set(x, y, '[', fg, bg);
+            uc_set(x + 1, y, '!', UC_YELLOW, bg);
+            uc_set(x + 2, y, ']', fg, bg);
+        } else {
+            if level == 2 {
+                uc_set(x, y, '[', fg, bg);
+                uc_set(x + 1, y, 'x', UC_RED, bg);
+                uc_set(x + 2, y, ']', fg, bg);
+            } else {
+                uc_set(x, y, '[', fg, bg);
+                uc_set(x + 1, y, '-', fg, bg);
+                uc_set(x + 2, y, ']', fg, bg);
+            }
+        }
+    }
+    uc_set(x + 5, y, ' ', fg, bg);
+    if level == 0 {
+        c = UC_CYAN;
+    } else {
+        if level == 1 {
+            c = UC_YELLOW;
+        } else {
+            if level == 2 {
+                c = UC_RED;
+            } else {
+                c = fg;
+            }
+        }
+    }
+    i = 0;
+    while i < mlen {
+        uc_set(x + 6 + i, y, msg[i], c, bg);
+        i = i + 1;
+    }
+    return 0;
+}

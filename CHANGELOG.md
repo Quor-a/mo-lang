@@ -1,3 +1,12 @@
+## [1.468.0]
+
+- lib/uic.mo 新增日志行：
+  - uc_log_row：[i]  Started server / [!] / [x] / [-]
+  - 用于日志查看器、控制台
+- tests/101_uic.mo 覆盖日志行。
+- E2E：[i] Started server 青 / [!] 黄 / [x] 红 / [-] 灰 正确渲染。
+- 门禁：tests 249/249、projcheck 11/11、自举三级一致、sweep 全绿。
+
 ## [1.467.0]
 
 - lib/uic.mo 新增传感器行：
