@@ -5351,3 +5351,36 @@ fn uc_mount_row(x: i64, y: i64, mount: ptr, fs: ptr, used: i64, fg: i64, bg: i64
     }
     return 0;
 }
+
+# ============ v1.466 容器状态行 ============
+
+# uc_container_row：绘制容器行 [C]  web   Up 2h
+# name 为容器名，state 0=停止 1=运行。
+# 用于 Docker/容器管理。
+fn uc_container_row(x: i64, y: i64, name: ptr, state: i64, fg: i64, bg: i64) -> i64 {
+    let nlen: i64 = 0;
+    let i: i64 = 0;
+    nlen = strlen(name);
+    uc_set(x, y, '[', UC_CYAN, bg);
+    uc_set(x + 1, y, 'C', UC_CYAN, bg);
+    uc_set(x + 2, y, ']', UC_CYAN, bg);
+    uc_set(x + 5, y, ' ', fg, bg);
+    i = 0;
+    while i < nlen {
+        uc_set(x + 6 + i, y, name[i], UC_WHITE, bg);
+        i = i + 1;
+    }
+    uc_set(x + 8 + nlen, y, ' ', fg, bg);
+    if state != 0 {
+        uc_set(x + 9 + nlen, y, 'U', UC_GREEN, bg);
+        uc_set(x + 10 + nlen, y, 'p', UC_GREEN, bg);
+    } else {
+        uc_set(x + 9 + nlen, y, 'E', fg, bg);
+        uc_set(x + 10 + nlen, y, 'x', fg, bg);
+        uc_set(x + 11 + nlen, y, 'i', fg, bg);
+        uc_set(x + 12 + nlen, y, 't', fg, bg);
+        uc_set(x + 13 + nlen, y, 'e', fg, bg);
+        uc_set(x + 14 + nlen, y, 'd', fg, bg);
+    }
+    return 0;
+}

@@ -1,3 +1,12 @@
+## [1.466.0]
+
+- lib/uic.mo 新增容器状态行：
+  - uc_container_row：[C]  web   Up
+  - 用于 Docker/容器管理
+- tests/101_uic.mo 覆盖容器状态行。
+- E2E：[C] web Up / db Exited 正确渲染。
+- 门禁：tests 249/249、projcheck 11/11、自举三级一致、sweep 全绿。
+
 ## [1.465.0]
 
 - lib/uic.mo 新增挂载点行：
