@@ -1,3 +1,12 @@
+## [1.490.0]
+
+- lib/uic.mo 新增备份状态行：
+  - uc_backup_row：[B]  nightly  Completed
+  - 用于备份管理、备份计划
+- tests/101_uic.mo 覆盖备份状态行。
+- E2E：[B] nightly Completed 绿 / hourly Running 青 / weekly Failed 红 正确渲染。
+- 门禁：tests 249/249、projcheck 11/11、自举三级一致、sweep 全绿。
+
 ## [1.489.0]
 
 - lib/uic.mo 新增 IP 绑定行：
