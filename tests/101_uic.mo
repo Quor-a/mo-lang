@@ -165,6 +165,8 @@ fn main() -> i64 {
     uc_log_row(12, 2, 0, "ok", UC_WHITE, UC_BLUE);
     uc_env_row(1, 2, "P", "/u", UC_WHITE, UC_BLUE);
     uc_alert_row(12, 2, 1, "c", "1", UC_WHITE, UC_BLUE);
+    uc_db_row(1, 2, "u", "M", "1", UC_WHITE, UC_BLUE);
+    uc_vm_row(12, 2, "w", 1, UC_WHITE, UC_BLUE);
     uc_dump_svg("/tmp/uic_dump_test.svg");
     uc_render();
     return 0;

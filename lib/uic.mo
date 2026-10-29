@@ -5578,3 +5578,42 @@ fn uc_db_row(x: i64, y: i64, name: ptr, engine: ptr, rows: ptr, fg: i64, bg: i64
     uc_set(x + 17 + nlen + elen + rlen, y, 's', fg, bg);
     return 0;
 }
+
+# ============ v1.472 虚拟机行 ============
+
+# uc_vm_row：绘制虚拟机行 [V]  web-01  Running
+# name 为虚拟机名，state 0=停止 1=运行。
+# 用于虚拟机管理、云控制台。
+fn uc_vm_row(x: i64, y: i64, name: ptr, state: i64, fg: i64, bg: i64) -> i64 {
+    let nlen: i64 = 0;
+    let i: i64 = 0;
+    nlen = strlen(name);
+    uc_set(x, y, '[', UC_MAGENTA, bg);
+    uc_set(x + 1, y, 'V', UC_MAGENTA, bg);
+    uc_set(x + 2, y, ']', UC_MAGENTA, bg);
+    uc_set(x + 5, y, ' ', fg, bg);
+    i = 0;
+    while i < nlen {
+        uc_set(x + 6 + i, y, name[i], UC_WHITE, bg);
+        i = i + 1;
+    }
+    uc_set(x + 8 + nlen, y, ' ', fg, bg);
+    if state != 0 {
+        uc_set(x + 9 + nlen, y, 'R', UC_GREEN, bg);
+        uc_set(x + 10 + nlen, y, 'u', UC_GREEN, bg);
+        uc_set(x + 11 + nlen, y, 'n', UC_GREEN, bg);
+        uc_set(x + 12 + nlen, y, 'n', UC_GREEN, bg);
+        uc_set(x + 13 + nlen, y, 'i', UC_GREEN, bg);
+        uc_set(x + 14 + nlen, y, 'n', UC_GREEN, bg);
+        uc_set(x + 15 + nlen, y, 'g', UC_GREEN, bg);
+    } else {
+        uc_set(x + 9 + nlen, y, 'S', fg, bg);
+        uc_set(x + 10 + nlen, y, 't', fg, bg);
+        uc_set(x + 11 + nlen, y, 'o', fg, bg);
+        uc_set(x + 12 + nlen, y, 'p', fg, bg);
+        uc_set(x + 13 + nlen, y, 'p', fg, bg);
+        uc_set(x + 14 + nlen, y, 'e', fg, bg);
+        uc_set(x + 15 + nlen, y, 'd', fg, bg);
+    }
+    return 0;
+}

@@ -1,3 +1,12 @@
+## [1.472.0]
+
+- lib/uic.mo 新增虚拟机行：
+  - uc_vm_row：[V]  web-01  Running
+  - 用于虚拟机管理、云控制台
+- tests/101_uic.mo 覆盖虚拟机行。
+- E2E：[V] web-01 Running / db-01 Stopped 正确渲染。
+- 门禁：tests 249/249、projcheck 11/11、自举三级一致、sweep 全绿。
+
 ## [1.471.0]
 
 - lib/uic.mo 新增数据库行：
