@@ -102,6 +102,7 @@ fn main() -> i64 {
     uc_hashtag(1, 2, "mo", UC_GREEN, UC_BLUE);
     uc_status_light(8, 2, 0, UC_BLUE);
     uc_progress_ring(14, 2, 2, 60, UC_GREEN, UC_BLUE);
+    uc_avatar(1, 2, 1, UC_WHITE, UC_BLUE);
     uc_dump_svg("/tmp/uic_dump_test.svg");
     uc_render();
     return 0;

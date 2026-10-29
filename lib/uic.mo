@@ -3055,3 +3055,20 @@ fn uc_progress_ring(x: i64, y: i64, r: i64, pct: i64, fg: i64, bg: i64) -> i64 {
     }
     return 0;
 }
+# ============ v1.406 头像 ============
+
+# uc_avatar：绘制用户头像（含在线状态点）
+# 显示 (•) 头像，右侧小点表示在线状态（绿=在线，红=离线）。
+# 用于聊天、用户列表、评论区。
+fn uc_avatar(x: i64, y: i64, online: i64, fg: i64, bg: i64) -> i64 {
+    uc_set(x, y, '(', UC_CYAN, bg);
+    uc_set(x + 1, y, '^', UC_CYAN, bg);
+    uc_set(x + 2, y, '^', UC_CYAN, bg);
+    uc_set(x + 3, y, ')', UC_CYAN, bg);
+    if online != 0 {
+        uc_set(x + 4, y, '.', UC_GREEN, bg);
+    } else {
+        uc_set(x + 4, y, '.', UC_RED, bg);
+    }
+    return 0;
+}
