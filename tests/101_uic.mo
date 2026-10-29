@@ -147,6 +147,7 @@ fn main() -> i64 {
     uc_score_row(12, 2, 1, "A", 1200, UC_WHITE, UC_BLUE);
     uc_upload_row(1, 2, "f", 45, UC_WHITE, UC_BLUE);
     uc_download_row(12, 2, "f", 30, UC_WHITE, UC_BLUE);
+    uc_swatch_row(1, 2, "1|3|5", UC_WHITE, UC_BLUE);
     uc_dump_svg("/tmp/uic_dump_test.svg");
     uc_render();
     return 0;

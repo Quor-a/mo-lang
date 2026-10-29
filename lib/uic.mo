@@ -4784,3 +4784,35 @@ fn uc_download_row(x: i64, y: i64, name: ptr, percent: i64, fg: i64, bg: i64) ->
     uc_set(x + 11 + nlen, y, '%', UC_CYAN, bg);
     return 0;
 }
+
+# ============ v1.453 色板行 ============
+
+# uc_swatch_row：绘制色板行 [■][■][■]（用反色块）
+# colors 为 | 分隔的颜色索引文本（如 1|3|5）。
+# 用于主题编辑器、颜色选择。
+fn uc_swatch_row(x: i64, y: i64, colors: ptr, fg: i64, bg: i64) -> i64 {
+    let clen: i64 = 0;
+    let i: i64 = 0;
+    let idx: i64 = 0;
+    let c: i64 = 0;
+    let pos: i64 = 0;
+    clen = strlen(colors);
+    i = 0;
+    while i < clen {
+        if colors[i] == 124 {  # '|'
+            c = idx;
+            uc_set(x + pos * 3, y, '[', fg, bg);
+            uc_set(x + pos * 3 + 1, y, ']', c, bg);
+            uc_set(x + pos * 3 + 2, y, ' ', fg, bg);
+            idx = 0;
+            pos = pos + 1;
+        } else {
+            idx = idx * 10 + (colors[i] - 48);
+        }
+        i = i + 1;
+    }
+    c = idx;
+    uc_set(x + pos * 3, y, '[', fg, bg);
+    uc_set(x + pos * 3 + 1, y, ']', c, bg);
+    return 0;
+}
