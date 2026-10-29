@@ -4246,3 +4246,37 @@ fn uc_product_row(x: i64, y: i64, name: ptr, price: i64, old_price: i64, fg: i64
     }
     return 0;
 }
+
+# ============ v1.440 目录树文件项 ============
+
+# uc_tree_file：绘制目录树项  ind 层级，[D] 文件夹/[F] 文件
+# indent 为缩进层级，is_dir=1 文件夹(黄)，=0 文件(青)。
+# 用于文件浏览器、项目结构。
+fn uc_tree_file(x: i64, y: i64, indent: i64, is_dir: i64, name: ptr, fg: i64, bg: i64) -> i64 {
+    let nlen: i64 = 0;
+    let i: i64 = 0;
+    let j: i64 = 0;
+    nlen = strlen(name);
+    j = 0;
+    while j < indent {
+        uc_set(x + j * 2, y, '|', fg, bg);
+        uc_set(x + j * 2 + 1, y, ' ', fg, bg);
+        j = j + 1;
+    }
+    if is_dir != 0 {
+        uc_set(x + indent * 2, y, '[', fg, bg);
+        uc_set(x + indent * 2 + 1, y, 'D', UC_YELLOW, bg);
+        uc_set(x + indent * 2 + 2, y, ']', fg, bg);
+    } else {
+        uc_set(x + indent * 2, y, '[', fg, bg);
+        uc_set(x + indent * 2 + 1, y, 'F', UC_CYAN, bg);
+        uc_set(x + indent * 2 + 2, y, ']', fg, bg);
+    }
+    uc_set(x + indent * 2 + 4, y, ' ', fg, bg);
+    i = 0;
+    while i < nlen {
+        uc_set(x + indent * 2 + 5 + i, y, name[i], UC_WHITE, bg);
+        i = i + 1;
+    }
+    return 0;
+}

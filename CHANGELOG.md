@@ -1,3 +1,12 @@
+## [1.440.0]
+
+- lib/uic.mo 新增目录树文件项：
+  - uc_tree_file：缩进层级 [D]/[F] 文件树
+  - 用于文件浏览器、项目结构
+- tests/101_uic.mo 覆盖目录树文件项。
+- E2E：[D] src / | [F] main.mo 正确渲染。
+- 门禁：tests 249/249、projcheck 11/11、自举三级一致、sweep 全绿。
+
 ## [1.439.0]
 
 - lib/uic.mo 新增商品行：
