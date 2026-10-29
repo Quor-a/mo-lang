@@ -1,3 +1,12 @@
+## [1.436.0]
+
+- lib/uic.mo 新增搜索结果行：
+  - uc_result_row：[F] name N match
+  - 用于搜索、文件查找
+- tests/101_uic.mo 覆盖搜索结果行。
+- E2E：main.mo 3 match / lib.mo 12 match 正确渲染。
+- 门禁：tests 249/249、projcheck 11/11、自举三级一致、sweep 全绿。
+
 ## [1.435.0]
 
 - lib/uic.mo 新增权限标签：
