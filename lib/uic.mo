@@ -3260,3 +3260,36 @@ fn uc_like_button(x: i64, y: i64, liked: i64, count: i64, fg: i64, bg: i64) -> i
     uc_set(x + 4 + tmp, y, ']', fg, bg);
     return 0;
 }
+
+# ============ v1.415 开关行 ============
+
+# uc_toggle_row：绘制设置行 Label [ON]
+# label 为设置项名称，on=1 显示 [ON]（绿），=0 显示 [OFF]（红）。
+# 用于设置界面、偏好配置。
+fn uc_toggle_row(x: i64, y: i64, label: ptr, on: i64, fg: i64, bg: i64) -> i64 {
+    let len: i64 = 0;
+    let i: i64 = 0;
+    len = strlen(label);
+    uc_set(x, y, ' ', fg, bg);
+    i = 0;
+    while i < len {
+        uc_set(x + 1 + i, y, label[i], UC_YELLOW, bg);
+        i = i + 1;
+    }
+    uc_set(x + 2 + len, y, ' ', fg, bg);
+    uc_set(x + 3 + len, y, '[', fg, bg);
+    if on != 0 {
+        uc_set(x + 4 + len, y, 'O', UC_GREEN, bg);
+        uc_set(x + 5 + len, y, 'N', UC_GREEN, bg);
+    } else {
+        uc_set(x + 4 + len, y, 'O', UC_RED, bg);
+        uc_set(x + 5 + len, y, 'F', UC_RED, bg);
+        uc_set(x + 6 + len, y, 'F', UC_RED, bg);
+    }
+    if on != 0 {
+        uc_set(x + 6 + len, y, ']', fg, bg);
+    } else {
+        uc_set(x + 7 + len, y, ']', fg, bg);
+    }
+    return 0;
+}

@@ -1,3 +1,12 @@
+## [1.415.0]
+
+- lib/uic.mo 新增开关行：
+  - uc_toggle_row：设置行 Label [ON]/[OFF]
+  - 用于设置界面、偏好配置
+- tests/101_uic.mo 覆盖开关行。
+- E2E：WiFi [ON] / Bluetooth [OFF] 正确渲染。
+- 门禁：tests 249/249、projcheck 11/11、自举三级一致、sweep 全绿。
+
 ## [1.414.0]
 
 - lib/uic.mo 新增点赞按钮：
