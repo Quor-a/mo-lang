@@ -1,3 +1,12 @@
+## [1.484.0]
+
+- lib/uic.mo 新增队列工作单元行：
+  - uc_queue_row：[Q]  job-42  Running  retry 2
+  - 用于任务队列、后台作业
+- tests/101_uic.mo 覆盖队列工作单元行。
+- E2E：[Q] job-42 Running retry 2 青 / Queued 灰 / Done 绿 / Failed retry 1 红。
+- 门禁：tests 249/249、projcheck 11/11、自举三级一致、sweep 全绿。
+
 ## [1.483.0]
 
 - lib/uic.mo 新增插件状态行：

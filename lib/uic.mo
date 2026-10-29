@@ -6103,3 +6103,66 @@ fn uc_plugin_row(x: i64, y: i64, name: ptr, state: i64, fg: i64, bg: i64) -> i64
     }
     return 0;
 }
+
+# ============ v1.484 队列工作单元行 ============
+
+# uc_queue_row：绘制队列工作单元行 [Q]  job-42  Running  retry 2
+# job 为任务名，state 0=排队 1=运行 2=完成 3=失败，retries 为重试次数。
+# 用于任务队列、后台作业。
+fn uc_queue_row(x: i64, y: i64, job: ptr, state: i64, retries: i64, fg: i64, bg: i64) -> i64 {
+    let nlen: i64 = 0;
+    let i: i64 = 0;
+    nlen = strlen(job);
+    uc_set(x, y, '[', UC_CYAN, bg);
+    uc_set(x + 1, y, 'Q', UC_CYAN, bg);
+    uc_set(x + 2, y, ']', UC_CYAN, bg);
+    uc_set(x + 5, y, ' ', fg, bg);
+    i = 0;
+    while i < nlen {
+        uc_set(x + 6 + i, y, job[i], UC_YELLOW, bg);
+        i = i + 1;
+    }
+    uc_set(x + 8 + nlen, y, ' ', fg, bg);
+    if state == 0 {
+        uc_set(x + 9 + nlen, y, 'Q', fg, bg);
+        uc_set(x + 10 + nlen, y, 'u', fg, bg);
+        uc_set(x + 11 + nlen, y, 'e', fg, bg);
+        uc_set(x + 12 + nlen, y, 'u', fg, bg);
+        uc_set(x + 13 + nlen, y, 'e', fg, bg);
+        uc_set(x + 14 + nlen, y, 'd', fg, bg);
+    } else {
+        if state == 1 {
+            uc_set(x + 9 + nlen, y, 'R', UC_CYAN, bg);
+            uc_set(x + 10 + nlen, y, 'u', UC_CYAN, bg);
+            uc_set(x + 11 + nlen, y, 'n', UC_CYAN, bg);
+            uc_set(x + 12 + nlen, y, 'n', UC_CYAN, bg);
+            uc_set(x + 13 + nlen, y, 'i', UC_CYAN, bg);
+            uc_set(x + 14 + nlen, y, 'n', UC_CYAN, bg);
+            uc_set(x + 15 + nlen, y, 'g', UC_CYAN, bg);
+        } else {
+            if state == 2 {
+                uc_set(x + 9 + nlen, y, 'D', UC_GREEN, bg);
+                uc_set(x + 10 + nlen, y, 'o', UC_GREEN, bg);
+                uc_set(x + 11 + nlen, y, 'n', UC_GREEN, bg);
+                uc_set(x + 12 + nlen, y, 'e', UC_GREEN, bg);
+            } else {
+                uc_set(x + 9 + nlen, y, 'F', UC_RED, bg);
+                uc_set(x + 10 + nlen, y, 'a', UC_RED, bg);
+                uc_set(x + 11 + nlen, y, 'i', UC_RED, bg);
+                uc_set(x + 12 + nlen, y, 'l', UC_RED, bg);
+                uc_set(x + 13 + nlen, y, 'e', UC_RED, bg);
+                uc_set(x + 14 + nlen, y, 'd', UC_RED, bg);
+            }
+        }
+    }
+    if retries > 0 {
+        uc_set(x + 17 + nlen, y, 'r', UC_WHITE, bg);
+        uc_set(x + 18 + nlen, y, 'e', UC_WHITE, bg);
+        uc_set(x + 19 + nlen, y, 't', UC_WHITE, bg);
+        uc_set(x + 20 + nlen, y, 'r', UC_WHITE, bg);
+        uc_set(x + 21 + nlen, y, 'y', UC_WHITE, bg);
+        uc_set(x + 22 + nlen, y, ' ', UC_WHITE, bg);
+        uc_set(x + 23 + nlen, y, '0' + retries, UC_WHITE, bg);
+    }
+    return 0;
+}
