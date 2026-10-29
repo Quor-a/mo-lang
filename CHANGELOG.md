@@ -1,3 +1,12 @@
+## [1.433.0]
+
+- lib/uic.mo 新增排序指示器：
+  - uc_sort_indicator：Name ^/v/- 排序箭头
+  - 用于表格表头、列表排序
+- tests/101_uic.mo 覆盖排序指示器。
+- E2E：Name ^ / Age v / City - 正确渲染。
+- 门禁：tests 249/249、projcheck 11/11、自举三级一致、sweep 全绿。
+
 ## [1.432.0]
 
 - lib/uic.mo 新增主题切换：

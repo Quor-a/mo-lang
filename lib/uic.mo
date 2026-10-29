@@ -3949,3 +3949,29 @@ fn uc_theme_toggle(x: i64, y: i64, dark: i64, fg: i64, bg: i64) -> i64 {
     }
     return 0;
 }
+# ============ v1.433 排序指示器 ============
+
+# uc_sort_indicator：绘制排序指示器 Name ^/v/-
+# label 为列名，dir 0=无/1=升序/2=降序。
+# 用于表格表头、列表排序。
+fn uc_sort_indicator(x: i64, y: i64, label: ptr, dir: i64, fg: i64, bg: i64) -> i64 {
+    let llen: i64 = 0;
+    let i: i64 = 0;
+    llen = strlen(label);
+    i = 0;
+    while i < llen {
+        uc_set(x + i, y, label[i], UC_YELLOW, bg);
+        i = i + 1;
+    }
+    uc_set(x + llen + 1, y, ' ', fg, bg);
+    if dir == 1 {
+        uc_set(x + llen + 2, y, '^', UC_GREEN, bg);
+    } else {
+        if dir == 2 {
+            uc_set(x + llen + 2, y, 'v', UC_RED, bg);
+        } else {
+            uc_set(x + llen + 2, y, '-', fg, bg);
+        }
+    }
+    return 0;
+}
