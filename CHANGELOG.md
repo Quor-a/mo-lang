@@ -1,3 +1,12 @@
+## [1.475.0]
+
+- lib/uic.mo 新增证书行：
+  - uc_cert_row：[C]  example.com  Valid
+  - 用于 SSL/证书管理
+- tests/101_uic.mo 覆盖证书行。
+- E2E：[C] example.com Valid / old.site Expired 正确渲染。
+- 门禁：tests 249/249、projcheck 11/11、自举三级一致、sweep 全绿。
+
 ## [1.474.0]
 
 - lib/uic.mo 新增消息状态行：
