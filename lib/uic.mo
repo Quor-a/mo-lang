@@ -2607,3 +2607,29 @@ fn uc_toast(x: i64, y: i64, w: i64, text: ptr, level: i64, fg: i64, bg: i64) -> 
     }
     return 0;
 }
+
+# ============ v1.391 调色板 ============
+
+# uc_palette：绘制颜色选择器（色块行）
+# count 为色块数，active_idx 为选中色块（用 [ ] 高亮边框）。
+# 每块 3 宽，颜色从 8 色中循环取。用于主题选择、颜色编辑。
+fn uc_palette(x: i64, y: i64, count: i64, active_idx: i64, fg: i64, bg: i64) -> i64 {
+    let i: i64 = 0;
+    let col: i64 = 0;
+    let c: i64 = 0;
+    i = 0;
+    while i < count {
+        col = x + i * 3;
+        # 色块颜色（8 色循环）
+        c = 1 + (i % 7);
+        uc_set(col, y, ' ', c, c);
+        uc_set(col + 1, y, ' ', c, c);
+        uc_set(col + 2, y, ' ', c, c);
+        if i == active_idx {
+            uc_set(col - 1, y, '[', fg, bg);
+            uc_set(col + 3, y, ']', fg, bg);
+        }
+        i = i + 1;
+    }
+    return 0;
+}
