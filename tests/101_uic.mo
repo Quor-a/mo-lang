@@ -152,6 +152,7 @@ fn main() -> i64 {
     uc_tag_cloud(1, 2, "mo|ui|c", UC_WHITE, UC_BLUE);
     uc_signal_icon(12, 2, 4, UC_WHITE, UC_BLUE);
     uc_battery_row(1, 2, 80, 1, UC_WHITE, UC_BLUE);
+    uc_net_row(12, 2, "IP", "1.2.3.4", UC_WHITE, UC_BLUE);
     uc_dump_svg("/tmp/uic_dump_test.svg");
     uc_render();
     return 0;

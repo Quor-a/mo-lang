@@ -4999,3 +4999,29 @@ fn uc_battery_row(x: i64, y: i64, percent: i64, charging: i64, fg: i64, bg: i64)
     uc_set(x + 23, y, '%', UC_GREEN, bg);
     return 0;
 }
+
+# ============ v1.458 网络地址行 ============
+
+# uc_net_row：绘制网络地址行 IP 192.168.1.10
+# label 为名称，value 为值（IP/掩码/网关）。
+# 用于网络设置、状态页。
+fn uc_net_row(x: i64, y: i64, label: ptr, value: ptr, fg: i64, bg: i64) -> i64 {
+    let llen: i64 = 0;
+    let vlen: i64 = 0;
+    let i: i64 = 0;
+    llen = strlen(label);
+    vlen = strlen(value);
+    i = 0;
+    while i < llen {
+        uc_set(x + i, y, label[i], UC_YELLOW, bg);
+        i = i + 1;
+    }
+    uc_set(x + llen, y, ' ', fg, bg);
+    uc_set(x + llen + 1, y, ' ', fg, bg);
+    i = 0;
+    while i < vlen {
+        uc_set(x + llen + 2 + i, y, value[i], UC_CYAN, bg);
+        i = i + 1;
+    }
+    return 0;
+}
