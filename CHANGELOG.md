@@ -1,3 +1,12 @@
+## [1.445.0]
+
+- lib/uic.mo 新增命令历史项：
+  - uc_command_item：1 > open file（选中反色）
+  - 用于终端、命令面板历史
+- tests/101_uic.mo 覆盖命令历史项。
+- E2E：1 > open file 高亮 正确渲染。
+- 门禁：tests 249/249、projcheck 11/11、自举三级一致、sweep 全绿。
+
 ## [1.444.0]
 
 - lib/uic.mo 新增快捷操作按钮：

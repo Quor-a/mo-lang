@@ -4421,3 +4421,37 @@ fn uc_quick_action(x: i64, y: i64, active: i64, label: ptr, fg: i64, bg: i64) ->
     }
     return 0;
 }
+
+# ============ v1.445 命令历史项 ============
+
+# uc_command_item：绘制命令历史行 1 > ls -la（选中反色）
+# index 为序号，selected=1 高亮当前命令，cmd 为命令文本。
+# 用于终端、命令面板历史。
+fn uc_command_item(x: i64, y: i64, selected: i64, index: i64, cmd: ptr, fg: i64, bg: i64) -> i64 {
+    let clen: i64 = 0;
+    let i: i64 = 0;
+    clen = strlen(cmd);
+    if index >= 10 {
+        uc_set(x, y, '0' + index / 10, UC_CYAN, bg);
+        uc_set(x + 1, y, '0' + index % 10, UC_CYAN, bg);
+    } else {
+        uc_set(x, y, '0' + index, UC_CYAN, bg);
+    }
+    uc_set(x + 3, y, ' ', fg, bg);
+    if selected != 0 {
+        uc_set(x + 4, y, '>', UC_GREEN, UC_CYAN);
+        i = 0;
+        while i < clen {
+            uc_set(x + 6 + i, y, cmd[i], UC_BLACK, UC_CYAN);
+            i = i + 1;
+        }
+    } else {
+        uc_set(x + 4, y, ' ', fg, bg);
+        i = 0;
+        while i < clen {
+            uc_set(x + 6 + i, y, cmd[i], fg, bg);
+            i = i + 1;
+        }
+    }
+    return 0;
+}

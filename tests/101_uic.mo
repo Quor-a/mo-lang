@@ -139,6 +139,7 @@ fn main() -> i64 {
     uc_temp_display(12, 2, "C", 45, UC_WHITE, UC_BLUE);
     uc_recent_app(1, 2, "C", 12, UC_WHITE, UC_BLUE);
     uc_quick_action(12, 2, 1, "S", UC_WHITE, UC_BLUE);
+    uc_command_item(1, 2, 1, 1, "o", UC_WHITE, UC_BLUE);
     uc_dump_svg("/tmp/uic_dump_test.svg");
     uc_render();
     return 0;
