@@ -90,6 +90,7 @@ fn main() -> i64 {
     uc_dropdown(8, 2, 5, "Hello", UC_GREEN, UC_BLUE);
     uc_toast(1, 2, 12, "Done", 1, UC_WHITE, UC_BLUE);
     uc_palette(1, 2, 4, 1, UC_WHITE, UC_BLUE);
+    uc_stepper(12, 2, 1, 5, UC_GREEN, UC_BLUE);
     uc_dump_svg("/tmp/uic_dump_test.svg");
     uc_render();
     return 0;

@@ -2633,3 +2633,45 @@ fn uc_palette(x: i64, y: i64, count: i64, active_idx: i64, fg: i64, bg: i64) -> 
     }
     return 0;
 }
+
+# ============ v1.392 数值步进器 ============
+
+# uc_stepper：绘制数值步进器 [ - 5 + ]
+# value 为当前数值，w 为数值显示宽度。
+# 用于表单数量调节、计数器。
+fn uc_stepper(x: i64, y: i64, w: i64, value: i64, fg: i64, bg: i64) -> i64 {
+    let i: i64 = 0;
+    let d: i64 = 0;
+    let tmp: i64 = 0;
+    let digits: i64 = 0;
+    let pos: i64 = 0;
+    uc_set(x, y, '[', fg, bg);
+    uc_set(x + 1, y, '-', fg, bg);
+    uc_set(x + 2, y, ' ', fg, bg);
+    # 计算位数
+    tmp = value;
+    if tmp < 0 { tmp = -tmp; }
+    digits = 1;
+    while tmp >= 10 {
+        tmp = tmp / 10;
+        digits = digits + 1;
+    }
+    # 绘制数值（右对齐到 w 宽）
+    pos = x + 3 + w;
+    tmp = value;
+    if tmp < 0 {
+        uc_set(pos - digits - 1, y, '-', fg, bg);
+        tmp = -tmp;
+    }
+    i = 0;
+    while i < digits {
+        d = tmp % 10;
+        tmp = tmp / 10;
+        uc_set(pos - 1 - i, y, 48 + d, fg, bg);
+        i = i + 1;
+    }
+    uc_set(x + 3 + w, y, ' ', fg, bg);
+    uc_set(x + 4 + w, y, '+', fg, bg);
+    uc_set(x + 5 + w, y, ']', fg, bg);
+    return 0;
+}
