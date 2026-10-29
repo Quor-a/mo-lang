@@ -1,3 +1,12 @@
+## [1.418.0]
+
+- lib/uic.mo 新增应用网格：
+  - uc_app_grid：应用图标网格（图标 + 标签）
+  - 用于桌面、启动器、应用列表
+- tests/101_uic.mo 覆盖应用网格。
+- E2E：Files / Docs 应用图标正确渲染。
+- 门禁：tests 249/249、projcheck 11/11、自举三级一致、sweep 全绿。
+
 ## [1.417.0]
 
 - lib/uic.mo 新增数据行：

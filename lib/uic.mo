@@ -3343,3 +3343,31 @@ fn uc_data_row(x: i64, y: i64, label: ptr, value: ptr, label_w: i64, fg: i64, bg
     }
     return 0;
 }
+
+# ============ v1.418 应用网格 ============
+
+# uc_app_grid：绘制应用图标网格
+# cols 列数，title 为应用名，icon 为图标字符。
+# 用于桌面、启动器、应用列表。
+fn uc_app_grid(x: i64, y: i64, cols: i64, title: ptr, icon: i64, fg: i64, bg: i64) -> i64 {
+    let len: i64 = 0;
+    let i: i64 = 0;
+    let cell_w: i64 = 0;
+    len = strlen(title);
+    cell_w = 10;
+    if cols < 1 { cols = 1; }
+    i = 0;
+    while i < cols {
+        uc_set(x + i * cell_w + 1, y, '[', fg, bg);
+        uc_set(x + i * cell_w + 2, y, icon, UC_CYAN, bg);
+        uc_set(x + i * cell_w + 3, y, ']', fg, bg);
+        uc_set(x + i * cell_w, y + 1, '+', UC_YELLOW, bg);
+        i = i + 1;
+    }
+    i = 0;
+    while i < len {
+        uc_set(x + (i / (cell_w - 1)) * cell_w + (i % (cell_w - 1)), y + 2, title[i], fg, bg);
+        i = i + 1;
+    }
+    return 0;
+}

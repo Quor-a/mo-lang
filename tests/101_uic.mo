@@ -112,6 +112,7 @@ fn main() -> i64 {
     uc_toggle_row(1, 2, "W", 1, UC_WHITE, UC_BLUE);
     uc_legend(12, 2, UC_GREEN, "CPU", UC_WHITE, UC_BLUE);
     uc_data_row(1, 2, "N", "alice", 5, UC_WHITE, UC_BLUE);
+    uc_app_grid(12, 2, 1, "Files", 70, UC_WHITE, UC_BLUE);
     uc_dump_svg("/tmp/uic_dump_test.svg");
     uc_render();
     return 0;
