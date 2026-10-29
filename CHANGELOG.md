@@ -1,3 +1,12 @@
+## [1.430.0]
+
+- lib/uic.mo 新增通知项行：
+  - uc_notice_row：[i]/[!]/[x] Title 2m ago
+  - 用于通知中心、消息列表
+- tests/101_uic.mo 覆盖通知项行。
+- E2E：New message 2m / Disk full 1h 正确渲染。
+- 门禁：tests 249/249、projcheck 11/11、自举三级一致、sweep 全绿。
+
 ## [1.429.0]
 
 - lib/uic.mo 新增健康检查行：

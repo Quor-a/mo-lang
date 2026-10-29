@@ -3847,3 +3847,45 @@ fn uc_health_row(x: i64, y: i64, name: ptr, ok: i64, latency: i64, fg: i64, bg: 
     uc_set(x + 19 + nlen, y, 's', UC_CYAN, bg);
     return 0;
 }
+
+# ============ v1.430 通知项行 ============
+
+# uc_notice_row：绘制通知项行 [i] Title  2m ago
+# title 为通知标题，level 0=信息/1=警告/2=错误，time 为时间文本。
+# 用于通知中心、消息列表。
+fn uc_notice_row(x: i64, y: i64, title: ptr, level: i64, time: ptr, fg: i64, bg: i64) -> i64 {
+    let tlen: i64 = 0;
+    let timelen: i64 = 0;
+    let i: i64 = 0;
+    let ch: i64 = 0;
+    let c: i64 = 0;
+    tlen = strlen(title);
+    timelen = strlen(time);
+    if level == 0 {
+        ch = 105;  # 'i'
+        c = UC_CYAN;
+    } else {
+        if level == 1 {
+            ch = 33;  # '!'
+            c = UC_YELLOW;
+        } else {
+            ch = 120;  # 'x'
+            c = UC_RED;
+        }
+    }
+    uc_set(x, y, '[', fg, bg);
+    uc_set(x + 1, y, ch, c, bg);
+    uc_set(x + 2, y, ']', fg, bg);
+    uc_set(x + 4, y, ' ', fg, bg);
+    i = 0;
+    while i < tlen {
+        uc_set(x + 5 + i, y, title[i], UC_YELLOW, bg);
+        i = i + 1;
+    }
+    i = 0;
+    while i < timelen {
+        uc_set(x + 7 + tlen + i, y, time[i], UC_CYAN, bg);
+        i = i + 1;
+    }
+    return 0;
+}
