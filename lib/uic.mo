@@ -4280,3 +4280,32 @@ fn uc_tree_file(x: i64, y: i64, indent: i64, is_dir: i64, name: ptr, fg: i64, bg
     }
     return 0;
 }
+
+# ============ v1.441 导航项 ============
+
+# uc_nav_item：绘制侧边栏导航项  > 首页（激活反色）
+# active=1 高亮显示当前导航项，=0 普通。
+# 用于应用侧边栏、导航菜单。
+fn uc_nav_item(x: i64, y: i64, active: i64, name: ptr, fg: i64, bg: i64) -> i64 {
+    let nlen: i64 = 0;
+    let i: i64 = 0;
+    nlen = strlen(name);
+    if active != 0 {
+        uc_set(x, y, '>', UC_GREEN, UC_CYAN);
+        uc_set(x + 1, y, ' ', UC_GREEN, UC_CYAN);
+        i = 0;
+        while i < nlen {
+            uc_set(x + 2 + i, y, name[i], UC_BLACK, UC_CYAN);
+            i = i + 1;
+        }
+    } else {
+        uc_set(x, y, ' ', fg, bg);
+        uc_set(x + 1, y, ' ', fg, bg);
+        i = 0;
+        while i < nlen {
+            uc_set(x + 2 + i, y, name[i], fg, bg);
+            i = i + 1;
+        }
+    }
+    return 0;
+}

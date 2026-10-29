@@ -135,6 +135,7 @@ fn main() -> i64 {
     uc_rating_row(12, 2, "R", 45, 50, UC_WHITE, UC_BLUE);
     uc_product_row(1, 2, "P", 99, 129, UC_WHITE, UC_BLUE);
     uc_tree_file(12, 2, 1, 0, "m.mo", UC_WHITE, UC_BLUE);
+    uc_nav_item(1, 2, 1, "H", UC_WHITE, UC_BLUE);
     uc_dump_svg("/tmp/uic_dump_test.svg");
     uc_render();
     return 0;
