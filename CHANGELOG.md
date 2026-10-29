@@ -1,3 +1,12 @@
+## [1.431.0]
+
+- lib/uic.mo 新增更新日志行：
+  - uc_changelog_row：[+]/[*]/[>]/[!] desc
+  - 用于更新日志、发布说明
+- tests/101_uic.mo 覆盖更新日志行。
+- E2E：New component / Fixed crash 正确渲染。
+- 门禁：tests 249/249、projcheck 11/11、自举三级一致、sweep 全绿。
+
 ## [1.430.0]
 
 - lib/uic.mo 新增通知项行：

@@ -3889,3 +3889,43 @@ fn uc_notice_row(x: i64, y: i64, title: ptr, level: i64, time: ptr, fg: i64, bg:
     }
     return 0;
 }
+
+# ============ v1.431 更新日志行 ============
+
+# uc_changelog_row：绘制更新日志行 [+]/[*]/[>]/[!] desc
+# type 0=新功能(绿+) 1=修复(青*) 2=优化(黄>) 3=破坏(红!)
+# 用于更新日志、发布说明。
+fn uc_changelog_row(x: i64, y: i64, type: i64, desc: ptr, fg: i64, bg: i64) -> i64 {
+    let dlen: i64 = 0;
+    let i: i64 = 0;
+    let ch: i64 = 0;
+    let c: i64 = 0;
+    dlen = strlen(desc);
+    if type == 0 {
+        ch = 43;  # '+'
+        c = UC_GREEN;
+    } else {
+        if type == 1 {
+            ch = 42;  # '*'
+            c = UC_CYAN;
+        } else {
+            if type == 2 {
+                ch = 62;  # '>'
+                c = UC_YELLOW;
+            } else {
+                ch = 33;  # '!'
+                c = UC_RED;
+            }
+        }
+    }
+    uc_set(x, y, '[', fg, bg);
+    uc_set(x + 1, y, ch, c, bg);
+    uc_set(x + 2, y, ']', fg, bg);
+    uc_set(x + 4, y, ' ', fg, bg);
+    i = 0;
+    while i < dlen {
+        uc_set(x + 5 + i, y, desc[i], fg, bg);
+        i = i + 1;
+    }
+    return 0;
+}
