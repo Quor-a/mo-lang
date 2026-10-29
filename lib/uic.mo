@@ -6166,3 +6166,32 @@ fn uc_queue_row(x: i64, y: i64, job: ptr, state: i64, retries: i64, fg: i64, bg:
     }
     return 0;
 }
+
+# ============ v1.485 配置项行 ============
+
+# uc_config_row：绘制配置项行 [C]  debug  true
+# key 为配置名，value 为配置值。
+# 用于配置管理、环境设置。
+fn uc_config_row(x: i64, y: i64, key: ptr, value: ptr, fg: i64, bg: i64) -> i64 {
+    let klen: i64 = 0;
+    let vlen: i64 = 0;
+    let i: i64 = 0;
+    klen = strlen(key);
+    vlen = strlen(value);
+    uc_set(x, y, '[', UC_YELLOW, bg);
+    uc_set(x + 1, y, 'C', UC_YELLOW, bg);
+    uc_set(x + 2, y, ']', UC_YELLOW, bg);
+    uc_set(x + 5, y, ' ', fg, bg);
+    i = 0;
+    while i < klen {
+        uc_set(x + 6 + i, y, key[i], UC_YELLOW, bg);
+        i = i + 1;
+    }
+    uc_set(x + 8 + klen, y, ' ', fg, bg);
+    i = 0;
+    while i < vlen {
+        uc_set(x + 9 + klen + i, y, value[i], UC_CYAN, bg);
+        i = i + 1;
+    }
+    return 0;
+}

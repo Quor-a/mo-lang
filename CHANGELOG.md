@@ -1,3 +1,12 @@
+## [1.485.0]
+
+- lib/uic.mo 新增配置项行：
+  - uc_config_row：[C]  debug  true
+  - 用于配置管理、环境设置
+- tests/101_uic.mo 覆盖配置项行。
+- E2E：[C] debug true / level warn 黄 key 青 value 正确渲染。
+- 门禁：tests 249/249、projcheck 11/11、自举三级一致、sweep 全绿。
+
 ## [1.484.0]
 
 - lib/uic.mo 新增队列工作单元行：
