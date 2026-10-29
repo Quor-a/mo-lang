@@ -1,3 +1,13 @@
+## [1.455.0]
+
+- lib/uic.mo 新增标签云：
+  - uc_tag_cloud：[mo] [ui] [canvas] 多色轮换
+  - 用于标签云、关键词展示
+- 修复：uic.mo 文件重复内容截断（文件长度恢复正常）。
+- tests/101_uic.mo 覆盖标签云。
+- E2E：[mo] [ui] [canvas] 正确渲染。
+- 门禁：tests 249/249、projcheck 11/11、自举三级一致、sweep 全绿。
+
 ## [1.454.0]
 
 - lib/uic.mo 新增提醒行：

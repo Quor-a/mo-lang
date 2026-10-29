@@ -46,6 +46,10 @@ var UC_YELLOW: i64 = 3;
 var UC_BLUE: i64 = 4;
 var UC_MAGENTA: i64 = 5;
 var UC_CYAN: i64 = 6;
+var UC_TAG_C0: i64 = 6;   # 青
+var UC_TAG_C1: i64 = 2;   # 绿
+var UC_TAG_C2: i64 = 3;   # 黄
+var UC_TAG_C3: i64 = 5;   # 品红
 var UC_WHITE: i64 = 7;
 
 # 渲染时按字符生成 ANSI 转义序列
@@ -4848,5 +4852,74 @@ fn uc_reminder_row(x: i64, y: i64, time: ptr, title: ptr, urgent: i64, fg: i64, 
         uc_set(x + 8 + tlen + i, y, title[i], UC_YELLOW, bg);
         i = i + 1;
     }
+    return 0;
+}
+
+# ============ v1.455 标签云 ============
+
+# uc_tag_cloud：绘制标签云 [mo] [ui] [canvas]
+# tags 为 | 分隔的标签文本，颜色轮换显示。
+# 用于标签云、关键词展示。
+fn uc_tag_cloud(x: i64, y: i64, tags: ptr, fg: i64, bg: i64) -> i64 {
+    let tlen: i64 = 0;
+    let i: i64 = 0;
+    let start: i64 = 0;
+    let cnt: i64 = 0;
+    let pos: i64 = 0;
+    let len: i64 = 0;
+    let c: i64 = 0;
+    let b: i64 = 0;
+    tlen = strlen(tags);
+    i = 0;
+    while i < tlen {
+        if tags[i] == 124 {  # '|'
+            len = i - start;
+            if cnt % 4 == 0 {
+                c = UC_TAG_C0;
+            } else {
+                if cnt % 4 == 1 {
+                    c = UC_TAG_C1;
+                } else {
+                    if cnt % 4 == 2 {
+                        c = UC_TAG_C2;
+                    } else {
+                        c = UC_TAG_C3;
+                    }
+                }
+            }
+            uc_set(x + pos, y, '[', fg, bg);
+            b = 0;
+            while b < len {
+                uc_set(x + pos + 1 + b, y, tags[start + b], c, bg);
+                b = b + 1;
+            }
+            uc_set(x + pos + 1 + len, y, ']', fg, bg);
+            pos = pos + len + 3;
+            cnt = cnt + 1;
+            start = i + 1;
+        }
+        i = i + 1;
+    }
+    len = tlen - start;
+    if cnt % 4 == 0 {
+        c = UC_TAG_C0;
+    } else {
+        if cnt % 4 == 1 {
+            c = UC_TAG_C1;
+        } else {
+            if cnt % 4 == 2 {
+                c = UC_TAG_C2;
+            } else {
+                c = UC_TAG_C3;
+            }
+        }
+    }
+    uc_set(x + pos, y, '[', fg, bg);
+    b = 0;
+    while b < len {
+        uc_set(x + pos + 1 + b, y, tags[start + b], c, bg);
+        b = b + 1;
+    }
+    uc_set(x + pos + 1 + len, y, ']', fg, bg);
     return 0;
 }
