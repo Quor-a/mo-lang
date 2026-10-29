@@ -3105,3 +3105,31 @@ fn uc_chat_bubble(x: i64, y: i64, w: i64, text: ptr, mine: i64, fg: i64, bg: i64
     }
     return 0;
 }
+
+# ============ v1.408 搜索框 ============
+
+# uc_search_box：绘制搜索框 [ > query ]
+# query 为搜索内容，focused=1 显示光标。
+# 用于搜索、命令面板。
+fn uc_search_box(x: i64, y: i64, w: i64, query: ptr, focused: i64, fg: i64, bg: i64) -> i64 {
+    let len: i64 = 0;
+    let i: i64 = 0;
+    len = strlen(query);
+    uc_set(x, y, '[', fg, bg);
+    uc_set(x + 1, y, '>', UC_CYAN, bg);
+    uc_set(x + 2, y, ' ', fg, bg);
+    i = 0;
+    while i < w {
+        if i < len {
+            uc_set(x + 3 + i, y, query[i], fg, bg);
+        } else {
+            uc_set(x + 3 + i, y, ' ', fg, bg);
+        }
+        i = i + 1;
+    }
+    uc_set(x + 3 + w, y, ']', fg, bg);
+    if focused != 0 {
+        uc_set(x + 3 + len, y, '|', UC_GREEN, bg);
+    }
+    return 0;
+}

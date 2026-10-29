@@ -1,3 +1,12 @@
+## [1.408.0]
+
+- lib/uic.mo 新增搜索框：
+  - uc_search_box：[ > query ] 搜索框（光标）
+  - 用于搜索、命令面板
+- tests/101_uic.mo 覆盖搜索框。
+- E2E：[> mo lang|] 正确渲染。
+- 门禁：tests 249/249、projcheck 11/11、自举三级一致、sweep 全绿。
+
 ## [1.407.0]
 
 - lib/uic.mo 新增聊天气泡：
