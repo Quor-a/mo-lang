@@ -2772,3 +2772,33 @@ fn uc_kbd(x: i64, y: i64, key: ptr, fg: i64, bg: i64) -> i64 {
     uc_set(x + 1 + len, y, ']', fg, bg);
     return 0;
 }
+
+# ============ v1.397 分隔线 ============
+
+# uc_separator：绘制水平分隔线，可选带标题
+# 例如 "-" 重复 w 宽，若 title 非空则显示 "--- 标题 ---"。
+# 用于布局分区、面板分隔。
+fn uc_separator(x: i64, y: i64, w: i64, title: ptr, fg: i64, bg: i64) -> i64 {
+    let tlen: i64 = 0;
+    let i: i64 = 0;
+    tlen = strlen(title);
+    i = 0;
+    while i < w {
+        uc_set(x + i, y, '-', fg, bg);
+        i = i + 1;
+    }
+    if tlen > 0 {
+        # 在标题处覆盖
+        uc_set(x, y, '-', fg, bg);
+        i = 0;
+        while i < tlen {
+            if x + 2 + i < x + w - 1 {
+                uc_set(x + 2 + i, y, title[i], fg, bg);
+            }
+            i = i + 1;
+        }
+        uc_set(x + 2 + tlen, y, '-', fg, bg);
+        uc_set(x + 3 + tlen, y, '-', fg, bg);
+    }
+    return 0;
+}

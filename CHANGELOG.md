@@ -1,3 +1,12 @@
+## [1.397.0]
+
+- lib/uic.mo 新增分隔线：
+  - uc_separator：水平分隔线（可选标题）
+  - 用于布局分区、面板分隔
+- tests/101_uic.mo 覆盖分隔线。
+- E2E：--SECTION----------- 正确渲染。
+- 门禁：tests 249/249、projcheck 11/11、自举三级一致、sweep 全绿。
+
 ## [1.396.0]
 
 - 新增 examples/uic_files.mo：文件管理器 UI 示例。
