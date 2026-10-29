@@ -3011,3 +3011,47 @@ fn uc_status_light(x: i64, y: i64, color: i64, bg: i64) -> i64 {
     uc_set(x + 2, y, ')', c, bg);
     return 0;
 }
+
+# ============ v1.405 环形进度 ============
+
+# uc_progress_ring：绘制环形进度条
+# r 为环半径，pct 为百分比（0-100）。
+# 用 'O' 表示已填充，'.' 表示未填充，围成一圈。
+# 用于下载进度、加载环。
+fn uc_progress_ring(x: i64, y: i64, r: i64, pct: i64, fg: i64, bg: i64) -> i64 {
+    let total: i64 = 0;
+    let filled: i64 = 0;
+    let i: i64 = 0;
+    let side: i64 = 0;
+    let pos: i64 = 0;
+    let ch: i64 = 0;
+    if r < 1 { r = 1; }
+    if pct < 0 { pct = 0; }
+    if pct > 100 { pct = 100; }
+    # 矩形环：4 边总长 = 2*((2r+1)+(2r+1))-4
+    total = 8 * r;
+    filled = total * pct / 100;
+    i = 0;
+    while i < total {
+        # 计算环上位置：顶边 → 右边 → 底边 → 左边
+        side = i / (2 * r);
+        pos = i % (2 * r);
+        ch = 46;  # '.'
+        if i < filled { ch = 79; }  # 'O'
+        if side == 0 {
+            uc_set(x - r + pos, y - r, ch, fg, bg);
+        } else {
+            if side == 1 {
+                uc_set(x + r, y - r + pos, ch, fg, bg);
+            } else {
+                if side == 2 {
+                    uc_set(x + r - pos, y + r, ch, fg, bg);
+                } else {
+                    uc_set(x - r, y + r - pos, ch, fg, bg);
+                }
+            }
+        }
+        i = i + 1;
+    }
+    return 0;
+}
