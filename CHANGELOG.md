@@ -1,3 +1,12 @@
+## [1.442.0]
+
+- lib/uic.mo 新增温度显示：
+  - uc_temp_display：CPU 45^C（绿/黄/红）
+  - 用于硬件监控、系统状态
+- tests/101_uic.mo 覆盖温度显示。
+- E2E：CPU 45^C 绿 / GPU 72^C 红 正确渲染。
+- 门禁：tests 249/249、projcheck 11/11、自举三级一致、sweep 全绿。
+
 ## [1.441.0]
 
 - lib/uic.mo 新增导航项：

@@ -4309,3 +4309,48 @@ fn uc_nav_item(x: i64, y: i64, active: i64, name: ptr, fg: i64, bg: i64) -> i64 
     }
     return 0;
 }
+
+# ============ v1.442 温度显示 ============
+
+# uc_temp_display：绘制温度显示 CPU 45^C
+# temp 为温度值，>=70 红 >=50 黄 否则绿。
+# 用于硬件监控、系统状态。
+fn uc_temp_display(x: i64, y: i64, label: ptr, temp: i64, fg: i64, bg: i64) -> i64 {
+    let llen: i64 = 0;
+    let i: i64 = 0;
+    let t: i64 = 0;
+    let c: i64 = 0;
+    llen = strlen(label);
+    i = 0;
+    while i < llen {
+        uc_set(x + i, y, label[i], UC_YELLOW, bg);
+        i = i + 1;
+    }
+    if temp >= 70 {
+        c = UC_RED;
+    } else {
+        if temp >= 50 {
+            c = UC_YELLOW;
+        } else {
+            c = UC_GREEN;
+        }
+    }
+    t = temp;
+    uc_set(x + llen + 2, y, ' ', fg, bg);
+    if t >= 100 {
+        uc_set(x + llen + 3, y, '0' + t / 100, c, bg);
+        t = t % 100;
+        uc_set(x + llen + 4, y, '0' + t / 10, c, bg);
+        uc_set(x + llen + 5, y, '0' + t % 10, c, bg);
+    } else {
+        if t >= 10 {
+            uc_set(x + llen + 3, y, '0' + t / 10, c, bg);
+            uc_set(x + llen + 4, y, '0' + t % 10, c, bg);
+        } else {
+            uc_set(x + llen + 3, y, '0' + t, c, bg);
+        }
+    }
+    uc_set(x + llen + 6, y, '^', c, bg);
+    uc_set(x + llen + 7, y, 'C', c, bg);
+    return 0;
+}
