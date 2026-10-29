@@ -1,3 +1,12 @@
+## [1.386.0]
+
+- lib/uic.mo 新增面包屑导航：
+  - uc_breadcrumb：路径导航（'|' 分隔项，'/' 连接，当前项反色）
+  - 用于导航、文件路径展示
+- tests/101_uic.mo 覆盖面包屑。
+- E2E：Home/Docs/Guide 面包屑，Guide 反色高亮。
+- 门禁：tests 249/249、projcheck 11/11、自举三级一致、sweep 全绿。
+
 ## [1.385.0]
 
 - lib/uic.mo 新增数据表格：

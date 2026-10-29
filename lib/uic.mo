@@ -2451,3 +2451,51 @@ fn uc_table(x: i64, y: i64, w: i64, header: ptr, rows: ptr, fg: i64, bg: i64) ->
     }
     return 0;
 }
+# ============ v1.386 面包屑导航 ============
+
+# uc_breadcrumb：绘制面包屑路径导航
+# items 为 '|' 分隔的路径项，active_idx 为当前项（反色高亮）。
+# 项之间用 '/' 分隔。用于导航、文件路径展示。
+# 例如 "Home|Docs|Guide" active_idx=2 显示 "Home / Docs / Guide"（Guide 高亮）
+fn uc_breadcrumb(x: i64, y: i64, items: ptr, active_idx: i64, fg: i64, bg: i64) -> i64 {
+    let len: i64 = 0;
+    let i: i64 = 0;
+    let idx: i64 = 0;
+    let cx: i64 = 0;
+    let start: i64 = 0;
+    let active_start: i64 = 0;
+    let active_len: i64 = 0;
+    len = strlen(items);
+    cx = x;
+    start = x;
+    idx = 0;
+    i = 0;
+    while i < len {
+        if items[i] == 124 {  # '|'
+            if idx == active_idx {
+                active_start = start;
+                active_len = cx - start;
+            }
+            idx = idx + 1;
+            # 画 '/' 分隔符
+            uc_set(cx, y, '/', fg, bg);
+            cx = cx + 1;
+            uc_set(cx, y, ' ', fg, bg);
+            cx = cx + 1;
+            start = cx;
+        } else {
+            uc_set(cx, y, items[i], fg, bg);
+            cx = cx + 1;
+        }
+        i = i + 1;
+    }
+    if idx == active_idx {
+        active_start = start;
+        active_len = cx - start;
+    }
+    # 当前项反色
+    if active_len > 0 {
+        uc_reverse(active_start, y, active_len, 1);
+    }
+    return 0;
+}
