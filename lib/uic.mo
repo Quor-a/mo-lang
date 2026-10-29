@@ -5067,3 +5067,43 @@ fn uc_wifi_row(x: i64, y: i64, ssid: ptr, signal: i64, locked: i64, fg: i64, bg:
     }
     return 0;
 }
+
+# ============ v1.460 蓝牙设备行 ============
+
+# uc_bt_row：绘制蓝牙设备行 BT  Headphones  Connected
+# name 为设备名，state 0=未连接 1=已连接。
+# 用于蓝牙设置、设备列表。
+fn uc_bt_row(x: i64, y: i64, name: ptr, state: i64, fg: i64, bg: i64) -> i64 {
+    let nlen: i64 = 0;
+    let i: i64 = 0;
+    nlen = strlen(name);
+    uc_set(x, y, 'B', UC_BLUE, bg);
+    uc_set(x + 1, y, 'T', UC_BLUE, bg);
+    uc_set(x + 4, y, ' ', fg, bg);
+    i = 0;
+    while i < nlen {
+        uc_set(x + 5 + i, y, name[i], UC_WHITE, bg);
+        i = i + 1;
+    }
+    uc_set(x + 7 + nlen, y, ' ', fg, bg);
+    if state != 0 {
+        uc_set(x + 8 + nlen, y, 'C', UC_GREEN, bg);
+        uc_set(x + 9 + nlen, y, 'o', UC_GREEN, bg);
+        uc_set(x + 10 + nlen, y, 'n', UC_GREEN, bg);
+        uc_set(x + 11 + nlen, y, 'n', UC_GREEN, bg);
+        uc_set(x + 12 + nlen, y, 'e', UC_GREEN, bg);
+        uc_set(x + 13 + nlen, y, 'c', UC_GREEN, bg);
+        uc_set(x + 14 + nlen, y, 't', UC_GREEN, bg);
+        uc_set(x + 15 + nlen, y, 'e', UC_GREEN, bg);
+        uc_set(x + 16 + nlen, y, 'd', UC_GREEN, bg);
+    } else {
+        uc_set(x + 8 + nlen, y, 'O', fg, bg);
+        uc_set(x + 9 + nlen, y, 'f', fg, bg);
+        uc_set(x + 10 + nlen, y, 'f', fg, bg);
+        uc_set(x + 11 + nlen, y, 'l', fg, bg);
+        uc_set(x + 12 + nlen, y, 'i', fg, bg);
+        uc_set(x + 13 + nlen, y, 'n', fg, bg);
+        uc_set(x + 14 + nlen, y, 'e', fg, bg);
+    }
+    return 0;
+}

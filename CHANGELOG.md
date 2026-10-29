@@ -1,3 +1,12 @@
+## [1.460.0]
+
+- lib/uic.mo 新增蓝牙设备行：
+  - uc_bt_row：BT  Headphones  Connected
+  - 用于蓝牙设置、设备列表
+- tests/101_uic.mo 覆盖蓝牙设备行。
+- E2E：BT Headphones Connected / Keyboard Offline 正确渲染。
+- 门禁：tests 249/249、projcheck 11/11、自举三级一致、sweep 全绿。
+
 ## [1.459.0]
 
 - lib/uic.mo 新增 Wi-Fi 网络行：
