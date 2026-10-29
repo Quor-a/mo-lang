@@ -2713,3 +2713,44 @@ fn uc_terminal(x: i64, y: i64, w: i64, h: i64, title: ptr, line1: ptr, line2: pt
     }
     return 0;
 }
+
+# ============ v1.394 统计卡片 ============
+
+# uc_stat_card：绘制统计卡片
+# title 为卡片标题，value 为大数值，trend>0 显示绿色上升箭头，<0 显示红色下降箭头。
+# 用于仪表盘、数据展示。
+fn uc_stat_card(x: i64, y: i64, w: i64, title: ptr, value: ptr, trend: i64, fg: i64, bg: i64) -> i64 {
+    let tlen: i64 = 0;
+    let vlen: i64 = 0;
+    let i: i64 = 0;
+    tlen = strlen(title);
+    vlen = strlen(value);
+    # 边框
+    uc_border(x, y, w + 2, 4, 1, fg, bg);
+    # 标题（小写，反色）
+    i = 0;
+    while i < tlen {
+        if x + 1 + i < x + 1 + w {
+            uc_set(x + 1 + i, y, title[i], fg, bg);
+        }
+        i = i + 1;
+    }
+    # 数值（大，反色行）
+    i = 0;
+    while i < vlen {
+        if x + 2 + i < x + 1 + w {
+            uc_set(x + 2 + i, y + 2, value[i], fg, bg);
+        }
+        i = i + 1;
+    }
+    uc_reverse(x + 1, y + 2, w, 1);
+    # 趋势箭头
+    if trend > 0 {
+        uc_set(x + 1 + w - 2, y + 2, '^', UC_GREEN, bg);
+    } else {
+        if trend < 0 {
+            uc_set(x + 1 + w - 2, y + 2, 'v', UC_RED, bg);
+        }
+    }
+    return 0;
+}

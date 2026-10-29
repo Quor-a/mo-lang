@@ -1,3 +1,12 @@
+## [1.394.0]
+
+- lib/uic.mo 新增统计卡片：
+  - uc_stat_card：统计卡片（标题 + 数值反色 + 趋势箭头）
+  - 用于仪表盘、数据展示
+- tests/101_uic.mo 覆盖统计卡片。
+- E2E：Users 1234 ^ / Errors 3 v 正确渲染。
+- 门禁：tests 249/249、projcheck 11/11、自举三级一致、sweep 全绿。
+
 ## [1.393.0]
 
 - lib/uic.mo 新增终端窗口：
