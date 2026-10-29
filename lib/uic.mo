@@ -4126,3 +4126,58 @@ fn uc_workflow_status(x: i64, y: i64, step: i64, name: ptr, state: i64, fg: i64,
     uc_set(x + 8 + nlen, y, ch, c, bg);
     return 0;
 }
+
+# ============ v1.438 评分汇总行 ============
+
+# uc_rating_row：绘制评分汇总行 Rating  4.5/5.0  ****.
+# score 为评分，max 为满分，四舍五入显示星级。
+# 用于评价、产品详情。
+fn uc_rating_row(x: i64, y: i64, label: ptr, score: i64, max: i64, fg: i64, bg: i64) -> i64 {
+    let llen: i64 = 0;
+    let i: i64 = 0;
+    let full: i64 = 0;
+    let half: i64 = 0;
+    llen = strlen(label);
+    i = 0;
+    while i < llen {
+        uc_set(x + i, y, label[i], UC_YELLOW, bg);
+        i = i + 1;
+    }
+    uc_set(x + llen + 2, y, ' ', fg, bg);
+    if score >= 10 {
+        uc_set(x + llen + 3, y, '0' + score / 10, UC_CYAN, bg);
+        uc_set(x + llen + 4, y, '.', UC_CYAN, bg);
+        uc_set(x + llen + 5, y, '0' + score % 10, UC_CYAN, bg);
+    } else {
+        uc_set(x + llen + 3, y, '0' + score, UC_CYAN, bg);
+        uc_set(x + llen + 4, y, '.', UC_CYAN, bg);
+        uc_set(x + llen + 5, y, '0', UC_CYAN, bg);
+    }
+    uc_set(x + llen + 6, y, '/', fg, bg);
+    if max >= 10 {
+        uc_set(x + llen + 7, y, '0' + max / 10, UC_CYAN, bg);
+        uc_set(x + llen + 8, y, '.', UC_CYAN, bg);
+        uc_set(x + llen + 9, y, '0' + max % 10, UC_CYAN, bg);
+    } else {
+        uc_set(x + llen + 7, y, '0' + max, UC_CYAN, bg);
+        uc_set(x + llen + 8, y, '.', UC_CYAN, bg);
+        uc_set(x + llen + 9, y, '0', UC_CYAN, bg);
+    }
+    uc_set(x + llen + 11, y, ' ', fg, bg);
+    full = score * 5 / max;
+    half = score * 10 / max - full * 2;
+    i = 0;
+    while i < 5 {
+        if i < full {
+            uc_set(x + llen + 12 + i, y, '*', UC_YELLOW, bg);
+        } else {
+            if i == full && half != 0 {
+                uc_set(x + llen + 12 + i, y, '.', UC_YELLOW, bg);
+            } else {
+                uc_set(x + llen + 12 + i, y, '.', fg, bg);
+            }
+        }
+        i = i + 1;
+    }
+    return 0;
+}
