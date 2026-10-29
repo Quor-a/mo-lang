@@ -4482,3 +4482,95 @@ fn uc_link_row(x: i64, y: i64, name: ptr, url: ptr, fg: i64, bg: i64) -> i64 {
     }
     return 0;
 }
+
+# ============ v1.447 API 请求行 ============
+
+# uc_api_request：绘制 API 请求日志 GET /api  200 12ms
+# method 0=GET 1=POST 2=PUT 3=DELETE，status 2xx 绿/4xx 黄/5xx 红。
+# 用于 API 监控、调试日志。
+fn uc_api_request(x: i64, y: i64, method: i64, path: ptr, status: i64, ms: i64, fg: i64, bg: i64) -> i64 {
+    let plen: i64 = 0;
+    let i: i64 = 0;
+    let mc: i64 = 0;
+    let sc: i64 = 0;
+    let st: i64 = 0;
+    let m: i64 = 0;
+    plen = strlen(path);
+    if method == 0 {
+        mc = UC_CYAN;
+    } else {
+        if method == 1 {
+            mc = UC_GREEN;
+        } else {
+            if method == 2 {
+                mc = UC_YELLOW;
+            } else {
+                mc = UC_RED;
+            }
+        }
+    }
+    if status >= 500 {
+        sc = UC_RED;
+    } else {
+        if status >= 400 {
+            sc = UC_YELLOW;
+        } else {
+            sc = UC_GREEN;
+        }
+    }
+    if method == 0 {
+        uc_set(x, y, 'G', mc, bg);
+        uc_set(x + 1, y, 'E', mc, bg);
+        uc_set(x + 2, y, 'T', mc, bg);
+    } else {
+        if method == 1 {
+            uc_set(x, y, 'P', mc, bg);
+            uc_set(x + 1, y, 'O', mc, bg);
+            uc_set(x + 2, y, 'S', mc, bg);
+            uc_set(x + 3, y, 'T', mc, bg);
+        } else {
+            if method == 2 {
+                uc_set(x, y, 'P', mc, bg);
+                uc_set(x + 1, y, 'U', mc, bg);
+                uc_set(x + 2, y, 'T', mc, bg);
+            } else {
+                uc_set(x, y, 'D', mc, bg);
+                uc_set(x + 1, y, 'E', mc, bg);
+                uc_set(x + 2, y, 'L', mc, bg);
+                uc_set(x + 3, y, 'E', mc, bg);
+                uc_set(x + 4, y, 'T', mc, bg);
+                uc_set(x + 5, y, 'E', mc, bg);
+            }
+        }
+    }
+    uc_set(x + 8, y, ' ', fg, bg);
+    i = 0;
+    while i < plen {
+        uc_set(x + 9 + i, y, path[i], UC_YELLOW, bg);
+        i = i + 1;
+    }
+    st = status;
+    uc_set(x + 11 + plen, y, ' ', fg, bg);
+    uc_set(x + 12 + plen, y, '0' + st / 100, sc, bg);
+    st = st % 100;
+    uc_set(x + 13 + plen, y, '0' + st / 10, sc, bg);
+    uc_set(x + 14 + plen, y, '0' + st % 10, sc, bg);
+    m = ms;
+    uc_set(x + 17 + plen, y, ' ', fg, bg);
+    if m >= 100 {
+        uc_set(x + 18 + plen, y, '0' + m / 100, UC_CYAN, bg);
+        m = m % 100;
+        uc_set(x + 19 + plen, y, '0' + m / 10, UC_CYAN, bg);
+        uc_set(x + 20 + plen, y, '0' + m % 10, UC_CYAN, bg);
+    } else {
+        if m >= 10 {
+            uc_set(x + 18 + plen, y, '0' + m / 10, UC_CYAN, bg);
+            uc_set(x + 19 + plen, y, '0' + m % 10, UC_CYAN, bg);
+        } else {
+            uc_set(x + 18 + plen, y, '0' + m, UC_CYAN, bg);
+        }
+    }
+    uc_set(x + 21 + plen, y, 'm', UC_CYAN, bg);
+    uc_set(x + 22 + plen, y, 's', UC_CYAN, bg);
+    return 0;
+}

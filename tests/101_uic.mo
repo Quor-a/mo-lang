@@ -141,6 +141,7 @@ fn main() -> i64 {
     uc_quick_action(12, 2, 1, "S", UC_WHITE, UC_BLUE);
     uc_command_item(1, 2, 1, 1, "o", UC_WHITE, UC_BLUE);
     uc_link_row(12, 2, "D", "https://m", UC_WHITE, UC_BLUE);
+    uc_api_request(1, 2, 0, "/api", 200, 12, UC_WHITE, UC_BLUE);
     uc_dump_svg("/tmp/uic_dump_test.svg");
     uc_render();
     return 0;

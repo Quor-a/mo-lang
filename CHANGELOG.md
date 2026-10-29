@@ -1,3 +1,12 @@
+## [1.447.0]
+
+- lib/uic.mo 新增 API 请求行：
+  - uc_api_request：GET /api/users 200 12ms
+  - 用于 API 监控、调试日志
+- tests/101_uic.mo 覆盖 API 请求行。
+- E2E：GET /api/users 200 12ms 正确渲染。
+- 门禁：tests 249/249、projcheck 11/11、自举三级一致、sweep 全绿。
+
 ## [1.446.0]
 
 - lib/uic.mo 新增链接行：
