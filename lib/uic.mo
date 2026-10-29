@@ -3313,3 +3313,33 @@ fn uc_legend(x: i64, y: i64, color: i64, label: ptr, fg: i64, bg: i64) -> i64 {
     }
     return 0;
 }
+
+# ============ v1.417 数据行 ============
+
+# uc_data_row：绘制数据行 Label: value
+# label 为字段名，value 为值（绿色），label_w 为标签宽度。
+# 用于详情页、属性展示、键值对。
+fn uc_data_row(x: i64, y: i64, label: ptr, value: ptr, label_w: i64, fg: i64, bg: i64) -> i64 {
+    let llen: i64 = 0;
+    let vlen: i64 = 0;
+    let i: i64 = 0;
+    llen = strlen(label);
+    vlen = strlen(value);
+    i = 0;
+    while i < llen {
+        uc_set(x + i, y, label[i], fg, bg);
+        i = i + 1;
+    }
+    i = llen;
+    while i < label_w {
+        uc_set(x + i, y, ' ', fg, bg);
+        i = i + 1;
+    }
+    uc_set(x + label_w, y, ':', UC_CYAN, bg);
+    i = 0;
+    while i < vlen {
+        uc_set(x + label_w + 2 + i, y, value[i], UC_GREEN, bg);
+        i = i + 1;
+    }
+    return 0;
+}

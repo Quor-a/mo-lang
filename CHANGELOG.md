@@ -1,3 +1,12 @@
+## [1.417.0]
+
+- lib/uic.mo 新增数据行：
+  - uc_data_row：Label: value 键值展示（值绿色）
+  - 用于详情页、属性展示
+- tests/101_uic.mo 覆盖数据行。
+- E2E：Name: Alice / Age: 28 正确渲染。
+- 门禁：tests 249/249、projcheck 11/11、自举三级一致、sweep 全绿。
+
 ## [1.416.0]
 
 - lib/uic.mo 新增图例：
