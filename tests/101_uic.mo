@@ -144,6 +144,7 @@ fn main() -> i64 {
     uc_api_request(1, 2, 0, "/api", 200, 12, UC_WHITE, UC_BLUE);
     uc_compare_bar(12, 2, "C", 60, 100, UC_WHITE, UC_BLUE);
     uc_permission_cell(1, 2, 1, UC_WHITE, UC_BLUE);
+    uc_score_row(12, 2, 1, "A", 1200, UC_WHITE, UC_BLUE);
     uc_dump_svg("/tmp/uic_dump_test.svg");
     uc_render();
     return 0;

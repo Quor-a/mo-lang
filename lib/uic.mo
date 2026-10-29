@@ -4644,3 +4644,67 @@ fn uc_permission_cell(x: i64, y: i64, allowed: i64, fg: i64, bg: i64) -> i64 {
     uc_set(x + 2, y, ']', fg, bg);
     return 0;
 }
+
+# ============ v1.450 分数板行 ============
+
+# uc_score_row：绘制排行榜行 1. Player  1200
+# rank 为排名，前三名特殊颜色（1 金 2 银 3 铜）。
+# 用于游戏排行榜、竞技排名。
+fn uc_score_row(x: i64, y: i64, rank: i64, name: ptr, score: i64, fg: i64, bg: i64) -> i64 {
+    let nlen: i64 = 0;
+    let i: i64 = 0;
+    let rc: i64 = 0;
+    let s: i64 = 0;
+    nlen = strlen(name);
+    if rank == 1 {
+        rc = UC_YELLOW;
+    } else {
+        if rank == 2 {
+            rc = UC_WHITE;
+        } else {
+            if rank == 3 {
+                rc = 208;  # 橙
+            } else {
+                rc = UC_CYAN;
+            }
+        }
+    }
+    if rank >= 10 {
+        uc_set(x, y, '0' + rank / 10, rc, bg);
+        uc_set(x + 1, y, '0' + rank % 10, rc, bg);
+    } else {
+        uc_set(x, y, '0' + rank, rc, bg);
+    }
+    uc_set(x + 3, y, '.', rc, bg);
+    uc_set(x + 5, y, ' ', fg, bg);
+    i = 0;
+    while i < nlen {
+        uc_set(x + 6 + i, y, name[i], UC_WHITE, bg);
+        i = i + 1;
+    }
+    s = score;
+    uc_set(x + 8 + nlen, y, ' ', fg, bg);
+    if s >= 1000 {
+        uc_set(x + 9 + nlen, y, '0' + s / 1000, UC_CYAN, bg);
+        s = s % 1000;
+        uc_set(x + 10 + nlen, y, '0' + s / 100, UC_CYAN, bg);
+        s = s % 100;
+        uc_set(x + 11 + nlen, y, '0' + s / 10, UC_CYAN, bg);
+        uc_set(x + 12 + nlen, y, '0' + s % 10, UC_CYAN, bg);
+    } else {
+        if s >= 100 {
+            uc_set(x + 9 + nlen, y, '0' + s / 100, UC_CYAN, bg);
+            s = s % 100;
+            uc_set(x + 10 + nlen, y, '0' + s / 10, UC_CYAN, bg);
+            uc_set(x + 11 + nlen, y, '0' + s % 10, UC_CYAN, bg);
+        } else {
+            if s >= 10 {
+                uc_set(x + 9 + nlen, y, '0' + s / 10, UC_CYAN, bg);
+                uc_set(x + 10 + nlen, y, '0' + s % 10, UC_CYAN, bg);
+            } else {
+                uc_set(x + 9 + nlen, y, '0' + s, UC_CYAN, bg);
+            }
+        }
+    }
+    return 0;
+}

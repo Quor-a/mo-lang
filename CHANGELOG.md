@@ -1,3 +1,12 @@
+## [1.450.0]
+
+- lib/uic.mo 新增分数板行：
+  - uc_score_row：1. Alice 1200 排行榜
+  - 用于游戏排行榜、竞技排名
+- tests/101_uic.mo 覆盖分数板行。
+- E2E：1.Alice 1200 金黄 / 3.Cara 800 橙 正确渲染。
+- 门禁：tests 249/249、projcheck 11/11、自举三级一致、sweep 全绿。
+
 ## [1.449.0]
 
 - lib/uic.mo 新增权限矩阵单元：
