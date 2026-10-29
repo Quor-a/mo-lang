@@ -150,6 +150,7 @@ fn main() -> i64 {
     uc_swatch_row(1, 2, "1|3|5", UC_WHITE, UC_BLUE);
     uc_reminder_row(12, 2, "14:00", "M", 0, UC_WHITE, UC_BLUE);
     uc_tag_cloud(1, 2, "mo|ui|c", UC_WHITE, UC_BLUE);
+    uc_signal_icon(12, 2, 4, UC_WHITE, UC_BLUE);
     uc_dump_svg("/tmp/uic_dump_test.svg");
     uc_render();
     return 0;

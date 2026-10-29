@@ -1,3 +1,12 @@
+## [1.456.0]
+
+- lib/uic.mo 新增信号强度图标：
+  - uc_signal_icon：W |||| / W xx
+  - 用于 Wi-Fi/蓝牙/网络状态
+- tests/101_uic.mo 覆盖信号强度图标。
+- E2E：W |||| 青 / W xx 红 正确渲染。
+- 门禁：tests 249/249、projcheck 11/11、自举三级一致、sweep 全绿。
+
 ## [1.455.0]
 
 - lib/uic.mo 新增标签云：

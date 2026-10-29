@@ -4923,3 +4923,25 @@ fn uc_tag_cloud(x: i64, y: i64, tags: ptr, fg: i64, bg: i64) -> i64 {
     uc_set(x + pos + 1 + len, y, ']', fg, bg);
     return 0;
 }
+
+# ============ v1.456 信号强度图标 ============
+
+# uc_signal_icon：绘制信号强度图标 W |||||
+# strength 0-5，0 时红色 x，否则青色 | 数量。
+# 用于 Wi-Fi/蓝牙/网络状态。
+fn uc_signal_icon(x: i64, y: i64, strength: i64, fg: i64, bg: i64) -> i64 {
+    let i: i64 = 0;
+    uc_set(x, y, 'W', UC_YELLOW, bg);
+    uc_set(x + 2, y, ' ', fg, bg);
+    if strength <= 0 {
+        uc_set(x + 3, y, 'x', UC_RED, bg);
+        uc_set(x + 4, y, 'x', UC_RED, bg);
+    } else {
+        i = 0;
+        while i < strength {
+            uc_set(x + 3 + i, y, '|', UC_CYAN, bg);
+            i = i + 1;
+        }
+    }
+    return 0;
+}
