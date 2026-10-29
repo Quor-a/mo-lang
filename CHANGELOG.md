@@ -1,3 +1,12 @@
+## [1.470.0]
+
+- lib/uic.mo 新增告警行：
+  - uc_alert_row：[A]  CPU high  14:32
+  - 用于监控告警、运维中心
+- tests/101_uic.mo 覆盖告警行。
+- E2E：[A] Info 青 / CPU high 黄 / Disk full 红 正确渲染。
+- 门禁：tests 249/249、projcheck 11/11、自举三级一致、sweep 全绿。
+
 ## [1.469.0]
 
 - lib/uic.mo 新增环境变量行：

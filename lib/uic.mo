@@ -5499,3 +5499,40 @@ fn uc_env_row(x: i64, y: i64, key: ptr, value: ptr, fg: i64, bg: i64) -> i64 {
     }
     return 0;
 }
+
+# ============ v1.470 告警行 ============
+
+# uc_alert_row：绘制告警行 [A]  CPU high  14:32
+# severity 0=信息 1=警告 2=严重，title 标题，time 时间。
+# 用于监控告警、运维中心。
+fn uc_alert_row(x: i64, y: i64, severity: i64, title: ptr, time: ptr, fg: i64, bg: i64) -> i64 {
+    let tlen: i64 = 0;
+    let tl2: i64 = 0;
+    let i: i64 = 0;
+    tlen = strlen(title);
+    tl2 = strlen(time);
+    uc_set(x, y, '[', fg, bg);
+    if severity == 0 {
+        uc_set(x + 1, y, 'A', UC_CYAN, bg);
+    } else {
+        if severity == 1 {
+            uc_set(x + 1, y, 'A', UC_YELLOW, bg);
+        } else {
+            uc_set(x + 1, y, 'A', UC_RED, bg);
+        }
+    }
+    uc_set(x + 2, y, ']', fg, bg);
+    uc_set(x + 5, y, ' ', fg, bg);
+    i = 0;
+    while i < tlen {
+        uc_set(x + 6 + i, y, title[i], UC_WHITE, bg);
+        i = i + 1;
+    }
+    uc_set(x + 8 + tlen, y, ' ', fg, bg);
+    i = 0;
+    while i < tl2 {
+        uc_set(x + 9 + tlen + i, y, time[i], fg, bg);
+        i = i + 1;
+    }
+    return 0;
+}
