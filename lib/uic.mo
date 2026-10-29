@@ -3929,3 +3929,23 @@ fn uc_changelog_row(x: i64, y: i64, type: i64, desc: ptr, fg: i64, bg: i64) -> i
     }
     return 0;
 }
+
+# ============ v1.432 主题切换 ============
+
+# uc_theme_toggle：绘制主题切换按钮 [深色]/[浅色]
+# dark=1 显示深色（蓝底白字），=0 显示浅色（白底黑字）。
+# 用于设置界面、主题偏好。
+fn uc_theme_toggle(x: i64, y: i64, dark: i64, fg: i64, bg: i64) -> i64 {
+    if dark != 0 {
+        uc_set(x, y, '[', UC_BLACK, UC_BLUE);
+        uc_set(x + 1, y, 'D', UC_WHITE, UC_BLUE);
+        uc_set(x + 2, y, 'k', UC_WHITE, UC_BLUE);
+        uc_set(x + 3, y, ']', UC_BLACK, UC_BLUE);
+    } else {
+        uc_set(x, y, '[', UC_BLACK, UC_WHITE);
+        uc_set(x + 1, y, 'L', UC_BLACK, UC_WHITE);
+        uc_set(x + 2, y, 't', UC_BLACK, UC_WHITE);
+        uc_set(x + 3, y, ']', UC_BLACK, UC_WHITE);
+    }
+    return 0;
+}

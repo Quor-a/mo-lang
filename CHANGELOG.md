@@ -1,3 +1,12 @@
+## [1.432.0]
+
+- lib/uic.mo 新增主题切换：
+  - uc_theme_toggle：[Dk]/[Lt] 深色/浅色切换
+  - 用于设置界面、主题偏好
+- tests/101_uic.mo 覆盖主题切换。
+- E2E：Theme [Dk] 正确渲染。
+- 门禁：tests 249/249、projcheck 11/11、自举三级一致、sweep 全绿。
+
 ## [1.431.0]
 
 - lib/uic.mo 新增更新日志行：

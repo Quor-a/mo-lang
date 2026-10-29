@@ -126,6 +126,7 @@ fn main() -> i64 {
     uc_health_row(1, 2, "api", 1, 12, UC_WHITE, UC_BLUE);
     uc_notice_row(12, 2, "Msg", 0, "2m", UC_WHITE, UC_BLUE);
     uc_changelog_row(1, 2, 0, "New", UC_WHITE, UC_BLUE);
+    uc_theme_toggle(12, 2, 1, UC_WHITE, UC_BLUE);
     uc_dump_svg("/tmp/uic_dump_test.svg");
     uc_render();
     return 0;
