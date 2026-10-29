@@ -4084,3 +4084,45 @@ fn uc_result_row(x: i64, y: i64, name: ptr, matches: i64, fg: i64, bg: i64) -> i
     uc_set(x + 15 + nlen, y, 'h', UC_CYAN, bg);
     return 0;
 }
+
+# ============ v1.437 工作流状态 ============
+
+# uc_workflow_status：绘制 CI 步骤状态行 [1] Build  v
+# step 为步骤号，state 0=待定 1=运行中 2=成功 3=失败。
+# 用于 CI/CD 流水线、部署面板。
+fn uc_workflow_status(x: i64, y: i64, step: i64, name: ptr, state: i64, fg: i64, bg: i64) -> i64 {
+    let nlen: i64 = 0;
+    let i: i64 = 0;
+    let ch: i64 = 0;
+    let c: i64 = 0;
+    nlen = strlen(name);
+    uc_set(x, y, '[', fg, bg);
+    uc_set(x + 1, y, '0' + step, UC_YELLOW, bg);
+    uc_set(x + 2, y, ']', fg, bg);
+    uc_set(x + 4, y, ' ', fg, bg);
+    i = 0;
+    while i < nlen {
+        uc_set(x + 5 + i, y, name[i], UC_WHITE, bg);
+        i = i + 1;
+    }
+    uc_set(x + 7 + nlen, y, ' ', fg, bg);
+    if state == 0 {
+        ch = 45;  # '-'
+        c = fg;
+    } else {
+        if state == 1 {
+            ch = 62;  # '>'
+            c = UC_YELLOW;
+        } else {
+            if state == 2 {
+                ch = 118;  # 'v'
+                c = UC_GREEN;
+            } else {
+                ch = 120;  # 'x'
+                c = UC_RED;
+            }
+        }
+    }
+    uc_set(x + 8 + nlen, y, ch, c, bg);
+    return 0;
+}

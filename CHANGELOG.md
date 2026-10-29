@@ -1,3 +1,12 @@
+## [1.437.0]
+
+- lib/uic.mo 新增工作流状态：
+  - uc_workflow_status：[1] Build v（成功/运行/失败/待定）
+  - 用于 CI/CD 流水线、部署面板
+- tests/101_uic.mo 覆盖工作流状态。
+- E2E：Build v / Test > / Deploy - 正确渲染。
+- 门禁：tests 249/249、projcheck 11/11、自举三级一致、sweep 全绿。
+
 ## [1.436.0]
 
 - lib/uic.mo 新增搜索结果行：
