@@ -5384,3 +5384,40 @@ fn uc_container_row(x: i64, y: i64, name: ptr, state: i64, fg: i64, bg: i64) -> 
     }
     return 0;
 }
+
+# ============ v1.467 传感器行 ============
+
+# uc_sensor_row：绘制传感器行 [S]  temp  45 C
+# name 为传感器名，value 为数值，unit 为单位。
+# 用于 IoT/传感器监控。
+fn uc_sensor_row(x: i64, y: i64, name: ptr, value: ptr, unit: ptr, fg: i64, bg: i64) -> i64 {
+    let nlen: i64 = 0;
+    let vlen: i64 = 0;
+    let ulen: i64 = 0;
+    let i: i64 = 0;
+    nlen = strlen(name);
+    vlen = strlen(value);
+    ulen = strlen(unit);
+    uc_set(x, y, '[', UC_YELLOW, bg);
+    uc_set(x + 1, y, 'S', UC_YELLOW, bg);
+    uc_set(x + 2, y, ']', UC_YELLOW, bg);
+    uc_set(x + 5, y, ' ', fg, bg);
+    i = 0;
+    while i < nlen {
+        uc_set(x + 6 + i, y, name[i], UC_YELLOW, bg);
+        i = i + 1;
+    }
+    uc_set(x + 8 + nlen, y, ' ', fg, bg);
+    i = 0;
+    while i < vlen {
+        uc_set(x + 9 + nlen + i, y, value[i], UC_CYAN, bg);
+        i = i + 1;
+    }
+    uc_set(x + 10 + nlen + vlen, y, ' ', fg, bg);
+    i = 0;
+    while i < ulen {
+        uc_set(x + 11 + nlen + vlen + i, y, unit[i], UC_WHITE, bg);
+        i = i + 1;
+    }
+    return 0;
+}

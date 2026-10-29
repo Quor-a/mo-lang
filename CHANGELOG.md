@@ -1,3 +1,12 @@
+## [1.467.0]
+
+- lib/uic.mo 新增传感器行：
+  - uc_sensor_row：[S]  temp   45  C
+  - 用于 IoT/传感器监控
+- tests/101_uic.mo 覆盖传感器行。
+- E2E：[S] temp 45 C / humi 60 % 正确渲染。
+- 门禁：tests 249/249、projcheck 11/11、自举三级一致、sweep 全绿。
+
 ## [1.466.0]
 
 - lib/uic.mo 新增容器状态行：

@@ -161,6 +161,7 @@ fn main() -> i64 {
     uc_proc_row(12, 2, "1", "n", 1, UC_WHITE, UC_BLUE);
     uc_mount_row(1, 2, "/", "ext4", 45, UC_WHITE, UC_BLUE);
     uc_container_row(12, 2, "w", 1, UC_WHITE, UC_BLUE);
+    uc_sensor_row(1, 2, "t", "45", "C", UC_WHITE, UC_BLUE);
     uc_dump_svg("/tmp/uic_dump_test.svg");
     uc_render();
     return 0;
