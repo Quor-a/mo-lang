@@ -1,3 +1,12 @@
+## [1.410.0]
+
+- lib/uic.mo 新增分组框：
+  - uc_group：+-- Title --+ 分组框（表单分区）
+  - 用于表单分区、设置分组
+- tests/101_uic.mo 覆盖分组框。
+- E2E：Settings 分组正确渲染。
+- 门禁：tests 249/249、projcheck 11/11、自举三级一致、sweep 全绿。
+
 ## [1.409.0]
 
 - examples/uic_cmd.mo 命令面板示例：

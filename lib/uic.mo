@@ -3133,3 +3133,45 @@ fn uc_search_box(x: i64, y: i64, w: i64, query: ptr, focused: i64, fg: i64, bg: 
     }
     return 0;
 }
+
+# ============ v1.410 分组框 ============
+
+# uc_group：绘制分组框 +-- Title --+
+# title 为分组标题，标题反色。
+# 用于表单分区、设置分组。
+fn uc_group(x: i64, y: i64, w: i64, h: i64, title: ptr, fg: i64, bg: i64) -> i64 {
+    let tlen: i64 = 0;
+    let i: i64 = 0;
+    tlen = strlen(title);
+    # 顶边
+    uc_set(x, y, '+', fg, bg);
+    uc_set(x + 1, y, '-', fg, bg);
+    uc_set(x + 2, y, '-', fg, bg);
+    i = 0;
+    while i < tlen {
+        uc_set(x + 4 + i, y, title[i], UC_YELLOW, bg);
+        i = i + 1;
+    }
+    i = 4 + tlen;
+    while i < w {
+        uc_set(x + i, y, '-', fg, bg);
+        i = i + 1;
+    }
+    uc_set(x + w, y, '+', fg, bg);
+    # 左右边
+    i = 1;
+    while i < h {
+        uc_set(x, y + i, '|', fg, bg);
+        uc_set(x + w, y + i, '|', fg, bg);
+        i = i + 1;
+    }
+    # 底边
+    i = 1;
+    while i < w {
+        uc_set(x + i, y + h, '-', fg, bg);
+        i = i + 1;
+    }
+    uc_set(x, y + h, '+', fg, bg);
+    uc_set(x + w, y + h, '+', fg, bg);
+    return 0;
+}
