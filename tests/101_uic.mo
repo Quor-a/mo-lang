@@ -100,6 +100,7 @@ fn main() -> i64 {
     uc_console(1, 2, 12, 2, "C", "a", "b", "c", UC_WHITE, UC_BLUE);
     uc_tag(14, 2, "X", UC_RED, UC_BLUE);
     uc_hashtag(1, 2, "mo", UC_GREEN, UC_BLUE);
+    uc_status_light(8, 2, 0, UC_BLUE);
     uc_dump_svg("/tmp/uic_dump_test.svg");
     uc_render();
     return 0;

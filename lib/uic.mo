@@ -2989,3 +2989,25 @@ fn uc_hashtag(x: i64, y: i64, tag: ptr, fg: i64, bg: i64) -> i64 {
     }
     return 0;
 }
+
+# ============ v1.404 状态灯 ============
+
+# uc_status_light：绘制状态指示灯 (O)
+# color: 0=绿(正常) 1=黄(警告) 2=红(错误)
+# 用于系统状态、在线指示、健康检查。
+fn uc_status_light(x: i64, y: i64, color: i64, bg: i64) -> i64 {
+    let c: i64 = 0;
+    if color == 0 {
+        c = UC_GREEN;
+    } else {
+        if color == 1 {
+            c = UC_YELLOW;
+        } else {
+            c = UC_RED;
+        }
+    }
+    uc_set(x, y, '(', c, bg);
+    uc_set(x + 1, y, 'O', c, bg);
+    uc_set(x + 2, y, ')', c, bg);
+    return 0;
+}

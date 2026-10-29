@@ -1,3 +1,12 @@
+## [1.404.0]
+
+- lib/uic.mo 新增状态灯：
+  - uc_status_light：(O) 状态灯（绿/黄/红）
+  - 用于系统状态、在线指示、健康检查
+- tests/101_uic.mo 覆盖状态灯。
+- E2E：Web (O) / DB (O) 正确渲染。
+- 门禁：tests 249/249、projcheck 11/11、自举三级一致、sweep 全绿。
+
 ## [1.403.0]
 
 - lib/uic.mo 新增话题标签：
