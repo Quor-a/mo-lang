@@ -2840,3 +2840,64 @@ fn uc_field(x: i64, y: i64, w: i64, label: ptr, value: ptr, focused: i64, fg: i6
     }
     return 0;
 }
+
+# ============ v1.399 对话框 ============
+
+# uc_dialog：绘制模态对话框
+# title 为标题，msg 为消息文本，btn1/btn2 为按钮文本，active_btn=0 高亮 btn1，=1 高亮 btn2。
+# 用于确认框、消息框、警告框。
+fn uc_dialog(x: i64, y: i64, w: i64, h: i64, title: ptr, msg: ptr, btn1: ptr, btn2: ptr, active_btn: i64, fg: i64, bg: i64) -> i64 {
+    let tlen: i64 = 0;
+    let mlen: i64 = 0;
+    let b1: i64 = 0;
+    let b2: i64 = 0;
+    let i: i64 = 0;
+    tlen = strlen(title);
+    mlen = strlen(msg);
+    b1 = strlen(btn1);
+    b2 = strlen(btn2);
+    # 边框
+    uc_border(x, y, w + 2, h + 2, 2, fg, bg);
+    # 标题栏（反色）
+    i = 0;
+    while i < tlen {
+        if x + 1 + i < x + 1 + w {
+            uc_set(x + 1 + i, y, title[i], fg, bg);
+        }
+        i = i + 1;
+    }
+    uc_reverse(x + 1, y, w, 1);
+    # 消息（居中）
+    i = 0;
+    while i < mlen {
+        uc_set(x + 1 + i, y + h / 2, msg[i], fg, bg);
+        i = i + 1;
+    }
+    # 按钮行
+    let by: i64 = y + h - 1;
+    let bx1: i64 = x + 1;
+    let bx2: i64 = x + w - 1 - b2;
+    # btn1
+    uc_set(bx1, by, '[', fg, bg);
+    i = 0;
+    while i < b1 {
+        uc_set(bx1 + 1 + i, by, btn1[i], fg, bg);
+        i = i + 1;
+    }
+    uc_set(bx1 + 1 + b1, by, ']', fg, bg);
+    # btn2
+    uc_set(bx2, by, '[', fg, bg);
+    i = 0;
+    while i < b2 {
+        uc_set(bx2 + 1 + i, by, btn2[i], fg, bg);
+        i = i + 1;
+    }
+    uc_set(bx2 + 1 + b2, by, ']', fg, bg);
+    # 高亮 active 按钮
+    if active_btn == 0 {
+        uc_reverse(bx1, by, b1 + 2, 1);
+    } else {
+        uc_reverse(bx2, by, b2 + 2, 1);
+    }
+    return 0;
+}
