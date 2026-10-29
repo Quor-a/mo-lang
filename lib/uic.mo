@@ -3226,3 +3226,37 @@ fn uc_loading_dots(x: i64, y: i64, phase: i64, fg: i64, bg: i64) -> i64 {
     }
     return 0;
 }
+
+# ============ v1.414 点赞按钮 ============
+
+# uc_like_button：绘制点赞按钮 [* 12]
+# liked=1 表示已点赞（红色），=0 未点赞。
+# 用于社交互动、评论区。
+fn uc_like_button(x: i64, y: i64, liked: i64, count: i64, fg: i64, bg: i64) -> i64 {
+    let n: i64 = 0;
+    let c: i64 = 0;
+    let tmp: i64 = 0;
+    if liked != 0 {
+        c = UC_RED;
+    } else {
+        c = fg;
+    }
+    uc_set(x, y, '[', fg, bg);
+    uc_set(x + 1, y, '*', c, bg);
+    uc_set(x + 2, y, ' ', fg, bg);
+    n = count;
+    tmp = 0;
+    if n >= 100 {
+        uc_set(x + 3, y, '1', fg, bg);
+        n = n - 100;
+        tmp = 1;
+    }
+    if n >= 10 {
+        uc_set(x + 3 + tmp, y, '0' + n / 10, fg, bg);
+        n = n % 10;
+        tmp = tmp + 1;
+    }
+    uc_set(x + 3 + tmp, y, '0' + n, fg, bg);
+    uc_set(x + 4 + tmp, y, ']', fg, bg);
+    return 0;
+}

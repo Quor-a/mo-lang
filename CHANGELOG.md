@@ -1,3 +1,12 @@
+## [1.414.0]
+
+- lib/uic.mo 新增点赞按钮：
+  - uc_like_button：[* 12] 点赞按钮（红=已赞）
+  - 用于社交互动、评论区
+- tests/101_uic.mo 覆盖点赞按钮。
+- E2E：[* 12] / [* 3] 正确渲染。
+- 门禁：tests 249/249、projcheck 11/11、自举三级一致、sweep 全绿。
+
 ## [1.413.0]
 
 - examples/uic_messages.mo 消息中心示例：

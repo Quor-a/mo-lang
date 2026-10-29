@@ -108,6 +108,7 @@ fn main() -> i64 {
     uc_group(1, 2, 6, 2, "G", UC_CYAN, UC_BLUE);
     uc_steps(12, 2, 3, 1, UC_WHITE, UC_BLUE);
     uc_loading_dots(1, 2, 2, UC_WHITE, UC_BLUE);
+    uc_like_button(12, 2, 1, 12, UC_WHITE, UC_BLUE);
     uc_dump_svg("/tmp/uic_dump_test.svg");
     uc_render();
     return 0;
