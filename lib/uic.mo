@@ -5474,3 +5474,28 @@ fn uc_log_row(x: i64, y: i64, level: i64, msg: ptr, fg: i64, bg: i64) -> i64 {
     }
     return 0;
 }
+
+# ============ v1.469 环境变量行 ============
+
+# uc_env_row：绘制环境变量行 PATH=/usr/bin
+# key 为变量名，value 为值。
+# 用于环境变量编辑器、配置管理。
+fn uc_env_row(x: i64, y: i64, key: ptr, value: ptr, fg: i64, bg: i64) -> i64 {
+    let klen: i64 = 0;
+    let vlen: i64 = 0;
+    let i: i64 = 0;
+    klen = strlen(key);
+    vlen = strlen(value);
+    i = 0;
+    while i < klen {
+        uc_set(x + i, y, key[i], UC_YELLOW, bg);
+        i = i + 1;
+    }
+    uc_set(x + klen, y, '=', UC_WHITE, bg);
+    i = 0;
+    while i < vlen {
+        uc_set(x + klen + 1 + i, y, value[i], UC_CYAN, bg);
+        i = i + 1;
+    }
+    return 0;
+}

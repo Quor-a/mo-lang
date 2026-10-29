@@ -1,3 +1,12 @@
+## [1.469.0]
+
+- lib/uic.mo 新增环境变量行：
+  - uc_env_row：PATH=/usr/bin
+  - 用于环境变量编辑器、配置管理
+- tests/101_uic.mo 覆盖环境变量行。
+- E2E：PATH=/usr/bin / HOME=/root 正确渲染。
+- 门禁：tests 249/249、projcheck 11/11、自举三级一致、sweep 全绿。
+
 ## [1.468.0]
 
 - lib/uic.mo 新增日志行：
