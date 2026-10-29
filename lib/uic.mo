@@ -3595,3 +3595,29 @@ fn uc_progress_label(x: i64, y: i64, w: i64, label: ptr, level: i64, max: i64, f
     }
     return 0;
 }
+
+# ============ v1.424 同步状态图标 ============
+
+# uc_sync_icon：绘制同步状态图标
+# state: 0=未同步(灰 ~) 1=同步中(黄 @) 2=已同步(绿 ✓)
+# 用于云同步、刷新状态。
+fn uc_sync_icon(x: i64, y: i64, state: i64, fg: i64, bg: i64) -> i64 {
+    let c: i64 = 0;
+    let ch: i64 = 0;
+    if state == 0 {
+        c = fg;
+        ch = 126;  # '~'
+    } else {
+        if state == 1 {
+            c = UC_YELLOW;
+            ch = 64;  # '@'
+        } else {
+            c = UC_GREEN;
+            ch = 118;  # 'v' 表示已同步
+        }
+    }
+    uc_set(x, y, '[', fg, bg);
+    uc_set(x + 1, y, ch, c, bg);
+    uc_set(x + 2, y, ']', fg, bg);
+    return 0;
+}
