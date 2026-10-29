@@ -1,3 +1,12 @@
+## [1.454.0]
+
+- lib/uic.mo 新增提醒行：
+  - uc_reminder_row：[i] 14:00 Meeting / [!!]
+  - 用于日历、提醒应用
+- tests/101_uic.mo 覆盖提醒行。
+- E2E：14:00 Meeting / 15:30 Deadline 正确渲染。
+- 门禁：tests 249/249、projcheck 11/11、自举三级一致、sweep 全绿。
+
 ## [1.453.0]
 
 - lib/uic.mo 新增色板行：

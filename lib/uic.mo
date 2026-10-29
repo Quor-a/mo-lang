@@ -4816,3 +4816,37 @@ fn uc_swatch_row(x: i64, y: i64, colors: ptr, fg: i64, bg: i64) -> i64 {
     uc_set(x + pos * 3 + 1, y, ']', c, bg);
     return 0;
 }
+# ============ v1.454 提醒行 ============
+
+# uc_reminder_row：绘制提醒行 [i] 14:00 会议
+# time 为时间文本，title 为标题，urgent=1 红色紧急。
+# 用于日历、提醒应用。
+fn uc_reminder_row(x: i64, y: i64, time: ptr, title: ptr, urgent: i64, fg: i64, bg: i64) -> i64 {
+    let tlen: i64 = 0;
+    let nlen: i64 = 0;
+    let i: i64 = 0;
+    tlen = strlen(time);
+    nlen = strlen(title);
+    if urgent != 0 {
+        uc_set(x, y, '[', fg, bg);
+        uc_set(x + 1, y, '!', UC_RED, bg);
+        uc_set(x + 2, y, ']', fg, bg);
+    } else {
+        uc_set(x, y, '[', fg, bg);
+        uc_set(x + 1, y, 'i', UC_CYAN, bg);
+        uc_set(x + 2, y, ']', fg, bg);
+    }
+    uc_set(x + 4, y, ' ', fg, bg);
+    i = 0;
+    while i < tlen {
+        uc_set(x + 5 + i, y, time[i], UC_CYAN, bg);
+        i = i + 1;
+    }
+    uc_set(x + 7 + tlen, y, ' ', fg, bg);
+    i = 0;
+    while i < nlen {
+        uc_set(x + 8 + tlen + i, y, title[i], UC_YELLOW, bg);
+        i = i + 1;
+    }
+    return 0;
+}
