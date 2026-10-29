@@ -5990,3 +5990,38 @@ fn uc_wf_step_row(x: i64, y: i64, step: i64, name: ptr, state: i64, fg: i64, bg:
     }
     return 0;
 }
+
+# ============ v1.481 Git 分支行 ============
+
+# uc_branch_row：绘制 Git 分支行 [B]  feature/login  2 commits
+# name 为分支名，state 0=未合并 1=已合并。
+# 用于 Git 管理、仓库视图。
+fn uc_branch_row(x: i64, y: i64, name: ptr, state: i64, fg: i64, bg: i64) -> i64 {
+    let nlen: i64 = 0;
+    let i: i64 = 0;
+    nlen = strlen(name);
+    uc_set(x, y, '[', UC_GREEN, bg);
+    uc_set(x + 1, y, 'B', UC_GREEN, bg);
+    uc_set(x + 2, y, ']', UC_GREEN, bg);
+    uc_set(x + 5, y, ' ', fg, bg);
+    i = 0;
+    while i < nlen {
+        uc_set(x + 6 + i, y, name[i], UC_YELLOW, bg);
+        i = i + 1;
+    }
+    uc_set(x + 8 + nlen, y, ' ', fg, bg);
+    if state != 0 {
+        uc_set(x + 9 + nlen, y, 'M', UC_GREEN, bg);
+        uc_set(x + 10 + nlen, y, 'e', UC_GREEN, bg);
+        uc_set(x + 11 + nlen, y, 'r', UC_GREEN, bg);
+        uc_set(x + 12 + nlen, y, 'g', UC_GREEN, bg);
+        uc_set(x + 13 + nlen, y, 'e', UC_GREEN, bg);
+        uc_set(x + 14 + nlen, y, 'd', UC_GREEN, bg);
+    } else {
+        uc_set(x + 9 + nlen, y, 'O', UC_CYAN, bg);
+        uc_set(x + 10 + nlen, y, 'p', UC_CYAN, bg);
+        uc_set(x + 11 + nlen, y, 'e', UC_CYAN, bg);
+        uc_set(x + 12 + nlen, y, 'n', UC_CYAN, bg);
+    }
+    return 0;
+}

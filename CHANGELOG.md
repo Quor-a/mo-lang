@@ -1,3 +1,12 @@
+## [1.481.0]
+
+- lib/uic.mo 新增 Git 分支行：
+  - uc_branch_row：[B]  feature/login  Open
+  - 用于 Git 管理、仓库视图
+- tests/101_uic.mo 覆盖 Git 分支行。
+- E2E：[B] feature/login Open 青 / main Merged 绿 正确渲染。
+- 门禁：tests 249/249、projcheck 11/11、自举三级一致、sweep 全绿。
+
 ## [1.480.0]
 
 - lib/uic.mo 新增工作流步骤行：
