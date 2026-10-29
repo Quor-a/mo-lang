@@ -1,3 +1,12 @@
+## [1.464.0]
+
+- lib/uic.mo 新增进程状态行：
+  - uc_proc_row：PID  1234  nginx  Running
+  - 用于任务管理器、进程监控
+- tests/101_uic.mo 覆盖进程状态行。
+- E2E：PID 1234 nginx Running / 5678 cron Stopped 正确渲染。
+- 门禁：tests 249/249、projcheck 11/11、自举三级一致、sweep 全绿。
+
 ## [1.463.0]
 
 - lib/uic.mo 新增端口行：

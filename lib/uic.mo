@@ -5249,3 +5249,50 @@ fn uc_port_row(x: i64, y: i64, port: ptr, service: ptr, state: i64, fg: i64, bg:
     }
     return 0;
 }
+
+# ============ v1.464 进程状态行 ============
+
+# uc_proc_row：绘制进程行 PID 1234  nginx  Running
+# pid 为进程号，name 为进程名，state 0=停止 1=运行。
+# 用于任务管理器、进程监控。
+fn uc_proc_row(x: i64, y: i64, pid: ptr, name: ptr, state: i64, fg: i64, bg: i64) -> i64 {
+    let plen: i64 = 0;
+    let nlen: i64 = 0;
+    let i: i64 = 0;
+    plen = strlen(pid);
+    nlen = strlen(name);
+    uc_set(x, y, 'P', UC_CYAN, bg);
+    uc_set(x + 1, y, 'I', UC_CYAN, bg);
+    uc_set(x + 2, y, 'D', UC_CYAN, bg);
+    uc_set(x + 5, y, ' ', fg, bg);
+    i = 0;
+    while i < plen {
+        uc_set(x + 6 + i, y, pid[i], UC_CYAN, bg);
+        i = i + 1;
+    }
+    uc_set(x + 8 + plen, y, ' ', fg, bg);
+    i = 0;
+    while i < nlen {
+        uc_set(x + 9 + plen + i, y, name[i], UC_WHITE, bg);
+        i = i + 1;
+    }
+    uc_set(x + 11 + plen + nlen, y, ' ', fg, bg);
+    if state != 0 {
+        uc_set(x + 12 + plen + nlen, y, 'R', UC_GREEN, bg);
+        uc_set(x + 13 + plen + nlen, y, 'u', UC_GREEN, bg);
+        uc_set(x + 14 + plen + nlen, y, 'n', UC_GREEN, bg);
+        uc_set(x + 15 + plen + nlen, y, 'n', UC_GREEN, bg);
+        uc_set(x + 16 + plen + nlen, y, 'i', UC_GREEN, bg);
+        uc_set(x + 17 + plen + nlen, y, 'n', UC_GREEN, bg);
+        uc_set(x + 18 + plen + nlen, y, 'g', UC_GREEN, bg);
+    } else {
+        uc_set(x + 12 + plen + nlen, y, 'S', fg, bg);
+        uc_set(x + 13 + plen + nlen, y, 't', fg, bg);
+        uc_set(x + 14 + plen + nlen, y, 'o', fg, bg);
+        uc_set(x + 15 + plen + nlen, y, 'p', fg, bg);
+        uc_set(x + 16 + plen + nlen, y, 'p', fg, bg);
+        uc_set(x + 17 + plen + nlen, y, 'e', fg, bg);
+        uc_set(x + 18 + plen + nlen, y, 'd', fg, bg);
+    }
+    return 0;
+}
