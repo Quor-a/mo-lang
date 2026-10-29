@@ -2382,3 +2382,72 @@ fn uc_tree(x: i64, y: i64, items: ptr, fg: i64, bg: i64) -> i64 {
     }
     return 0;
 }
+# ============ v1.385 数据表格 ============
+
+# uc_table：绘制数据表格
+# header 为 '|' 分隔的列标题。
+# rows 为多行数据，行间用 ';' 分隔，单元格用 '|' 分隔。
+# 表头反色高亮，列宽自动对齐。
+# 例如 header="Name|Age|City", rows="Alice|25|NY;Bob|30|LA"
+fn uc_table(x: i64, y: i64, w: i64, header: ptr, rows: ptr, fg: i64, bg: i64) -> i64 {
+    let hlen: i64 = 0;
+    let rlen: i64 = 0;
+    let i: i64 = 0;
+    let row: i64 = 0;
+    let col: i64 = 0;
+    let ncol: i64 = 0;
+    let cpos: i64 = 0;
+    let j: i64 = 0;
+    hlen = strlen(header);
+    rlen = strlen(rows);
+    if w < 2 { w = 2; }
+    # 绘制表头
+    row = y;
+    ncol = 0;
+    cpos = x;
+    i = 0;
+    while i < hlen {
+        if header[i] == 124 {  # '|'
+            ncol = ncol + 1;
+            cpos = x + ncol * w;
+        } else {
+            uc_set(cpos, row, header[i], fg, bg);
+            cpos = cpos + 1;
+            if cpos >= x + (ncol + 1) * w {
+                cpos = x + (ncol + 1) * w - 1;
+            }
+        }
+        i = i + 1;
+    }
+    # 表头反色（多列分别反色）
+    j = 0;
+    while j <= ncol {
+        uc_reverse(x + j * w, y, w, 1);
+        j = j + 1;
+    }
+    # 绘制数据行
+    row = y + 1;
+    ncol = 0;
+    cpos = x;
+    i = 0;
+    while i < rlen {
+        if rows[i] == 59 {  # ';' 行分隔
+            row = row + 1;
+            ncol = 0;
+            cpos = x;
+        } else {
+            if rows[i] == 124 {  # '|' 列分隔
+                ncol = ncol + 1;
+                cpos = x + ncol * w;
+            } else {
+                uc_set(cpos, row, rows[i], fg, bg);
+                cpos = cpos + 1;
+                if cpos >= x + (ncol + 1) * w {
+                    cpos = x + (ncol + 1) * w - 1;
+                }
+            }
+        }
+        i = i + 1;
+    }
+    return 0;
+}

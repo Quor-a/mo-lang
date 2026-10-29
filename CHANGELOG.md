@@ -1,3 +1,12 @@
+## [1.385.0]
+
+- lib/uic.mo 新增数据表格：
+  - uc_table：表头反色 + 多行数据表格（'|' 分隔列，';;' 分隔行）
+  - 用于数据展示、列表、报表
+- tests/101_uic.mo 覆盖表格。
+- E2E：Name/Age/City 表头 + Alice/Bob 数据行正确对齐。
+- 门禁：tests 249/249、projcheck 11/11、自举三级一致、sweep 全绿。
+
 ## [1.384.0]
 
 - lib/uic.mo 新增树形视图：
