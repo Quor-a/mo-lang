@@ -4392,3 +4392,32 @@ fn uc_recent_app(x: i64, y: i64, name: ptr, times: i64, fg: i64, bg: i64) -> i64
     uc_set(x + 11 + nlen, y, 'x', UC_CYAN, bg);
     return 0;
 }
+
+# ============ v1.444 快捷操作按钮 ============
+
+# uc_quick_action：绘制快捷操作按钮 [保存]（激活反色）
+# active=1 高亮当前操作按钮，=0 普通。
+# 用于编辑器工具栏、快捷操作。
+fn uc_quick_action(x: i64, y: i64, active: i64, label: ptr, fg: i64, bg: i64) -> i64 {
+    let llen: i64 = 0;
+    let i: i64 = 0;
+    llen = strlen(label);
+    if active != 0 {
+        uc_set(x, y, '[', UC_BLACK, UC_GREEN);
+        i = 0;
+        while i < llen {
+            uc_set(x + 1 + i, y, label[i], UC_BLACK, UC_GREEN);
+            i = i + 1;
+        }
+        uc_set(x + 1 + llen, y, ']', UC_BLACK, UC_GREEN);
+    } else {
+        uc_set(x, y, '[', fg, bg);
+        i = 0;
+        while i < llen {
+            uc_set(x + 1 + i, y, label[i], fg, bg);
+            i = i + 1;
+        }
+        uc_set(x + 1 + llen, y, ']', fg, bg);
+    }
+    return 0;
+}

@@ -1,3 +1,12 @@
+## [1.444.0]
+
+- lib/uic.mo 新增快捷操作按钮：
+  - uc_quick_action：[Save]/[Undo] 工具栏按钮
+  - 用于编辑器工具栏、快捷操作
+- tests/101_uic.mo 覆盖快捷操作按钮。
+- E2E：[Save] 高亮 / [Undo] 普通 正确渲染。
+- 门禁：tests 249/249、projcheck 11/11、自举三级一致、sweep 全绿。
+
 ## [1.443.0]
 
 - lib/uic.mo 新增最近应用行：
