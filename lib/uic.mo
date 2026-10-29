@@ -5107,3 +5107,58 @@ fn uc_bt_row(x: i64, y: i64, name: ptr, state: i64, fg: i64, bg: i64) -> i64 {
     }
     return 0;
 }
+
+# ============ v1.461 存储设备行 ============
+
+# uc_storage_row：绘制存储设备行 [D]  SSD   256GB  60%
+# name 为设备名，size 为容量，used 为使用率。
+# 用于存储管理、磁盘列表。
+fn uc_storage_row(x: i64, y: i64, name: ptr, size: ptr, used: i64, fg: i64, bg: i64) -> i64 {
+    let nlen: i64 = 0;
+    let slen: i64 = 0;
+    let i: i64 = 0;
+    let c: i64 = 0;
+    nlen = strlen(name);
+    slen = strlen(size);
+    uc_set(x, y, '[', UC_YELLOW, bg);
+    uc_set(x + 1, y, 'D', UC_YELLOW, bg);
+    uc_set(x + 2, y, ']', UC_YELLOW, bg);
+    uc_set(x + 5, y, ' ', fg, bg);
+    i = 0;
+    while i < nlen {
+        uc_set(x + 6 + i, y, name[i], UC_YELLOW, bg);
+        i = i + 1;
+    }
+    uc_set(x + 8 + nlen, y, ' ', fg, bg);
+    i = 0;
+    while i < slen {
+        uc_set(x + 9 + nlen + i, y, size[i], UC_CYAN, bg);
+        i = i + 1;
+    }
+    uc_set(x + 11 + nlen + slen, y, ' ', fg, bg);
+    if used > 90 {
+        c = UC_RED;
+    } else {
+        if used > 60 {
+            c = UC_YELLOW;
+        } else {
+            c = UC_GREEN;
+        }
+    }
+    if used >= 100 {
+        uc_set(x + 12 + nlen + slen, y, '1', c, bg);
+        uc_set(x + 13 + nlen + slen, y, '0', c, bg);
+        uc_set(x + 14 + nlen + slen, y, '0', c, bg);
+        uc_set(x + 15 + nlen + slen, y, '%', c, bg);
+    } else {
+        if used >= 10 {
+            uc_set(x + 12 + nlen + slen, y, '0' + used / 10, c, bg);
+            uc_set(x + 13 + nlen + slen, y, '0' + used % 10, c, bg);
+            uc_set(x + 14 + nlen + slen, y, '%', c, bg);
+        } else {
+            uc_set(x + 12 + nlen + slen, y, '0' + used, c, bg);
+            uc_set(x + 13 + nlen + slen, y, '%', c, bg);
+        }
+    }
+    return 0;
+}

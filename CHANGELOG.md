@@ -1,3 +1,12 @@
+## [1.461.0]
+
+- lib/uic.mo 新增存储设备行：
+  - uc_storage_row：[D]  SSD   256GB   60%
+  - 用于存储管理、磁盘列表
+- tests/101_uic.mo 覆盖存储设备行。
+- E2E：[D] SSD 256GB 60% / HDD 1TB 95% 正确渲染。
+- 门禁：tests 249/249、projcheck 11/11、自举三级一致、sweep 全绿。
+
 ## [1.460.0]
 
 - lib/uic.mo 新增蓝牙设备行：
