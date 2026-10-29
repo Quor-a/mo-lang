@@ -2754,3 +2754,21 @@ fn uc_stat_card(x: i64, y: i64, w: i64, title: ptr, value: ptr, trend: i64, fg: 
     }
     return 0;
 }
+
+# ============ v1.395 键盘按键 ============
+
+# uc_kbd：绘制键盘按键提示 [Ctrl] / [C]
+# key 为按键文本。用于快捷键提示、命令面板。
+fn uc_kbd(x: i64, y: i64, key: ptr, fg: i64, bg: i64) -> i64 {
+    let len: i64 = 0;
+    let i: i64 = 0;
+    len = strlen(key);
+    uc_set(x, y, '[', fg, bg);
+    i = 0;
+    while i < len {
+        uc_set(x + 1 + i, y, key[i], fg, bg);
+        i = i + 1;
+    }
+    uc_set(x + 1 + len, y, ']', fg, bg);
+    return 0;
+}

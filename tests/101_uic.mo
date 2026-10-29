@@ -93,6 +93,7 @@ fn main() -> i64 {
     uc_stepper(12, 2, 1, 5, UC_GREEN, UC_BLUE);
     uc_terminal(1, 2, 10, 2, "T", "hi", "ok", UC_WHITE, UC_BLUE);
     uc_stat_card(14, 2, 8, "U", "99", 1, UC_WHITE, UC_BLUE);
+    uc_kbd(12, 2, "X", UC_GREEN, UC_BLUE);
     uc_dump_svg("/tmp/uic_dump_test.svg");
     uc_render();
     return 0;
