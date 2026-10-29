@@ -6195,3 +6195,40 @@ fn uc_config_row(x: i64, y: i64, key: ptr, value: ptr, fg: i64, bg: i64) -> i64 
     }
     return 0;
 }
+
+# ============ v1.486 DNS 记录行 ============
+
+# uc_dns_row：绘制 DNS 记录行 [D]  example.com  A  93.184.216.34
+# name 为主机名，type 为记录类型，value 为记录值。
+# 用于 DNS 管理、域名控制台。
+fn uc_dns_row(x: i64, y: i64, name: ptr, type: ptr, value: ptr, fg: i64, bg: i64) -> i64 {
+    let nlen: i64 = 0;
+    let tlen: i64 = 0;
+    let vlen: i64 = 0;
+    let i: i64 = 0;
+    nlen = strlen(name);
+    tlen = strlen(type);
+    vlen = strlen(value);
+    uc_set(x, y, '[', UC_CYAN, bg);
+    uc_set(x + 1, y, 'D', UC_CYAN, bg);
+    uc_set(x + 2, y, ']', UC_CYAN, bg);
+    uc_set(x + 5, y, ' ', fg, bg);
+    i = 0;
+    while i < nlen {
+        uc_set(x + 6 + i, y, name[i], UC_YELLOW, bg);
+        i = i + 1;
+    }
+    uc_set(x + 8 + nlen, y, ' ', fg, bg);
+    i = 0;
+    while i < tlen {
+        uc_set(x + 9 + nlen + i, y, type[i], UC_CYAN, bg);
+        i = i + 1;
+    }
+    uc_set(x + 11 + nlen + tlen, y, ' ', fg, bg);
+    i = 0;
+    while i < vlen {
+        uc_set(x + 12 + nlen + tlen + i, y, value[i], UC_WHITE, bg);
+        i = i + 1;
+    }
+    return 0;
+}

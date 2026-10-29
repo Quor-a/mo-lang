@@ -1,3 +1,12 @@
+## [1.486.0]
+
+- lib/uic.mo 新增 DNS 记录行：
+  - uc_dns_row：[D]  example.com  A  93.184.216.34
+  - 用于 DNS 管理、域名控制台
+- tests/101_uic.mo 覆盖 DNS 记录行。
+- E2E：[D] example.com A 93.184.216.34 / www CNAME example.com 正确渲染。
+- 门禁：tests 249/249、projcheck 11/11、自举三级一致、sweep 全绿。
+
 ## [1.485.0]
 
 - lib/uic.mo 新增配置项行：

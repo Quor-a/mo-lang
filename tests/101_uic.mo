@@ -180,6 +180,7 @@ fn main() -> i64 {
     uc_plugin_row(1, 2, "e", 1, UC_WHITE, UC_BLUE);
     uc_queue_row(12, 2, "j", 1, 2, UC_WHITE, UC_BLUE);
     uc_config_row(1, 2, "d", "t", UC_WHITE, UC_BLUE);
+    uc_dns_row(12, 2, "e", "A", "1", UC_WHITE, UC_BLUE);
     uc_dump_svg("/tmp/uic_dump_test.svg");
     uc_render();
     return 0;
