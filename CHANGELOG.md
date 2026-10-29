@@ -1,3 +1,12 @@
+## [1.420.0]
+
+- lib/uic.mo 新增工具栏：
+  - uc_toolbar：[Bold] [Italic] [Underline] 工具栏按钮行
+  - 用于编辑器工具栏、操作按钮组
+- tests/101_uic.mo 覆盖工具栏。
+- E2E：[Bold] [Italic] [Underline] 正确渲染。
+- 门禁：tests 249/249、projcheck 11/11、自举三级一致、sweep 全绿。
+
 ## [1.419.0]
 
 - lib/uic.mo 新增设置行：

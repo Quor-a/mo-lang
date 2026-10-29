@@ -2007,6 +2007,34 @@ fn uc_menu_bar(x: i64, y: i64, w: i64, items: ptr, active_idx: i64, fg: i64, bg:
     return 0;
 }
 
+
+fn uc_menu(x: i64, y: i64, items: ptr, active_idx: i64, fg: i64, bg: i64) -> i64 {
+    let i: i64 = 0;
+    let idx: i64 = 0;
+    let ch: i64 = 0;
+    let start: i64 = 0;
+    i = 0;
+    idx = 0;
+    start = x;
+    while 1 == 1 {
+        ch = items[i];
+        if ch == 0 { break; }
+        if ch == 124 {
+            uc_set(start, y, ' ', fg, bg);
+            start = start + 1;
+            idx = idx + 1;
+        } else {
+            if idx == active_idx {
+                uc_set(start, y, ch, UC_BLACK, UC_YELLOW);
+            } else {
+                uc_set(start, y, ch, fg, bg);
+            }
+            start = start + 1;
+        }
+        i = i + 1;
+    }
+    return 0;
+}
 # ============ v1.374 徽章 ============
 
 # uc_badge：绘制一个徽章/角标
@@ -3403,5 +3431,46 @@ fn uc_setting_row(x: i64, y: i64, w: i64, label: ptr, value: ptr, fg: i64, bg: i
         i = i + 1;
     }
     uc_set(x + w - 1, y, ']', fg, bg);
+    return 0;
+}
+
+
+# ============ v1.420 工具栏 ============
+
+# uc_toolbar：绘制工具栏按钮行 [Bold] [Italic] [Underline]
+# items 用 | 分隔，active_idx 为当前选中按钮（反色高亮）。
+# 用于编辑器工具栏、操作按钮组。
+fn uc_toolbar(x: i64, y: i64, items: ptr, active_idx: i64, fg: i64, bg: i64) -> i64 {
+    let i: i64 = 0;
+    let idx: i64 = 0;
+    let ch: i64 = 0;
+    let start: i64 = 0;
+    i = 0;
+    idx = 0;
+    start = x;
+    uc_set(start, y, '[', fg, bg);
+    start = start + 1;
+    while 1 == 1 {
+        ch = items[i];
+        if ch == 0 { break; }
+        if ch == 124 {
+            uc_set(start, y, ']', fg, bg);
+            start = start + 1;
+            uc_set(start, y, ' ', fg, bg);
+            start = start + 1;
+            uc_set(start, y, '[', fg, bg);
+            start = start + 1;
+            idx = idx + 1;
+        } else {
+            if idx == active_idx {
+                uc_set(start, y, ch, UC_BLACK, UC_YELLOW);
+            } else {
+                uc_set(start, y, ch, fg, bg);
+            }
+            start = start + 1;
+        }
+        i = i + 1;
+    }
+    uc_set(start, y, ']', fg, bg);
     return 0;
 }
