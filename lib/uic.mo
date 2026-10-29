@@ -3474,3 +3474,30 @@ fn uc_toolbar(x: i64, y: i64, items: ptr, active_idx: i64, fg: i64, bg: i64) -> 
     uc_set(start, y, ']', fg, bg);
     return 0;
 }
+
+# ============ v1.421 活动指示器 ============
+
+# uc_activity：绘制转圈活动指示器 |/-\
+# phase 为动画帧（0-3），依次显示 | / - \。
+# 用于加载、同步中。
+fn uc_activity(x: i64, y: i64, phase: i64, fg: i64, bg: i64) -> i64 {
+    let ch: i64 = 0;
+    let p: i64 = 0;
+    p = phase % 4;
+    if p < 0 { p = p + 4; }
+    if p == 0 {
+        ch = 124;  # '|'
+    } else {
+        if p == 1 {
+            ch = 47;  # '/'
+        } else {
+            if p == 2 {
+                ch = 45;  # '-'
+            } else {
+                ch = 92;  # '\'
+            }
+        }
+    }
+    uc_set(x, y, ch, UC_CYAN, bg);
+    return 0;
+}

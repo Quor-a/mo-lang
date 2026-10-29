@@ -1,3 +1,12 @@
+## [1.421.0]
+
+- lib/uic.mo 新增活动指示器：
+  - uc_activity：转圈动画 |/-\（青色）
+  - 用于加载、同步中
+- tests/101_uic.mo 覆盖活动指示器。
+- E2E：Syncing / 正确渲染。
+- 门禁：tests 249/249、projcheck 11/11、自举三级一致、sweep 全绿。
+
 ## [1.420.0]
 
 - lib/uic.mo 新增工具栏：
