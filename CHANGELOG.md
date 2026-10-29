@@ -1,3 +1,12 @@
+## [1.427.0]
+
+- lib/uic.mo 新增文件信息行：
+  - uc_file_info：[F] filename 2.3KB
+  - 用于文件列表、下载管理
+- tests/101_uic.mo 覆盖文件信息行。
+- E2E：[F] report.pdf 2.3KB 正确渲染。
+- 门禁：tests 249/249、projcheck 11/11、自举三级一致、sweep 全绿。
+
 ## [1.426.0]
 
 - lib/uic.mo 新增成员行：

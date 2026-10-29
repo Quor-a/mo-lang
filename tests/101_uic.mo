@@ -121,6 +121,7 @@ fn main() -> i64 {
     uc_sync_icon(12, 2, 2, UC_WHITE, UC_BLUE);
     uc_conn_status(1, 2, "W", 1, 3, UC_WHITE, UC_BLUE);
     uc_member_row(12, 2, "A", 1, UC_WHITE, UC_BLUE);
+    uc_file_info(1, 2, "r.pdf", 23, UC_WHITE, UC_BLUE);
     uc_dump_svg("/tmp/uic_dump_test.svg");
     uc_render();
     return 0;

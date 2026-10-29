@@ -3697,3 +3697,50 @@ fn uc_member_row(x: i64, y: i64, name: ptr, online: i64, fg: i64, bg: i64) -> i6
     }
     return 0;
 }
+
+# ============ v1.427 文件信息行 ============
+
+# uc_file_info：绘制文件信息行 [F] filename  2.3KB
+# filename 为文件名，size 为大小（KB 整数）。
+# 用于文件列表、下载管理。
+fn uc_file_info(x: i64, y: i64, filename: ptr, size: i64, fg: i64, bg: i64) -> i64 {
+    let flen: i64 = 0;
+    let i: i64 = 0;
+    let s1: i64 = 0;
+    let s2: i64 = 0;
+    flen = strlen(filename);
+    uc_set(x, y, '[', UC_CYAN, bg);
+    uc_set(x + 1, y, 'F', UC_CYAN, bg);
+    uc_set(x + 2, y, ']', UC_CYAN, bg);
+    uc_set(x + 4, y, ' ', fg, bg);
+    i = 0;
+    while i < flen {
+        uc_set(x + 5 + i, y, filename[i], UC_YELLOW, bg);
+        i = i + 1;
+    }
+    s1 = size / 10;
+    s2 = size % 10;
+    uc_set(x + 7 + flen, y, ' ', fg, bg);
+    if s1 >= 100 {
+        uc_set(x + 8 + flen, y, '0' + s1 / 100, fg, bg);
+        uc_set(x + 9 + flen, y, '.', fg, bg);
+        uc_set(x + 10 + flen, y, '0' + (s1 % 100) / 10, fg, bg);
+        uc_set(x + 11 + flen, y, 'K', UC_GREEN, bg);
+        uc_set(x + 12 + flen, y, 'B', UC_GREEN, bg);
+    } else {
+        if s1 >= 10 {
+            uc_set(x + 8 + flen, y, '0' + s1 / 10, fg, bg);
+            uc_set(x + 9 + flen, y, '.', fg, bg);
+            uc_set(x + 10 + flen, y, '0' + s1 % 10, fg, bg);
+            uc_set(x + 11 + flen, y, 'K', UC_GREEN, bg);
+            uc_set(x + 12 + flen, y, 'B', UC_GREEN, bg);
+        } else {
+            uc_set(x + 8 + flen, y, '0' + s1, fg, bg);
+            uc_set(x + 9 + flen, y, '.', fg, bg);
+            uc_set(x + 10 + flen, y, '0' + s2, fg, bg);
+            uc_set(x + 11 + flen, y, 'K', UC_GREEN, bg);
+            uc_set(x + 12 + flen, y, 'B', UC_GREEN, bg);
+        }
+    }
+    return 0;
+}
