@@ -1,3 +1,12 @@
+## [1.479.0]
+
+- lib/uic.mo 新增版本发布行：
+  - uc_release_row：[R]  v1.2.3  Published
+  - 用于版本管理、发布记录
+- tests/101_uic.mo 覆盖版本发布行。
+- E2E：[R] v1.2.3 Published / v1.1.0 Draft 正确渲染。
+- 门禁：tests 249/249、projcheck 11/11、自举三级一致、sweep 全绿。
+
 ## [1.478.0]
 
 - lib/uic.mo 新增任务调度行：

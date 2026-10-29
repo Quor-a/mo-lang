@@ -5878,3 +5878,47 @@ fn uc_cron_row(x: i64, y: i64, name: ptr, schedule: ptr, state: i64, fg: i64, bg
     }
     return 0;
 }
+
+# ============ v1.479 版本发布行 ============
+
+# uc_release_row：绘制版本发布行 [R]  v1.2.3  Published
+# tag 为版本号，state 0=草稿 1=已发布。
+# 用于版本管理、发布记录。
+fn uc_release_row(x: i64, y: i64, tag: ptr, state: i64, fg: i64, bg: i64) -> i64 {
+    let tlen: i64 = 0;
+    let i: i64 = 0;
+    tlen = strlen(tag);
+    uc_set(x, y, '[', UC_CYAN, bg);
+    uc_set(x + 1, y, 'R', UC_CYAN, bg);
+    uc_set(x + 2, y, ']', UC_CYAN, bg);
+    uc_set(x + 5, y, ' ', fg, bg);
+    i = 0;
+    while i < tlen {
+        uc_set(x + 6 + i, y, tag[i], UC_YELLOW, bg);
+        i = i + 1;
+    }
+    uc_set(x + 8 + tlen, y, ' ', fg, bg);
+    if state != 0 {
+        uc_set(x + 9 + tlen, y, 'P', UC_GREEN, bg);
+        uc_set(x + 10 + tlen, y, 'u', UC_GREEN, bg);
+        uc_set(x + 11 + tlen, y, 'b', UC_GREEN, bg);
+        uc_set(x + 12 + tlen, y, 'l', UC_GREEN, bg);
+        uc_set(x + 13 + tlen, y, 'i', UC_GREEN, bg);
+        uc_set(x + 14 + tlen, y, 's', UC_GREEN, bg);
+        uc_set(x + 15 + tlen, y, 'h', UC_GREEN, bg);
+        uc_set(x + 16 + tlen, y, 'e', UC_GREEN, bg);
+        uc_set(x + 17 + tlen, y, 'd', UC_GREEN, bg);
+    } else {
+        uc_set(x + 9 + tlen, y, 'D', fg, bg);
+        uc_set(x + 10 + tlen, y, 'r', fg, bg);
+        uc_set(x + 11 + tlen, y, 'a', fg, bg);
+        uc_set(x + 12 + tlen, y, 'f', fg, bg);
+        uc_set(x + 13 + tlen, y, 't', fg, bg);
+        uc_set(x + 14 + tlen, y, 'D', fg, bg);
+        uc_set(x + 15 + tlen, y, 'r', fg, bg);
+        uc_set(x + 16 + tlen, y, 'a', fg, bg);
+        uc_set(x + 17 + tlen, y, 'f', fg, bg);
+        uc_set(x + 18 + tlen, y, 't', fg, bg);
+    }
+    return 0;
+}
