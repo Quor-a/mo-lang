@@ -177,6 +177,7 @@ fn main() -> i64 {
     uc_wf_step_row(12, 2, 1, "B", 2, UC_WHITE, UC_BLUE);
     uc_branch_row(1, 2, "f", 0, UC_WHITE, UC_BLUE);
     uc_dep_row(12, 2, "l", "4", 1, UC_WHITE, UC_BLUE);
+    uc_plugin_row(1, 2, "e", 1, UC_WHITE, UC_BLUE);
     uc_dump_svg("/tmp/uic_dump_test.svg");
     uc_render();
     return 0;

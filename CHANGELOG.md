@@ -1,3 +1,12 @@
+## [1.483.0]
+
+- lib/uic.mo 新增插件状态行：
+  - uc_plugin_row：[P]  eslint  Enabled
+  - 用于插件市场、IDE 扩展
+- tests/101_uic.mo 覆盖插件状态行。
+- E2E：[P] eslint Enabled 绿 / old-ext Disabled 灰 正确渲染。
+- 门禁：tests 249/249、projcheck 11/11、自举三级一致、sweep 全绿。
+
 ## [1.482.0]
 
 - lib/uic.mo 新增依赖行：

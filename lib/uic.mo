@@ -6063,3 +6063,43 @@ fn uc_dep_row(x: i64, y: i64, name: ptr, version: ptr, state: i64, fg: i64, bg: 
     }
     return 0;
 }
+
+# ============ v1.483 插件状态行 ============
+
+# uc_plugin_row：绘制插件状态行 [P]  eslint  Enabled
+# name 为插件名，state 0=禁用 1=启用。
+# 用于插件市场、IDE 扩展。
+fn uc_plugin_row(x: i64, y: i64, name: ptr, state: i64, fg: i64, bg: i64) -> i64 {
+    let nlen: i64 = 0;
+    let i: i64 = 0;
+    nlen = strlen(name);
+    uc_set(x, y, '[', UC_GREEN, bg);
+    uc_set(x + 1, y, 'P', UC_GREEN, bg);
+    uc_set(x + 2, y, ']', UC_GREEN, bg);
+    uc_set(x + 5, y, ' ', fg, bg);
+    i = 0;
+    while i < nlen {
+        uc_set(x + 6 + i, y, name[i], UC_YELLOW, bg);
+        i = i + 1;
+    }
+    uc_set(x + 8 + nlen, y, ' ', fg, bg);
+    if state != 0 {
+        uc_set(x + 9 + nlen, y, 'E', UC_GREEN, bg);
+        uc_set(x + 10 + nlen, y, 'n', UC_GREEN, bg);
+        uc_set(x + 11 + nlen, y, 'a', UC_GREEN, bg);
+        uc_set(x + 12 + nlen, y, 'b', UC_GREEN, bg);
+        uc_set(x + 13 + nlen, y, 'l', UC_GREEN, bg);
+        uc_set(x + 14 + nlen, y, 'e', UC_GREEN, bg);
+        uc_set(x + 15 + nlen, y, 'd', UC_GREEN, bg);
+    } else {
+        uc_set(x + 9 + nlen, y, 'D', fg, bg);
+        uc_set(x + 10 + nlen, y, 'i', fg, bg);
+        uc_set(x + 11 + nlen, y, 's', fg, bg);
+        uc_set(x + 12 + nlen, y, 'a', fg, bg);
+        uc_set(x + 13 + nlen, y, 'b', fg, bg);
+        uc_set(x + 14 + nlen, y, 'l', fg, bg);
+        uc_set(x + 15 + nlen, y, 'e', fg, bg);
+        uc_set(x + 16 + nlen, y, 'd', fg, bg);
+    }
+    return 0;
+}
