@@ -106,6 +106,7 @@ fn main() -> i64 {
     uc_chat_bubble(1, 2, 5, "hi", 0, UC_GREEN, UC_BLUE);
     uc_search_box(12, 2, 8, "mo", 1, UC_WHITE, UC_BLUE);
     uc_group(1, 2, 6, 2, "G", UC_CYAN, UC_BLUE);
+    uc_steps(12, 2, 3, 1, UC_WHITE, UC_BLUE);
     uc_dump_svg("/tmp/uic_dump_test.svg");
     uc_render();
     return 0;

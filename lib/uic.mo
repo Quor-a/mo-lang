@@ -3175,3 +3175,35 @@ fn uc_group(x: i64, y: i64, w: i64, h: i64, title: ptr, fg: i64, bg: i64) -> i64
     uc_set(x + w, y + h, '+', fg, bg);
     return 0;
 }
+
+# ============ v1.411 步骤指示器 ============
+
+# uc_steps：绘制分步指示器 [1]--[2]--[3]
+# count 为总步数，current 为当前步骤（0 开始）。
+# 当前步绿色高亮，已完成步青色。
+# 用于向导、注册流程。
+fn uc_steps(x: i64, y: i64, count: i64, current: i64, fg: i64, bg: i64) -> i64 {
+    let i: i64 = 0;
+    if count < 1 { count = 1; }
+    i = 0;
+    while i < count {
+        if i > 0 {
+            uc_set(x + i * 5 - 1, y, '-', fg, bg);
+            uc_set(x + i * 5 - 2, y, '-', fg, bg);
+        }
+        uc_set(x + i * 5, y, '[', fg, bg);
+        uc_set(x + i * 5 + 1, y, '1' + i, UC_YELLOW, bg);
+        uc_set(x + i * 5 + 2, y, ']', fg, bg);
+        if i == current {
+            uc_set(x + i * 5, y, '[', UC_GREEN, bg);
+            uc_set(x + i * 5 + 1, y, '1' + i, UC_GREEN, bg);
+            uc_set(x + i * 5 + 2, y, ']', UC_GREEN, bg);
+        } else {
+            if i < current {
+                uc_set(x + i * 5 + 1, y, '1' + i, UC_CYAN, bg);
+            }
+        }
+        i = i + 1;
+    }
+    return 0;
+}
