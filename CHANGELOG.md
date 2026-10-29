@@ -1,3 +1,12 @@
+## [1.478.0]
+
+- lib/uic.mo 新增任务调度行：
+  - uc_cron_row：[T]  backup  Daily  Enabled
+  - 用于任务调度、自动化
+- tests/101_uic.mo 覆盖任务调度行。
+- E2E：[T] backup Daily Enabled / cleanup Weekly Disabled 正确渲染。
+- 门禁：tests 249/249、projcheck 11/11、自举三级一致、sweep 全绿。
+
 ## [1.477.0]
 
 - lib/uic.mo 新增 API 密钥行：

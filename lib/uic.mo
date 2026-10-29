@@ -5830,3 +5830,51 @@ fn uc_apikey_row(x: i64, y: i64, name: ptr, state: i64, fg: i64, bg: i64) -> i64
     }
     return 0;
 }
+
+# ============ v1.478 任务调度行 ============
+
+# uc_cron_row：绘制任务调度行 [T]  backup  Daily  Enabled
+# name 为任务名，schedule 为调度，state 0=禁用 1=启用。
+# 用于任务调度、自动化。
+fn uc_cron_row(x: i64, y: i64, name: ptr, schedule: ptr, state: i64, fg: i64, bg: i64) -> i64 {
+    let nlen: i64 = 0;
+    let slen: i64 = 0;
+    let i: i64 = 0;
+    nlen = strlen(name);
+    slen = strlen(schedule);
+    uc_set(x, y, '[', UC_YELLOW, bg);
+    uc_set(x + 1, y, 'T', UC_YELLOW, bg);
+    uc_set(x + 2, y, ']', UC_YELLOW, bg);
+    uc_set(x + 5, y, ' ', fg, bg);
+    i = 0;
+    while i < nlen {
+        uc_set(x + 6 + i, y, name[i], UC_YELLOW, bg);
+        i = i + 1;
+    }
+    uc_set(x + 8 + nlen, y, ' ', fg, bg);
+    i = 0;
+    while i < slen {
+        uc_set(x + 9 + nlen + i, y, schedule[i], UC_CYAN, bg);
+        i = i + 1;
+    }
+    uc_set(x + 11 + nlen + slen, y, ' ', fg, bg);
+    if state != 0 {
+        uc_set(x + 12 + nlen + slen, y, 'E', UC_GREEN, bg);
+        uc_set(x + 13 + nlen + slen, y, 'n', UC_GREEN, bg);
+        uc_set(x + 14 + nlen + slen, y, 'a', UC_GREEN, bg);
+        uc_set(x + 15 + nlen + slen, y, 'b', UC_GREEN, bg);
+        uc_set(x + 16 + nlen + slen, y, 'l', UC_GREEN, bg);
+        uc_set(x + 17 + nlen + slen, y, 'e', UC_GREEN, bg);
+        uc_set(x + 18 + nlen + slen, y, 'd', UC_GREEN, bg);
+    } else {
+        uc_set(x + 12 + nlen + slen, y, 'D', fg, bg);
+        uc_set(x + 13 + nlen + slen, y, 'i', fg, bg);
+        uc_set(x + 14 + nlen + slen, y, 's', fg, bg);
+        uc_set(x + 15 + nlen + slen, y, 'a', fg, bg);
+        uc_set(x + 16 + nlen + slen, y, 'b', fg, bg);
+        uc_set(x + 17 + nlen + slen, y, 'l', fg, bg);
+        uc_set(x + 18 + nlen + slen, y, 'e', fg, bg);
+        uc_set(x + 19 + nlen + slen, y, 'd', fg, bg);
+    }
+    return 0;
+}
