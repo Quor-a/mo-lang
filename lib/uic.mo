@@ -4455,3 +4455,30 @@ fn uc_command_item(x: i64, y: i64, selected: i64, index: i64, cmd: ptr, fg: i64,
     }
     return 0;
 }
+
+# ============ v1.446 链接行 ============
+
+# uc_link_row：绘制链接行 Name -> https://...
+# name 为链接名称，url 为网址。
+# 用于资源列表、链接分享。
+fn uc_link_row(x: i64, y: i64, name: ptr, url: ptr, fg: i64, bg: i64) -> i64 {
+    let nlen: i64 = 0;
+    let ulen: i64 = 0;
+    let i: i64 = 0;
+    nlen = strlen(name);
+    ulen = strlen(url);
+    i = 0;
+    while i < nlen {
+        uc_set(x + i, y, name[i], UC_YELLOW, bg);
+        i = i + 1;
+    }
+    uc_set(x + nlen + 2, y, '-', fg, bg);
+    uc_set(x + nlen + 3, y, '>', UC_GREEN, bg);
+    uc_set(x + nlen + 5, y, ' ', fg, bg);
+    i = 0;
+    while i < ulen {
+        uc_set(x + nlen + 6 + i, y, url[i], UC_CYAN, bg);
+        i = i + 1;
+    }
+    return 0;
+}

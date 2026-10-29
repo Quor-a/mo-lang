@@ -1,3 +1,12 @@
+## [1.446.0]
+
+- lib/uic.mo 新增链接行：
+  - uc_link_row：Docs -> https://mo.dev
+  - 用于资源列表、链接分享
+- tests/101_uic.mo 覆盖链接行。
+- E2E：Docs -> https://mo.dev 正确渲染。
+- 门禁：tests 249/249、projcheck 11/11、自举三级一致、sweep 全绿。
+
 ## [1.445.0]
 
 - lib/uic.mo 新增命令历史项：
