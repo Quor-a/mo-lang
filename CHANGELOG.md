@@ -1,3 +1,12 @@
+## [1.443.0]
+
+- lib/uic.mo 新增最近应用行：
+  - uc_recent_app：[A] Name 5x 使用次数
+  - 用于开始菜单、最近应用
+- tests/101_uic.mo 覆盖最近应用行。
+- E2E：Code 12x / Chat 5x 正确渲染。
+- 门禁：tests 249/249、projcheck 11/11、自举三级一致、sweep 全绿。
+
 ## [1.442.0]
 
 - lib/uic.mo 新增温度显示：

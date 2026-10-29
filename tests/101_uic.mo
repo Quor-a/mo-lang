@@ -137,6 +137,7 @@ fn main() -> i64 {
     uc_tree_file(12, 2, 1, 0, "m.mo", UC_WHITE, UC_BLUE);
     uc_nav_item(1, 2, 1, "H", UC_WHITE, UC_BLUE);
     uc_temp_display(12, 2, "C", 45, UC_WHITE, UC_BLUE);
+    uc_recent_app(1, 2, "C", 12, UC_WHITE, UC_BLUE);
     uc_dump_svg("/tmp/uic_dump_test.svg");
     uc_render();
     return 0;

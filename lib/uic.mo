@@ -4354,3 +4354,41 @@ fn uc_temp_display(x: i64, y: i64, label: ptr, temp: i64, fg: i64, bg: i64) -> i
     uc_set(x + llen + 7, y, 'C', c, bg);
     return 0;
 }
+
+# ============ v1.443 最近应用行 ============
+
+# uc_recent_app：绘制最近使用应用行 [A] Name  5x
+# name 为应用名，times 为使用次数。
+# 用于开始菜单、最近应用。
+fn uc_recent_app(x: i64, y: i64, name: ptr, times: i64, fg: i64, bg: i64) -> i64 {
+    let nlen: i64 = 0;
+    let i: i64 = 0;
+    let t: i64 = 0;
+    nlen = strlen(name);
+    uc_set(x, y, '[', fg, bg);
+    uc_set(x + 1, y, 'A', UC_GREEN, bg);
+    uc_set(x + 2, y, ']', fg, bg);
+    uc_set(x + 4, y, ' ', fg, bg);
+    i = 0;
+    while i < nlen {
+        uc_set(x + 5 + i, y, name[i], UC_YELLOW, bg);
+        i = i + 1;
+    }
+    t = times;
+    uc_set(x + 7 + nlen, y, ' ', fg, bg);
+    if t >= 100 {
+        uc_set(x + 8 + nlen, y, '0' + t / 100, UC_CYAN, bg);
+        t = t % 100;
+        uc_set(x + 9 + nlen, y, '0' + t / 10, UC_CYAN, bg);
+        uc_set(x + 10 + nlen, y, '0' + t % 10, UC_CYAN, bg);
+    } else {
+        if t >= 10 {
+            uc_set(x + 8 + nlen, y, '0' + t / 10, UC_CYAN, bg);
+            uc_set(x + 9 + nlen, y, '0' + t % 10, UC_CYAN, bg);
+        } else {
+            uc_set(x + 8 + nlen, y, '0' + t, UC_CYAN, bg);
+        }
+    }
+    uc_set(x + 11 + nlen, y, 'x', UC_CYAN, bg);
+    return 0;
+}
