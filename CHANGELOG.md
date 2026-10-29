@@ -1,3 +1,12 @@
+## [1.476.0]
+
+- lib/uic.mo 新增服务账户行：
+  - uc_sa_row：[S]  deploy-bot  Active
+  - 用于 IAM/权限管理
+- tests/101_uic.mo 覆盖服务账户行。
+- E2E：[S] deploy-bot Active / old-bot Disabled 正确渲染。
+- 门禁：tests 249/249、projcheck 11/11、自举三级一致、sweep 全绿。
+
 ## [1.475.0]
 
 - lib/uic.mo 新增证书行：
