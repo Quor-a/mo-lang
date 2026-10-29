@@ -3371,3 +3371,37 @@ fn uc_app_grid(x: i64, y: i64, cols: i64, title: ptr, icon: i64, fg: i64, bg: i6
     }
     return 0;
 }
+
+# ============ v1.419 设置行 ============
+
+# uc_setting_row：绘制设置行 Label .... [value]
+# label 为设置项，value 为当前值（右侧对齐），w 为行宽。
+# 用于设置界面、偏好配置。
+fn uc_setting_row(x: i64, y: i64, w: i64, label: ptr, value: ptr, fg: i64, bg: i64) -> i64 {
+    let llen: i64 = 0;
+    let vlen: i64 = 0;
+    let i: i64 = 0;
+    let start: i64 = 0;
+    llen = strlen(label);
+    vlen = strlen(value);
+    i = 0;
+    while i < llen {
+        uc_set(x + i, y, label[i], UC_YELLOW, bg);
+        i = i + 1;
+    }
+    # 填充点线
+    i = llen;
+    while i < w - vlen - 2 {
+        uc_set(x + i, y, '.', fg, bg);
+        i = i + 1;
+    }
+    uc_set(x + w - vlen - 2, y, '[', fg, bg);
+    start = w - vlen - 1;
+    i = 0;
+    while i < vlen {
+        uc_set(x + start + i, y, value[i], UC_GREEN, bg);
+        i = i + 1;
+    }
+    uc_set(x + w - 1, y, ']', fg, bg);
+    return 0;
+}
