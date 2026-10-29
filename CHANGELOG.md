@@ -1,3 +1,12 @@
+## [1.473.0]
+
+- lib/uic.mo 新增负载均衡行：
+  - uc_lb_row：[L]  app-pool  5  nodes  Running
+  - 用于负载均衡管理、云控制台
+- tests/101_uic.mo 覆盖负载均衡行。
+- E2E：[L] app-pool 5 nodes Running / db-pool 3 nodes Stopped 正确渲染。
+- 门禁：tests 249/249、projcheck 11/11、自举三级一致、sweep 全绿。
+
 ## [1.472.0]
 
 - lib/uic.mo 新增虚拟机行：

@@ -5617,3 +5617,56 @@ fn uc_vm_row(x: i64, y: i64, name: ptr, state: i64, fg: i64, bg: i64) -> i64 {
     }
     return 0;
 }
+
+# ============ v1.473 负载均衡行 ============
+
+# uc_lb_row：绘制负载均衡行 [L]  app-pool  5 nodes  Running
+# name 为名称，nodes 为节点数，state 0=停止 1=运行。
+# 用于负载均衡管理、云控制台。
+fn uc_lb_row(x: i64, y: i64, name: ptr, nodes: ptr, state: i64, fg: i64, bg: i64) -> i64 {
+    let nlen: i64 = 0;
+    let dlen: i64 = 0;
+    let i: i64 = 0;
+    nlen = strlen(name);
+    dlen = strlen(nodes);
+    uc_set(x, y, '[', UC_CYAN, bg);
+    uc_set(x + 1, y, 'L', UC_CYAN, bg);
+    uc_set(x + 2, y, ']', UC_CYAN, bg);
+    uc_set(x + 5, y, ' ', fg, bg);
+    i = 0;
+    while i < nlen {
+        uc_set(x + 6 + i, y, name[i], UC_YELLOW, bg);
+        i = i + 1;
+    }
+    uc_set(x + 8 + nlen, y, ' ', fg, bg);
+    i = 0;
+    while i < dlen {
+        uc_set(x + 9 + nlen + i, y, nodes[i], UC_CYAN, bg);
+        i = i + 1;
+    }
+    uc_set(x + 10 + nlen + dlen, y, ' ', fg, bg);
+    uc_set(x + 11 + nlen + dlen, y, 'n', fg, bg);
+    uc_set(x + 12 + nlen + dlen, y, 'o', fg, bg);
+    uc_set(x + 13 + nlen + dlen, y, 'd', fg, bg);
+    uc_set(x + 14 + nlen + dlen, y, 'e', fg, bg);
+    uc_set(x + 15 + nlen + dlen, y, 's', fg, bg);
+    uc_set(x + 17 + nlen + dlen, y, ' ', fg, bg);
+    if state != 0 {
+        uc_set(x + 18 + nlen + dlen, y, 'R', UC_GREEN, bg);
+        uc_set(x + 19 + nlen + dlen, y, 'u', UC_GREEN, bg);
+        uc_set(x + 20 + nlen + dlen, y, 'n', UC_GREEN, bg);
+        uc_set(x + 21 + nlen + dlen, y, 'n', UC_GREEN, bg);
+        uc_set(x + 22 + nlen + dlen, y, 'i', UC_GREEN, bg);
+        uc_set(x + 23 + nlen + dlen, y, 'n', UC_GREEN, bg);
+        uc_set(x + 24 + nlen + dlen, y, 'g', UC_GREEN, bg);
+    } else {
+        uc_set(x + 18 + nlen + dlen, y, 'S', fg, bg);
+        uc_set(x + 19 + nlen + dlen, y, 't', fg, bg);
+        uc_set(x + 20 + nlen + dlen, y, 'o', fg, bg);
+        uc_set(x + 21 + nlen + dlen, y, 'p', fg, bg);
+        uc_set(x + 22 + nlen + dlen, y, 'p', fg, bg);
+        uc_set(x + 23 + nlen + dlen, y, 'e', fg, bg);
+        uc_set(x + 24 + nlen + dlen, y, 'd', fg, bg);
+    }
+    return 0;
+}
