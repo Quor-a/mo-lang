@@ -171,6 +171,7 @@ fn main() -> i64 {
     uc_msg_status_row(12, 2, "b", 1, UC_WHITE, UC_BLUE);
     uc_cert_row(1, 2, "e", 1, UC_WHITE, UC_BLUE);
     uc_sa_row(12, 2, "d", 1, UC_WHITE, UC_BLUE);
+    uc_apikey_row(1, 2, "p", 1, UC_WHITE, UC_BLUE);
     uc_dump_svg("/tmp/uic_dump_test.svg");
     uc_render();
     return 0;

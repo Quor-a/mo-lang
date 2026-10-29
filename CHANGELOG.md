@@ -1,3 +1,12 @@
+## [1.477.0]
+
+- lib/uic.mo 新增 API 密钥行：
+  - uc_apikey_row：[K]  prod-key  Active
+  - 用于密钥管理、开发者控制台
+- tests/101_uic.mo 覆盖 API 密钥行。
+- E2E：[K] prod-key Active / old-key Revoked 正确渲染。
+- 门禁：tests 249/249、projcheck 11/11、自举三级一致、sweep 全绿。
+
 ## [1.476.0]
 
 - lib/uic.mo 新增服务账户行：

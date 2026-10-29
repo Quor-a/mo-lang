@@ -5792,3 +5792,41 @@ fn uc_sa_row(x: i64, y: i64, name: ptr, state: i64, fg: i64, bg: i64) -> i64 {
     }
     return 0;
 }
+
+# ============ v1.477 API 密钥行 ============
+
+# uc_apikey_row：绘制 API 密钥行 [K]  prod-key  Active
+# name 为密钥名，state 0=吊销 1=启用。
+# 用于密钥管理、开发者控制台。
+fn uc_apikey_row(x: i64, y: i64, name: ptr, state: i64, fg: i64, bg: i64) -> i64 {
+    let nlen: i64 = 0;
+    let i: i64 = 0;
+    nlen = strlen(name);
+    uc_set(x, y, '[', UC_MAGENTA, bg);
+    uc_set(x + 1, y, 'K', UC_MAGENTA, bg);
+    uc_set(x + 2, y, ']', UC_MAGENTA, bg);
+    uc_set(x + 5, y, ' ', fg, bg);
+    i = 0;
+    while i < nlen {
+        uc_set(x + 6 + i, y, name[i], UC_YELLOW, bg);
+        i = i + 1;
+    }
+    uc_set(x + 8 + nlen, y, ' ', fg, bg);
+    if state != 0 {
+        uc_set(x + 9 + nlen, y, 'A', UC_GREEN, bg);
+        uc_set(x + 10 + nlen, y, 'c', UC_GREEN, bg);
+        uc_set(x + 11 + nlen, y, 't', UC_GREEN, bg);
+        uc_set(x + 12 + nlen, y, 'i', UC_GREEN, bg);
+        uc_set(x + 13 + nlen, y, 'v', UC_GREEN, bg);
+        uc_set(x + 14 + nlen, y, 'e', UC_GREEN, bg);
+    } else {
+        uc_set(x + 9 + nlen, y, 'R', UC_RED, bg);
+        uc_set(x + 10 + nlen, y, 'e', UC_RED, bg);
+        uc_set(x + 11 + nlen, y, 'v', UC_RED, bg);
+        uc_set(x + 12 + nlen, y, 'o', UC_RED, bg);
+        uc_set(x + 13 + nlen, y, 'k', UC_RED, bg);
+        uc_set(x + 14 + nlen, y, 'e', UC_RED, bg);
+        uc_set(x + 15 + nlen, y, 'd', UC_RED, bg);
+    }
+    return 0;
+}
