@@ -3744,3 +3744,54 @@ fn uc_file_info(x: i64, y: i64, filename: ptr, size: i64, fg: i64, bg: i64) -> i
     }
     return 0;
 }
+
+# ============ v1.428 服务状态行 ============
+
+# uc_service_status：绘制服务状态行 Name 运行中 0s
+# name 为服务名，running=1 绿/0 红，uptime 为运行秒数。
+# 用于服务监控、系统管理。
+fn uc_service_status(x: i64, y: i64, name: ptr, running: i64, uptime: i64, fg: i64, bg: i64) -> i64 {
+    let nlen: i64 = 0;
+    let i: i64 = 0;
+    let u: i64 = 0;
+    nlen = strlen(name);
+    i = 0;
+    while i < nlen {
+        uc_set(x + i, y, name[i], UC_YELLOW, bg);
+        i = i + 1;
+    }
+    if running != 0 {
+        uc_set(x + nlen + 2, y, 'R', UC_GREEN, bg);
+        uc_set(x + nlen + 3, y, 'u', UC_GREEN, bg);
+        uc_set(x + nlen + 4, y, 'n', UC_GREEN, bg);
+        uc_set(x + nlen + 5, y, 'n', UC_GREEN, bg);
+        uc_set(x + nlen + 6, y, 'i', UC_GREEN, bg);
+        uc_set(x + nlen + 7, y, 'n', UC_GREEN, bg);
+        uc_set(x + nlen + 8, y, 'g', UC_GREEN, bg);
+    } else {
+        uc_set(x + nlen + 2, y, 'S', UC_RED, bg);
+        uc_set(x + nlen + 3, y, 't', UC_RED, bg);
+        uc_set(x + nlen + 4, y, 'o', UC_RED, bg);
+        uc_set(x + nlen + 5, y, 'p', UC_RED, bg);
+        uc_set(x + nlen + 6, y, 'p', UC_RED, bg);
+        uc_set(x + nlen + 7, y, 'e', UC_RED, bg);
+        uc_set(x + nlen + 8, y, 'd', UC_RED, bg);
+    }
+    uc_set(x + nlen + 12, y, ' ', fg, bg);
+    u = uptime;
+    if u >= 100 {
+        uc_set(x + nlen + 13, y, '0' + u / 100, fg, bg);
+        u = u % 100;
+        uc_set(x + nlen + 14, y, '0' + u / 10, fg, bg);
+        uc_set(x + nlen + 15, y, '0' + u % 10, fg, bg);
+    } else {
+        if u >= 10 {
+            uc_set(x + nlen + 13, y, '0' + u / 10, fg, bg);
+            uc_set(x + nlen + 14, y, '0' + u % 10, fg, bg);
+        } else {
+            uc_set(x + nlen + 13, y, '0' + u, fg, bg);
+        }
+    }
+    uc_set(x + nlen + 16, y, 's', UC_CYAN, bg);
+    return 0;
+}

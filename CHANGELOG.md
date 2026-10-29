@@ -1,3 +1,12 @@
+## [1.428.0]
+
+- lib/uic.mo 新增服务状态行：
+  - uc_service_status：Name Running/Stopped Ns
+  - 用于服务监控、系统管理
+- tests/101_uic.mo 覆盖服务状态行。
+- E2E：web Running 45s / db Stopped 正确渲染。
+- 门禁：tests 249/249、projcheck 11/11、自举三级一致、sweep 全绿。
+
 ## [1.427.0]
 
 - lib/uic.mo 新增文件信息行：
