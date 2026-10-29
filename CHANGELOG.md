@@ -1,3 +1,9 @@
+## [1.413.0]
+
+- examples/uic_messages.mo 消息中心示例：
+  - 窗口 + 标签页 + 消息气泡 + 输入框 + 状态栏
+- 门禁：tests 249/249、projcheck 11/11、自举三级一致、sweep 全绿。
+
 ## [1.412.0]
 
 - lib/uic.mo 新增加载点动画：
