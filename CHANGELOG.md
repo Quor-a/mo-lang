@@ -1,3 +1,12 @@
+## [1.416.0]
+
+- lib/uic.mo 新增图例：
+  - uc_legend：[■] Label 图例（色块 + 标签）
+  - 用于图表、地图、数据可视化
+- tests/101_uic.mo 覆盖图例。
+- E2E：CPU/MEM/DISK 图例正确渲染。
+- 门禁：tests 249/249、projcheck 11/11、自举三级一致、sweep 全绿。
+
 ## [1.415.0]
 
 - lib/uic.mo 新增开关行：

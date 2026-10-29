@@ -110,6 +110,7 @@ fn main() -> i64 {
     uc_loading_dots(1, 2, 2, UC_WHITE, UC_BLUE);
     uc_like_button(12, 2, 1, 12, UC_WHITE, UC_BLUE);
     uc_toggle_row(1, 2, "W", 1, UC_WHITE, UC_BLUE);
+    uc_legend(12, 2, UC_GREEN, "CPU", UC_WHITE, UC_BLUE);
     uc_dump_svg("/tmp/uic_dump_test.svg");
     uc_render();
     return 0;

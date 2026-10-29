@@ -3293,3 +3293,23 @@ fn uc_toggle_row(x: i64, y: i64, label: ptr, on: i64, fg: i64, bg: i64) -> i64 {
     }
     return 0;
 }
+
+# ============ v1.416 图例 ============
+
+# uc_legend：绘制图表图例 ■ Label
+# color 为色块颜色，label 为标签文本。
+# 用于图表、地图、数据可视化。
+fn uc_legend(x: i64, y: i64, color: i64, label: ptr, fg: i64, bg: i64) -> i64 {
+    let len: i64 = 0;
+    let i: i64 = 0;
+    len = strlen(label);
+    uc_set(x, y, '[', fg, bg);
+    uc_set(x + 1, y, ']', color, bg);
+    uc_set(x + 2, y, ' ', fg, bg);
+    i = 0;
+    while i < len {
+        uc_set(x + 3 + i, y, label[i], fg, bg);
+        i = i + 1;
+    }
+    return 0;
+}
