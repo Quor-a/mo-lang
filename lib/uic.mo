@@ -6420,3 +6420,44 @@ fn uc_backup_row(x: i64, y: i64, name: ptr, state: i64, fg: i64, bg: i64) -> i64
     }
     return 0;
 }
+
+# ============ v1.491 部署目标行 ============
+
+# uc_deploy_target_row：绘制部署目标行 [T]  prod  Healthy
+# name 为目标名，state 0=异常 1=健康。
+# 用于部署管理、环境状态。
+fn uc_deploy_target_row(x: i64, y: i64, name: ptr, state: i64, fg: i64, bg: i64) -> i64 {
+    let nlen: i64 = 0;
+    let i: i64 = 0;
+    nlen = strlen(name);
+    uc_set(x, y, '[', UC_GREEN, bg);
+    uc_set(x + 1, y, 'T', UC_GREEN, bg);
+    uc_set(x + 2, y, ']', UC_GREEN, bg);
+    uc_set(x + 5, y, ' ', fg, bg);
+    i = 0;
+    while i < nlen {
+        uc_set(x + 6 + i, y, name[i], UC_YELLOW, bg);
+        i = i + 1;
+    }
+    uc_set(x + 8 + nlen, y, ' ', fg, bg);
+    if state != 0 {
+        uc_set(x + 9 + nlen, y, 'H', UC_GREEN, bg);
+        uc_set(x + 10 + nlen, y, 'e', UC_GREEN, bg);
+        uc_set(x + 11 + nlen, y, 'a', UC_GREEN, bg);
+        uc_set(x + 12 + nlen, y, 'l', UC_GREEN, bg);
+        uc_set(x + 13 + nlen, y, 't', UC_GREEN, bg);
+        uc_set(x + 14 + nlen, y, 'h', UC_GREEN, bg);
+        uc_set(x + 15 + nlen, y, 'y', UC_GREEN, bg);
+    } else {
+        uc_set(x + 9 + nlen, y, 'U', UC_RED, bg);
+        uc_set(x + 10 + nlen, y, 'n', UC_RED, bg);
+        uc_set(x + 11 + nlen, y, 'h', UC_RED, bg);
+        uc_set(x + 12 + nlen, y, 'e', UC_RED, bg);
+        uc_set(x + 13 + nlen, y, 'a', UC_RED, bg);
+        uc_set(x + 14 + nlen, y, 'l', UC_RED, bg);
+        uc_set(x + 15 + nlen, y, 't', UC_RED, bg);
+        uc_set(x + 16 + nlen, y, 'h', UC_RED, bg);
+        uc_set(x + 17 + nlen, y, 'y', UC_RED, bg);
+    }
+    return 0;
+}

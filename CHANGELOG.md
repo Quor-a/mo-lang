@@ -1,3 +1,12 @@
+## [1.491.0]
+
+- lib/uic.mo 新增部署目标行：
+  - uc_deploy_target_row：[T]  prod  Healthy
+  - 用于部署管理、环境状态
+- tests/101_uic.mo 覆盖部署目标行。
+- E2E：[T] prod Healthy 绿 / staging Unhealthy 红 正确渲染。
+- 门禁：tests 249/249、projcheck 11/11、自举三级一致、sweep 全绿。
+
 ## [1.490.0]
 
 - lib/uic.mo 新增备份状态行：

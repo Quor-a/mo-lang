@@ -185,6 +185,7 @@ fn main() -> i64 {
     uc_quota_row(12, 2, "s", 32, 50, "G", UC_WHITE, UC_BLUE);
     uc_ip_bind_row(1, 2, 8080, "1", 1, UC_WHITE, UC_BLUE);
     uc_backup_row(12, 2, "n", 2, UC_WHITE, UC_BLUE);
+    uc_deploy_target_row(1, 2, "p", 1, UC_WHITE, UC_BLUE);
     uc_dump_svg("/tmp/uic_dump_test.svg");
     uc_render();
     return 0;
