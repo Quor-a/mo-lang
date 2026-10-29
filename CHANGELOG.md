@@ -1,3 +1,12 @@
+## [1.463.0]
+
+- lib/uic.mo 新增端口行：
+  - uc_port_row：:8080  web  LISTEN
+  - 用于网络状态、端口监控
+- tests/101_uic.mo 覆盖端口行。
+- E2E：:8080 web LISTEN / :3306 db CLOSED 正确渲染。
+- 门禁：tests 249/249、projcheck 11/11、自举三级一致、sweep 全绿。
+
 ## [1.462.0]
 
 - lib/uic.mo 新增打印队列行：

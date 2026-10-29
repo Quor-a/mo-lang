@@ -157,6 +157,7 @@ fn main() -> i64 {
     uc_bt_row(12, 2, "H", 1, UC_WHITE, UC_BLUE);
     uc_storage_row(1, 2, "SSD", "1TB", 60, UC_WHITE, UC_BLUE);
     uc_print_row(12, 2, "r", 1, UC_WHITE, UC_BLUE);
+    uc_port_row(1, 2, "8080", "w", 1, UC_WHITE, UC_BLUE);
     uc_dump_svg("/tmp/uic_dump_test.svg");
     uc_render();
     return 0;

@@ -5207,3 +5207,45 @@ fn uc_print_row(x: i64, y: i64, name: ptr, state: i64, fg: i64, bg: i64) -> i64 
     }
     return 0;
 }
+
+# ============ v1.463 端口行 ============
+
+# uc_port_row：绘制端口行 :8080  web  LISTEN
+# port 为端口，service 为服务名，state 0=关闭 1=监听。
+# 用于网络状态、端口监控。
+fn uc_port_row(x: i64, y: i64, port: ptr, service: ptr, state: i64, fg: i64, bg: i64) -> i64 {
+    let plen: i64 = 0;
+    let slen: i64 = 0;
+    let i: i64 = 0;
+    plen = strlen(port);
+    slen = strlen(service);
+    uc_set(x, y, ':', UC_CYAN, bg);
+    i = 0;
+    while i < plen {
+        uc_set(x + 1 + i, y, port[i], UC_CYAN, bg);
+        i = i + 1;
+    }
+    uc_set(x + 2 + plen, y, ' ', fg, bg);
+    i = 0;
+    while i < slen {
+        uc_set(x + 3 + plen + i, y, service[i], UC_WHITE, bg);
+        i = i + 1;
+    }
+    uc_set(x + 5 + plen + slen, y, ' ', fg, bg);
+    if state != 0 {
+        uc_set(x + 6 + plen + slen, y, 'L', UC_GREEN, bg);
+        uc_set(x + 7 + plen + slen, y, 'I', UC_GREEN, bg);
+        uc_set(x + 8 + plen + slen, y, 'S', UC_GREEN, bg);
+        uc_set(x + 9 + plen + slen, y, 'T', UC_GREEN, bg);
+        uc_set(x + 10 + plen + slen, y, 'E', UC_GREEN, bg);
+        uc_set(x + 11 + plen + slen, y, 'N', UC_GREEN, bg);
+    } else {
+        uc_set(x + 6 + plen + slen, y, 'C', fg, bg);
+        uc_set(x + 7 + plen + slen, y, 'L', fg, bg);
+        uc_set(x + 8 + plen + slen, y, 'O', fg, bg);
+        uc_set(x + 9 + plen + slen, y, 'S', fg, bg);
+        uc_set(x + 10 + plen + slen, y, 'E', fg, bg);
+        uc_set(x + 11 + plen + slen, y, 'D', fg, bg);
+    }
+    return 0;
+}
