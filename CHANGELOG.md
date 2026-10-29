@@ -1,3 +1,12 @@
+## [1.403.0]
+
+- lib/uic.mo 新增话题标签：
+  - uc_hashtag：#话题标签（# 青色）
+  - 用于社交、分类展示
+- tests/101_uic.mo 覆盖话题标签。
+- E2E：#mo-lang #ui 正确渲染。
+- 门禁：tests 249/249、projcheck 11/11、自举三级一致、sweep 全绿。
+
 ## [1.402.0]
 
 - 新增 examples/uic_metrics.mo：指标监控面板示例。

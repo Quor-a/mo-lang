@@ -2971,3 +2971,21 @@ fn uc_tag(x: i64, y: i64, tag: ptr, fg: i64, bg: i64) -> i64 {
     uc_set(x + 2 + len, y, ']', fg, bg);
     return 0;
 }
+
+# ============ v1.403 话题标签 ============
+
+# uc_hashtag：绘制话题标签 #tag
+# tag 为标签文本，'#' 用青色，文本用默认色。
+# 用于社交、分类展示。
+fn uc_hashtag(x: i64, y: i64, tag: ptr, fg: i64, bg: i64) -> i64 {
+    let len: i64 = 0;
+    let i: i64 = 0;
+    len = strlen(tag);
+    uc_set(x, y, '#', UC_CYAN, bg);
+    i = 0;
+    while i < len {
+        uc_set(x + 1 + i, y, tag[i], fg, bg);
+        i = i + 1;
+    }
+    return 0;
+}
