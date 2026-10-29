@@ -2499,3 +2499,26 @@ fn uc_breadcrumb(x: i64, y: i64, items: ptr, active_idx: i64, fg: i64, bg: i64) 
     }
     return 0;
 }
+
+# ============ v1.387 评分星标 ============
+
+# uc_stars：绘制评分星级
+# rating 为当前分数（0..max），max 为总星数。
+# 实星 '*' 表示已得分数，空星 '.' 表示未得分。
+# 用于评价、星级展示。
+fn uc_stars(x: i64, y: i64, rating: i64, max: i64, fg: i64, bg: i64) -> i64 {
+    let i: i64 = 0;
+    if max < 1 { max = 1; }
+    if rating < 0 { rating = 0; }
+    if rating > max { rating = max; }
+    i = 0;
+    while i < max {
+        if i < rating {
+            uc_set(x + i, y, '*', fg, bg);
+        } else {
+            uc_set(x + i, y, '.', fg, bg);
+        }
+        i = i + 1;
+    }
+    return 0;
+}
