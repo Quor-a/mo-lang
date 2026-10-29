@@ -1,3 +1,12 @@
+## [1.465.0]
+
+- lib/uic.mo 新增挂载点行：
+  - uc_mount_row：[M]  /home   ext4   45%
+  - 用于磁盘管理、文件系统状态
+- tests/101_uic.mo 覆盖挂载点行。
+- E2E：[M] /home ext4 45% / /var xfs 95% 正确渲染。
+- 门禁：tests 249/249、projcheck 11/11、自举三级一致、sweep 全绿。
+
 ## [1.464.0]
 
 - lib/uic.mo 新增进程状态行：

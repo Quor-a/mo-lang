@@ -5296,3 +5296,58 @@ fn uc_proc_row(x: i64, y: i64, pid: ptr, name: ptr, state: i64, fg: i64, bg: i64
     }
     return 0;
 }
+
+# ============ v1.465 挂载点行 ============
+
+# uc_mount_row：绘制挂载点行 [M]  /home   ext4  45%
+# mount 为挂载点，fs 为文件系统，used 为使用率。
+# 用于磁盘管理、文件系统状态。
+fn uc_mount_row(x: i64, y: i64, mount: ptr, fs: ptr, used: i64, fg: i64, bg: i64) -> i64 {
+    let mlen: i64 = 0;
+    let flen: i64 = 0;
+    let i: i64 = 0;
+    let c: i64 = 0;
+    mlen = strlen(mount);
+    flen = strlen(fs);
+    uc_set(x, y, '[', UC_YELLOW, bg);
+    uc_set(x + 1, y, 'M', UC_YELLOW, bg);
+    uc_set(x + 2, y, ']', UC_YELLOW, bg);
+    uc_set(x + 5, y, ' ', fg, bg);
+    i = 0;
+    while i < mlen {
+        uc_set(x + 6 + i, y, mount[i], UC_YELLOW, bg);
+        i = i + 1;
+    }
+    uc_set(x + 8 + mlen, y, ' ', fg, bg);
+    i = 0;
+    while i < flen {
+        uc_set(x + 9 + mlen + i, y, fs[i], UC_CYAN, bg);
+        i = i + 1;
+    }
+    uc_set(x + 11 + mlen + flen, y, ' ', fg, bg);
+    if used > 90 {
+        c = UC_RED;
+    } else {
+        if used > 60 {
+            c = UC_YELLOW;
+        } else {
+            c = UC_GREEN;
+        }
+    }
+    if used >= 100 {
+        uc_set(x + 12 + mlen + flen, y, '1', c, bg);
+        uc_set(x + 13 + mlen + flen, y, '0', c, bg);
+        uc_set(x + 14 + mlen + flen, y, '0', c, bg);
+        uc_set(x + 15 + mlen + flen, y, '%', c, bg);
+    } else {
+        if used >= 10 {
+            uc_set(x + 12 + mlen + flen, y, '0' + used / 10, c, bg);
+            uc_set(x + 13 + mlen + flen, y, '0' + used % 10, c, bg);
+            uc_set(x + 14 + mlen + flen, y, '%', c, bg);
+        } else {
+            uc_set(x + 12 + mlen + flen, y, '0' + used, c, bg);
+            uc_set(x + 13 + mlen + flen, y, '%', c, bg);
+        }
+    }
+    return 0;
+}
