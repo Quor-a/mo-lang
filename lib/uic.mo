@@ -3621,3 +3621,41 @@ fn uc_sync_icon(x: i64, y: i64, state: i64, fg: i64, bg: i64) -> i64 {
     uc_set(x + 2, y, ']', fg, bg);
     return 0;
 }
+
+# ============ v1.425 连接状态行 ============
+
+# uc_conn_status：绘制连接状态行 Name 已连接 |||||
+# name 为连接名，connected=1 绿/0 红，strength 0-5 信号强度。
+# 用于 WiFi、蓝牙、网络状态。
+fn uc_conn_status(x: i64, y: i64, name: ptr, connected: i64, strength: i64, fg: i64, bg: i64) -> i64 {
+    let nlen: i64 = 0;
+    let i: i64 = 0;
+    nlen = strlen(name);
+    i = 0;
+    while i < nlen {
+        uc_set(x + i, y, name[i], UC_YELLOW, bg);
+        i = i + 1;
+    }
+    uc_set(x + nlen + 1, y, ' ', fg, bg);
+    if connected != 0 {
+        uc_set(x + nlen + 2, y, 'C', UC_GREEN, bg);
+        uc_set(x + nlen + 3, y, 'o', UC_GREEN, bg);
+        uc_set(x + nlen + 4, y, 'n', UC_GREEN, bg);
+        uc_set(x + nlen + 5, y, 'n', UC_GREEN, bg);
+    } else {
+        uc_set(x + nlen + 2, y, 'D', UC_RED, bg);
+        uc_set(x + nlen + 3, y, 'i', UC_RED, bg);
+        uc_set(x + nlen + 4, y, 's', UC_RED, bg);
+        uc_set(x + nlen + 5, y, 'c', UC_RED, bg);
+        uc_set(x + nlen + 6, y, 'o', UC_RED, bg);
+        uc_set(x + nlen + 7, y, 'n', UC_RED, bg);
+    }
+    # 信号条
+    uc_set(x + nlen + 10, y, '|', fg, bg);
+    i = 0;
+    while i < strength {
+        uc_set(x + nlen + 11 + i, y, '|', UC_GREEN, bg);
+        i = i + 1;
+    }
+    return 0;
+}

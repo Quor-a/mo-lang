@@ -1,3 +1,12 @@
+## [1.425.0]
+
+- lib/uic.mo 新增连接状态行：
+  - uc_conn_status：WiFi Conn | ||||（绿/红 + 信号条）
+  - 用于 WiFi、蓝牙、网络状态
+- tests/101_uic.mo 覆盖连接状态行。
+- E2E：WiFi Conn | |||| 正确渲染。
+- 门禁：tests 249/249、projcheck 11/11、自举三级一致、sweep 全绿。
+
 ## [1.424.0]
 
 - lib/uic.mo 新增同步状态图标：
