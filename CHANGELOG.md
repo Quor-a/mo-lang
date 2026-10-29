@@ -1,3 +1,12 @@
+## [1.487.0]
+
+- lib/uic.mo 新增密钥行：
+  - uc_secret_row：[S]  db-password  *****
+  - 用于密钥管理、Secret 存储
+- tests/101_uic.mo 覆盖密钥行。
+- E2E：[S] db-password ***** 青 / api-key Rotated 绿 正确渲染。
+- 门禁：tests 249/249、projcheck 11/11、自举三级一致、sweep 全绿。
+
 ## [1.486.0]
 
 - lib/uic.mo 新增 DNS 记录行：
