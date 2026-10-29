@@ -3975,3 +3975,46 @@ fn uc_sort_indicator(x: i64, y: i64, label: ptr, dir: i64, fg: i64, bg: i64) -> 
     }
     return 0;
 }
+
+# ============ v1.434 分页器 ============
+
+# uc_pager：绘制分页控件 < 1 2 3 >
+# page 为当前页（从 1 起），total 为总页数，当前页反色高亮。
+# 用于列表、表格分页。
+fn uc_pager(x: i64, y: i64, page: i64, total: i64, fg: i64, bg: i64) -> i64 {
+    let i: i64 = 0;
+    let maxp: i64 = 0;
+    let cur: i64 = 0;
+    if page <= 1 {
+        uc_set(x, y, '<', fg, bg);
+    } else {
+        uc_set(x, y, '<', UC_GREEN, bg);
+    }
+    uc_set(x + 2, y, ' ', fg, bg);
+    if total > 5 {
+        maxp = 5;
+    } else {
+        maxp = total;
+    }
+    i = 0;
+    while i < maxp {
+        cur = i + 1;
+        if cur == page {
+            uc_set(x + 3 + i * 2, y, '0' + cur, UC_BLACK, UC_GREEN);
+        } else {
+            uc_set(x + 3 + i * 2, y, '0' + cur, fg, bg);
+        }
+        if i < maxp - 1 {
+            uc_set(x + 4 + i * 2, y, ' ', fg, bg);
+        }
+        i = i + 1;
+    }
+    if page >= total {
+        uc_set(x + 3 + maxp * 2, y, ' ', fg, bg);
+        uc_set(x + 4 + maxp * 2, y, '>', fg, bg);
+    } else {
+        uc_set(x + 3 + maxp * 2, y, ' ', fg, bg);
+        uc_set(x + 4 + maxp * 2, y, '>', UC_GREEN, bg);
+    }
+    return 0;
+}
