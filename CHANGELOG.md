@@ -1,3 +1,12 @@
+## [1.426.0]
+
+- lib/uic.mo 新增成员行：
+  - uc_member_row：(^^) Name Online/Offline（绿/红）
+  - 用于团队、聊天成员列表
+- tests/101_uic.mo 覆盖成员行。
+- E2E：Alice Online / Bob Offline 正确渲染。
+- 门禁：tests 249/249、projcheck 11/11、自举三级一致、sweep 全绿。
+
 ## [1.425.0]
 
 - lib/uic.mo 新增连接状态行：
