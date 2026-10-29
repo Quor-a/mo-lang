@@ -155,6 +155,8 @@ fn main() -> i64 {
     uc_net_row(12, 2, "IP", "1.2.3.4", UC_WHITE, UC_BLUE);
     uc_wifi_row(1, 2, "Home", 80, 1, UC_WHITE, UC_BLUE);
     uc_bt_row(12, 2, "H", 1, UC_WHITE, UC_BLUE);
+    uc_storage_row(1, 2, "SSD", "1TB", 60, UC_WHITE, UC_BLUE);
+    uc_print_row(12, 2, "r", 1, UC_WHITE, UC_BLUE);
     uc_dump_svg("/tmp/uic_dump_test.svg");
     uc_render();
     return 0;

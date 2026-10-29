@@ -1,3 +1,12 @@
+## [1.462.0]
+
+- lib/uic.mo 新增打印队列行：
+  - uc_print_row：[P]  report.pdf  Printing
+  - 用于打印管理、任务列表
+- tests/101_uic.mo 覆盖打印队列行。
+- E2E：[P] report.pdf Printing / notes.txt Done / doc.pdf Queued 正确渲染。
+- 门禁：tests 249/249、projcheck 11/11、自举三级一致、sweep 全绿。
+
 ## [1.461.0]
 
 - lib/uic.mo 新增存储设备行：

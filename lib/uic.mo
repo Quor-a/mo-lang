@@ -5162,3 +5162,48 @@ fn uc_storage_row(x: i64, y: i64, name: ptr, size: ptr, used: i64, fg: i64, bg: 
     }
     return 0;
 }
+# ============ v1.462 打印队列行 ============
+
+# uc_print_row：绘制打印队列行 [P]  report.pdf  Printing
+# name 为任务名，state 0=排队 1=打印中 2=完成。
+# 用于打印管理、任务列表。
+fn uc_print_row(x: i64, y: i64, name: ptr, state: i64, fg: i64, bg: i64) -> i64 {
+    let nlen: i64 = 0;
+    let i: i64 = 0;
+    nlen = strlen(name);
+    uc_set(x, y, '[', UC_YELLOW, bg);
+    uc_set(x + 1, y, 'P', UC_YELLOW, bg);
+    uc_set(x + 2, y, ']', UC_YELLOW, bg);
+    uc_set(x + 5, y, ' ', fg, bg);
+    i = 0;
+    while i < nlen {
+        uc_set(x + 6 + i, y, name[i], UC_YELLOW, bg);
+        i = i + 1;
+    }
+    uc_set(x + 8 + nlen, y, ' ', fg, bg);
+    if state == 0 {
+        uc_set(x + 9 + nlen, y, 'Q', fg, bg);
+        uc_set(x + 10 + nlen, y, 'u', fg, bg);
+        uc_set(x + 11 + nlen, y, 'e', fg, bg);
+        uc_set(x + 12 + nlen, y, 'u', fg, bg);
+        uc_set(x + 13 + nlen, y, 'e', fg, bg);
+        uc_set(x + 14 + nlen, y, 'd', fg, bg);
+    } else {
+        if state == 1 {
+            uc_set(x + 9 + nlen, y, 'P', UC_CYAN, bg);
+            uc_set(x + 10 + nlen, y, 'r', UC_CYAN, bg);
+            uc_set(x + 11 + nlen, y, 'i', UC_CYAN, bg);
+            uc_set(x + 12 + nlen, y, 'n', UC_CYAN, bg);
+            uc_set(x + 13 + nlen, y, 't', UC_CYAN, bg);
+            uc_set(x + 14 + nlen, y, 'i', UC_CYAN, bg);
+            uc_set(x + 15 + nlen, y, 'n', UC_CYAN, bg);
+            uc_set(x + 16 + nlen, y, 'g', UC_CYAN, bg);
+        } else {
+            uc_set(x + 9 + nlen, y, 'D', UC_GREEN, bg);
+            uc_set(x + 10 + nlen, y, 'o', UC_GREEN, bg);
+            uc_set(x + 11 + nlen, y, 'n', UC_GREEN, bg);
+            uc_set(x + 12 + nlen, y, 'e', UC_GREEN, bg);
+        }
+    }
+    return 0;
+}
