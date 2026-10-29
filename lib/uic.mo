@@ -2952,3 +2952,22 @@ fn uc_console(x: i64, y: i64, w: i64, h: i64, title: ptr, line1: ptr, line2: ptr
     }
     return 0;
 }
+
+# ============ v1.401 标签 chip ============
+
+# uc_tag：绘制彩色标签 chip [文本]
+# tag 为标签文本，用 '#' 填充左侧竖条。用于分类、标签展示。
+fn uc_tag(x: i64, y: i64, tag: ptr, fg: i64, bg: i64) -> i64 {
+    let len: i64 = 0;
+    let i: i64 = 0;
+    len = strlen(tag);
+    uc_set(x, y, '#', fg, bg);
+    uc_set(x + 1, y, '[', fg, bg);
+    i = 0;
+    while i < len {
+        uc_set(x + 2 + i, y, tag[i], fg, bg);
+        i = i + 1;
+    }
+    uc_set(x + 2 + len, y, ']', fg, bg);
+    return 0;
+}

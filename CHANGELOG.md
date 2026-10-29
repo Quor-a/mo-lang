@@ -1,3 +1,12 @@
+## [1.401.0]
+
+- lib/uic.mo 新增标签 chip：
+  - uc_tag：彩色标签（# 竖条 + [文本]）
+  - 用于分类、标签展示
+- tests/101_uic.mo 覆盖标签。
+- E2E：#[bug] #[feature] 正确渲染。
+- 门禁：tests 249/249、projcheck 11/11、自举三级一致、sweep 全绿。
+
 ## [1.400.0]
 
 - lib/uic.mo 新增控制台：
