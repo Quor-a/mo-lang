@@ -97,6 +97,7 @@ fn main() -> i64 {
     uc_separator(1, 2, 12, "S", UC_CYAN, UC_BLUE);
     uc_field(1, 2, 6, "N", "ab", 1, UC_WHITE, UC_BLUE);
     uc_dialog(14, 2, 12, 4, "D", "Q?", "OK", "No", 0, UC_WHITE, UC_BLUE);
+    uc_console(1, 2, 12, 2, "C", "a", "b", "c", UC_WHITE, UC_BLUE);
     uc_dump_svg("/tmp/uic_dump_test.svg");
     uc_render();
     return 0;

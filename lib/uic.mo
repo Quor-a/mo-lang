@@ -2901,3 +2901,54 @@ fn uc_dialog(x: i64, y: i64, w: i64, h: i64, title: ptr, msg: ptr, btn1: ptr, bt
     }
     return 0;
 }
+
+# ============ v1.400 控制台 ============
+
+# uc_console：绘制控制台/日志面板
+# title 为标题栏文本，line1/line2/line3 为三行日志。
+# 用于调试输出、日志查看。
+fn uc_console(x: i64, y: i64, w: i64, h: i64, title: ptr, line1: ptr, line2: ptr, line3: ptr, fg: i64, bg: i64) -> i64 {
+    let tlen: i64 = 0;
+    let l1: i64 = 0;
+    let l2: i64 = 0;
+    let l3: i64 = 0;
+    let i: i64 = 0;
+    tlen = strlen(title);
+    l1 = strlen(line1);
+    l2 = strlen(line2);
+    l3 = strlen(line3);
+    # 边框
+    uc_border(x, y, w + 2, h + 2, 1, fg, bg);
+    # 标题栏（反色）
+    i = 0;
+    while i < tlen {
+        if x + 1 + i < x + 1 + w {
+            uc_set(x + 1 + i, y, title[i], fg, bg);
+        }
+        i = i + 1;
+    }
+    uc_reverse(x + 1, y, w, 1);
+    # 三行日志
+    i = 0;
+    while i < l1 {
+        if x + 2 + i < x + 1 + w {
+            uc_set(x + 2 + i, y + 1, line1[i], fg, bg);
+        }
+        i = i + 1;
+    }
+    i = 0;
+    while i < l2 {
+        if x + 2 + i < x + 1 + w {
+            uc_set(x + 2 + i, y + 2, line2[i], fg, bg);
+        }
+        i = i + 1;
+    }
+    i = 0;
+    while i < l3 {
+        if x + 2 + i < x + 1 + w {
+            uc_set(x + 2 + i, y + 3, line3[i], fg, bg);
+        }
+        i = i + 1;
+    }
+    return 0;
+}
