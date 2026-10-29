@@ -1,3 +1,12 @@
+## [1.389.0]
+
+- lib/uic.mo 新增下拉选择框：
+  - uc_dropdown：[label v] 样式下拉框
+  - 用于表单、选择器
+- tests/101_uic.mo 覆盖下拉框。
+- E2E：City [Beijinv] 正确渲染。
+- 门禁：tests 249/249、projcheck 11/11、自举三级一致、sweep 全绿。
+
 ## [1.388.0]
 
 - lib/uic.mo 新增开关组件：

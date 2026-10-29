@@ -87,6 +87,7 @@ fn main() -> i64 {
     uc_breadcrumb(1, 2, "A|B|C", 2, UC_WHITE, UC_BLUE);
     uc_stars(12, 2, 4, 5, UC_GREEN, UC_BLUE);
     uc_toggle(1, 2, 1, UC_GREEN, UC_BLUE);
+    uc_dropdown(8, 2, 5, "Hello", UC_GREEN, UC_BLUE);
     uc_dump_svg("/tmp/uic_dump_test.svg");
     uc_render();
     return 0;

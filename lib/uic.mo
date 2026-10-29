@@ -2543,3 +2543,27 @@ fn uc_toggle(x: i64, y: i64, on: i64, fg: i64, bg: i64) -> i64 {
     }
     return 0;
 }
+
+# ============ v1.389 下拉选择框 ============
+
+# uc_dropdown：绘制下拉选择框
+# label 为当前选中项文本，w 为框宽。
+# 显示 [ label v ] 样式。用于表单、选择器。
+fn uc_dropdown(x: i64, y: i64, w: i64, label: ptr, fg: i64, bg: i64) -> i64 {
+    let len: i64 = 0;
+    let i: i64 = 0;
+    len = strlen(label);
+    uc_set(x, y, '[', fg, bg);
+    i = 0;
+    while i < w {
+        if i < len {
+            uc_set(x + 1 + i, y, label[i], fg, bg);
+        } else {
+            uc_set(x + 1 + i, y, ' ', fg, bg);
+        }
+        i = i + 1;
+    }
+    uc_set(x + 1 + w, y, 'v', fg, bg);
+    uc_set(x + 2 + w, y, ']', fg, bg);
+    return 0;
+}
