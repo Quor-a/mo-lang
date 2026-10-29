@@ -1,3 +1,12 @@
+## [1.429.0]
+
+- lib/uic.mo 新增健康检查行：
+  - uc_health_row：[v] Name OK 12ms（绿/红）
+  - 用于系统健康、监控面板
+- tests/101_uic.mo 覆盖健康检查行。
+- E2E：api OK 12ms / db FAIL 正确渲染。
+- 门禁：tests 249/249、projcheck 11/11、自举三级一致、sweep 全绿。
+
 ## [1.428.0]
 
 - lib/uic.mo 新增服务状态行：

@@ -3795,3 +3795,55 @@ fn uc_service_status(x: i64, y: i64, name: ptr, running: i64, uptime: i64, fg: i
     uc_set(x + nlen + 16, y, 's', UC_CYAN, bg);
     return 0;
 }
+
+# ============ v1.429 健康检查行 ============
+
+# uc_health_row：绘制健康检查行 [v] Name OK 12ms
+# name 为检查项，ok=1 绿 OK/0 红 FAIL，latency 毫秒。
+# 用于系统健康、监控面板。
+fn uc_health_row(x: i64, y: i64, name: ptr, ok: i64, latency: i64, fg: i64, bg: i64) -> i64 {
+    let nlen: i64 = 0;
+    let i: i64 = 0;
+    let l: i64 = 0;
+    nlen = strlen(name);
+    uc_set(x, y, '[', fg, bg);
+    if ok != 0 {
+        uc_set(x + 1, y, 'v', UC_GREEN, bg);
+    } else {
+        uc_set(x + 1, y, 'x', UC_RED, bg);
+    }
+    uc_set(x + 2, y, ']', fg, bg);
+    uc_set(x + 4, y, ' ', fg, bg);
+    i = 0;
+    while i < nlen {
+        uc_set(x + 5 + i, y, name[i], UC_YELLOW, bg);
+        i = i + 1;
+    }
+    if ok != 0 {
+        uc_set(x + 7 + nlen, y, 'O', UC_GREEN, bg);
+        uc_set(x + 8 + nlen, y, 'K', UC_GREEN, bg);
+    } else {
+        uc_set(x + 7 + nlen, y, 'F', UC_RED, bg);
+        uc_set(x + 8 + nlen, y, 'A', UC_RED, bg);
+        uc_set(x + 9 + nlen, y, 'I', UC_RED, bg);
+        uc_set(x + 10 + nlen, y, 'L', UC_RED, bg);
+    }
+    l = latency;
+    uc_set(x + 14 + nlen, y, ' ', fg, bg);
+    if l >= 100 {
+        uc_set(x + 15 + nlen, y, '0' + l / 100, fg, bg);
+        l = l % 100;
+        uc_set(x + 16 + nlen, y, '0' + l / 10, fg, bg);
+        uc_set(x + 17 + nlen, y, '0' + l % 10, fg, bg);
+    } else {
+        if l >= 10 {
+            uc_set(x + 15 + nlen, y, '0' + l / 10, fg, bg);
+            uc_set(x + 16 + nlen, y, '0' + l % 10, fg, bg);
+        } else {
+            uc_set(x + 15 + nlen, y, '0' + l, fg, bg);
+        }
+    }
+    uc_set(x + 18 + nlen, y, 'm', UC_CYAN, bg);
+    uc_set(x + 19 + nlen, y, 's', UC_CYAN, bg);
+    return 0;
+}
