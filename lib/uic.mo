@@ -2675,3 +2675,41 @@ fn uc_stepper(x: i64, y: i64, w: i64, value: i64, fg: i64, bg: i64) -> i64 {
     uc_set(x + 5 + w, y, ']', fg, bg);
     return 0;
 }
+
+# ============ v1.393 终端窗口 ============
+
+# uc_terminal：绘制终端/代码窗口
+# title 为标题栏文本，line1/line2 为两行内容（line1 带 '$' 提示符）。
+# 用于 IDE、终端模拟器、日志查看器。
+fn uc_terminal(x: i64, y: i64, w: i64, h: i64, title: ptr, line1: ptr, line2: ptr, fg: i64, bg: i64) -> i64 {
+    let i: i64 = 0;
+    let tlen: i64 = 0;
+    let l1: i64 = 0;
+    let l2: i64 = 0;
+    tlen = strlen(title);
+    l1 = strlen(line1);
+    l2 = strlen(line2);
+    # 边框
+    uc_border(x, y, w + 2, h + 2, 1, fg, bg);
+    # 标题栏（反色）
+    uc_text(x + 1, y, title, fg, bg);
+    uc_reverse(x + 1, y, w, 1);
+    # 第一行：提示符 + 内容
+    uc_set(x + 1, y + 1, '$', UC_GREEN, bg);
+    i = 0;
+    while i < l1 {
+        if x + 3 + i < x + 1 + w {
+            uc_set(x + 3 + i, y + 1, line1[i], fg, bg);
+        }
+        i = i + 1;
+    }
+    # 第二行
+    i = 0;
+    while i < l2 {
+        if x + 2 + i < x + 1 + w {
+            uc_set(x + 2 + i, y + 2, line2[i], fg, bg);
+        }
+        i = i + 1;
+    }
+    return 0;
+}

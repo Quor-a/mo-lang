@@ -1,3 +1,12 @@
+## [1.393.0]
+
+- lib/uic.mo 新增终端窗口：
+  - uc_terminal：终端/代码窗口（标题栏反色 + '$' 提示符）
+  - 用于 IDE、终端模拟器、日志查看器
+- tests/101_uic.mo 覆盖终端窗口。
+- E2E：Terminal 窗口 + $ moc hello.mo + Build OK 正确渲染。
+- 门禁：tests 249/249、projcheck 11/11、自举三级一致、sweep 全绿。
+
 ## [1.392.0]
 
 - lib/uic.mo 新增数值步进器：
