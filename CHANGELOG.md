@@ -1,3 +1,12 @@
+## [1.489.0]
+
+- lib/uic.mo 新增 IP 绑定行：
+  - uc_ip_bind_row：[I]  8080  192.168.1.5  Bound
+  - 用于网络配置、服务绑定
+- tests/101_uic.mo 覆盖 IP 绑定行。
+- E2E：[I] 8080 192.168.1.5 Bound 绿 / 8081 192.168.1.6 Free 灰 正确渲染。
+- 门禁：tests 249/249、projcheck 11/11、自举三级一致、sweep 全绿。
+
 ## [1.488.0]
 
 - lib/uic.mo 新增配额行：

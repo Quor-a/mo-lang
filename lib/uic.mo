@@ -6306,3 +6306,67 @@ fn uc_quota_row(x: i64, y: i64, name: ptr, used: i64, total: i64, unit: ptr, fg:
     }
     return 0;
 }
+
+# ============ v1.489 IP 绑定行 ============
+
+# uc_ip_bind_row：绘制 IP 绑定行 [I]  8080  192.168.1.5  Bound
+# port 为端口号，ip 为地址，state 0=未绑定 1=已绑定。
+# 用于网络配置、服务绑定。
+fn uc_ip_bind_row(x: i64, y: i64, port: i64, ip: ptr, state: i64, fg: i64, bg: i64) -> i64 {
+    let ilen: i64 = 0;
+    let i: i64 = 0;
+    ilen = strlen(ip);
+    uc_set(x, y, '[', UC_CYAN, bg);
+    uc_set(x + 1, y, 'I', UC_CYAN, bg);
+    uc_set(x + 2, y, ']', UC_CYAN, bg);
+    uc_set(x + 5, y, ' ', fg, bg);
+    if port >= 1000 {
+        uc_set(x + 6, y, '0' + port / 1000, UC_YELLOW, bg);
+        uc_set(x + 7, y, '0' + (port / 100) % 10, UC_YELLOW, bg);
+        uc_set(x + 8, y, '0' + (port / 10) % 10, UC_YELLOW, bg);
+        uc_set(x + 9, y, '0' + port % 10, UC_YELLOW, bg);
+        uc_set(x + 12, y, ' ', fg, bg);
+        i = 0;
+        while i < ilen {
+            uc_set(x + 13 + i, y, ip[i], UC_CYAN, bg);
+            i = i + 1;
+        }
+        uc_set(x + 15 + ilen, y, ' ', fg, bg);
+        if state != 0 {
+            uc_set(x + 16 + ilen, y, 'B', UC_GREEN, bg);
+            uc_set(x + 17 + ilen, y, 'o', UC_GREEN, bg);
+            uc_set(x + 18 + ilen, y, 'u', UC_GREEN, bg);
+            uc_set(x + 19 + ilen, y, 'n', UC_GREEN, bg);
+            uc_set(x + 20 + ilen, y, 'd', UC_GREEN, bg);
+        } else {
+            uc_set(x + 16 + ilen, y, 'F', fg, bg);
+            uc_set(x + 17 + ilen, y, 'r', fg, bg);
+            uc_set(x + 18 + ilen, y, 'e', fg, bg);
+            uc_set(x + 19 + ilen, y, 'e', fg, bg);
+        }
+    } else {
+        uc_set(x + 6, y, '0' + port / 100, UC_YELLOW, bg);
+        uc_set(x + 7, y, '0' + (port / 10) % 10, UC_YELLOW, bg);
+        uc_set(x + 8, y, '0' + port % 10, UC_YELLOW, bg);
+        uc_set(x + 11, y, ' ', fg, bg);
+        i = 0;
+        while i < ilen {
+            uc_set(x + 12 + i, y, ip[i], UC_CYAN, bg);
+            i = i + 1;
+        }
+        uc_set(x + 14 + ilen, y, ' ', fg, bg);
+        if state != 0 {
+            uc_set(x + 15 + ilen, y, 'B', UC_GREEN, bg);
+            uc_set(x + 16 + ilen, y, 'o', UC_GREEN, bg);
+            uc_set(x + 17 + ilen, y, 'u', UC_GREEN, bg);
+            uc_set(x + 18 + ilen, y, 'n', UC_GREEN, bg);
+            uc_set(x + 19 + ilen, y, 'd', UC_GREEN, bg);
+        } else {
+            uc_set(x + 15 + ilen, y, 'F', fg, bg);
+            uc_set(x + 16 + ilen, y, 'r', fg, bg);
+            uc_set(x + 17 + ilen, y, 'e', fg, bg);
+            uc_set(x + 18 + ilen, y, 'e', fg, bg);
+        }
+    }
+    return 0;
+}
