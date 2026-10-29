@@ -1,3 +1,12 @@
+## [1.407.0]
+
+- lib/uic.mo 新增聊天气泡：
+  - uc_chat_bubble：聊天气泡（[ hi! ]> / <[hello ]）
+  - 用于聊天界面、评论区
+- tests/101_uic.mo 覆盖聊天气泡。
+- E2E：双气泡正确渲染。
+- 门禁：tests 249/249、projcheck 11/11、自举三级一致、sweep 全绿。
+
 ## [1.406.0]
 
 - lib/uic.mo 新增头像：

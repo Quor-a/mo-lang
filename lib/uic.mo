@@ -3072,3 +3072,36 @@ fn uc_avatar(x: i64, y: i64, online: i64, fg: i64, bg: i64) -> i64 {
     }
     return 0;
 }
+
+# ============ v1.407 聊天气泡 ============
+
+# uc_chat_bubble：绘制聊天消息气泡
+# text 为消息文本，w 为气泡宽，mine=1 表示自己发的（右侧带箭头）。
+# 用于聊天界面、评论区。
+fn uc_chat_bubble(x: i64, y: i64, w: i64, text: ptr, mine: i64, fg: i64, bg: i64) -> i64 {
+    let len: i64 = 0;
+    let i: i64 = 0;
+    len = strlen(text);
+    if mine != 0 {
+        uc_set(x, y, '<', fg, bg);
+        uc_set(x + 1, y, '[', fg, bg);
+    } else {
+        uc_set(x, y, '[', fg, bg);
+    }
+    i = 0;
+    while i < w {
+        if i < len {
+            uc_set(x + 2 + i, y, text[i], fg, bg);
+        } else {
+            uc_set(x + 2 + i, y, ' ', fg, bg);
+        }
+        i = i + 1;
+    }
+    if mine != 0 {
+        uc_set(x + 2 + w, y, ']', fg, bg);
+    } else {
+        uc_set(x + 1 + w, y, ']', fg, bg);
+        uc_set(x + 2 + w, y, '>', fg, bg);
+    }
+    return 0;
+}
