@@ -3548,3 +3548,50 @@ fn uc_volume_bar(x: i64, y: i64, w: i64, label: ptr, level: i64, max: i64, fg: i
     }
     return 0;
 }
+
+# ============ v1.423 带标签进度条 ============
+
+# uc_progress_label：绘制带标签进度条 Label [######--] 80%
+# label 为名称，level/max 决定填充量，显示百分比。
+# 用于下载、安装进度。
+fn uc_progress_label(x: i64, y: i64, w: i64, label: ptr, level: i64, max: i64, fg: i64, bg: i64) -> i64 {
+    let llen: i64 = 0;
+    let i: i64 = 0;
+    let filled: i64 = 0;
+    let pct: i64 = 0;
+    llen = strlen(label);
+    if max < 1 { max = 1; }
+    filled = (w - 2) * level / max;
+    if filled > w - 2 { filled = w - 2; }
+    pct = level * 100 / max;
+    i = 0;
+    while i < llen {
+        uc_set(x + i, y, label[i], UC_YELLOW, bg);
+        i = i + 1;
+    }
+    uc_set(x + llen + 1, y, '[', fg, bg);
+    i = 0;
+    while i < w - 2 {
+        if i < filled {
+            uc_set(x + llen + 2 + i, y, '#', UC_GREEN, bg);
+        } else {
+            uc_set(x + llen + 2 + i, y, '-', fg, bg);
+        }
+        i = i + 1;
+    }
+    uc_set(x + llen + w, y, ']', fg, bg);
+    uc_set(x + llen + w + 2, y, ' ', fg, bg);
+    if pct >= 100 {
+        uc_set(x + llen + w + 3, y, '1', fg, bg);
+        uc_set(x + llen + w + 4, y, '0', fg, bg);
+        uc_set(x + llen + w + 5, y, '0', fg, bg);
+    } else {
+        if pct >= 10 {
+            uc_set(x + llen + w + 3, y, '0' + pct / 10, fg, bg);
+            uc_set(x + llen + w + 4, y, '0' + pct % 10, fg, bg);
+        } else {
+            uc_set(x + llen + w + 3, y, '0' + pct, fg, bg);
+        }
+    }
+    return 0;
+}

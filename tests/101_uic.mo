@@ -117,6 +117,7 @@ fn main() -> i64 {
     uc_toolbar(12, 2, "B|I|U", 1, UC_WHITE, UC_BLUE);
     uc_activity(1, 2, 1, UC_WHITE, UC_BLUE);
     uc_volume_bar(12, 2, 8, "V", 60, 100, UC_WHITE, UC_BLUE);
+    uc_progress_label(1, 2, 8, "I", 75, 100, UC_WHITE, UC_BLUE);
     uc_dump_svg("/tmp/uic_dump_test.svg");
     uc_render();
     return 0;

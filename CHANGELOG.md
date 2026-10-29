@@ -1,3 +1,12 @@
+## [1.423.0]
+
+- lib/uic.mo 新增带标签进度条：
+  - uc_progress_label：Install [#######---] 75
+  - 用于下载、安装进度
+- tests/101_uic.mo 覆盖带标签进度条。
+- E2E：Install [#######---] 75 正确渲染。
+- 门禁：tests 249/249、projcheck 11/11、自举三级一致、sweep 全绿。
+
 ## [1.422.0]
 
 - lib/uic.mo 新增音量条：
