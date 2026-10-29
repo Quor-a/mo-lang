@@ -1,3 +1,12 @@
+## [1.398.0]
+
+- lib/uic.mo 新增表单字段：
+  - uc_field：表单输入框（标签 + 值 + 光标）
+  - 用于表单、搜索框、设置界面
+- tests/101_uic.mo 覆盖表单字段。
+- E2E：Name: [Alice|] / Email: [] 正确渲染。
+- 门禁：tests 249/249、projcheck 11/11、自举三级一致、sweep 全绿。
+
 ## [1.397.0]
 
 - lib/uic.mo 新增分隔线：

@@ -2802,3 +2802,41 @@ fn uc_separator(x: i64, y: i64, w: i64, title: ptr, fg: i64, bg: i64) -> i64 {
     }
     return 0;
 }
+
+# ============ v1.398 表单字段 ============
+
+# uc_field：绘制表单输入框
+# label 为字段标签，value 为输入内容，w 为框宽，focused=1 显示光标。
+# 用于表单、搜索框、设置界面。
+fn uc_field(x: i64, y: i64, w: i64, label: ptr, value: ptr, focused: i64, fg: i64, bg: i64) -> i64 {
+    let llen: i64 = 0;
+    let vlen: i64 = 0;
+    let i: i64 = 0;
+    llen = strlen(label);
+    vlen = strlen(value);
+    # 标签
+    i = 0;
+    while i < llen {
+        uc_set(x + i, y, label[i], UC_YELLOW, bg);
+        i = i + 1;
+    }
+    uc_set(x + llen, y, ':', fg, bg);
+    # 输入框边框
+    uc_set(x + llen + 2, y, '[', fg, bg);
+    # 值
+    i = 0;
+    while i < w {
+        if i < vlen {
+            uc_set(x + llen + 3 + i, y, value[i], fg, bg);
+        } else {
+            uc_set(x + llen + 3 + i, y, ' ', fg, bg);
+        }
+        i = i + 1;
+    }
+    uc_set(x + llen + 3 + w, y, ']', fg, bg);
+    # 光标
+    if focused != 0 {
+        uc_set(x + llen + 3 + vlen, y, '|', UC_GREEN, bg);
+    }
+    return 0;
+}
