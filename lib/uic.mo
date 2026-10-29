@@ -4181,3 +4181,68 @@ fn uc_rating_row(x: i64, y: i64, label: ptr, score: i64, max: i64, fg: i64, bg: 
     }
     return 0;
 }
+
+# ============ v1.439 商品行 ============
+
+# uc_product_row：绘制商品行 [P] Name  $99  $129 -23%
+# price 为现价，old_price 为原价（>0 时显示折扣）。
+# 用于电商、商品列表。
+fn uc_product_row(x: i64, y: i64, name: ptr, price: i64, old_price: i64, fg: i64, bg: i64) -> i64 {
+    let nlen: i64 = 0;
+    let i: i64 = 0;
+    let p: i64 = 0;
+    let o: i64 = 0;
+    let off: i64 = 0;
+    nlen = strlen(name);
+    uc_set(x, y, '[', fg, bg);
+    uc_set(x + 1, y, 'P', UC_CYAN, bg);
+    uc_set(x + 2, y, ']', fg, bg);
+    uc_set(x + 4, y, ' ', fg, bg);
+    i = 0;
+    while i < nlen {
+        uc_set(x + 5 + i, y, name[i], UC_YELLOW, bg);
+        i = i + 1;
+    }
+    p = price;
+    uc_set(x + 7 + nlen, y, '$', UC_GREEN, bg);
+    if p >= 100 {
+        uc_set(x + 8 + nlen, y, '0' + p / 100, UC_GREEN, bg);
+        p = p % 100;
+        uc_set(x + 9 + nlen, y, '0' + p / 10, UC_GREEN, bg);
+        uc_set(x + 10 + nlen, y, '0' + p % 10, UC_GREEN, bg);
+    } else {
+        if p >= 10 {
+            uc_set(x + 8 + nlen, y, '0' + p / 10, UC_GREEN, bg);
+            uc_set(x + 9 + nlen, y, '0' + p % 10, UC_GREEN, bg);
+        } else {
+            uc_set(x + 8 + nlen, y, '0' + p, UC_GREEN, bg);
+        }
+    }
+    if old_price > 0 {
+        o = old_price;
+        uc_set(x + 12 + nlen, y, '$', fg, bg);
+        if o >= 100 {
+            uc_set(x + 13 + nlen, y, '0' + o / 100, fg, bg);
+            o = o % 100;
+            uc_set(x + 14 + nlen, y, '0' + o / 10, fg, bg);
+            uc_set(x + 15 + nlen, y, '0' + o % 10, fg, bg);
+        } else {
+            if o >= 10 {
+                uc_set(x + 13 + nlen, y, '0' + o / 10, fg, bg);
+                uc_set(x + 14 + nlen, y, '0' + o % 10, fg, bg);
+            } else {
+                uc_set(x + 13 + nlen, y, '0' + o, fg, bg);
+            }
+        }
+        off = (old_price - price) * 100 / old_price;
+        uc_set(x + 18 + nlen, y, '-', UC_RED, bg);
+        if off >= 10 {
+            uc_set(x + 19 + nlen, y, '0' + off / 10, UC_RED, bg);
+            uc_set(x + 20 + nlen, y, '0' + off % 10, UC_RED, bg);
+        } else {
+            uc_set(x + 19 + nlen, y, '0' + off, UC_RED, bg);
+        }
+        uc_set(x + 21 + nlen, y, '%', UC_RED, bg);
+    }
+    return 0;
+}

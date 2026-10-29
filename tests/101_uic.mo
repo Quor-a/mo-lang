@@ -133,6 +133,7 @@ fn main() -> i64 {
     uc_result_row(12, 2, "m.mo", 3, UC_WHITE, UC_BLUE);
     uc_workflow_status(1, 2, 1, "B", 2, UC_WHITE, UC_BLUE);
     uc_rating_row(12, 2, "R", 45, 50, UC_WHITE, UC_BLUE);
+    uc_product_row(1, 2, "P", 99, 129, UC_WHITE, UC_BLUE);
     uc_dump_svg("/tmp/uic_dump_test.svg");
     uc_render();
     return 0;

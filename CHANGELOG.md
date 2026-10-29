@@ -1,3 +1,12 @@
+## [1.439.0]
+
+- lib/uic.mo 新增商品行：
+  - uc_product_row：[P] Name $99 $129 -23%
+  - 用于电商、商品列表
+- tests/101_uic.mo 覆盖商品行。
+- E2E：Phone $99 $129 -23% 正确渲染。
+- 门禁：tests 249/249、projcheck 11/11、自举三级一致、sweep 全绿。
+
 ## [1.438.0]
 
 - lib/uic.mo 新增评分汇总行：
