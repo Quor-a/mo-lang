@@ -3207,3 +3207,22 @@ fn uc_steps(x: i64, y: i64, count: i64, current: i64, fg: i64, bg: i64) -> i64 {
     }
     return 0;
 }
+
+# ============ v1.412 加载点 ============
+
+# uc_loading_dots：绘制加载点动画
+# phase 为动画阶段（0-3），点依次点亮。
+# 用于加载指示、进度反馈。
+fn uc_loading_dots(x: i64, y: i64, phase: i64, fg: i64, bg: i64) -> i64 {
+    let i: i64 = 0;
+    i = 0;
+    while i < 3 {
+        if phase % 4 > i {
+            uc_set(x + i, y, '.', UC_GREEN, bg);
+        } else {
+            uc_set(x + i, y, '.', fg, bg);
+        }
+        i = i + 1;
+    }
+    return 0;
+}

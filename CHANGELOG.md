@@ -1,3 +1,12 @@
+## [1.412.0]
+
+- lib/uic.mo 新增加载点动画：
+  - uc_loading_dots：Loading... 动态点
+  - 用于加载指示、进度反馈
+- tests/101_uic.mo 覆盖加载点动画。
+- E2E：Loading .. 正确渲染。
+- 门禁：tests 249/249、projcheck 11/11、自举三级一致、sweep 全绿。
+
 ## [1.411.0]
 
 - lib/uic.mo 新增步骤指示器：
