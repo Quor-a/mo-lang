@@ -1,3 +1,12 @@
+## [1.448.0]
+
+- lib/uic.mo 新增对比条：
+  - uc_compare_bar：CPU ######.... 60%
+  - 用于对比两个值、比例展示
+- tests/101_uic.mo 覆盖对比条。
+- E2E：CPU 60% / MEM 30% 正确渲染。
+- 门禁：tests 249/249、projcheck 11/11、自举三级一致、sweep 全绿。
+
 ## [1.447.0]
 
 - lib/uic.mo 新增 API 请求行：

@@ -4574,3 +4574,57 @@ fn uc_api_request(x: i64, y: i64, method: i64, path: ptr, status: i64, ms: i64, 
     uc_set(x + 22 + plen, y, 's', UC_CYAN, bg);
     return 0;
 }
+
+# ============ v1.448 对比条 ============
+
+# uc_compare_bar：绘制数据条 CPU #####... 60%
+# value 为当前值，max 为最大值，填充 # 青色。
+# 用于对比两个值、比例展示。
+fn uc_compare_bar(x: i64, y: i64, label: ptr, value: i64, max: i64, fg: i64, bg: i64) -> i64 {
+    let llen: i64 = 0;
+    let i: i64 = 0;
+    let filled: i64 = 0;
+    let v: i64 = 0;
+    let pct: i64 = 0;
+    llen = strlen(label);
+    i = 0;
+    while i < llen {
+        uc_set(x + i, y, label[i], UC_YELLOW, bg);
+        i = i + 1;
+    }
+    uc_set(x + llen + 2, y, ' ', fg, bg);
+    if max <= 0 {
+        max = 1;
+    }
+    if value > max {
+        value = max;
+    }
+    filled = value * 10 / max;
+    i = 0;
+    while i < 10 {
+        if i < filled {
+            uc_set(x + llen + 3 + i, y, '#', UC_CYAN, bg);
+        } else {
+            uc_set(x + llen + 3 + i, y, '.', fg, bg);
+        }
+        i = i + 1;
+    }
+    v = value;
+    pct = value * 100 / max;
+    uc_set(x + llen + 14, y, ' ', fg, bg);
+    if v >= 100 {
+        uc_set(x + llen + 15, y, '0' + v / 100, UC_CYAN, bg);
+        v = v % 100;
+        uc_set(x + llen + 16, y, '0' + v / 10, UC_CYAN, bg);
+        uc_set(x + llen + 17, y, '0' + v % 10, UC_CYAN, bg);
+    } else {
+        if v >= 10 {
+            uc_set(x + llen + 15, y, '0' + v / 10, UC_CYAN, bg);
+            uc_set(x + llen + 16, y, '0' + v % 10, UC_CYAN, bg);
+        } else {
+            uc_set(x + llen + 15, y, '0' + v, UC_CYAN, bg);
+        }
+    }
+    uc_set(x + llen + 19, y, '%', UC_GREEN, bg);
+    return 0;
+}
