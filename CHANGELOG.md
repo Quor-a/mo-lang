@@ -1,3 +1,12 @@
+## [1.452.0]
+
+- lib/uic.mo 新增下载进度行：
+  - uc_download_row：[v] file.zip 30%
+  - 用于下载管理器、文件传输
+- tests/101_uic.mo 覆盖下载进度行。
+- E2E：file.zip 30% / game.iso 75% 正确渲染。
+- 门禁：tests 249/249、projcheck 11/11、自举三级一致、sweep 全绿。
+
 ## [1.451.0]
 
 - lib/uic.mo 新增上传进度行：
