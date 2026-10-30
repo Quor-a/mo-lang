@@ -1,3 +1,19 @@
+## [1.750.0]
+
+- lib/uic_edge.mo 继续新增边缘计算画布组件（v1.741~v1.750，10 个）：
+  - uc_edge_ml_pipeline_row：边缘 ML 管道行 [M] train-pipe Running 5 stages
+  - uc_edge_model_registry_row：边缘模型注册表行 [R] model-registry 12 models Active
+  - uc_edge_ml_model_version_row：边缘模型版本行 [V] yolov5 2.1.0 Active
+  - uc_edge_inference_endpoint_row：边缘推理端点行 [E] detect-endpoint Running 15ms
+  - uc_edge_batch_job_row：边缘批处理任务行 [B] batch-infer 1000 items Succeeded
+  - uc_edge_label_job_row：边缘数据标注行 [L] label-cam 5000 images In Progress
+  - uc_edge_train_job_row：边缘训练任务行 [T] train-yolo Running epoch 5/50
+  - uc_edge_eval_job_row：边缘评估任务行 [E] eval-yolo Completed acc 0.92
+  - uc_edge_feature_store_row：边缘特征存储行 [F] edge-features 500 features Active
+  - uc_edge_model_alert_row：边缘模型监控告警行 [A] drift-alert Data Drift Warning
+- tests/101_uic.mo 覆盖全部新增组件。
+- 门禁：tests 249/249、projcheck 11/11、自举三级一致、sweep 全绿。
+
 ## [1.740.0]
 
 - lib/uic_edge.mo 继续新增边缘计算画布组件（v1.731~v1.740，10 个）：

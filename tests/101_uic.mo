@@ -436,6 +436,16 @@ fn main() -> i64 {
     uc_edge_connector_row(12, 2, "cloud-connector", "AWS", 1, UC_WHITE, UC_BLUE);
     uc_edge_lake_row(1, 2, "edge-lake", "5TB", 3, UC_WHITE, UC_BLUE);
     uc_edge_warehouse_row(12, 2, "edge-wh", "2TB", 50, UC_WHITE, UC_BLUE);
+    uc_edge_ml_pipeline_row(1, 2, "train-pipe", 5, 1, UC_WHITE, UC_BLUE);
+    uc_edge_model_registry_row(12, 2, "model-registry", 12, 1, UC_WHITE, UC_BLUE);
+    uc_edge_ml_model_version_row(1, 2, "yolov5", "2.1.0", 1, UC_WHITE, UC_BLUE);
+    uc_edge_inference_endpoint_row(12, 2, "detect-endpoint", 1, "15ms", UC_WHITE, UC_BLUE);
+    uc_edge_batch_job_row(1, 2, "batch-infer", 1000, 1, UC_WHITE, UC_BLUE);
+    uc_edge_label_job_row(12, 2, "label-cam", 5000, 1, UC_WHITE, UC_BLUE);
+    uc_edge_train_job_row(1, 2, "train-yolo", 5, 1, UC_WHITE, UC_BLUE);
+    uc_edge_eval_job_row(12, 2, "eval-yolo", 1, "acc 0.92", UC_WHITE, UC_BLUE);
+    uc_edge_feature_store_row(1, 2, "edge-features", 500, 1, UC_WHITE, UC_BLUE);
+    uc_edge_model_alert_row(12, 2, "drift-alert", "Data Drift", 1, UC_WHITE, UC_BLUE);
     uc_dump_svg("/tmp/uic_dump_test.svg");
     uc_render();
     return 0;
