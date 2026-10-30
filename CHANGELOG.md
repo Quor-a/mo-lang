@@ -1,3 +1,19 @@
+## [1.500.0]
+
+- lib/uic.mo 大版本批量新增 10 个画布组件：
+  - uc_api_row：API 状态行 [A] /v1/users 200 OK
+  - uc_pipeline_row：流水线行 [P] release 3 stages Green
+  - uc_sla_row：SLA 状态行 [S] uptime 99.9% Met
+  - uc_feature_flag_row：功能开关行 [F] new-checkout ON
+  - uc_sd_row：服务发现行 [S] auth-service 3 instances
+  - uc_fingerprint_row：证书指纹行 [F] SHA256 a3:4f:...
+  - uc_route_row：路由行 [R] /api/users auth-service
+  - uc_cluster_node_row：集群节点行 [N] node-01 Ready
+  - uc_audit_row：审计日志行 [A] 14:05 user login OK
+  - uc_deploy_target_row：部署目标行 [T] prod Healthy
+- tests/101_uic.mo 覆盖全部新增组件。
+- 门禁：tests 249/249、projcheck 11/11、自举三级一致、sweep 全绿。
+
 ## [1.491.0]
 
 - lib/uic.mo 新增部署目标行：

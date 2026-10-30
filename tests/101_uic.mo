@@ -186,6 +186,15 @@ fn main() -> i64 {
     uc_ip_bind_row(1, 2, 8080, "1", 1, UC_WHITE, UC_BLUE);
     uc_backup_row(12, 2, "n", 2, UC_WHITE, UC_BLUE);
     uc_deploy_target_row(1, 2, "p", 1, UC_WHITE, UC_BLUE);
+    uc_api_row(12, 2, "/v1", 200, 1, UC_WHITE, UC_BLUE);
+    uc_pipeline_row(1, 2, "rel", 3, 1, UC_WHITE, UC_BLUE);
+    uc_sla_row(12, 2, "up", 999, 1, UC_WHITE, UC_BLUE);
+    uc_feature_flag_row(1, 2, "nc", 1, UC_WHITE, UC_BLUE);
+    uc_sd_row(12, 2, "auth", 3, UC_WHITE, UC_BLUE);
+    uc_fingerprint_row(1, 2, "S", "a3", UC_WHITE, UC_BLUE);
+    uc_route_row(12, 2, "/api", "auth", UC_WHITE, UC_BLUE);
+    uc_cluster_node_row(1, 2, "node", 1, UC_WHITE, UC_BLUE);
+    uc_audit_row(12, 2, "14:05", "login", 1, UC_WHITE, UC_BLUE);
     uc_dump_svg("/tmp/uic_dump_test.svg");
     uc_render();
     return 0;

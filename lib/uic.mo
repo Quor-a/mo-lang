@@ -6461,3 +6461,318 @@ fn uc_deploy_target_row(x: i64, y: i64, name: ptr, state: i64, fg: i64, bg: i64)
     }
     return 0;
 }
+
+# ============ v1.492 API 状态行 ============
+
+# uc_api_row：绘制 API 状态行 [A]  /v1/users  200 OK
+# path 为 API 路径，code 为状态码，ok 0=失败 1=成功。
+# 用于 API 监控、接口状态。
+fn uc_api_row(x: i64, y: i64, path: ptr, code: i64, ok: i64, fg: i64, bg: i64) -> i64 {
+    let plen: i64 = 0;
+    let i: i64 = 0;
+    plen = strlen(path);
+    uc_set(x, y, '[', UC_CYAN, bg);
+    uc_set(x + 1, y, 'A', UC_CYAN, bg);
+    uc_set(x + 2, y, ']', UC_CYAN, bg);
+    uc_set(x + 5, y, ' ', fg, bg);
+    i = 0;
+    while i < plen {
+        uc_set(x + 6 + i, y, path[i], UC_YELLOW, bg);
+        i = i + 1;
+    }
+    uc_set(x + 8 + plen, y, ' ', fg, bg);
+    uc_set(x + 9 + plen, y, '0' + code / 100, UC_WHITE, bg);
+    uc_set(x + 10 + plen, y, '0' + (code / 10) % 10, UC_WHITE, bg);
+    uc_set(x + 11 + plen, y, '0' + code % 10, UC_WHITE, bg);
+    uc_set(x + 12 + plen, y, ' ', UC_WHITE, bg);
+    if ok != 0 {
+        uc_set(x + 13 + plen, y, 'O', UC_GREEN, bg);
+        uc_set(x + 14 + plen, y, 'K', UC_GREEN, bg);
+    } else {
+        uc_set(x + 13 + plen, y, 'E', UC_RED, bg);
+        uc_set(x + 14 + plen, y, 'R', UC_RED, bg);
+        uc_set(x + 15 + plen, y, 'R', UC_RED, bg);
+    }
+    return 0;
+}
+
+# ============ v1.493 流水线行 ============
+
+# uc_pipeline_row：绘制流水线行 [P]  release  3 stages  Green
+# name 为流水线名，stages 为阶段数，state 0=红 1=绿。
+# 用于 CI/CD 流水线概览。
+fn uc_pipeline_row(x: i64, y: i64, name: ptr, stages: i64, state: i64, fg: i64, bg: i64) -> i64 {
+    let nlen: i64 = 0;
+    let i: i64 = 0;
+    nlen = strlen(name);
+    uc_set(x, y, '[', UC_MAGENTA, bg);
+    uc_set(x + 1, y, 'P', UC_MAGENTA, bg);
+    uc_set(x + 2, y, ']', UC_MAGENTA, bg);
+    uc_set(x + 5, y, ' ', fg, bg);
+    i = 0;
+    while i < nlen {
+        uc_set(x + 6 + i, y, name[i], UC_YELLOW, bg);
+        i = i + 1;
+    }
+    uc_set(x + 8 + nlen, y, ' ', fg, bg);
+    uc_set(x + 9 + nlen, y, '0' + stages / 10, UC_CYAN, bg);
+    uc_set(x + 10 + nlen, y, '0' + stages % 10, UC_CYAN, bg);
+    uc_set(x + 11 + nlen, y, ' ', UC_CYAN, bg);
+    uc_set(x + 12 + nlen, y, 's', UC_CYAN, bg);
+    uc_set(x + 13 + nlen, y, 't', UC_CYAN, bg);
+    uc_set(x + 14 + nlen, y, 'a', UC_CYAN, bg);
+    uc_set(x + 15 + nlen, y, 'g', UC_CYAN, bg);
+    uc_set(x + 16 + nlen, y, 'e', UC_CYAN, bg);
+    uc_set(x + 17 + nlen, y, 's', UC_CYAN, bg);
+    uc_set(x + 19 + nlen, y, ' ', fg, bg);
+    if state != 0 {
+        uc_set(x + 20 + nlen, y, 'G', UC_GREEN, bg);
+        uc_set(x + 21 + nlen, y, 'r', UC_GREEN, bg);
+        uc_set(x + 22 + nlen, y, 'e', UC_GREEN, bg);
+        uc_set(x + 23 + nlen, y, 'e', UC_GREEN, bg);
+        uc_set(x + 24 + nlen, y, 'n', UC_GREEN, bg);
+    } else {
+        uc_set(x + 20 + nlen, y, 'R', UC_RED, bg);
+        uc_set(x + 21 + nlen, y, 'e', UC_RED, bg);
+        uc_set(x + 22 + nlen, y, 'd', UC_RED, bg);
+    }
+    return 0;
+}
+
+# ============ v1.494 SLA 状态行 ============
+
+# uc_sla_row：绘制 SLA 状态行 [S]  uptime  99.9%  Met
+# name 为 SLA 名，value 为达标值，state 0=未达标 1=达标。
+# 用于服务等级协议监控。
+fn uc_sla_row(x: i64, y: i64, name: ptr, value: i64, state: i64, fg: i64, bg: i64) -> i64 {
+    let nlen: i64 = 0;
+    let i: i64 = 0;
+    nlen = strlen(name);
+    uc_set(x, y, '[', UC_YELLOW, bg);
+    uc_set(x + 1, y, 'S', UC_YELLOW, bg);
+    uc_set(x + 2, y, ']', UC_YELLOW, bg);
+    uc_set(x + 5, y, ' ', fg, bg);
+    i = 0;
+    while i < nlen {
+        uc_set(x + 6 + i, y, name[i], UC_YELLOW, bg);
+        i = i + 1;
+    }
+    uc_set(x + 8 + nlen, y, ' ', fg, bg);
+    uc_set(x + 9 + nlen, y, '0' + value / 100, UC_CYAN, bg);
+    uc_set(x + 10 + nlen, y, '.', UC_CYAN, bg);
+    uc_set(x + 11 + nlen, y, '0' + (value / 10) % 10, UC_CYAN, bg);
+    uc_set(x + 12 + nlen, y, '0' + value % 10, UC_CYAN, bg);
+    uc_set(x + 13 + nlen, y, '%', UC_CYAN, bg);
+    uc_set(x + 15 + nlen, y, ' ', fg, bg);
+    if state != 0 {
+        uc_set(x + 16 + nlen, y, 'M', UC_GREEN, bg);
+        uc_set(x + 17 + nlen, y, 'e', UC_GREEN, bg);
+        uc_set(x + 18 + nlen, y, 't', UC_GREEN, bg);
+    } else {
+        uc_set(x + 16 + nlen, y, 'M', UC_RED, bg);
+        uc_set(x + 17 + nlen, y, 'i', UC_RED, bg);
+        uc_set(x + 18 + nlen, y, 's', UC_RED, bg);
+        uc_set(x + 19 + nlen, y, 's', UC_RED, bg);
+        uc_set(x + 20 + nlen, y, 'e', UC_RED, bg);
+        uc_set(x + 21 + nlen, y, 'd', UC_RED, bg);
+    }
+    return 0;
+}
+
+# ============ v1.495 功能开关行 ============
+
+# uc_feature_flag_row：绘制功能开关行 [F]  new-checkout  ON
+# name 为开关名，state 0=关 1=开。
+# 用于功能开关、灰度发布。
+fn uc_feature_flag_row(x: i64, y: i64, name: ptr, state: i64, fg: i64, bg: i64) -> i64 {
+    let nlen: i64 = 0;
+    let i: i64 = 0;
+    nlen = strlen(name);
+    uc_set(x, y, '[', UC_GREEN, bg);
+    uc_set(x + 1, y, 'F', UC_GREEN, bg);
+    uc_set(x + 2, y, ']', UC_GREEN, bg);
+    uc_set(x + 5, y, ' ', fg, bg);
+    i = 0;
+    while i < nlen {
+        uc_set(x + 6 + i, y, name[i], UC_YELLOW, bg);
+        i = i + 1;
+    }
+    uc_set(x + 8 + nlen, y, ' ', fg, bg);
+    if state != 0 {
+        uc_set(x + 9 + nlen, y, 'O', UC_GREEN, bg);
+        uc_set(x + 10 + nlen, y, 'N', UC_GREEN, bg);
+    } else {
+        uc_set(x + 9 + nlen, y, 'O', UC_RED, bg);
+        uc_set(x + 10 + nlen, y, 'F', UC_RED, bg);
+        uc_set(x + 11 + nlen, y, 'F', UC_RED, bg);
+    }
+    return 0;
+}
+
+# ============ v1.496 服务发现行 ============
+
+# uc_sd_row：绘制服务发现行 [S]  auth-service  3 instances
+# name 为服务名，instances 为实例数。
+# 用于服务注册与发现。
+fn uc_sd_row(x: i64, y: i64, name: ptr, instances: i64, fg: i64, bg: i64) -> i64 {
+    let nlen: i64 = 0;
+    let i: i64 = 0;
+    nlen = strlen(name);
+    uc_set(x, y, '[', UC_CYAN, bg);
+    uc_set(x + 1, y, 'S', UC_CYAN, bg);
+    uc_set(x + 2, y, ']', UC_CYAN, bg);
+    uc_set(x + 5, y, ' ', fg, bg);
+    i = 0;
+    while i < nlen {
+        uc_set(x + 6 + i, y, name[i], UC_YELLOW, bg);
+        i = i + 1;
+    }
+    uc_set(x + 8 + nlen, y, ' ', fg, bg);
+    uc_set(x + 9 + nlen, y, '0' + instances, UC_CYAN, bg);
+    uc_set(x + 10 + nlen, y, ' ', UC_CYAN, bg);
+    uc_set(x + 11 + nlen, y, 'i', UC_CYAN, bg);
+    uc_set(x + 12 + nlen, y, 'n', UC_CYAN, bg);
+    uc_set(x + 13 + nlen, y, 's', UC_CYAN, bg);
+    uc_set(x + 14 + nlen, y, 't', UC_CYAN, bg);
+    uc_set(x + 15 + nlen, y, 'a', UC_CYAN, bg);
+    uc_set(x + 16 + nlen, y, 'n', UC_CYAN, bg);
+    uc_set(x + 17 + nlen, y, 'c', UC_CYAN, bg);
+    uc_set(x + 18 + nlen, y, 'e', UC_CYAN, bg);
+    uc_set(x + 19 + nlen, y, 's', UC_CYAN, bg);
+    return 0;
+}
+
+# ============ v1.497 证书指纹行 ============
+
+# uc_fingerprint_row：绘制证书指纹行 [F]  SHA256  a3:4f:...
+# algo 为算法名，fp 为指纹前缀。
+# 用于证书指纹展示。
+fn uc_fingerprint_row(x: i64, y: i64, algo: ptr, fp: ptr, fg: i64, bg: i64) -> i64 {
+    let alen: i64 = 0;
+    let flen: i64 = 0;
+    let i: i64 = 0;
+    alen = strlen(algo);
+    flen = strlen(fp);
+    uc_set(x, y, '[', UC_MAGENTA, bg);
+    uc_set(x + 1, y, 'F', UC_MAGENTA, bg);
+    uc_set(x + 2, y, ']', UC_MAGENTA, bg);
+    uc_set(x + 5, y, ' ', fg, bg);
+    i = 0;
+    while i < alen {
+        uc_set(x + 6 + i, y, algo[i], UC_YELLOW, bg);
+        i = i + 1;
+    }
+    uc_set(x + 8 + alen, y, ' ', fg, bg);
+    i = 0;
+    while i < flen {
+        uc_set(x + 9 + alen + i, y, fp[i], UC_CYAN, bg);
+        i = i + 1;
+    }
+    return 0;
+}
+
+# ============ v1.498 路由行 ============
+
+# uc_route_row：绘制路由行 [R]  /api/users  auth-service
+# path 为路由路径，target 为目标服务。
+# 用于 API 网关、路由表。
+fn uc_route_row(x: i64, y: i64, path: ptr, target: ptr, fg: i64, bg: i64) -> i64 {
+    let plen: i64 = 0;
+    let tlen: i64 = 0;
+    let i: i64 = 0;
+    plen = strlen(path);
+    tlen = strlen(target);
+    uc_set(x, y, '[', UC_GREEN, bg);
+    uc_set(x + 1, y, 'R', UC_GREEN, bg);
+    uc_set(x + 2, y, ']', UC_GREEN, bg);
+    uc_set(x + 5, y, ' ', fg, bg);
+    i = 0;
+    while i < plen {
+        uc_set(x + 6 + i, y, path[i], UC_YELLOW, bg);
+        i = i + 1;
+    }
+    uc_set(x + 8 + plen, y, ' ', fg, bg);
+    i = 0;
+    while i < tlen {
+        uc_set(x + 9 + plen + i, y, target[i], UC_CYAN, bg);
+        i = i + 1;
+    }
+    return 0;
+}
+
+# ============ v1.499 集群节点行 ============
+
+# uc_cluster_node_row：绘制集群节点行 [N]  node-01  Ready
+# name 为节点名，state 0=异常 1=就绪。
+# 用于 Kubernetes 节点管理。
+fn uc_cluster_node_row(x: i64, y: i64, name: ptr, state: i64, fg: i64, bg: i64) -> i64 {
+    let nlen: i64 = 0;
+    let i: i64 = 0;
+    nlen = strlen(name);
+    uc_set(x, y, '[', UC_CYAN, bg);
+    uc_set(x + 1, y, 'N', UC_CYAN, bg);
+    uc_set(x + 2, y, ']', UC_CYAN, bg);
+    uc_set(x + 5, y, ' ', fg, bg);
+    i = 0;
+    while i < nlen {
+        uc_set(x + 6 + i, y, name[i], UC_YELLOW, bg);
+        i = i + 1;
+    }
+    uc_set(x + 8 + nlen, y, ' ', fg, bg);
+    if state != 0 {
+        uc_set(x + 9 + nlen, y, 'R', UC_GREEN, bg);
+        uc_set(x + 10 + nlen, y, 'e', UC_GREEN, bg);
+        uc_set(x + 11 + nlen, y, 'a', UC_GREEN, bg);
+        uc_set(x + 12 + nlen, y, 'd', UC_GREEN, bg);
+        uc_set(x + 13 + nlen, y, 'y', UC_GREEN, bg);
+    } else {
+        uc_set(x + 9 + nlen, y, 'N', UC_RED, bg);
+        uc_set(x + 10 + nlen, y, 'o', UC_RED, bg);
+        uc_set(x + 11 + nlen, y, 't', UC_RED, bg);
+        uc_set(x + 12 + nlen, y, 'R', UC_RED, bg);
+        uc_set(x + 13 + nlen, y, 'e', UC_RED, bg);
+        uc_set(x + 14 + nlen, y, 'a', UC_RED, bg);
+        uc_set(x + 15 + nlen, y, 'd', UC_RED, bg);
+        uc_set(x + 16 + nlen, y, 'y', UC_RED, bg);
+    }
+    return 0;
+}
+
+# ============ v1.500 审计日志行 ============
+
+# uc_audit_row：绘制审计日志行 [A]  14:05  user login  OK
+# time 为时间，action 为动作，state 0=失败 1=成功。
+# 用于审计日志展示。
+fn uc_audit_row(x: i64, y: i64, time: ptr, action: ptr, state: i64, fg: i64, bg: i64) -> i64 {
+    let tlen: i64 = 0;
+    let alen: i64 = 0;
+    let i: i64 = 0;
+    tlen = strlen(time);
+    alen = strlen(action);
+    uc_set(x, y, '[', UC_YELLOW, bg);
+    uc_set(x + 1, y, 'A', UC_YELLOW, bg);
+    uc_set(x + 2, y, ']', UC_YELLOW, bg);
+    uc_set(x + 5, y, ' ', fg, bg);
+    i = 0;
+    while i < tlen {
+        uc_set(x + 6 + i, y, time[i], UC_CYAN, bg);
+        i = i + 1;
+    }
+    uc_set(x + 8 + tlen, y, ' ', fg, bg);
+    i = 0;
+    while i < alen {
+        uc_set(x + 9 + tlen + i, y, action[i], UC_WHITE, bg);
+        i = i + 1;
+    }
+    uc_set(x + 11 + tlen + alen, y, ' ', fg, bg);
+    if state != 0 {
+        uc_set(x + 12 + tlen + alen, y, 'O', UC_GREEN, bg);
+        uc_set(x + 13 + tlen + alen, y, 'K', UC_GREEN, bg);
+    } else {
+        uc_set(x + 12 + tlen + alen, y, 'F', UC_RED, bg);
+        uc_set(x + 13 + tlen + alen, y, 'A', UC_RED, bg);
+        uc_set(x + 14 + tlen + alen, y, 'I', UC_RED, bg);
+        uc_set(x + 15 + tlen + alen, y, 'L', UC_RED, bg);
+    }
+    return 0;
+}
