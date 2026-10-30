@@ -576,6 +576,16 @@ fn main() -> i64 {
     uc_edge_cost_analysis_row(12, 2, "cost-01", "120USD", 5, UC_WHITE, UC_BLUE);
     uc_edge_perf_compare_row(1, 2, "bench-a", "+15%", "bench-b", UC_WHITE, UC_BLUE);
     uc_edge_perf_tuning_row(12, 2, "tune-01", "Reduce IO", 3, UC_WHITE, UC_BLUE);
+    uc_edge_ml_train_row(1, 2, "train-yolo", 85, "Running", UC_WHITE, UC_BLUE);
+    uc_edge_model_infer_row(12, 2, "infer-yolo", "20ms", 500, UC_WHITE, UC_BLUE);
+    uc_edge_model_opt_row(1, 2, "opt-yolo", "INT8", "40%", UC_WHITE, UC_BLUE);
+    uc_edge_model_convert_row(12, 2, "convert-01", "ONNX-TFLite", "Done", UC_WHITE, UC_BLUE);
+    uc_edge_model_deploy_row(1, 2, "deploy-yolo", "Deployed", 10, UC_WHITE, UC_BLUE);
+    uc_edge_model_monitor_row2(12, 2, "monitor-yolo", "Healthy", 99, UC_WHITE, UC_BLUE);
+    uc_edge_model_drift_row(1, 2, "drift-yolo", "Detected", 5, UC_WHITE, UC_BLUE);
+    uc_edge_model_version_row2(12, 2, "yolo", "v3.1", 5, UC_WHITE, UC_BLUE);
+    uc_edge_model_rollback_row(1, 2, "rollback-01", "v3.0", "Completed", UC_WHITE, UC_BLUE);
+    uc_edge_model_abtest_row(12, 2, "ab-yolo", "A", 60, UC_WHITE, UC_BLUE);
     uc_dump_svg("/tmp/uic_dump_test.svg");
     uc_render();
     return 0;

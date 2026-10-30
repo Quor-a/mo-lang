@@ -8594,3 +8594,374 @@ fn uc_edge_perf_tuning_row(x: i64, y: i64, name: ptr, area: ptr, actions: i64, f
     uc_set(x + 20 + nlen + alen, y, 's', UC_CYAN, bg);
     return 0;
 }
+
+# ============ v1.881 边缘机器学习训练行 ============
+
+# uc_edge_ml_train_row：绘制边缘机器学习训练行 [T]  train-yolo  85% acc  Running
+# name 为训练名，accuracy 为准确率，state 为状态。
+# 用于边缘机器学习训练管理。
+fn uc_edge_ml_train_row(x: i64, y: i64, name: ptr, accuracy: i64, state: ptr, fg: i64, bg: i64) -> i64 {
+    let nlen: i64 = 0;
+    let slen: i64 = 0;
+    let i: i64 = 0;
+    nlen = strlen(name);
+    slen = strlen(state);
+    uc_set(x, y, '[', UC_CYAN, bg);
+    uc_set(x + 1, y, 'T', UC_CYAN, bg);
+    uc_set(x + 2, y, ']', UC_CYAN, bg);
+    uc_set(x + 5, y, ' ', fg, bg);
+    i = 0;
+    while i < nlen {
+        uc_set(x + 6 + i, y, name[i], UC_YELLOW, bg);
+        i = i + 1;
+    }
+    uc_set(x + 8 + nlen, y, ' ', fg, bg);
+    uc_set(x + 9 + nlen, y, '0' + accuracy / 10, UC_GREEN, bg);
+    uc_set(x + 10 + nlen, y, '0' + accuracy % 10, UC_GREEN, bg);
+    uc_set(x + 11 + nlen, y, '%', UC_GREEN, bg);
+    uc_set(x + 12 + nlen, y, ' ', UC_GREEN, bg);
+    uc_set(x + 13 + nlen, y, 'a', UC_GREEN, bg);
+    uc_set(x + 14 + nlen, y, 'c', UC_GREEN, bg);
+    uc_set(x + 15 + nlen, y, 'c', UC_GREEN, bg);
+    uc_set(x + 17 + nlen, y, ' ', fg, bg);
+    i = 0;
+    while i < slen {
+        uc_set(x + 18 + nlen + i, y, state[i], UC_MAGENTA, bg);
+        i = i + 1;
+    }
+    return 0;
+}
+
+# ============ v1.882 边缘模型推理行 ============
+
+# uc_edge_model_infer_row：绘制边缘模型推理行 [I]  infer-yolo  20ms infer  500 fps
+# name 为推理名，latency 为延迟，fps 为帧率。
+# 用于边缘模型推理管理。
+fn uc_edge_model_infer_row(x: i64, y: i64, name: ptr, latency: ptr, fps: i64, fg: i64, bg: i64) -> i64 {
+    let nlen: i64 = 0;
+    let llen: i64 = 0;
+    let i: i64 = 0;
+    nlen = strlen(name);
+    llen = strlen(latency);
+    uc_set(x, y, '[', UC_MAGENTA, bg);
+    uc_set(x + 1, y, 'I', UC_MAGENTA, bg);
+    uc_set(x + 2, y, ']', UC_MAGENTA, bg);
+    uc_set(x + 5, y, ' ', fg, bg);
+    i = 0;
+    while i < nlen {
+        uc_set(x + 6 + i, y, name[i], UC_YELLOW, bg);
+        i = i + 1;
+    }
+    uc_set(x + 8 + nlen, y, ' ', fg, bg);
+    i = 0;
+    while i < llen {
+        uc_set(x + 9 + nlen + i, y, latency[i], UC_WHITE, bg);
+        i = i + 1;
+    }
+    uc_set(x + 11 + nlen + llen, y, ' ', fg, bg);
+    uc_set(x + 12 + nlen + llen, y, '0' + fps / 100, UC_GREEN, bg);
+    uc_set(x + 13 + nlen + llen, y, '0' + (fps / 10) % 10, UC_GREEN, bg);
+    uc_set(x + 14 + nlen + llen, y, '0' + fps % 10, UC_GREEN, bg);
+    uc_set(x + 15 + nlen + llen, y, ' ', UC_GREEN, bg);
+    uc_set(x + 16 + nlen + llen, y, 'f', UC_GREEN, bg);
+    uc_set(x + 17 + nlen + llen, y, 'p', UC_GREEN, bg);
+    uc_set(x + 18 + nlen + llen, y, 's', UC_GREEN, bg);
+    return 0;
+}
+
+# ============ v1.883 边缘模型优化行 ============
+
+# uc_edge_model_opt_row：绘制边缘模型优化行 [O]  opt-yolo  INT8  40% smaller
+# name 为优化名，precision 为精度，size 为大小。
+# 用于边缘模型优化管理。
+fn uc_edge_model_opt_row(x: i64, y: i64, name: ptr, precision: ptr, size: ptr, fg: i64, bg: i64) -> i64 {
+    let nlen: i64 = 0;
+    let plen: i64 = 0;
+    let sizlen: i64 = 0;
+    let i: i64 = 0;
+    nlen = strlen(name);
+    plen = strlen(precision);
+    sizlen = strlen(size);
+    uc_set(x, y, '[', UC_GREEN, bg);
+    uc_set(x + 1, y, 'O', UC_GREEN, bg);
+    uc_set(x + 2, y, ']', UC_GREEN, bg);
+    uc_set(x + 5, y, ' ', fg, bg);
+    i = 0;
+    while i < nlen {
+        uc_set(x + 6 + i, y, name[i], UC_YELLOW, bg);
+        i = i + 1;
+    }
+    uc_set(x + 8 + nlen, y, ' ', fg, bg);
+    i = 0;
+    while i < plen {
+        uc_set(x + 9 + nlen + i, y, precision[i], UC_WHITE, bg);
+        i = i + 1;
+    }
+    uc_set(x + 11 + nlen + plen, y, ' ', fg, bg);
+    i = 0;
+    while i < sizlen {
+        uc_set(x + 12 + nlen + plen + i, y, size[i], UC_CYAN, bg);
+        i = i + 1;
+    }
+    return 0;
+}
+
+# ============ v1.884 边缘模型转换行 ============
+
+# uc_edge_model_convert_row：绘制边缘模型转换行 [C]  convert-01  ONNX→TFLite  Done
+# name 为转换名，format 为格式，state 为状态。
+# 用于边缘模型转换管理。
+fn uc_edge_model_convert_row(x: i64, y: i64, name: ptr, format: ptr, state: ptr, fg: i64, bg: i64) -> i64 {
+    let nlen: i64 = 0;
+    let flen: i64 = 0;
+    let slen: i64 = 0;
+    let i: i64 = 0;
+    nlen = strlen(name);
+    flen = strlen(format);
+    slen = strlen(state);
+    uc_set(x, y, '[', UC_CYAN, bg);
+    uc_set(x + 1, y, 'C', UC_CYAN, bg);
+    uc_set(x + 2, y, ']', UC_CYAN, bg);
+    uc_set(x + 5, y, ' ', fg, bg);
+    i = 0;
+    while i < nlen {
+        uc_set(x + 6 + i, y, name[i], UC_YELLOW, bg);
+        i = i + 1;
+    }
+    uc_set(x + 8 + nlen, y, ' ', fg, bg);
+    i = 0;
+    while i < flen {
+        uc_set(x + 9 + nlen + i, y, format[i], UC_WHITE, bg);
+        i = i + 1;
+    }
+    uc_set(x + 11 + nlen + flen, y, ' ', fg, bg);
+    i = 0;
+    while i < slen {
+        uc_set(x + 12 + nlen + flen + i, y, state[i], UC_GREEN, bg);
+        i = i + 1;
+    }
+    return 0;
+}
+
+# ============ v1.885 边缘模型部署行 ============
+
+# uc_edge_model_deploy_row：绘制边缘模型部署行 [D]  deploy-yolo  Deployed  10 devices
+# name 为部署名，state 为状态，devices 为设备数。
+# 用于边缘模型部署管理。
+fn uc_edge_model_deploy_row(x: i64, y: i64, name: ptr, state: ptr, devices: i64, fg: i64, bg: i64) -> i64 {
+    let nlen: i64 = 0;
+    let slen: i64 = 0;
+    let i: i64 = 0;
+    nlen = strlen(name);
+    slen = strlen(state);
+    uc_set(x, y, '[', UC_MAGENTA, bg);
+    uc_set(x + 1, y, 'D', UC_MAGENTA, bg);
+    uc_set(x + 2, y, ']', UC_MAGENTA, bg);
+    uc_set(x + 5, y, ' ', fg, bg);
+    i = 0;
+    while i < nlen {
+        uc_set(x + 6 + i, y, name[i], UC_YELLOW, bg);
+        i = i + 1;
+    }
+    uc_set(x + 8 + nlen, y, ' ', fg, bg);
+    i = 0;
+    while i < slen {
+        uc_set(x + 9 + nlen + i, y, state[i], UC_WHITE, bg);
+        i = i + 1;
+    }
+    uc_set(x + 11 + nlen + slen, y, ' ', fg, bg);
+    uc_set(x + 12 + nlen + slen, y, '0' + devices, UC_CYAN, bg);
+    uc_set(x + 13 + nlen + slen, y, ' ', UC_CYAN, bg);
+    uc_set(x + 14 + nlen + slen, y, 'd', UC_CYAN, bg);
+    uc_set(x + 15 + nlen + slen, y, 'e', UC_CYAN, bg);
+    uc_set(x + 16 + nlen + slen, y, 'v', UC_CYAN, bg);
+    uc_set(x + 17 + nlen + slen, y, 'i', UC_CYAN, bg);
+    uc_set(x + 18 + nlen + slen, y, 'c', UC_CYAN, bg);
+    uc_set(x + 19 + nlen + slen, y, 'e', UC_CYAN, bg);
+    uc_set(x + 20 + nlen + slen, y, 's', UC_CYAN, bg);
+    return 0;
+}
+
+# ============ v1.886 边缘模型监控行 ============
+
+# uc_edge_model_monitor_row：绘制边缘模型监控行 [M]  monitor-yolo  Healthy  99% up
+# name 为监控名，state 为状态，uptime 为可用率。
+# 用于边缘模型监控管理。
+fn uc_edge_model_monitor_row2(x: i64, y: i64, name: ptr, state: ptr, uptime: i64, fg: i64, bg: i64) -> i64 {
+    let nlen: i64 = 0;
+    let slen: i64 = 0;
+    let i: i64 = 0;
+    nlen = strlen(name);
+    slen = strlen(state);
+    uc_set(x, y, '[', UC_GREEN, bg);
+    uc_set(x + 1, y, 'M', UC_GREEN, bg);
+    uc_set(x + 2, y, ']', UC_GREEN, bg);
+    uc_set(x + 5, y, ' ', fg, bg);
+    i = 0;
+    while i < nlen {
+        uc_set(x + 6 + i, y, name[i], UC_YELLOW, bg);
+        i = i + 1;
+    }
+    uc_set(x + 8 + nlen, y, ' ', fg, bg);
+    i = 0;
+    while i < slen {
+        uc_set(x + 9 + nlen + i, y, state[i], UC_WHITE, bg);
+        i = i + 1;
+    }
+    uc_set(x + 11 + nlen + slen, y, ' ', fg, bg);
+    uc_set(x + 12 + nlen + slen, y, '0' + uptime / 10, UC_CYAN, bg);
+    uc_set(x + 13 + nlen + slen, y, '0' + uptime % 10, UC_CYAN, bg);
+    uc_set(x + 14 + nlen + slen, y, '%', UC_CYAN, bg);
+    uc_set(x + 15 + nlen + slen, y, ' ', UC_CYAN, bg);
+    uc_set(x + 16 + nlen + slen, y, 'u', UC_CYAN, bg);
+    uc_set(x + 17 + nlen + slen, y, 'p', UC_CYAN, bg);
+    return 0;
+}
+
+# ============ v1.887 边缘模型漂移检测行 ============
+
+# uc_edge_model_drift_row：绘制边缘模型漂移检测行 [D]  drift-yolo  Detected  0.05
+# name 为检测名，state 为状态，score 为分数。
+# 用于边缘模型漂移检测管理。
+fn uc_edge_model_drift_row(x: i64, y: i64, name: ptr, state: ptr, score: i64, fg: i64, bg: i64) -> i64 {
+    let nlen: i64 = 0;
+    let slen: i64 = 0;
+    let i: i64 = 0;
+    nlen = strlen(name);
+    slen = strlen(state);
+    uc_set(x, y, '[', UC_YELLOW, bg);
+    uc_set(x + 1, y, 'D', UC_YELLOW, bg);
+    uc_set(x + 2, y, ']', UC_YELLOW, bg);
+    uc_set(x + 5, y, ' ', fg, bg);
+    i = 0;
+    while i < nlen {
+        uc_set(x + 6 + i, y, name[i], UC_YELLOW, bg);
+        i = i + 1;
+    }
+    uc_set(x + 8 + nlen, y, ' ', fg, bg);
+    i = 0;
+    while i < slen {
+        uc_set(x + 9 + nlen + i, y, state[i], UC_WHITE, bg);
+        i = i + 1;
+    }
+    uc_set(x + 11 + nlen + slen, y, ' ', fg, bg);
+    uc_set(x + 12 + nlen + slen, y, '0', UC_MAGENTA, bg);
+    uc_set(x + 13 + nlen + slen, y, '.', UC_MAGENTA, bg);
+    uc_set(x + 14 + nlen + slen, y, '0', UC_MAGENTA, bg);
+    uc_set(x + 15 + nlen + slen, y, '0' + score, UC_MAGENTA, bg);
+    return 0;
+}
+
+# ============ v1.888 边缘模型版本管理行 ============
+
+# uc_edge_model_version_row：绘制边缘模型版本管理行 [V]  yolo  v3.1  5 versions
+# name 为模型名，version 为版本，versions 为版本数。
+# 用于边缘模型版本管理。
+fn uc_edge_model_version_row2(x: i64, y: i64, name: ptr, version: ptr, versions: i64, fg: i64, bg: i64) -> i64 {
+    let nlen: i64 = 0;
+    let vlen: i64 = 0;
+    let i: i64 = 0;
+    nlen = strlen(name);
+    vlen = strlen(version);
+    uc_set(x, y, '[', UC_CYAN, bg);
+    uc_set(x + 1, y, 'V', UC_CYAN, bg);
+    uc_set(x + 2, y, ']', UC_CYAN, bg);
+    uc_set(x + 5, y, ' ', fg, bg);
+    i = 0;
+    while i < nlen {
+        uc_set(x + 6 + i, y, name[i], UC_YELLOW, bg);
+        i = i + 1;
+    }
+    uc_set(x + 8 + nlen, y, ' ', fg, bg);
+    i = 0;
+    while i < vlen {
+        uc_set(x + 9 + nlen + i, y, version[i], UC_WHITE, bg);
+        i = i + 1;
+    }
+    uc_set(x + 11 + nlen + vlen, y, ' ', fg, bg);
+    uc_set(x + 12 + nlen + vlen, y, '0' + versions, UC_MAGENTA, bg);
+    uc_set(x + 13 + nlen + vlen, y, ' ', UC_MAGENTA, bg);
+    uc_set(x + 14 + nlen + vlen, y, 'v', UC_MAGENTA, bg);
+    uc_set(x + 15 + nlen + vlen, y, 'e', UC_MAGENTA, bg);
+    uc_set(x + 16 + nlen + vlen, y, 'r', UC_MAGENTA, bg);
+    uc_set(x + 17 + nlen + vlen, y, 's', UC_MAGENTA, bg);
+    return 0;
+}
+
+# ============ v1.889 边缘模型回滚行 ============
+
+# uc_edge_model_rollback_row：绘制边缘模型回滚行 [R]  rollback-01  v3.0  Completed
+# name 为回滚名，version 为版本，state 为状态。
+# 用于边缘模型回滚管理。
+fn uc_edge_model_rollback_row(x: i64, y: i64, name: ptr, version: ptr, state: ptr, fg: i64, bg: i64) -> i64 {
+    let nlen: i64 = 0;
+    let vlen: i64 = 0;
+    let slen: i64 = 0;
+    let i: i64 = 0;
+    nlen = strlen(name);
+    vlen = strlen(version);
+    slen = strlen(state);
+    uc_set(x, y, '[', UC_MAGENTA, bg);
+    uc_set(x + 1, y, 'R', UC_MAGENTA, bg);
+    uc_set(x + 2, y, ']', UC_MAGENTA, bg);
+    uc_set(x + 5, y, ' ', fg, bg);
+    i = 0;
+    while i < nlen {
+        uc_set(x + 6 + i, y, name[i], UC_YELLOW, bg);
+        i = i + 1;
+    }
+    uc_set(x + 8 + nlen, y, ' ', fg, bg);
+    i = 0;
+    while i < vlen {
+        uc_set(x + 9 + nlen + i, y, version[i], UC_WHITE, bg);
+        i = i + 1;
+    }
+    uc_set(x + 11 + nlen + vlen, y, ' ', fg, bg);
+    i = 0;
+    while i < slen {
+        uc_set(x + 12 + nlen + vlen + i, y, state[i], UC_GREEN, bg);
+        i = i + 1;
+    }
+    return 0;
+}
+
+# ============ v1.890 边缘模型 A/B 测试行 ============
+
+# uc_edge_model_abtest_row：绘制边缘模型 A/B 测试行 [A]  ab-yolo  A wins  60% traffic
+# name 为测试名，winner 为获胜方，traffic 为流量。
+# 用于边缘模型 A/B 测试管理。
+fn uc_edge_model_abtest_row(x: i64, y: i64, name: ptr, winner: ptr, traffic: i64, fg: i64, bg: i64) -> i64 {
+    let nlen: i64 = 0;
+    let wlen: i64 = 0;
+    let i: i64 = 0;
+    nlen = strlen(name);
+    wlen = strlen(winner);
+    uc_set(x, y, '[', UC_GREEN, bg);
+    uc_set(x + 1, y, 'A', UC_GREEN, bg);
+    uc_set(x + 2, y, ']', UC_GREEN, bg);
+    uc_set(x + 5, y, ' ', fg, bg);
+    i = 0;
+    while i < nlen {
+        uc_set(x + 6 + i, y, name[i], UC_YELLOW, bg);
+        i = i + 1;
+    }
+    uc_set(x + 8 + nlen, y, ' ', fg, bg);
+    i = 0;
+    while i < wlen {
+        uc_set(x + 9 + nlen + i, y, winner[i], UC_WHITE, bg);
+        i = i + 1;
+    }
+    uc_set(x + 11 + nlen + wlen, y, ' ', fg, bg);
+    uc_set(x + 12 + nlen + wlen, y, '0' + traffic / 10, UC_CYAN, bg);
+    uc_set(x + 13 + nlen + wlen, y, '0' + traffic % 10, UC_CYAN, bg);
+    uc_set(x + 14 + nlen + wlen, y, '%', UC_CYAN, bg);
+    uc_set(x + 15 + nlen + wlen, y, ' ', UC_CYAN, bg);
+    uc_set(x + 16 + nlen + wlen, y, 't', UC_CYAN, bg);
+    uc_set(x + 17 + nlen + wlen, y, 'r', UC_CYAN, bg);
+    uc_set(x + 18 + nlen + wlen, y, 'a', UC_CYAN, bg);
+    uc_set(x + 19 + nlen + wlen, y, 'f', UC_CYAN, bg);
+    uc_set(x + 20 + nlen + wlen, y, 'f', UC_CYAN, bg);
+    uc_set(x + 21 + nlen + wlen, y, 'i', UC_CYAN, bg);
+    uc_set(x + 22 + nlen + wlen, y, 'c', UC_CYAN, bg);
+    return 0;
+}

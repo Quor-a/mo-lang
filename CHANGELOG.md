@@ -1,3 +1,19 @@
+## [1.890.0]
+
+- lib/uic_edge.mo 继续新增边缘机器学习画布组件（v1.881~v1.890，10 个）：
+  - uc_edge_ml_train_row：边缘机器学习训练行 [T] train-yolo 85% acc Running
+  - uc_edge_model_infer_row：边缘模型推理行 [I] infer-yolo 20ms infer 500 fps
+  - uc_edge_model_opt_row：边缘模型优化行 [O] opt-yolo INT8 40% smaller
+  - uc_edge_model_convert_row：边缘模型转换行 [C] convert-01 ONNX→TFLite Done
+  - uc_edge_model_deploy_row：边缘模型部署行 [D] deploy-yolo Deployed 10 devices
+  - uc_edge_model_monitor_row2：边缘模型监控行 [M] monitor-yolo Healthy 99% up
+  - uc_edge_model_drift_row：边缘模型漂移检测行 [D] drift-yolo Detected 0.05
+  - uc_edge_model_version_row2：边缘模型版本管理行 [V] yolo v3.1 5 versions
+  - uc_edge_model_rollback_row：边缘模型回滚行 [R] rollback-01 v3.0 Completed
+  - uc_edge_model_abtest_row：边缘模型 A/B 测试行 [A] ab-yolo A wins 60% traffic
+- tests/101_uic.mo 覆盖全部新增组件。
+- 门禁：tests 249/249、projcheck 11/11、自举三级一致、sweep 全绿。
+
 ## [1.880.0]
 
 - lib/uic_edge.mo 继续新增边缘性能监控画布组件（v1.871~v1.880，10 个）：
