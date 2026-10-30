@@ -215,6 +215,16 @@ fn main() -> i64 {
     uc_proc_row2(12, 2, "get_users", 1, UC_WHITE, UC_BLUE);
     uc_event_row(1, 2, "user.created", 1, UC_WHITE, UC_BLUE);
     uc_schedule_row(12, 2, "nightly", "cron", 1, UC_WHITE, UC_BLUE);
+    uc_api_version_row(1, 2, "v1.2", 1, UC_WHITE, UC_BLUE);
+    uc_data_model_row(12, 2, "User", "users", 1, UC_WHITE, UC_BLUE);
+    uc_field_row(1, 2, "username", "varchar", 1, UC_WHITE, UC_BLUE);
+    uc_index_row(12, 2, "idx", "UNIQUE", "users", UC_WHITE, UC_BLUE);
+    uc_constraint_row(1, 2, "fk", "FK", "users", UC_WHITE, UC_BLUE);
+    uc_migration_row(12, 2, "20240101", 1, UC_WHITE, UC_BLUE);
+    uc_seed_row(1, 2, "roles", 5, 1, UC_WHITE, UC_BLUE);
+    uc_bucket_row(12, 2, "uploads", 1, 128, UC_WHITE, UC_BLUE);
+    uc_topic_row(1, 2, "orders.created", 1, 42, UC_WHITE, UC_BLUE);
+    uc_txn_row(12, 2, "#12345", "commit", 1, UC_WHITE, UC_BLUE);
     uc_dump_svg("/tmp/uic_dump_test.svg");
     uc_render();
     return 0;

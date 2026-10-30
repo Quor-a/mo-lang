@@ -7689,3 +7689,434 @@ fn uc_schedule_row(x: i64, y: i64, name: ptr, cron: ptr, state: i64, fg: i64, bg
     }
     return 0;
 }
+
+# ============ v1.521 API 版本行 ============
+
+# uc_api_version_row：绘制 API 版本行 [V]  v1.2.3  Deprecated
+# version 为版本号，state 0=已弃用 1=当前 2=测试版。
+# 用于 API 版本管理。
+fn uc_api_version_row(x: i64, y: i64, version: ptr, state: i64, fg: i64, bg: i64) -> i64 {
+    let vlen: i64 = 0;
+    let i: i64 = 0;
+    vlen = strlen(version);
+    uc_set(x, y, '[', UC_CYAN, bg);
+    uc_set(x + 1, y, 'V', UC_CYAN, bg);
+    uc_set(x + 2, y, ']', UC_CYAN, bg);
+    uc_set(x + 5, y, ' ', fg, bg);
+    i = 0;
+    while i < vlen {
+        uc_set(x + 6 + i, y, version[i], UC_YELLOW, bg);
+        i = i + 1;
+    }
+    uc_set(x + 8 + vlen, y, ' ', fg, bg);
+    if state == 0 {
+        uc_set(x + 9 + vlen, y, 'D', UC_RED, bg);
+        uc_set(x + 10 + vlen, y, 'e', UC_RED, bg);
+        uc_set(x + 11 + vlen, y, 'p', UC_RED, bg);
+        uc_set(x + 12 + vlen, y, 'r', UC_RED, bg);
+        uc_set(x + 13 + vlen, y, 'e', UC_RED, bg);
+        uc_set(x + 14 + vlen, y, 'c', UC_RED, bg);
+        uc_set(x + 15 + vlen, y, 'a', UC_RED, bg);
+        uc_set(x + 16 + vlen, y, 't', UC_RED, bg);
+        uc_set(x + 17 + vlen, y, 'e', UC_RED, bg);
+        uc_set(x + 18 + vlen, y, 'd', UC_RED, bg);
+    } else {
+        if state == 1 {
+            uc_set(x + 9 + vlen, y, 'C', UC_GREEN, bg);
+            uc_set(x + 10 + vlen, y, 'u', UC_GREEN, bg);
+            uc_set(x + 11 + vlen, y, 'r', UC_GREEN, bg);
+            uc_set(x + 12 + vlen, y, 'r', UC_GREEN, bg);
+            uc_set(x + 13 + vlen, y, 'e', UC_GREEN, bg);
+            uc_set(x + 14 + vlen, y, 'n', UC_GREEN, bg);
+            uc_set(x + 15 + vlen, y, 't', UC_GREEN, bg);
+        } else {
+            uc_set(x + 9 + vlen, y, 'B', UC_CYAN, bg);
+            uc_set(x + 10 + vlen, y, 'e', UC_CYAN, bg);
+            uc_set(x + 11 + vlen, y, 't', UC_CYAN, bg);
+            uc_set(x + 12 + vlen, y, 'a', UC_CYAN, bg);
+        }
+    }
+    return 0;
+}
+
+# ============ v1.522 数据模型行 ============
+
+# uc_data_model_row：绘制数据模型行 [M]  User  created  Active
+# name 为模型名，table 为源表，state 0=停用 1=启用。
+# 用于数据建模、ORM 展示。
+fn uc_data_model_row(x: i64, y: i64, name: ptr, table: ptr, state: i64, fg: i64, bg: i64) -> i64 {
+    let nlen: i64 = 0;
+    let tlen: i64 = 0;
+    let i: i64 = 0;
+    nlen = strlen(name);
+    tlen = strlen(table);
+    uc_set(x, y, '[', UC_MAGENTA, bg);
+    uc_set(x + 1, y, 'M', UC_MAGENTA, bg);
+    uc_set(x + 2, y, ']', UC_MAGENTA, bg);
+    uc_set(x + 5, y, ' ', fg, bg);
+    i = 0;
+    while i < nlen {
+        uc_set(x + 6 + i, y, name[i], UC_YELLOW, bg);
+        i = i + 1;
+    }
+    uc_set(x + 8 + nlen, y, ' ', fg, bg);
+    i = 0;
+    while i < tlen {
+        uc_set(x + 9 + nlen + i, y, table[i], UC_WHITE, bg);
+        i = i + 1;
+    }
+    uc_set(x + 11 + nlen + tlen, y, ' ', fg, bg);
+    if state != 0 {
+        uc_set(x + 12 + nlen + tlen, y, 'A', UC_GREEN, bg);
+        uc_set(x + 13 + nlen + tlen, y, 'c', UC_GREEN, bg);
+        uc_set(x + 14 + nlen + tlen, y, 't', UC_GREEN, bg);
+        uc_set(x + 15 + nlen + tlen, y, 'i', UC_GREEN, bg);
+        uc_set(x + 16 + nlen + tlen, y, 'v', UC_GREEN, bg);
+        uc_set(x + 17 + nlen + tlen, y, 'e', UC_GREEN, bg);
+    } else {
+        uc_set(x + 12 + nlen + tlen, y, 'I', fg, bg);
+        uc_set(x + 13 + nlen + tlen, y, 'n', fg, bg);
+        uc_set(x + 14 + nlen + tlen, y, 'a', fg, bg);
+        uc_set(x + 15 + nlen + tlen, y, 'c', fg, bg);
+        uc_set(x + 16 + nlen + tlen, y, 't', fg, bg);
+        uc_set(x + 17 + nlen + tlen, y, 'i', fg, bg);
+        uc_set(x + 18 + nlen + tlen, y, 'v', fg, bg);
+        uc_set(x + 19 + nlen + tlen, y, 'e', fg, bg);
+    }
+    return 0;
+}
+
+# ============ v1.523 字段行 ============
+
+# uc_field_row：绘制字段行 [F]  username  varchar(255)  NOT NULL
+# name 为字段名，type 为类型，state 0=可空 1=非空。
+# 用于数据表字段展示。
+fn uc_field_row(x: i64, y: i64, name: ptr, type: ptr, state: i64, fg: i64, bg: i64) -> i64 {
+    let nlen: i64 = 0;
+    let tlen: i64 = 0;
+    let i: i64 = 0;
+    nlen = strlen(name);
+    tlen = strlen(type);
+    uc_set(x, y, '[', UC_GREEN, bg);
+    uc_set(x + 1, y, 'F', UC_GREEN, bg);
+    uc_set(x + 2, y, ']', UC_GREEN, bg);
+    uc_set(x + 5, y, ' ', fg, bg);
+    i = 0;
+    while i < nlen {
+        uc_set(x + 6 + i, y, name[i], UC_YELLOW, bg);
+        i = i + 1;
+    }
+    uc_set(x + 8 + nlen, y, ' ', fg, bg);
+    i = 0;
+    while i < tlen {
+        uc_set(x + 9 + nlen + i, y, type[i], UC_CYAN, bg);
+        i = i + 1;
+    }
+    uc_set(x + 11 + nlen + tlen, y, ' ', fg, bg);
+    if state != 0 {
+        uc_set(x + 12 + nlen + tlen, y, 'N', UC_GREEN, bg);
+        uc_set(x + 13 + nlen + tlen, y, 'O', UC_GREEN, bg);
+        uc_set(x + 14 + nlen + tlen, y, 'T', UC_GREEN, bg);
+        uc_set(x + 15 + nlen + tlen, y, ' ', UC_GREEN, bg);
+        uc_set(x + 16 + nlen + tlen, y, 'N', UC_GREEN, bg);
+        uc_set(x + 17 + nlen + tlen, y, 'U', UC_GREEN, bg);
+        uc_set(x + 18 + nlen + tlen, y, 'L', UC_GREEN, bg);
+        uc_set(x + 19 + nlen + tlen, y, 'L', UC_GREEN, bg);
+    } else {
+        uc_set(x + 12 + nlen + tlen, y, 'N', fg, bg);
+        uc_set(x + 13 + nlen + tlen, y, 'U', fg, bg);
+        uc_set(x + 14 + nlen + tlen, y, 'L', fg, bg);
+        uc_set(x + 15 + nlen + tlen, y, 'L', fg, bg);
+    }
+    return 0;
+}
+
+# ============ v1.524 索引行 ============
+
+# uc_index_row：绘制索引行 [I]  idx_users_email  UNIQUE  users(email)
+# name 为索引名，type 为索引类型，table 为目标表。
+# 用于数据库索引管理。
+fn uc_index_row(x: i64, y: i64, name: ptr, type: ptr, table: ptr, fg: i64, bg: i64) -> i64 {
+    let nlen: i64 = 0;
+    let tlen: i64 = 0;
+    let blen: i64 = 0;
+    let i: i64 = 0;
+    nlen = strlen(name);
+    tlen = strlen(type);
+    blen = strlen(table);
+    uc_set(x, y, '[', UC_YELLOW, bg);
+    uc_set(x + 1, y, 'I', UC_YELLOW, bg);
+    uc_set(x + 2, y, ']', UC_YELLOW, bg);
+    uc_set(x + 5, y, ' ', fg, bg);
+    i = 0;
+    while i < nlen {
+        uc_set(x + 6 + i, y, name[i], UC_YELLOW, bg);
+        i = i + 1;
+    }
+    uc_set(x + 8 + nlen, y, ' ', fg, bg);
+    i = 0;
+    while i < tlen {
+        uc_set(x + 9 + nlen + i, y, type[i], UC_CYAN, bg);
+        i = i + 1;
+    }
+    uc_set(x + 11 + nlen + tlen, y, ' ', fg, bg);
+    i = 0;
+    while i < blen {
+        uc_set(x + 12 + nlen + tlen + i, y, table[i], UC_WHITE, bg);
+        i = i + 1;
+    }
+    return 0;
+}
+
+# ============ v1.525 约束行 ============
+
+# uc_constraint_row：绘制约束行 [C]  fk_user_id  FOREIGN KEY  users(id)
+# name 为约束名，type 为约束类型，table 为目标表。
+# 用于数据库约束管理。
+fn uc_constraint_row(x: i64, y: i64, name: ptr, type: ptr, table: ptr, fg: i64, bg: i64) -> i64 {
+    let nlen: i64 = 0;
+    let tlen: i64 = 0;
+    let blen: i64 = 0;
+    let i: i64 = 0;
+    nlen = strlen(name);
+    tlen = strlen(type);
+    blen = strlen(table);
+    uc_set(x, y, '[', UC_MAGENTA, bg);
+    uc_set(x + 1, y, 'C', UC_MAGENTA, bg);
+    uc_set(x + 2, y, ']', UC_MAGENTA, bg);
+    uc_set(x + 5, y, ' ', fg, bg);
+    i = 0;
+    while i < nlen {
+        uc_set(x + 6 + i, y, name[i], UC_YELLOW, bg);
+        i = i + 1;
+    }
+    uc_set(x + 8 + nlen, y, ' ', fg, bg);
+    i = 0;
+    while i < tlen {
+        uc_set(x + 9 + nlen + i, y, type[i], UC_CYAN, bg);
+        i = i + 1;
+    }
+    uc_set(x + 11 + nlen + tlen, y, ' ', fg, bg);
+    i = 0;
+    while i < blen {
+        uc_set(x + 12 + nlen + tlen + i, y, table[i], UC_WHITE, bg);
+        i = i + 1;
+    }
+    return 0;
+}
+
+# ============ v1.526 迁移状态行 ============
+
+# uc_migration_row：绘制迁移状态行 [M]  20240101_init  Applied
+# name 为迁移名，state 0=待执行 1=已执行。
+# 用于数据库迁移管理。
+fn uc_migration_row(x: i64, y: i64, name: ptr, state: i64, fg: i64, bg: i64) -> i64 {
+    let nlen: i64 = 0;
+    let i: i64 = 0;
+    nlen = strlen(name);
+    uc_set(x, y, '[', UC_CYAN, bg);
+    uc_set(x + 1, y, 'M', UC_CYAN, bg);
+    uc_set(x + 2, y, ']', UC_CYAN, bg);
+    uc_set(x + 5, y, ' ', fg, bg);
+    i = 0;
+    while i < nlen {
+        uc_set(x + 6 + i, y, name[i], UC_YELLOW, bg);
+        i = i + 1;
+    }
+    uc_set(x + 8 + nlen, y, ' ', fg, bg);
+    if state != 0 {
+        uc_set(x + 9 + nlen, y, 'A', UC_GREEN, bg);
+        uc_set(x + 10 + nlen, y, 'p', UC_GREEN, bg);
+        uc_set(x + 11 + nlen, y, 'p', UC_GREEN, bg);
+        uc_set(x + 12 + nlen, y, 'l', UC_GREEN, bg);
+        uc_set(x + 13 + nlen, y, 'i', UC_GREEN, bg);
+        uc_set(x + 14 + nlen, y, 'e', UC_GREEN, bg);
+        uc_set(x + 15 + nlen, y, 'd', UC_GREEN, bg);
+    } else {
+        uc_set(x + 9 + nlen, y, 'P', UC_YELLOW, bg);
+        uc_set(x + 10 + nlen, y, 'e', UC_YELLOW, bg);
+        uc_set(x + 11 + nlen, y, 'n', UC_YELLOW, bg);
+        uc_set(x + 12 + nlen, y, 'd', UC_YELLOW, bg);
+        uc_set(x + 13 + nlen, y, 'i', UC_YELLOW, bg);
+        uc_set(x + 14 + nlen, y, 'n', UC_YELLOW, bg);
+        uc_set(x + 15 + nlen, y, 'g', UC_YELLOW, bg);
+    }
+    return 0;
+}
+
+# ============ v1.527 种子数据行 ============
+
+# uc_seed_row：绘制种子数据行 [S]  roles  Seeded  5 rows
+# name 为数据名，rows 为行数，state 0=未种 1=已种。
+# 用于种子数据管理。
+fn uc_seed_row(x: i64, y: i64, name: ptr, rows: i64, state: i64, fg: i64, bg: i64) -> i64 {
+    let nlen: i64 = 0;
+    let i: i64 = 0;
+    nlen = strlen(name);
+    uc_set(x, y, '[', UC_GREEN, bg);
+    uc_set(x + 1, y, 'S', UC_GREEN, bg);
+    uc_set(x + 2, y, ']', UC_GREEN, bg);
+    uc_set(x + 5, y, ' ', fg, bg);
+    i = 0;
+    while i < nlen {
+        uc_set(x + 6 + i, y, name[i], UC_YELLOW, bg);
+        i = i + 1;
+    }
+    uc_set(x + 8 + nlen, y, ' ', fg, bg);
+    if state != 0 {
+        uc_set(x + 9 + nlen, y, 'S', UC_GREEN, bg);
+        uc_set(x + 10 + nlen, y, 'e', UC_GREEN, bg);
+        uc_set(x + 11 + nlen, y, 'e', UC_GREEN, bg);
+        uc_set(x + 12 + nlen, y, 'd', UC_GREEN, bg);
+        uc_set(x + 13 + nlen, y, 'e', UC_GREEN, bg);
+        uc_set(x + 14 + nlen, y, 'd', UC_GREEN, bg);
+    } else {
+        uc_set(x + 9 + nlen, y, 'U', UC_YELLOW, bg);
+        uc_set(x + 10 + nlen, y, 'n', UC_YELLOW, bg);
+        uc_set(x + 11 + nlen, y, 's', UC_YELLOW, bg);
+        uc_set(x + 12 + nlen, y, 'e', UC_YELLOW, bg);
+        uc_set(x + 13 + nlen, y, 'e', UC_YELLOW, bg);
+        uc_set(x + 14 + nlen, y, 'd', UC_YELLOW, bg);
+    }
+    uc_set(x + 17 + nlen, y, ' ', fg, bg);
+    uc_set(x + 18 + nlen, y, '0' + rows, UC_CYAN, bg);
+    uc_set(x + 19 + nlen, y, ' ', UC_CYAN, bg);
+    uc_set(x + 20 + nlen, y, 'r', UC_CYAN, bg);
+    uc_set(x + 21 + nlen, y, 'o', UC_CYAN, bg);
+    uc_set(x + 22 + nlen, y, 'w', UC_CYAN, bg);
+    uc_set(x + 23 + nlen, y, 's', UC_CYAN, bg);
+    return 0;
+}
+
+# ============ v1.528 数据桶行 ============
+
+# uc_bucket_row：绘制数据桶行 [B]  uploads  Public  128 objects
+# name 为桶名，state 0=私有 1=公开，objects 为对象数。
+# 用于对象存储管理。
+fn uc_bucket_row(x: i64, y: i64, name: ptr, state: i64, objects: i64, fg: i64, bg: i64) -> i64 {
+    let nlen: i64 = 0;
+    let i: i64 = 0;
+    nlen = strlen(name);
+    uc_set(x, y, '[', UC_MAGENTA, bg);
+    uc_set(x + 1, y, 'B', UC_MAGENTA, bg);
+    uc_set(x + 2, y, ']', UC_MAGENTA, bg);
+    uc_set(x + 5, y, ' ', fg, bg);
+    i = 0;
+    while i < nlen {
+        uc_set(x + 6 + i, y, name[i], UC_YELLOW, bg);
+        i = i + 1;
+    }
+    uc_set(x + 8 + nlen, y, ' ', fg, bg);
+    if state != 0 {
+        uc_set(x + 9 + nlen, y, 'P', UC_GREEN, bg);
+        uc_set(x + 10 + nlen, y, 'u', UC_GREEN, bg);
+        uc_set(x + 11 + nlen, y, 'b', UC_GREEN, bg);
+        uc_set(x + 12 + nlen, y, 'l', UC_GREEN, bg);
+        uc_set(x + 13 + nlen, y, 'i', UC_GREEN, bg);
+        uc_set(x + 14 + nlen, y, 'c', UC_GREEN, bg);
+    } else {
+        uc_set(x + 9 + nlen, y, 'P', fg, bg);
+        uc_set(x + 10 + nlen, y, 'r', fg, bg);
+        uc_set(x + 11 + nlen, y, 'i', fg, bg);
+        uc_set(x + 12 + nlen, y, 'v', fg, bg);
+        uc_set(x + 13 + nlen, y, 'a', fg, bg);
+        uc_set(x + 14 + nlen, y, 't', fg, bg);
+        uc_set(x + 15 + nlen, y, 'e', fg, bg);
+    }
+    uc_set(x + 17 + nlen, y, ' ', fg, bg);
+    uc_set(x + 18 + nlen, y, '0' + objects / 100, UC_CYAN, bg);
+    uc_set(x + 19 + nlen, y, '0' + (objects / 10) % 10, UC_CYAN, bg);
+    uc_set(x + 20 + nlen, y, '0' + objects % 10, UC_CYAN, bg);
+    uc_set(x + 21 + nlen, y, ' ', UC_CYAN, bg);
+    uc_set(x + 22 + nlen, y, 'o', UC_CYAN, bg);
+    uc_set(x + 23 + nlen, y, 'b', UC_CYAN, bg);
+    uc_set(x + 24 + nlen, y, 'j', UC_CYAN, bg);
+    uc_set(x + 25 + nlen, y, 's', UC_CYAN, bg);
+    return 0;
+}
+
+# ============ v1.529 主题消息行 ============
+
+# uc_topic_row：绘制主题消息行 [T]  orders.created  published  42 msgs
+# name 为主题名，state 0=失败 1=已发布，msgs 为消息数。
+# 用于消息队列主题。
+fn uc_topic_row(x: i64, y: i64, name: ptr, state: i64, msgs: i64, fg: i64, bg: i64) -> i64 {
+    let nlen: i64 = 0;
+    let i: i64 = 0;
+    nlen = strlen(name);
+    uc_set(x, y, '[', UC_CYAN, bg);
+    uc_set(x + 1, y, 'T', UC_CYAN, bg);
+    uc_set(x + 2, y, ']', UC_CYAN, bg);
+    uc_set(x + 5, y, ' ', fg, bg);
+    i = 0;
+    while i < nlen {
+        uc_set(x + 6 + i, y, name[i], UC_YELLOW, bg);
+        i = i + 1;
+    }
+    uc_set(x + 8 + nlen, y, ' ', fg, bg);
+    if state != 0 {
+        uc_set(x + 9 + nlen, y, 'p', UC_GREEN, bg);
+        uc_set(x + 10 + nlen, y, 'u', UC_GREEN, bg);
+        uc_set(x + 11 + nlen, y, 'b', UC_GREEN, bg);
+        uc_set(x + 12 + nlen, y, 'l', UC_GREEN, bg);
+        uc_set(x + 13 + nlen, y, 'i', UC_GREEN, bg);
+        uc_set(x + 14 + nlen, y, 's', UC_GREEN, bg);
+        uc_set(x + 15 + nlen, y, 'h', UC_GREEN, bg);
+        uc_set(x + 16 + nlen, y, 'e', UC_GREEN, bg);
+        uc_set(x + 17 + nlen, y, 'd', UC_GREEN, bg);
+    } else {
+        uc_set(x + 9 + nlen, y, 'f', UC_RED, bg);
+        uc_set(x + 10 + nlen, y, 'a', UC_RED, bg);
+        uc_set(x + 11 + nlen, y, 'i', UC_RED, bg);
+        uc_set(x + 12 + nlen, y, 'l', UC_RED, bg);
+        uc_set(x + 13 + nlen, y, 'e', UC_RED, bg);
+        uc_set(x + 14 + nlen, y, 'd', UC_RED, bg);
+    }
+    uc_set(x + 19 + nlen, y, ' ', fg, bg);
+    uc_set(x + 20 + nlen, y, '0' + msgs / 10, UC_CYAN, bg);
+    uc_set(x + 21 + nlen, y, '0' + msgs % 10, UC_CYAN, bg);
+    uc_set(x + 22 + nlen, y, ' ', UC_CYAN, bg);
+    uc_set(x + 23 + nlen, y, 'm', UC_CYAN, bg);
+    uc_set(x + 24 + nlen, y, 's', UC_CYAN, bg);
+    uc_set(x + 25 + nlen, y, 'g', UC_CYAN, bg);
+    uc_set(x + 26 + nlen, y, 's', UC_CYAN, bg);
+    return 0;
+}
+
+# ============ v1.530 事务行 ============
+
+# uc_txn_row：绘制事务行 [T]  #12345  commit  OK
+# txn_id 为事务号，action 为动作，state 0=回滚 1=提交。
+# 用于事务日志展示。
+fn uc_txn_row(x: i64, y: i64, txn_id: ptr, action: ptr, state: i64, fg: i64, bg: i64) -> i64 {
+    let tlen: i64 = 0;
+    let alen: i64 = 0;
+    let i: i64 = 0;
+    tlen = strlen(txn_id);
+    alen = strlen(action);
+    uc_set(x, y, '[', UC_YELLOW, bg);
+    uc_set(x + 1, y, 'T', UC_YELLOW, bg);
+    uc_set(x + 2, y, ']', UC_YELLOW, bg);
+    uc_set(x + 5, y, ' ', fg, bg);
+    i = 0;
+    while i < tlen {
+        uc_set(x + 6 + i, y, txn_id[i], UC_YELLOW, bg);
+        i = i + 1;
+    }
+    uc_set(x + 8 + tlen, y, ' ', fg, bg);
+    i = 0;
+    while i < alen {
+        uc_set(x + 9 + tlen + i, y, action[i], UC_CYAN, bg);
+        i = i + 1;
+    }
+    uc_set(x + 11 + tlen + alen, y, ' ', fg, bg);
+    if state != 0 {
+        uc_set(x + 12 + tlen + alen, y, 'O', UC_GREEN, bg);
+        uc_set(x + 13 + tlen + alen, y, 'K', UC_GREEN, bg);
+    } else {
+        uc_set(x + 12 + tlen + alen, y, 'R', UC_RED, bg);
+        uc_set(x + 13 + tlen + alen, y, 'B', UC_RED, bg);
+        uc_set(x + 14 + tlen + alen, y, 'K', UC_RED, bg);
+    }
+    return 0;
+}

@@ -1,3 +1,19 @@
+## [1.530.0]
+
+- lib/uic.mo 大版本批量新增 10 个画布组件：
+  - uc_api_version_row：API 版本行 [V] v1.2.3 Deprecated
+  - uc_data_model_row：数据模型行 [M] User created Active
+  - uc_field_row：字段行 [F] username varchar(255) NOT NULL
+  - uc_index_row：索引行 [I] idx_users_email UNIQUE users(email)
+  - uc_constraint_row：约束行 [C] fk_user_id FOREIGN KEY users(id)
+  - uc_migration_row：迁移状态行 [M] 20240101_init Applied
+  - uc_seed_row：种子数据行 [S] roles Seeded 5 rows
+  - uc_bucket_row：数据桶行 [B] uploads Public 128 objects
+  - uc_topic_row：主题消息行 [T] orders.created published 42 msgs
+  - uc_txn_row：事务行 [T] #12345 commit OK
+- tests/101_uic.mo 覆盖全部新增组件。
+- 门禁：tests 249/249、projcheck 11/11、自举三级一致、sweep 全绿。
+
 ## [1.520.0]
 
 - lib/uic.mo 大版本批量新增 10 个画布组件：
