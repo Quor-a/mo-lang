@@ -1,3 +1,19 @@
+## [1.570.0]
+
+- lib/uic.mo 大版本批量新增 10 个画布组件：
+  - uc_device_group_row：设备组行 [G] floor-1 Active 24 devices
+  - uc_telemetry_row：设备遥测行 [T] temp-01 23.5 C Normal
+  - uc_firmware_row：固件版本行 [F] v2.3.1 Stable
+  - uc_gateway_row：网关行 [G] gw-main Connected 12 devices
+  - uc_sensor_status_row：传感器状态行 [S] temp-01 Active 23.5 C
+  - uc_alert_rule_row2：告警规则行 [A] high-cpu >80% Firing
+  - uc_notify_channel_row：通知渠道行 [C] slack-alerts Slack Enabled
+  - uc_widget_row：仪表盘小部件行 [W] cpu-chart Line Active
+  - uc_chart_row：图表配置行 [C] cpu-usage Area Refresh 30s
+  - uc_report_row：报表行 [R] monthly-sales Generated 2024-01
+- tests/101_uic.mo 覆盖全部新增组件。
+- 门禁：tests 249/249、projcheck 11/11、自举三级一致、sweep 全绿。
+
 ## [1.560.0]
 
 - lib/uic.mo 大版本批量新增 10 个画布组件：

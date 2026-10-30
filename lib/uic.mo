@@ -9485,3 +9485,942 @@ fn uc_inference_batch_row(x: i64, y: i64, name: ptr, items: i64, state: i64, fg:
     uc_set(x + 29 + nlen, y, 's', UC_CYAN, bg);
     return 0;
 }
+
+# ============ v1.561 设备组行 ============
+
+# uc_device_group_row：绘制设备组行 [G]  floor-1  Active  24 devices
+# name 为组名，devices 为设备数，state 0=停用 1=启用。
+# 用于 IoT 设备组管理。
+fn uc_device_group_row(x: i64, y: i64, name: ptr, devices: i64, state: i64, fg: i64, bg: i64) -> i64 {
+    let nlen: i64 = 0;
+    let i: i64 = 0;
+    nlen = strlen(name);
+    uc_set(x, y, '[', UC_GREEN, bg);
+    uc_set(x + 1, y, 'G', UC_GREEN, bg);
+    uc_set(x + 2, y, ']', UC_GREEN, bg);
+    uc_set(x + 5, y, ' ', fg, bg);
+    i = 0;
+    while i < nlen {
+        uc_set(x + 6 + i, y, name[i], UC_YELLOW, bg);
+        i = i + 1;
+    }
+    uc_set(x + 8 + nlen, y, ' ', fg, bg);
+    if state != 0 {
+        uc_set(x + 9 + nlen, y, 'A', UC_GREEN, bg);
+        uc_set(x + 10 + nlen, y, 'c', UC_GREEN, bg);
+        uc_set(x + 11 + nlen, y, 't', UC_GREEN, bg);
+        uc_set(x + 12 + nlen, y, 'i', UC_GREEN, bg);
+        uc_set(x + 13 + nlen, y, 'v', UC_GREEN, bg);
+        uc_set(x + 14 + nlen, y, 'e', UC_GREEN, bg);
+    } else {
+        uc_set(x + 9 + nlen, y, 'I', fg, bg);
+        uc_set(x + 10 + nlen, y, 'n', fg, bg);
+        uc_set(x + 11 + nlen, y, 'a', fg, bg);
+        uc_set(x + 12 + nlen, y, 'c', fg, bg);
+        uc_set(x + 13 + nlen, y, 't', fg, bg);
+        uc_set(x + 14 + nlen, y, 'i', fg, bg);
+        uc_set(x + 15 + nlen, y, 'v', fg, bg);
+        uc_set(x + 16 + nlen, y, 'e', fg, bg);
+    }
+    uc_set(x + 18 + nlen, y, ' ', fg, bg);
+    uc_set(x + 19 + nlen, y, '0' + devices / 10, UC_CYAN, bg);
+    uc_set(x + 20 + nlen, y, '0' + devices % 10, UC_CYAN, bg);
+    uc_set(x + 21 + nlen, y, ' ', UC_CYAN, bg);
+    uc_set(x + 22 + nlen, y, 'd', UC_CYAN, bg);
+    uc_set(x + 23 + nlen, y, 'e', UC_CYAN, bg);
+    uc_set(x + 24 + nlen, y, 'v', UC_CYAN, bg);
+    uc_set(x + 25 + nlen, y, 'i', UC_CYAN, bg);
+    uc_set(x + 26 + nlen, y, 'c', UC_CYAN, bg);
+    uc_set(x + 27 + nlen, y, 'e', UC_CYAN, bg);
+    uc_set(x + 28 + nlen, y, 's', UC_CYAN, bg);
+    return 0;
+}
+
+# ============ v1.562 设备遥测行 ============
+
+# uc_telemetry_row：绘制设备遥测行 [T]  temp-01  23.5 C  Normal
+# name 为遥测名，value 为数值，state 0=异常 1=正常。
+# 用于设备遥测数据展示。
+fn uc_telemetry_row(x: i64, y: i64, name: ptr, value: i64, state: i64, fg: i64, bg: i64) -> i64 {
+    let nlen: i64 = 0;
+    let i: i64 = 0;
+    nlen = strlen(name);
+    uc_set(x, y, '[', UC_CYAN, bg);
+    uc_set(x + 1, y, 'T', UC_CYAN, bg);
+    uc_set(x + 2, y, ']', UC_CYAN, bg);
+    uc_set(x + 5, y, ' ', fg, bg);
+    i = 0;
+    while i < nlen {
+        uc_set(x + 6 + i, y, name[i], UC_YELLOW, bg);
+        i = i + 1;
+    }
+    uc_set(x + 8 + nlen, y, ' ', fg, bg);
+    uc_set(x + 9 + nlen, y, '0' + value / 10, UC_CYAN, bg);
+    uc_set(x + 10 + nlen, y, '.', UC_CYAN, bg);
+    uc_set(x + 11 + nlen, y, '0' + value % 10, UC_CYAN, bg);
+    uc_set(x + 12 + nlen, y, ' ', UC_CYAN, bg);
+    uc_set(x + 13 + nlen, y, 'C', UC_CYAN, bg);
+    uc_set(x + 15 + nlen, y, ' ', fg, bg);
+    if state != 0 {
+        uc_set(x + 16 + nlen, y, 'N', UC_GREEN, bg);
+        uc_set(x + 17 + nlen, y, 'o', UC_GREEN, bg);
+        uc_set(x + 18 + nlen, y, 'r', UC_GREEN, bg);
+        uc_set(x + 19 + nlen, y, 'm', UC_GREEN, bg);
+        uc_set(x + 20 + nlen, y, 'a', UC_GREEN, bg);
+        uc_set(x + 21 + nlen, y, 'l', UC_GREEN, bg);
+    } else {
+        uc_set(x + 16 + nlen, y, 'W', UC_RED, bg);
+        uc_set(x + 17 + nlen, y, 'a', UC_RED, bg);
+        uc_set(x + 18 + nlen, y, 'r', UC_RED, bg);
+        uc_set(x + 19 + nlen, y, 'n', UC_RED, bg);
+        uc_set(x + 20 + nlen, y, 'i', UC_RED, bg);
+        uc_set(x + 21 + nlen, y, 'n', UC_RED, bg);
+        uc_set(x + 22 + nlen, y, 'g', UC_RED, bg);
+    }
+    return 0;
+}
+
+# ============ v1.563 固件版本行 ============
+
+# uc_firmware_row：绘制固件版本行 [F]  v2.3.1  Stable
+# version 为版本号，state 0=测试 1=稳定。
+# 用于设备固件版本管理。
+fn uc_firmware_row(x: i64, y: i64, version: ptr, state: i64, fg: i64, bg: i64) -> i64 {
+    let vlen: i64 = 0;
+    let i: i64 = 0;
+    vlen = strlen(version);
+    uc_set(x, y, '[', UC_MAGENTA, bg);
+    uc_set(x + 1, y, 'F', UC_MAGENTA, bg);
+    uc_set(x + 2, y, ']', UC_MAGENTA, bg);
+    uc_set(x + 5, y, ' ', fg, bg);
+    i = 0;
+    while i < vlen {
+        uc_set(x + 6 + i, y, version[i], UC_YELLOW, bg);
+        i = i + 1;
+    }
+    uc_set(x + 8 + vlen, y, ' ', fg, bg);
+    if state != 0 {
+        uc_set(x + 9 + vlen, y, 'S', UC_GREEN, bg);
+        uc_set(x + 10 + vlen, y, 't', UC_GREEN, bg);
+        uc_set(x + 11 + vlen, y, 'a', UC_GREEN, bg);
+        uc_set(x + 12 + vlen, y, 'b', UC_GREEN, bg);
+        uc_set(x + 13 + vlen, y, 'l', UC_GREEN, bg);
+        uc_set(x + 14 + vlen, y, 'e', UC_GREEN, bg);
+    } else {
+        uc_set(x + 9 + vlen, y, 'B', UC_CYAN, bg);
+        uc_set(x + 10 + vlen, y, 'e', UC_CYAN, bg);
+        uc_set(x + 11 + vlen, y, 't', UC_CYAN, bg);
+        uc_set(x + 12 + vlen, y, 'a', UC_CYAN, bg);
+        uc_set(x + 13 + vlen, y, 'B', UC_CYAN, bg);
+        uc_set(x + 14 + vlen, y, 'e', UC_CYAN, bg);
+        uc_set(x + 15 + vlen, y, 't', UC_CYAN, bg);
+        uc_set(x + 16 + vlen, y, 'a', UC_CYAN, bg);
+    }
+    return 0;
+}
+
+# ============ v1.564 网关行 ============
+
+# uc_gateway_row：绘制网关行 [G]  gw-main  Connected  12 devices
+# name 为网关名，devices 为设备数，state 0=断开 1=连接。
+# 用于网关管理。
+fn uc_gateway_row(x: i64, y: i64, name: ptr, devices: i64, state: i64, fg: i64, bg: i64) -> i64 {
+    let nlen: i64 = 0;
+    let i: i64 = 0;
+    nlen = strlen(name);
+    uc_set(x, y, '[', UC_GREEN, bg);
+    uc_set(x + 1, y, 'G', UC_GREEN, bg);
+    uc_set(x + 2, y, ']', UC_GREEN, bg);
+    uc_set(x + 5, y, ' ', fg, bg);
+    i = 0;
+    while i < nlen {
+        uc_set(x + 6 + i, y, name[i], UC_YELLOW, bg);
+        i = i + 1;
+    }
+    uc_set(x + 8 + nlen, y, ' ', fg, bg);
+    if state != 0 {
+        uc_set(x + 9 + nlen, y, 'C', UC_GREEN, bg);
+        uc_set(x + 10 + nlen, y, 'o', UC_GREEN, bg);
+        uc_set(x + 11 + nlen, y, 'n', UC_GREEN, bg);
+        uc_set(x + 12 + nlen, y, 'n', UC_GREEN, bg);
+        uc_set(x + 13 + nlen, y, 'e', UC_GREEN, bg);
+        uc_set(x + 14 + nlen, y, 'c', UC_GREEN, bg);
+        uc_set(x + 15 + nlen, y, 't', UC_GREEN, bg);
+        uc_set(x + 16 + nlen, y, 'e', UC_GREEN, bg);
+        uc_set(x + 17 + nlen, y, 'd', UC_GREEN, bg);
+    } else {
+        uc_set(x + 9 + nlen, y, 'D', UC_RED, bg);
+        uc_set(x + 10 + nlen, y, 'i', UC_RED, bg);
+        uc_set(x + 11 + nlen, y, 's', UC_RED, bg);
+        uc_set(x + 12 + nlen, y, 'c', UC_RED, bg);
+        uc_set(x + 13 + nlen, y, 'o', UC_RED, bg);
+        uc_set(x + 14 + nlen, y, 'n', UC_RED, bg);
+        uc_set(x + 15 + nlen, y, 'n', UC_RED, bg);
+        uc_set(x + 16 + nlen, y, 'e', UC_RED, bg);
+        uc_set(x + 17 + nlen, y, 'c', UC_RED, bg);
+        uc_set(x + 18 + nlen, y, 't', UC_RED, bg);
+        uc_set(x + 19 + nlen, y, 'e', UC_RED, bg);
+        uc_set(x + 20 + nlen, y, 'd', UC_RED, bg);
+    }
+    uc_set(x + 22 + nlen, y, ' ', fg, bg);
+    uc_set(x + 23 + nlen, y, '0' + devices / 10, UC_CYAN, bg);
+    uc_set(x + 24 + nlen, y, '0' + devices % 10, UC_CYAN, bg);
+    uc_set(x + 25 + nlen, y, ' ', UC_CYAN, bg);
+    uc_set(x + 26 + nlen, y, 'd', UC_CYAN, bg);
+    uc_set(x + 27 + nlen, y, 'e', UC_CYAN, bg);
+    uc_set(x + 28 + nlen, y, 'v', UC_CYAN, bg);
+    uc_set(x + 29 + nlen, y, 'i', UC_CYAN, bg);
+    uc_set(x + 30 + nlen, y, 'c', UC_CYAN, bg);
+    uc_set(x + 31 + nlen, y, 'e', UC_CYAN, bg);
+    uc_set(x + 32 + nlen, y, 's', UC_CYAN, bg);
+    return 0;
+}
+
+# ============ v1.565 传感器状态行 ============
+
+# uc_sensor_status_row：绘制传感器状态行 [S]  temp-01  Active  23.5 C
+# name 为传感器名，value 为数值，state 0=停用 1=启用。
+# 用于传感器管理。
+fn uc_sensor_status_row(x: i64, y: i64, name: ptr, value: i64, state: i64, fg: i64, bg: i64) -> i64 {
+    let nlen: i64 = 0;
+    let i: i64 = 0;
+    nlen = strlen(name);
+    uc_set(x, y, '[', UC_MAGENTA, bg);
+    uc_set(x + 1, y, 'S', UC_MAGENTA, bg);
+    uc_set(x + 2, y, ']', UC_MAGENTA, bg);
+    uc_set(x + 5, y, ' ', fg, bg);
+    i = 0;
+    while i < nlen {
+        uc_set(x + 6 + i, y, name[i], UC_YELLOW, bg);
+        i = i + 1;
+    }
+    uc_set(x + 8 + nlen, y, ' ', fg, bg);
+    if state != 0 {
+        uc_set(x + 9 + nlen, y, 'A', UC_GREEN, bg);
+        uc_set(x + 10 + nlen, y, 'c', UC_GREEN, bg);
+        uc_set(x + 11 + nlen, y, 't', UC_GREEN, bg);
+        uc_set(x + 12 + nlen, y, 'i', UC_GREEN, bg);
+        uc_set(x + 13 + nlen, y, 'v', UC_GREEN, bg);
+        uc_set(x + 14 + nlen, y, 'e', UC_GREEN, bg);
+    } else {
+        uc_set(x + 9 + nlen, y, 'O', fg, bg);
+        uc_set(x + 10 + nlen, y, 'f', fg, bg);
+        uc_set(x + 11 + nlen, y, 'f', fg, bg);
+    }
+    uc_set(x + 13 + nlen, y, ' ', fg, bg);
+    uc_set(x + 14 + nlen, y, '0' + value / 10, UC_CYAN, bg);
+    uc_set(x + 15 + nlen, y, '.', UC_CYAN, bg);
+    uc_set(x + 16 + nlen, y, '0' + value % 10, UC_CYAN, bg);
+    uc_set(x + 17 + nlen, y, ' ', UC_CYAN, bg);
+    uc_set(x + 18 + nlen, y, 'C', UC_CYAN, bg);
+    return 0;
+}
+
+# ============ v1.566 告警规则行 ============
+
+# uc_alert_rule_row2：绘制告警规则行 [A]  high-cpu  >80%  5m  Firing
+# name 为规则名，condition 为条件，state 0=正常 1=触发。
+# 用于告警规则管理。
+fn uc_alert_rule_row2(x: i64, y: i64, name: ptr, condition: ptr, state: i64, fg: i64, bg: i64) -> i64 {
+    let nlen: i64 = 0;
+    let clen: i64 = 0;
+    let i: i64 = 0;
+    nlen = strlen(name);
+    clen = strlen(condition);
+    uc_set(x, y, '[', UC_YELLOW, bg);
+    uc_set(x + 1, y, 'A', UC_YELLOW, bg);
+    uc_set(x + 2, y, ']', UC_YELLOW, bg);
+    uc_set(x + 5, y, ' ', fg, bg);
+    i = 0;
+    while i < nlen {
+        uc_set(x + 6 + i, y, name[i], UC_YELLOW, bg);
+        i = i + 1;
+    }
+    uc_set(x + 8 + nlen, y, ' ', fg, bg);
+    i = 0;
+    while i < clen {
+        uc_set(x + 9 + nlen + i, y, condition[i], UC_WHITE, bg);
+        i = i + 1;
+    }
+    uc_set(x + 11 + nlen + clen, y, ' ', fg, bg);
+    if state != 0 {
+        uc_set(x + 12 + nlen + clen, y, 'F', UC_RED, bg);
+        uc_set(x + 13 + nlen + clen, y, 'i', UC_RED, bg);
+        uc_set(x + 14 + nlen + clen, y, 'r', UC_RED, bg);
+        uc_set(x + 15 + nlen + clen, y, 'i', UC_RED, bg);
+        uc_set(x + 16 + nlen + clen, y, 'n', UC_RED, bg);
+        uc_set(x + 17 + nlen + clen, y, 'g', UC_RED, bg);
+    } else {
+        uc_set(x + 12 + nlen + clen, y, 'O', UC_GREEN, bg);
+        uc_set(x + 13 + nlen + clen, y, 'K', UC_GREEN, bg);
+    }
+    return 0;
+}
+
+# ============ v1.567 通知渠道行 ============
+
+# uc_notify_channel_row：绘制通知渠道行 [C]  slack-alerts  Slack  Enabled
+# name 为渠道名，type 为类型，state 0=禁用 1=启用。
+# 用于通知渠道管理。
+fn uc_notify_channel_row(x: i64, y: i64, name: ptr, type: ptr, state: i64, fg: i64, bg: i64) -> i64 {
+    let nlen: i64 = 0;
+    let tlen: i64 = 0;
+    let i: i64 = 0;
+    nlen = strlen(name);
+    tlen = strlen(type);
+    uc_set(x, y, '[', UC_MAGENTA, bg);
+    uc_set(x + 1, y, 'C', UC_MAGENTA, bg);
+    uc_set(x + 2, y, ']', UC_MAGENTA, bg);
+    uc_set(x + 5, y, ' ', fg, bg);
+    i = 0;
+    while i < nlen {
+        uc_set(x + 6 + i, y, name[i], UC_YELLOW, bg);
+        i = i + 1;
+    }
+    uc_set(x + 8 + nlen, y, ' ', fg, bg);
+    i = 0;
+    while i < tlen {
+        uc_set(x + 9 + nlen + i, y, type[i], UC_WHITE, bg);
+        i = i + 1;
+    }
+    uc_set(x + 11 + nlen + tlen, y, ' ', fg, bg);
+    if state != 0 {
+        uc_set(x + 12 + nlen + tlen, y, 'E', UC_GREEN, bg);
+        uc_set(x + 13 + nlen + tlen, y, 'n', UC_GREEN, bg);
+        uc_set(x + 14 + nlen + tlen, y, 'a', UC_GREEN, bg);
+        uc_set(x + 15 + nlen + tlen, y, 'b', UC_GREEN, bg);
+        uc_set(x + 16 + nlen + tlen, y, 'l', UC_GREEN, bg);
+        uc_set(x + 17 + nlen + tlen, y, 'e', UC_GREEN, bg);
+        uc_set(x + 18 + nlen + tlen, y, 'd', UC_GREEN, bg);
+    } else {
+        uc_set(x + 12 + nlen + tlen, y, 'D', fg, bg);
+        uc_set(x + 13 + nlen + tlen, y, 'i', fg, bg);
+        uc_set(x + 14 + nlen + tlen, y, 's', fg, bg);
+        uc_set(x + 15 + nlen + tlen, y, 'a', fg, bg);
+        uc_set(x + 16 + nlen + tlen, y, 'b', fg, bg);
+        uc_set(x + 17 + nlen + tlen, y, 'l', fg, bg);
+        uc_set(x + 18 + nlen + tlen, y, 'e', fg, bg);
+        uc_set(x + 19 + nlen + tlen, y, 'd', fg, bg);
+    }
+    return 0;
+}
+
+# ============ v1.568 仪表盘小部件行 ============
+
+# uc_widget_row：绘制仪表盘小部件行 [W]  cpu-chart  Line  Active
+# name 为部件名，type 为类型，state 0=停用 1=启用。
+# 用于仪表盘小部件管理。
+fn uc_widget_row(x: i64, y: i64, name: ptr, type: ptr, state: i64, fg: i64, bg: i64) -> i64 {
+    let nlen: i64 = 0;
+    let tlen: i64 = 0;
+    let i: i64 = 0;
+    nlen = strlen(name);
+    tlen = strlen(type);
+    uc_set(x, y, '[', UC_CYAN, bg);
+    uc_set(x + 1, y, 'W', UC_CYAN, bg);
+    uc_set(x + 2, y, ']', UC_CYAN, bg);
+    uc_set(x + 5, y, ' ', fg, bg);
+    i = 0;
+    while i < nlen {
+        uc_set(x + 6 + i, y, name[i], UC_YELLOW, bg);
+        i = i + 1;
+    }
+    uc_set(x + 8 + nlen, y, ' ', fg, bg);
+    i = 0;
+    while i < tlen {
+        uc_set(x + 9 + nlen + i, y, type[i], UC_WHITE, bg);
+        i = i + 1;
+    }
+    uc_set(x + 11 + nlen + tlen, y, ' ', fg, bg);
+    if state != 0 {
+        uc_set(x + 12 + nlen + tlen, y, 'A', UC_GREEN, bg);
+        uc_set(x + 13 + nlen + tlen, y, 'c', UC_GREEN, bg);
+        uc_set(x + 14 + nlen + tlen, y, 't', UC_GREEN, bg);
+        uc_set(x + 15 + nlen + tlen, y, 'i', UC_GREEN, bg);
+        uc_set(x + 16 + nlen + tlen, y, 'v', UC_GREEN, bg);
+        uc_set(x + 17 + nlen + tlen, y, 'e', UC_GREEN, bg);
+    } else {
+        uc_set(x + 12 + nlen + tlen, y, 'I', fg, bg);
+        uc_set(x + 13 + nlen + tlen, y, 'n', fg, bg);
+        uc_set(x + 14 + nlen + tlen, y, 'a', fg, bg);
+        uc_set(x + 15 + nlen + tlen, y, 'c', fg, bg);
+        uc_set(x + 16 + nlen + tlen, y, 't', fg, bg);
+        uc_set(x + 17 + nlen + tlen, y, 'i', fg, bg);
+        uc_set(x + 18 + nlen + tlen, y, 'v', fg, bg);
+        uc_set(x + 19 + nlen + tlen, y, 'e', fg, bg);
+    }
+    return 0;
+}
+
+# ============ v1.569 图表配置行 ============
+
+# uc_chart_row：绘制图表配置行 [C]  cpu-usage  Area  Refresh 30s
+# name 为图表名，type 为类型，interval 为刷新间隔。
+# 用于监控图表配置。
+fn uc_chart_row(x: i64, y: i64, name: ptr, type: ptr, interval: ptr, fg: i64, bg: i64) -> i64 {
+    let nlen: i64 = 0;
+    let tlen: i64 = 0;
+    let ilen: i64 = 0;
+    let i: i64 = 0;
+    nlen = strlen(name);
+    tlen = strlen(type);
+    ilen = strlen(interval);
+    uc_set(x, y, '[', UC_GREEN, bg);
+    uc_set(x + 1, y, 'C', UC_GREEN, bg);
+    uc_set(x + 2, y, ']', UC_GREEN, bg);
+    uc_set(x + 5, y, ' ', fg, bg);
+    i = 0;
+    while i < nlen {
+        uc_set(x + 6 + i, y, name[i], UC_YELLOW, bg);
+        i = i + 1;
+    }
+    uc_set(x + 8 + nlen, y, ' ', fg, bg);
+    i = 0;
+    while i < tlen {
+        uc_set(x + 9 + nlen + i, y, type[i], UC_WHITE, bg);
+        i = i + 1;
+    }
+    uc_set(x + 11 + nlen + tlen, y, ' ', fg, bg);
+    i = 0;
+    while i < ilen {
+        uc_set(x + 12 + nlen + tlen + i, y, interval[i], UC_CYAN, bg);
+        i = i + 1;
+    }
+    return 0;
+}
+
+# ============ v1.570 报表行 ============
+
+# uc_report_row：绘制报表行 [R]  monthly-sales  Generated  2024-01
+# name 为报表名，period 为周期，state 0=生成中 1=已生成。
+# 用于报表管理。
+fn uc_report_row(x: i64, y: i64, name: ptr, period: ptr, state: i64, fg: i64, bg: i64) -> i64 {
+    let nlen: i64 = 0;
+    let plen: i64 = 0;
+    let i: i64 = 0;
+    nlen = strlen(name);
+    plen = strlen(period);
+    uc_set(x, y, '[', UC_MAGENTA, bg);
+    uc_set(x + 1, y, 'R', UC_MAGENTA, bg);
+    uc_set(x + 2, y, ']', UC_MAGENTA, bg);
+    uc_set(x + 5, y, ' ', fg, bg);
+    i = 0;
+    while i < nlen {
+        uc_set(x + 6 + i, y, name[i], UC_YELLOW, bg);
+        i = i + 1;
+    }
+    uc_set(x + 8 + nlen, y, ' ', fg, bg);
+    i = 0;
+    while i < plen {
+        uc_set(x + 9 + nlen + i, y, period[i], UC_CYAN, bg);
+        i = i + 1;
+    }
+    uc_set(x + 11 + nlen + plen, y, ' ', fg, bg);
+    if state != 0 {
+        uc_set(x + 12 + nlen + plen, y, 'G', UC_GREEN, bg);
+        uc_set(x + 13 + nlen + plen, y, 'e', UC_GREEN, bg);
+        uc_set(x + 14 + nlen + plen, y, 'n', UC_GREEN, bg);
+        uc_set(x + 15 + nlen + plen, y, 'e', UC_GREEN, bg);
+        uc_set(x + 16 + nlen + plen, y, 'r', UC_GREEN, bg);
+        uc_set(x + 17 + nlen + plen, y, 'a', UC_GREEN, bg);
+        uc_set(x + 18 + nlen + plen, y, 't', UC_GREEN, bg);
+        uc_set(x + 19 + nlen + plen, y, 'e', UC_GREEN, bg);
+        uc_set(x + 20 + nlen + plen, y, 'd', UC_GREEN, bg);
+    } else {
+        uc_set(x + 12 + nlen + plen, y, 'G', UC_CYAN, bg);
+        uc_set(x + 13 + nlen + plen, y, 'e', UC_CYAN, bg);
+        uc_set(x + 14 + nlen + plen, y, 'n', UC_CYAN, bg);
+        uc_set(x + 15 + nlen + plen, y, 'e', UC_CYAN, bg);
+        uc_set(x + 16 + nlen + plen, y, 'r', UC_CYAN, bg);
+        uc_set(x + 17 + nlen + plen, y, 'a', UC_CYAN, bg);
+        uc_set(x + 18 + nlen + plen, y, 't', UC_CYAN, bg);
+        uc_set(x + 19 + nlen + plen, y, 'i', UC_CYAN, bg);
+        uc_set(x + 20 + nlen + plen, y, 'n', UC_CYAN, bg);
+        uc_set(x + 21 + nlen + plen, y, 'g', UC_CYAN, bg);
+    }
+    return 0;
+}
+
+# ============ v1.571 API 密钥行 ============
+
+# uc_api_key_row：绘制 API 密钥行 [K]  prod-key  Active  expires 2025-01
+# name 为密钥名，state 0=已吊销 1=启用，expiry 为过期时间。
+# 用于 API 密钥管理。
+fn uc_api_key_row(x: i64, y: i64, name: ptr, state: i64, expiry: ptr, fg: i64, bg: i64) -> i64 {
+    let nlen: i64 = 0;
+    let elen: i64 = 0;
+    let i: i64 = 0;
+    nlen = strlen(name);
+    elen = strlen(expiry);
+    uc_set(x, y, '[', UC_GREEN, bg);
+    uc_set(x + 1, y, 'K', UC_GREEN, bg);
+    uc_set(x + 2, y, ']', UC_GREEN, bg);
+    uc_set(x + 5, y, ' ', fg, bg);
+    i = 0;
+    while i < nlen {
+        uc_set(x + 6 + i, y, name[i], UC_YELLOW, bg);
+        i = i + 1;
+    }
+    uc_set(x + 8 + nlen, y, ' ', fg, bg);
+    if state != 0 {
+        uc_set(x + 9 + nlen, y, 'A', UC_GREEN, bg);
+        uc_set(x + 10 + nlen, y, 'c', UC_GREEN, bg);
+        uc_set(x + 11 + nlen, y, 't', UC_GREEN, bg);
+        uc_set(x + 12 + nlen, y, 'i', UC_GREEN, bg);
+        uc_set(x + 13 + nlen, y, 'v', UC_GREEN, bg);
+        uc_set(x + 14 + nlen, y, 'e', UC_GREEN, bg);
+    } else {
+        uc_set(x + 9 + nlen, y, 'R', UC_RED, bg);
+        uc_set(x + 10 + nlen, y, 'e', UC_RED, bg);
+        uc_set(x + 11 + nlen, y, 'v', UC_RED, bg);
+        uc_set(x + 12 + nlen, y, 'o', UC_RED, bg);
+        uc_set(x + 13 + nlen, y, 'k', UC_RED, bg);
+        uc_set(x + 14 + nlen, y, 'e', UC_RED, bg);
+        uc_set(x + 15 + nlen, y, 'd', UC_RED, bg);
+    }
+    uc_set(x + 17 + nlen, y, ' ', fg, bg);
+    uc_set(x + 18 + nlen, y, 'e', UC_CYAN, bg);
+    uc_set(x + 19 + nlen, y, 'x', UC_CYAN, bg);
+    uc_set(x + 20 + nlen, y, 'p', UC_CYAN, bg);
+    uc_set(x + 21 + nlen, y, ' ', UC_CYAN, bg);
+    uc_set(x + 22 + nlen, y, ' ', UC_CYAN, bg);
+    i = 0;
+    while i < elen {
+        uc_set(x + 23 + nlen + i, y, expiry[i], UC_CYAN, bg);
+        i = i + 1;
+    }
+    return 0;
+}
+
+# ============ v1.572 OAuth 客户端行 ============
+
+# uc_oauth_client_row：绘制 OAuth 客户端行 [O]  web-app  Confidential  Active
+# name 为客户端名，state 0=停用 1=启用。
+# 用于 OAuth 客户端管理。
+fn uc_oauth_client_row(x: i64, y: i64, name: ptr, type: ptr, state: i64, fg: i64, bg: i64) -> i64 {
+    let nlen: i64 = 0;
+    let tlen: i64 = 0;
+    let i: i64 = 0;
+    nlen = strlen(name);
+    tlen = strlen(type);
+    uc_set(x, y, '[', UC_MAGENTA, bg);
+    uc_set(x + 1, y, 'O', UC_MAGENTA, bg);
+    uc_set(x + 2, y, ']', UC_MAGENTA, bg);
+    uc_set(x + 5, y, ' ', fg, bg);
+    i = 0;
+    while i < nlen {
+        uc_set(x + 6 + i, y, name[i], UC_YELLOW, bg);
+        i = i + 1;
+    }
+    uc_set(x + 8 + nlen, y, ' ', fg, bg);
+    i = 0;
+    while i < tlen {
+        uc_set(x + 9 + nlen + i, y, type[i], UC_WHITE, bg);
+        i = i + 1;
+    }
+    uc_set(x + 11 + nlen + tlen, y, ' ', fg, bg);
+    if state != 0 {
+        uc_set(x + 12 + nlen + tlen, y, 'A', UC_GREEN, bg);
+        uc_set(x + 13 + nlen + tlen, y, 'c', UC_GREEN, bg);
+        uc_set(x + 14 + nlen + tlen, y, 't', UC_GREEN, bg);
+        uc_set(x + 15 + nlen + tlen, y, 'i', UC_GREEN, bg);
+        uc_set(x + 16 + nlen + tlen, y, 'v', UC_GREEN, bg);
+        uc_set(x + 17 + nlen + tlen, y, 'e', UC_GREEN, bg);
+    } else {
+        uc_set(x + 12 + nlen + tlen, y, 'I', fg, bg);
+        uc_set(x + 13 + nlen + tlen, y, 'n', fg, bg);
+        uc_set(x + 14 + nlen + tlen, y, 'a', fg, bg);
+        uc_set(x + 15 + nlen + tlen, y, 'c', fg, bg);
+        uc_set(x + 16 + nlen + tlen, y, 't', fg, bg);
+        uc_set(x + 17 + nlen + tlen, y, 'i', fg, bg);
+        uc_set(x + 18 + nlen + tlen, y, 'v', fg, bg);
+        uc_set(x + 19 + nlen + tlen, y, 'e', fg, bg);
+    }
+    return 0;
+}
+
+# ============ v1.573 角色行 ============
+
+# uc_role_row：绘制角色行 [R]  admin  Full access  Built-in
+# name 为角色名，desc 为描述，state 0=自定义 1=内置。
+# 用于角色管理。
+fn uc_role_row(x: i64, y: i64, name: ptr, desc: ptr, state: i64, fg: i64, bg: i64) -> i64 {
+    let nlen: i64 = 0;
+    let dlen: i64 = 0;
+    let i: i64 = 0;
+    nlen = strlen(name);
+    dlen = strlen(desc);
+    uc_set(x, y, '[', UC_CYAN, bg);
+    uc_set(x + 1, y, 'R', UC_CYAN, bg);
+    uc_set(x + 2, y, ']', UC_CYAN, bg);
+    uc_set(x + 5, y, ' ', fg, bg);
+    i = 0;
+    while i < nlen {
+        uc_set(x + 6 + i, y, name[i], UC_YELLOW, bg);
+        i = i + 1;
+    }
+    uc_set(x + 8 + nlen, y, ' ', fg, bg);
+    i = 0;
+    while i < dlen {
+        uc_set(x + 9 + nlen + i, y, desc[i], UC_WHITE, bg);
+        i = i + 1;
+    }
+    uc_set(x + 11 + nlen + dlen, y, ' ', fg, bg);
+    if state != 0 {
+        uc_set(x + 12 + nlen + dlen, y, 'B', UC_GREEN, bg);
+        uc_set(x + 13 + nlen + dlen, y, 'u', UC_GREEN, bg);
+        uc_set(x + 14 + nlen + dlen, y, 'i', UC_GREEN, bg);
+        uc_set(x + 15 + nlen + dlen, y, 'l', UC_GREEN, bg);
+        uc_set(x + 16 + nlen + dlen, y, 't', UC_GREEN, bg);
+        uc_set(x + 17 + nlen + dlen, y, 'i', UC_GREEN, bg);
+        uc_set(x + 18 + nlen + dlen, y, 'n', UC_GREEN, bg);
+    } else {
+        uc_set(x + 12 + nlen + dlen, y, 'C', UC_CYAN, bg);
+        uc_set(x + 13 + nlen + dlen, y, 'u', UC_CYAN, bg);
+        uc_set(x + 14 + nlen + dlen, y, 's', UC_CYAN, bg);
+        uc_set(x + 15 + nlen + dlen, y, 't', UC_CYAN, bg);
+        uc_set(x + 16 + nlen + dlen, y, 'o', UC_CYAN, bg);
+        uc_set(x + 17 + nlen + dlen, y, 'm', UC_CYAN, bg);
+    }
+    return 0;
+}
+
+# ============ v1.574 权限行 ============
+
+# uc_permission_row：绘制权限行 [P]  orders.read  READ  Granted
+# name 为权限名，action 为操作，state 0=拒绝 1=允许。
+# 用于权限管理。
+fn uc_permission_row(x: i64, y: i64, name: ptr, action: ptr, state: i64, fg: i64, bg: i64) -> i64 {
+    let nlen: i64 = 0;
+    let alen: i64 = 0;
+    let i: i64 = 0;
+    nlen = strlen(name);
+    alen = strlen(action);
+    uc_set(x, y, '[', UC_YELLOW, bg);
+    uc_set(x + 1, y, 'P', UC_YELLOW, bg);
+    uc_set(x + 2, y, ']', UC_YELLOW, bg);
+    uc_set(x + 5, y, ' ', fg, bg);
+    i = 0;
+    while i < nlen {
+        uc_set(x + 6 + i, y, name[i], UC_YELLOW, bg);
+        i = i + 1;
+    }
+    uc_set(x + 8 + nlen, y, ' ', fg, bg);
+    i = 0;
+    while i < alen {
+        uc_set(x + 9 + nlen + i, y, action[i], UC_WHITE, bg);
+        i = i + 1;
+    }
+    uc_set(x + 11 + nlen + alen, y, ' ', fg, bg);
+    if state != 0 {
+        uc_set(x + 12 + nlen + alen, y, 'G', UC_GREEN, bg);
+        uc_set(x + 13 + nlen + alen, y, 'r', UC_GREEN, bg);
+        uc_set(x + 14 + nlen + alen, y, 'a', UC_GREEN, bg);
+        uc_set(x + 15 + nlen + alen, y, 'n', UC_GREEN, bg);
+        uc_set(x + 16 + nlen + alen, y, 't', UC_GREEN, bg);
+        uc_set(x + 17 + nlen + alen, y, 'e', UC_GREEN, bg);
+        uc_set(x + 18 + nlen + alen, y, 'd', UC_GREEN, bg);
+    } else {
+        uc_set(x + 12 + nlen + alen, y, 'D', UC_RED, bg);
+        uc_set(x + 13 + nlen + alen, y, 'e', UC_RED, bg);
+        uc_set(x + 14 + nlen + alen, y, 'n', UC_RED, bg);
+        uc_set(x + 15 + nlen + alen, y, 'i', UC_RED, bg);
+        uc_set(x + 16 + nlen + alen, y, 'e', UC_RED, bg);
+        uc_set(x + 17 + nlen + alen, y, 'd', UC_RED, bg);
+    }
+    return 0;
+}
+
+# ============ v1.575 策略行 ============
+
+# uc_policy_row：绘制策略行 [P]  require-mfa  Security  Enforced
+# name 为策略名，category 为类别，state 0=草稿 1=已生效。
+# 用于策略管理。
+fn uc_policy_row(x: i64, y: i64, name: ptr, category: ptr, state: i64, fg: i64, bg: i64) -> i64 {
+    let nlen: i64 = 0;
+    let clen: i64 = 0;
+    let i: i64 = 0;
+    nlen = strlen(name);
+    clen = strlen(category);
+    uc_set(x, y, '[', UC_MAGENTA, bg);
+    uc_set(x + 1, y, 'P', UC_MAGENTA, bg);
+    uc_set(x + 2, y, ']', UC_MAGENTA, bg);
+    uc_set(x + 5, y, ' ', fg, bg);
+    i = 0;
+    while i < nlen {
+        uc_set(x + 6 + i, y, name[i], UC_YELLOW, bg);
+        i = i + 1;
+    }
+    uc_set(x + 8 + nlen, y, ' ', fg, bg);
+    i = 0;
+    while i < clen {
+        uc_set(x + 9 + nlen + i, y, category[i], UC_WHITE, bg);
+        i = i + 1;
+    }
+    uc_set(x + 11 + nlen + clen, y, ' ', fg, bg);
+    if state != 0 {
+        uc_set(x + 12 + nlen + clen, y, 'E', UC_GREEN, bg);
+        uc_set(x + 13 + nlen + clen, y, 'n', UC_GREEN, bg);
+        uc_set(x + 14 + nlen + clen, y, 'f', UC_GREEN, bg);
+        uc_set(x + 15 + nlen + clen, y, 'o', UC_GREEN, bg);
+        uc_set(x + 16 + nlen + clen, y, 'r', UC_GREEN, bg);
+        uc_set(x + 17 + nlen + clen, y, 'c', UC_GREEN, bg);
+        uc_set(x + 18 + nlen + clen, y, 'e', UC_GREEN, bg);
+        uc_set(x + 19 + nlen + clen, y, 'd', UC_GREEN, bg);
+    } else {
+        uc_set(x + 12 + nlen + clen, y, 'D', UC_CYAN, bg);
+        uc_set(x + 13 + nlen + clen, y, 'r', UC_CYAN, bg);
+        uc_set(x + 14 + nlen + clen, y, 'a', UC_CYAN, bg);
+        uc_set(x + 15 + nlen + clen, y, 'f', UC_CYAN, bg);
+        uc_set(x + 16 + nlen + clen, y, 't', UC_CYAN, bg);
+    }
+    return 0;
+}
+
+# ============ v1.576 审计日志行 ============
+
+# uc_audit_log_row：绘制审计日志行 [L]  2024-01-01  user.login  admin  SUCCESS
+# time 为时间，action 为动作，user 为操作用户，state 0=失败 1=成功。
+# 用于审计日志展示。
+fn uc_audit_log_row(x: i64, y: i64, time: ptr, action: ptr, user: ptr, state: i64, fg: i64, bg: i64) -> i64 {
+    let tlen: i64 = 0;
+    let alen: i64 = 0;
+    let ulen: i64 = 0;
+    let i: i64 = 0;
+    tlen = strlen(time);
+    alen = strlen(action);
+    ulen = strlen(user);
+    uc_set(x, y, '[', UC_CYAN, bg);
+    uc_set(x + 1, y, 'L', UC_CYAN, bg);
+    uc_set(x + 2, y, ']', UC_CYAN, bg);
+    uc_set(x + 5, y, ' ', fg, bg);
+    i = 0;
+    while i < tlen {
+        uc_set(x + 6 + i, y, time[i], UC_WHITE, bg);
+        i = i + 1;
+    }
+    uc_set(x + 8 + tlen, y, ' ', fg, bg);
+    i = 0;
+    while i < alen {
+        uc_set(x + 9 + tlen + i, y, action[i], UC_YELLOW, bg);
+        i = i + 1;
+    }
+    uc_set(x + 11 + tlen + alen, y, ' ', fg, bg);
+    i = 0;
+    while i < ulen {
+        uc_set(x + 12 + tlen + alen + i, y, user[i], UC_MAGENTA, bg);
+        i = i + 1;
+    }
+    uc_set(x + 14 + tlen + alen + ulen, y, ' ', fg, bg);
+    if state != 0 {
+        uc_set(x + 15 + tlen + alen + ulen, y, 'S', UC_GREEN, bg);
+        uc_set(x + 16 + tlen + alen + ulen, y, 'U', UC_GREEN, bg);
+        uc_set(x + 17 + tlen + alen + ulen, y, 'C', UC_GREEN, bg);
+        uc_set(x + 18 + tlen + alen + ulen, y, 'C', UC_GREEN, bg);
+        uc_set(x + 19 + tlen + alen + ulen, y, 'E', UC_GREEN, bg);
+        uc_set(x + 20 + tlen + alen + ulen, y, 'S', UC_GREEN, bg);
+        uc_set(x + 21 + tlen + alen + ulen, y, 'S', UC_GREEN, bg);
+    } else {
+        uc_set(x + 15 + tlen + alen + ulen, y, 'F', UC_RED, bg);
+        uc_set(x + 16 + tlen + alen + ulen, y, 'A', UC_RED, bg);
+        uc_set(x + 17 + tlen + alen + ulen, y, 'I', UC_RED, bg);
+        uc_set(x + 18 + tlen + alen + ulen, y, 'L', UC_RED, bg);
+        uc_set(x + 19 + tlen + alen + ulen, y, 'E', UC_RED, bg);
+        uc_set(x + 20 + tlen + alen + ulen, y, 'D', UC_RED, bg);
+    }
+    return 0;
+}
+
+# ============ v1.577 登录会话行 ============
+
+# uc_login_session_row：绘制登录会话行 [S]  web-01  192.168.1.5  Active
+# name 为会话名，ip 为来源 IP，state 0=已过期 1=活跃。
+# 用于登录会话管理。
+fn uc_login_session_row(x: i64, y: i64, name: ptr, ip: ptr, state: i64, fg: i64, bg: i64) -> i64 {
+    let nlen: i64 = 0;
+    let ilen: i64 = 0;
+    let i: i64 = 0;
+    nlen = strlen(name);
+    ilen = strlen(ip);
+    uc_set(x, y, '[', UC_GREEN, bg);
+    uc_set(x + 1, y, 'S', UC_GREEN, bg);
+    uc_set(x + 2, y, ']', UC_GREEN, bg);
+    uc_set(x + 5, y, ' ', fg, bg);
+    i = 0;
+    while i < nlen {
+        uc_set(x + 6 + i, y, name[i], UC_YELLOW, bg);
+        i = i + 1;
+    }
+    uc_set(x + 8 + nlen, y, ' ', fg, bg);
+    i = 0;
+    while i < ilen {
+        uc_set(x + 9 + nlen + i, y, ip[i], UC_CYAN, bg);
+        i = i + 1;
+    }
+    uc_set(x + 11 + nlen + ilen, y, ' ', fg, bg);
+    if state != 0 {
+        uc_set(x + 12 + nlen + ilen, y, 'A', UC_GREEN, bg);
+        uc_set(x + 13 + nlen + ilen, y, 'c', UC_GREEN, bg);
+        uc_set(x + 14 + nlen + ilen, y, 't', UC_GREEN, bg);
+        uc_set(x + 15 + nlen + ilen, y, 'i', UC_GREEN, bg);
+        uc_set(x + 16 + nlen + ilen, y, 'v', UC_GREEN, bg);
+        uc_set(x + 17 + nlen + ilen, y, 'e', UC_GREEN, bg);
+    } else {
+        uc_set(x + 12 + nlen + ilen, y, 'E', fg, bg);
+        uc_set(x + 13 + nlen + ilen, y, 'x', fg, bg);
+        uc_set(x + 14 + nlen + ilen, y, 'p', fg, bg);
+        uc_set(x + 15 + nlen + ilen, y, 'i', fg, bg);
+        uc_set(x + 16 + nlen + ilen, y, 'r', fg, bg);
+        uc_set(x + 17 + nlen + ilen, y, 'e', fg, bg);
+        uc_set(x + 18 + nlen + ilen, y, 'd', fg, bg);
+    }
+    return 0;
+}
+
+# ============ v1.578 SSO 提供方行 ============
+
+# uc_sso_row：绘制 SSO 提供方行 [S]  okta  SAML  Connected
+# name 为提供方名，protocol 为协议，state 0=未连接 1=已连接。
+# 用于 SSO 提供方管理。
+fn uc_sso_row(x: i64, y: i64, name: ptr, protocol: ptr, state: i64, fg: i64, bg: i64) -> i64 {
+    let nlen: i64 = 0;
+    let plen: i64 = 0;
+    let i: i64 = 0;
+    nlen = strlen(name);
+    plen = strlen(protocol);
+    uc_set(x, y, '[', UC_MAGENTA, bg);
+    uc_set(x + 1, y, 'S', UC_MAGENTA, bg);
+    uc_set(x + 2, y, ']', UC_MAGENTA, bg);
+    uc_set(x + 5, y, ' ', fg, bg);
+    i = 0;
+    while i < nlen {
+        uc_set(x + 6 + i, y, name[i], UC_YELLOW, bg);
+        i = i + 1;
+    }
+    uc_set(x + 8 + nlen, y, ' ', fg, bg);
+    i = 0;
+    while i < plen {
+        uc_set(x + 9 + nlen + i, y, protocol[i], UC_WHITE, bg);
+        i = i + 1;
+    }
+    uc_set(x + 11 + nlen + plen, y, ' ', fg, bg);
+    if state != 0 {
+        uc_set(x + 12 + nlen + plen, y, 'C', UC_GREEN, bg);
+        uc_set(x + 13 + nlen + plen, y, 'o', UC_GREEN, bg);
+        uc_set(x + 14 + nlen + plen, y, 'n', UC_GREEN, bg);
+        uc_set(x + 15 + nlen + plen, y, 'n', UC_GREEN, bg);
+        uc_set(x + 16 + nlen + plen, y, 'e', UC_GREEN, bg);
+        uc_set(x + 17 + nlen + plen, y, 'c', UC_GREEN, bg);
+        uc_set(x + 18 + nlen + plen, y, 't', UC_GREEN, bg);
+        uc_set(x + 19 + nlen + plen, y, 'e', UC_GREEN, bg);
+        uc_set(x + 20 + nlen + plen, y, 'd', UC_GREEN, bg);
+    } else {
+        uc_set(x + 12 + nlen + plen, y, 'N', fg, bg);
+        uc_set(x + 13 + nlen + plen, y, 'o', fg, bg);
+        uc_set(x + 14 + nlen + plen, y, 't', fg, bg);
+        uc_set(x + 15 + nlen + plen, y, ' ', fg, bg);
+        uc_set(x + 16 + nlen + plen, y, 'C', fg, bg);
+        uc_set(x + 17 + nlen + plen, y, 'o', fg, bg);
+        uc_set(x + 18 + nlen + plen, y, 'n', fg, bg);
+        uc_set(x + 19 + nlen + plen, y, 'n', fg, bg);
+        uc_set(x + 20 + nlen + plen, y, 'e', fg, bg);
+        uc_set(x + 21 + nlen + plen, y, 'c', fg, bg);
+        uc_set(x + 22 + nlen + plen, y, 't', fg, bg);
+        uc_set(x + 23 + nlen + plen, y, 'e', fg, bg);
+        uc_set(x + 24 + nlen + plen, y, 'd', fg, bg);
+    }
+    return 0;
+}
+
+# ============ v1.579 MFA 设备行 ============
+
+# uc_mfa_row：绘制 MFA 设备行 [M]  authenticator  Mobile  Active
+# name 为设备名，type 为类型，state 0=停用 1=启用。
+# 用于 MFA 设备管理。
+fn uc_mfa_row(x: i64, y: i64, name: ptr, type: ptr, state: i64, fg: i64, bg: i64) -> i64 {
+    let nlen: i64 = 0;
+    let tlen: i64 = 0;
+    let i: i64 = 0;
+    nlen = strlen(name);
+    tlen = strlen(type);
+    uc_set(x, y, '[', UC_YELLOW, bg);
+    uc_set(x + 1, y, 'M', UC_YELLOW, bg);
+    uc_set(x + 2, y, ']', UC_YELLOW, bg);
+    uc_set(x + 5, y, ' ', fg, bg);
+    i = 0;
+    while i < nlen {
+        uc_set(x + 6 + i, y, name[i], UC_YELLOW, bg);
+        i = i + 1;
+    }
+    uc_set(x + 8 + nlen, y, ' ', fg, bg);
+    i = 0;
+    while i < tlen {
+        uc_set(x + 9 + nlen + i, y, type[i], UC_WHITE, bg);
+        i = i + 1;
+    }
+    uc_set(x + 11 + nlen + tlen, y, ' ', fg, bg);
+    if state != 0 {
+        uc_set(x + 12 + nlen + tlen, y, 'A', UC_GREEN, bg);
+        uc_set(x + 13 + nlen + tlen, y, 'c', UC_GREEN, bg);
+        uc_set(x + 14 + nlen + tlen, y, 't', UC_GREEN, bg);
+        uc_set(x + 15 + nlen + tlen, y, 'i', UC_GREEN, bg);
+        uc_set(x + 16 + nlen + tlen, y, 'v', UC_GREEN, bg);
+        uc_set(x + 17 + nlen + tlen, y, 'e', UC_GREEN, bg);
+    } else {
+        uc_set(x + 12 + nlen + tlen, y, 'D', fg, bg);
+        uc_set(x + 13 + nlen + tlen, y, 'i', fg, bg);
+        uc_set(x + 14 + nlen + tlen, y, 's', fg, bg);
+        uc_set(x + 15 + nlen + tlen, y, 'a', fg, bg);
+        uc_set(x + 16 + nlen + tlen, y, 'b', fg, bg);
+        uc_set(x + 17 + nlen + tlen, y, 'l', fg, bg);
+        uc_set(x + 18 + nlen + tlen, y, 'e', fg, bg);
+        uc_set(x + 19 + nlen + tlen, y, 'd', fg, bg);
+    }
+    return 0;
+}
+
+# ============ v1.580 密码策略行 ============
+
+# uc_password_policy_row：绘制密码策略行 [P]  default  Min 12 chars  Enforced
+# name 为策略名，rule 为规则，state 0=草稿 1=已生效。
+# 用于密码策略管理。
+fn uc_password_policy_row(x: i64, y: i64, name: ptr, rule: ptr, state: i64, fg: i64, bg: i64) -> i64 {
+    let nlen: i64 = 0;
+    let rlen: i64 = 0;
+    let i: i64 = 0;
+    nlen = strlen(name);
+    rlen = strlen(rule);
+    uc_set(x, y, '[', UC_GREEN, bg);
+    uc_set(x + 1, y, 'P', UC_GREEN, bg);
+    uc_set(x + 2, y, ']', UC_GREEN, bg);
+    uc_set(x + 5, y, ' ', fg, bg);
+    i = 0;
+    while i < nlen {
+        uc_set(x + 6 + i, y, name[i], UC_YELLOW, bg);
+        i = i + 1;
+    }
+    uc_set(x + 8 + nlen, y, ' ', fg, bg);
+    i = 0;
+    while i < rlen {
+        uc_set(x + 9 + nlen + i, y, rule[i], UC_WHITE, bg);
+        i = i + 1;
+    }
+    uc_set(x + 11 + nlen + rlen, y, ' ', fg, bg);
+    if state != 0 {
+        uc_set(x + 12 + nlen + rlen, y, 'E', UC_GREEN, bg);
+        uc_set(x + 13 + nlen + rlen, y, 'n', UC_GREEN, bg);
+        uc_set(x + 14 + nlen + rlen, y, 'f', UC_GREEN, bg);
+        uc_set(x + 15 + nlen + rlen, y, 'o', UC_GREEN, bg);
+        uc_set(x + 16 + nlen + rlen, y, 'r', UC_GREEN, bg);
+        uc_set(x + 17 + nlen + rlen, y, 'c', UC_GREEN, bg);
+        uc_set(x + 18 + nlen + rlen, y, 'e', UC_GREEN, bg);
+        uc_set(x + 19 + nlen + rlen, y, 'd', UC_GREEN, bg);
+    } else {
+        uc_set(x + 12 + nlen + rlen, y, 'D', UC_CYAN, bg);
+        uc_set(x + 13 + nlen + rlen, y, 'r', UC_CYAN, bg);
+        uc_set(x + 14 + nlen + rlen, y, 'a', UC_CYAN, bg);
+        uc_set(x + 15 + nlen + rlen, y, 'f', UC_CYAN, bg);
+        uc_set(x + 16 + nlen + rlen, y, 't', UC_CYAN, bg);
+    }
+    return 0;
+}
