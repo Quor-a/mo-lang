@@ -7422,3 +7422,401 @@ fn uc_edge_event_archive_row(x: i64, y: i64, name: ptr, size: i64, state: i64, f
     }
     return 0;
 }
+
+# ============ v1.851 边缘指标阈值行 ============
+
+# uc_edge_metric_threshold_row：绘制边缘指标阈值行 [T]  temp-threshold  50°C  Active
+# name 为阈值名，value 为阈值，state 0=停用 1=启用。
+# 用于边缘指标阈值管理。
+fn uc_edge_metric_threshold_row(x: i64, y: i64, name: ptr, value: ptr, state: i64, fg: i64, bg: i64) -> i64 {
+    let nlen: i64 = 0;
+    let vlen: i64 = 0;
+    let i: i64 = 0;
+    nlen = strlen(name);
+    vlen = strlen(value);
+    uc_set(x, y, '[', UC_YELLOW, bg);
+    uc_set(x + 1, y, 'T', UC_YELLOW, bg);
+    uc_set(x + 2, y, ']', UC_YELLOW, bg);
+    uc_set(x + 5, y, ' ', fg, bg);
+    i = 0;
+    while i < nlen {
+        uc_set(x + 6 + i, y, name[i], UC_YELLOW, bg);
+        i = i + 1;
+    }
+    uc_set(x + 8 + nlen, y, ' ', fg, bg);
+    i = 0;
+    while i < vlen {
+        uc_set(x + 9 + nlen + i, y, value[i], UC_WHITE, bg);
+        i = i + 1;
+    }
+    uc_set(x + 11 + nlen + vlen, y, ' ', fg, bg);
+    if state != 0 {
+        uc_set(x + 12 + nlen + vlen, y, 'A', UC_GREEN, bg);
+        uc_set(x + 13 + nlen + vlen, y, 'c', UC_GREEN, bg);
+        uc_set(x + 14 + nlen + vlen, y, 't', UC_GREEN, bg);
+        uc_set(x + 15 + nlen + vlen, y, 'i', UC_GREEN, bg);
+        uc_set(x + 16 + nlen + vlen, y, 'v', UC_GREEN, bg);
+        uc_set(x + 17 + nlen + vlen, y, 'e', UC_GREEN, bg);
+    } else {
+        uc_set(x + 12 + nlen + vlen, y, 'I', UC_RED, bg);
+        uc_set(x + 13 + nlen + vlen, y, 'n', UC_RED, bg);
+        uc_set(x + 14 + nlen + vlen, y, 'a', UC_RED, bg);
+        uc_set(x + 15 + nlen + vlen, y, 'c', UC_RED, bg);
+        uc_set(x + 16 + nlen + vlen, y, 't', UC_RED, bg);
+        uc_set(x + 17 + nlen + vlen, y, 'i', UC_RED, bg);
+        uc_set(x + 18 + nlen + vlen, y, 'v', UC_RED, bg);
+        uc_set(x + 19 + nlen + vlen, y, 'e', UC_RED, bg);
+    }
+    return 0;
+}
+
+# ============ v1.852 边缘指标聚合行 ============
+
+# uc_edge_metric_agg_row：绘制边缘指标聚合行 [A]  avg-temp  avg  10 devices
+# name 为聚合名，op 为操作，devices 为设备数。
+# 用于边缘指标聚合管理。
+fn uc_edge_metric_agg_row(x: i64, y: i64, name: ptr, op: ptr, devices: i64, fg: i64, bg: i64) -> i64 {
+    let nlen: i64 = 0;
+    let olen: i64 = 0;
+    let i: i64 = 0;
+    nlen = strlen(name);
+    olen = strlen(op);
+    uc_set(x, y, '[', UC_CYAN, bg);
+    uc_set(x + 1, y, 'A', UC_CYAN, bg);
+    uc_set(x + 2, y, ']', UC_CYAN, bg);
+    uc_set(x + 5, y, ' ', fg, bg);
+    i = 0;
+    while i < nlen {
+        uc_set(x + 6 + i, y, name[i], UC_YELLOW, bg);
+        i = i + 1;
+    }
+    uc_set(x + 8 + nlen, y, ' ', fg, bg);
+    i = 0;
+    while i < olen {
+        uc_set(x + 9 + nlen + i, y, op[i], UC_WHITE, bg);
+        i = i + 1;
+    }
+    uc_set(x + 11 + nlen + olen, y, ' ', fg, bg);
+    uc_set(x + 12 + nlen + olen, y, '0' + devices, UC_MAGENTA, bg);
+    uc_set(x + 13 + nlen + olen, y, ' ', UC_MAGENTA, bg);
+    uc_set(x + 14 + nlen + olen, y, 'd', UC_MAGENTA, bg);
+    uc_set(x + 15 + nlen + olen, y, 'e', UC_MAGENTA, bg);
+    uc_set(x + 16 + nlen + olen, y, 'v', UC_MAGENTA, bg);
+    uc_set(x + 17 + nlen + olen, y, 'i', UC_MAGENTA, bg);
+    uc_set(x + 18 + nlen + olen, y, 'c', UC_MAGENTA, bg);
+    uc_set(x + 19 + nlen + olen, y, 'e', UC_MAGENTA, bg);
+    uc_set(x + 20 + nlen + olen, y, 's', UC_MAGENTA, bg);
+    return 0;
+}
+
+# ============ v1.853 边缘指标预测行 ============
+
+# uc_edge_metric_forecast_row：绘制边缘指标预测行 [F]  temp-forecast  +2°C  24h
+# name 为预测名，trend 为趋势，period 为周期。
+# 用于边缘指标预测管理。
+fn uc_edge_metric_forecast_row(x: i64, y: i64, name: ptr, trend: ptr, period: ptr, fg: i64, bg: i64) -> i64 {
+    let nlen: i64 = 0;
+    let tlen: i64 = 0;
+    let plen: i64 = 0;
+    let i: i64 = 0;
+    nlen = strlen(name);
+    tlen = strlen(trend);
+    plen = strlen(period);
+    uc_set(x, y, '[', UC_MAGENTA, bg);
+    uc_set(x + 1, y, 'F', UC_MAGENTA, bg);
+    uc_set(x + 2, y, ']', UC_MAGENTA, bg);
+    uc_set(x + 5, y, ' ', fg, bg);
+    i = 0;
+    while i < nlen {
+        uc_set(x + 6 + i, y, name[i], UC_YELLOW, bg);
+        i = i + 1;
+    }
+    uc_set(x + 8 + nlen, y, ' ', fg, bg);
+    i = 0;
+    while i < tlen {
+        uc_set(x + 9 + nlen + i, y, trend[i], UC_WHITE, bg);
+        i = i + 1;
+    }
+    uc_set(x + 11 + nlen + tlen, y, ' ', fg, bg);
+    i = 0;
+    while i < plen {
+        uc_set(x + 12 + nlen + tlen + i, y, period[i], UC_GREEN, bg);
+        i = i + 1;
+    }
+    return 0;
+}
+
+# ============ v1.854 边缘指标异常检测行 ============
+
+# uc_edge_metric_anomaly_row：绘制边缘指标异常检测行 [A]  anomaly-01  Normal  0 alerts
+# name 为检测器名，state 为状态，alerts 为告警数。
+# 用于边缘指标异常检测管理。
+fn uc_edge_metric_anomaly_row(x: i64, y: i64, name: ptr, state: ptr, alerts: i64, fg: i64, bg: i64) -> i64 {
+    let nlen: i64 = 0;
+    let slen: i64 = 0;
+    let i: i64 = 0;
+    nlen = strlen(name);
+    slen = strlen(state);
+    uc_set(x, y, '[', UC_RED, bg);
+    uc_set(x + 1, y, 'A', UC_RED, bg);
+    uc_set(x + 2, y, ']', UC_RED, bg);
+    uc_set(x + 5, y, ' ', fg, bg);
+    i = 0;
+    while i < nlen {
+        uc_set(x + 6 + i, y, name[i], UC_YELLOW, bg);
+        i = i + 1;
+    }
+    uc_set(x + 8 + nlen, y, ' ', fg, bg);
+    i = 0;
+    while i < slen {
+        uc_set(x + 9 + nlen + i, y, state[i], UC_WHITE, bg);
+        i = i + 1;
+    }
+    uc_set(x + 11 + nlen + slen, y, ' ', fg, bg);
+    uc_set(x + 12 + nlen + slen, y, '0' + alerts, UC_MAGENTA, bg);
+    uc_set(x + 13 + nlen + slen, y, ' ', UC_MAGENTA, bg);
+    uc_set(x + 14 + nlen + slen, y, 'a', UC_MAGENTA, bg);
+    uc_set(x + 15 + nlen + slen, y, 'l', UC_MAGENTA, bg);
+    uc_set(x + 16 + nlen + slen, y, 'e', UC_MAGENTA, bg);
+    uc_set(x + 17 + nlen + slen, y, 'r', UC_MAGENTA, bg);
+    uc_set(x + 18 + nlen + slen, y, 't', UC_MAGENTA, bg);
+    uc_set(x + 19 + nlen + slen, y, 's', UC_MAGENTA, bg);
+    return 0;
+}
+
+# ============ v1.855 边缘指标导出行 ============
+
+# uc_edge_metric_export_row：绘制边缘指标导出行 [E]  prom-export  Active  10 targets
+# name 为导出器名，state 为状态，targets 为目标数。
+# 用于边缘指标导出管理。
+fn uc_edge_metric_export_row(x: i64, y: i64, name: ptr, state: ptr, targets: i64, fg: i64, bg: i64) -> i64 {
+    let nlen: i64 = 0;
+    let slen: i64 = 0;
+    let i: i64 = 0;
+    nlen = strlen(name);
+    slen = strlen(state);
+    uc_set(x, y, '[', UC_GREEN, bg);
+    uc_set(x + 1, y, 'E', UC_GREEN, bg);
+    uc_set(x + 2, y, ']', UC_GREEN, bg);
+    uc_set(x + 5, y, ' ', fg, bg);
+    i = 0;
+    while i < nlen {
+        uc_set(x + 6 + i, y, name[i], UC_YELLOW, bg);
+        i = i + 1;
+    }
+    uc_set(x + 8 + nlen, y, ' ', fg, bg);
+    i = 0;
+    while i < slen {
+        uc_set(x + 9 + nlen + i, y, state[i], UC_WHITE, bg);
+        i = i + 1;
+    }
+    uc_set(x + 11 + nlen + slen, y, ' ', fg, bg);
+    uc_set(x + 12 + nlen + slen, y, '0' + targets, UC_CYAN, bg);
+    uc_set(x + 13 + nlen + slen, y, ' ', UC_CYAN, bg);
+    uc_set(x + 14 + nlen + slen, y, 't', UC_CYAN, bg);
+    uc_set(x + 15 + nlen + slen, y, 'a', UC_CYAN, bg);
+    uc_set(x + 16 + nlen + slen, y, 'r', UC_CYAN, bg);
+    uc_set(x + 17 + nlen + slen, y, 'g', UC_CYAN, bg);
+    uc_set(x + 18 + nlen + slen, y, 'e', UC_CYAN, bg);
+    uc_set(x + 19 + nlen + slen, y, 't', UC_CYAN, bg);
+    uc_set(x + 20 + nlen + slen, y, 's', UC_CYAN, bg);
+    return 0;
+}
+
+# ============ v1.856 边缘日志清洗行 ============
+
+# uc_edge_log_clean_row：绘制边缘日志清洗行 [C]  log-clean-01  1000 lines  Cleaning
+# name 为清洗器名，lines 为行数，state 为状态。
+# 用于边缘日志清洗管理。
+fn uc_edge_log_clean_row(x: i64, y: i64, name: ptr, lines: i64, state: ptr, fg: i64, bg: i64) -> i64 {
+    let nlen: i64 = 0;
+    let slen: i64 = 0;
+    let i: i64 = 0;
+    nlen = strlen(name);
+    slen = strlen(state);
+    uc_set(x, y, '[', UC_CYAN, bg);
+    uc_set(x + 1, y, 'C', UC_CYAN, bg);
+    uc_set(x + 2, y, ']', UC_CYAN, bg);
+    uc_set(x + 5, y, ' ', fg, bg);
+    i = 0;
+    while i < nlen {
+        uc_set(x + 6 + i, y, name[i], UC_YELLOW, bg);
+        i = i + 1;
+    }
+    uc_set(x + 8 + nlen, y, ' ', fg, bg);
+    uc_set(x + 9 + nlen, y, '0' + lines / 100, UC_WHITE, bg);
+    uc_set(x + 10 + nlen, y, '0' + (lines / 10) % 10, UC_WHITE, bg);
+    uc_set(x + 11 + nlen, y, '0' + lines % 10, UC_WHITE, bg);
+    uc_set(x + 12 + nlen, y, ' ', UC_WHITE, bg);
+    uc_set(x + 13 + nlen, y, 'l', UC_WHITE, bg);
+    uc_set(x + 14 + nlen, y, 'i', UC_WHITE, bg);
+    uc_set(x + 15 + nlen, y, 'n', UC_WHITE, bg);
+    uc_set(x + 16 + nlen, y, 'e', UC_WHITE, bg);
+    uc_set(x + 17 + nlen, y, 's', UC_WHITE, bg);
+    uc_set(x + 19 + nlen, y, ' ', fg, bg);
+    i = 0;
+    while i < slen {
+        uc_set(x + 20 + nlen + i, y, state[i], UC_GREEN, bg);
+        i = i + 1;
+    }
+    return 0;
+}
+
+# ============ v1.857 边缘日志解析行 ============
+
+# uc_edge_log_parse_row：绘制边缘日志解析行 [P]  json-parse  3 fields  Active
+# name 为解析器名，fields 为字段数，state 为状态。
+# 用于边缘日志解析管理。
+fn uc_edge_log_parse_row(x: i64, y: i64, name: ptr, fields: i64, state: ptr, fg: i64, bg: i64) -> i64 {
+    let nlen: i64 = 0;
+    let slen: i64 = 0;
+    let i: i64 = 0;
+    nlen = strlen(name);
+    slen = strlen(state);
+    uc_set(x, y, '[', UC_MAGENTA, bg);
+    uc_set(x + 1, y, 'P', UC_MAGENTA, bg);
+    uc_set(x + 2, y, ']', UC_MAGENTA, bg);
+    uc_set(x + 5, y, ' ', fg, bg);
+    i = 0;
+    while i < nlen {
+        uc_set(x + 6 + i, y, name[i], UC_YELLOW, bg);
+        i = i + 1;
+    }
+    uc_set(x + 8 + nlen, y, ' ', fg, bg);
+    uc_set(x + 9 + nlen, y, '0' + fields, UC_WHITE, bg);
+    uc_set(x + 10 + nlen, y, ' ', UC_WHITE, bg);
+    uc_set(x + 11 + nlen, y, 'f', UC_WHITE, bg);
+    uc_set(x + 12 + nlen, y, 'i', UC_WHITE, bg);
+    uc_set(x + 13 + nlen, y, 'e', UC_WHITE, bg);
+    uc_set(x + 14 + nlen, y, 'l', UC_WHITE, bg);
+    uc_set(x + 15 + nlen, y, 'd', UC_WHITE, bg);
+    uc_set(x + 16 + nlen, y, 's', UC_WHITE, bg);
+    uc_set(x + 18 + nlen, y, ' ', fg, bg);
+    i = 0;
+    while i < slen {
+        uc_set(x + 19 + nlen + i, y, state[i], UC_GREEN, bg);
+        i = i + 1;
+    }
+    return 0;
+}
+
+# ============ v1.858 边缘日志索引行 ============
+
+# uc_edge_log_index_row：绘制边缘日志索引行 [I]  log-index-01  5 GB  Indexed
+# name 为索引名，size 为大小，state 为状态。
+# 用于边缘日志索引管理。
+fn uc_edge_log_index_row(x: i64, y: i64, name: ptr, size: i64, state: ptr, fg: i64, bg: i64) -> i64 {
+    let nlen: i64 = 0;
+    let slen: i64 = 0;
+    let i: i64 = 0;
+    nlen = strlen(name);
+    slen = strlen(state);
+    uc_set(x, y, '[', UC_GREEN, bg);
+    uc_set(x + 1, y, 'I', UC_GREEN, bg);
+    uc_set(x + 2, y, ']', UC_GREEN, bg);
+    uc_set(x + 5, y, ' ', fg, bg);
+    i = 0;
+    while i < nlen {
+        uc_set(x + 6 + i, y, name[i], UC_YELLOW, bg);
+        i = i + 1;
+    }
+    uc_set(x + 8 + nlen, y, ' ', fg, bg);
+    uc_set(x + 9 + nlen, y, '0' + size, UC_WHITE, bg);
+    uc_set(x + 10 + nlen, y, ' ', UC_WHITE, bg);
+    uc_set(x + 11 + nlen, y, 'G', UC_WHITE, bg);
+    uc_set(x + 12 + nlen, y, 'B', UC_WHITE, bg);
+    uc_set(x + 14 + nlen, y, ' ', fg, bg);
+    i = 0;
+    while i < slen {
+        uc_set(x + 15 + nlen + i, y, state[i], UC_CYAN, bg);
+        i = i + 1;
+    }
+    return 0;
+}
+
+# ============ v1.859 边缘日志搜索行 ============
+
+# uc_edge_log_search_row：绘制边缘日志搜索行 [S]  search-01  50 queries  Active
+# name 为搜索名，queries 为查询数，state 为状态。
+# 用于边缘日志搜索管理。
+fn uc_edge_log_search_row(x: i64, y: i64, name: ptr, queries: i64, state: ptr, fg: i64, bg: i64) -> i64 {
+    let nlen: i64 = 0;
+    let slen: i64 = 0;
+    let i: i64 = 0;
+    nlen = strlen(name);
+    slen = strlen(state);
+    uc_set(x, y, '[', UC_CYAN, bg);
+    uc_set(x + 1, y, 'S', UC_CYAN, bg);
+    uc_set(x + 2, y, ']', UC_CYAN, bg);
+    uc_set(x + 5, y, ' ', fg, bg);
+    i = 0;
+    while i < nlen
+    {
+        uc_set(x + 6 + i, y, name[i], UC_YELLOW, bg);
+        i = i + 1;
+    }
+    uc_set(x + 8 + nlen, y, ' ', fg, bg);
+    uc_set(x + 9 + nlen, y, '0' + queries, UC_WHITE, bg);
+    uc_set(x + 10 + nlen, y, ' ', UC_WHITE, bg);
+    uc_set(x + 11 + nlen, y, 'q', UC_WHITE, bg);
+    uc_set(x + 12 + nlen, y, 'u', UC_WHITE, bg);
+    uc_set(x + 13 + nlen, y, 'e', UC_WHITE, bg);
+    uc_set(x + 14 + nlen, y, 'r', UC_WHITE, bg);
+    uc_set(x + 15 + nlen, y, 'i', UC_WHITE, bg);
+    uc_set(x + 16 + nlen, y, 'e', UC_WHITE, bg);
+    uc_set(x + 17 + nlen, y, 's', UC_WHITE, bg);
+    uc_set(x + 19 + nlen, y, ' ', fg, bg);
+    i = 0;
+    while i < slen {
+        uc_set(x + 20 + nlen + i, y, state[i], UC_GREEN, bg);
+        i = i + 1;
+    }
+    return 0;
+}
+
+# ============ v1.860 边缘日志留存行 ============
+
+# uc_edge_log_retention_row：绘制边缘日志留存行 [R]  retention-01  30 days  Active
+# name 为留存名，days 为天数，state 0=停用 1=启用。
+# 用于边缘日志留存管理。
+fn uc_edge_log_retention_row(x: i64, y: i64, name: ptr, days: i64, state: i64, fg: i64, bg: i64) -> i64 {
+    let nlen: i64 = 0;
+    let i: i64 = 0;
+    nlen = strlen(name);
+    uc_set(x, y, '[', UC_MAGENTA, bg);
+    uc_set(x + 1, y, 'R', UC_MAGENTA, bg);
+    uc_set(x + 2, y, ']', UC_MAGENTA, bg);
+    uc_set(x + 5, y, ' ', fg, bg);
+    i = 0;
+    while i < nlen {
+        uc_set(x + 6 + i, y, name[i], UC_YELLOW, bg);
+        i = i + 1;
+    }
+    uc_set(x + 8 + nlen, y, ' ', fg, bg);
+    uc_set(x + 9 + nlen, y, '0' + days / 10, UC_WHITE, bg);
+    uc_set(x + 10 + nlen, y, '0' + days % 10, UC_WHITE, bg);
+    uc_set(x + 11 + nlen, y, ' ', UC_WHITE, bg);
+    uc_set(x + 12 + nlen, y, 'd', UC_WHITE, bg);
+    uc_set(x + 13 + nlen, y, 'a', UC_WHITE, bg);
+    uc_set(x + 14 + nlen, y, 'y', UC_WHITE, bg);
+    uc_set(x + 15 + nlen, y, 's', UC_WHITE, bg);
+    uc_set(x + 17 + nlen, y, ' ', fg, bg);
+    if state != 0 {
+        uc_set(x + 18 + nlen, y, 'A', UC_GREEN, bg);
+        uc_set(x + 19 + nlen, y, 'c', UC_GREEN, bg);
+        uc_set(x + 20 + nlen, y, 't', UC_GREEN, bg);
+        uc_set(x + 21 + nlen, y, 'i', UC_GREEN, bg);
+        uc_set(x + 22 + nlen, y, 'v', UC_GREEN, bg);
+        uc_set(x + 23 + nlen, y, 'e', UC_GREEN, bg);
+    } else {
+        uc_set(x + 18 + nlen, y, 'I', UC_RED, bg);
+        uc_set(x + 19 + nlen, y, 'n', UC_RED, bg);
+        uc_set(x + 20 + nlen, y, 'a', UC_RED, bg);
+        uc_set(x + 21 + nlen, y, 'c', UC_RED, bg);
+        uc_set(x + 22 + nlen, y, 't', UC_RED, bg);
+        uc_set(x + 23 + nlen, y, 'i', UC_RED, bg);
+        uc_set(x + 24 + nlen, y, 'v', UC_RED, bg);
+        uc_set(x + 25 + nlen, y, 'e', UC_RED, bg);
+    }
+    return 0;
+}

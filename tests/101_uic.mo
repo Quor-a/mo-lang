@@ -546,6 +546,16 @@ fn main() -> i64 {
     uc_edge_event_pattern_row(12, 2, "pattern-01", "Detected", 2, UC_WHITE, UC_BLUE);
     uc_edge_event_audit_row(1, 2, "ev-audit-01", 1000, "Retained", UC_WHITE, UC_BLUE);
     uc_edge_event_archive_row(12, 2, "archive-01", 5, 1, UC_WHITE, UC_BLUE);
+    uc_edge_metric_threshold_row(1, 2, "temp-threshold", "50C", 1, UC_WHITE, UC_BLUE);
+    uc_edge_metric_agg_row(12, 2, "avg-temp", "avg", 10, UC_WHITE, UC_BLUE);
+    uc_edge_metric_forecast_row(1, 2, "temp-forecast", "+2C", "24h", UC_WHITE, UC_BLUE);
+    uc_edge_metric_anomaly_row(12, 2, "anomaly-01", "Normal", 0, UC_WHITE, UC_BLUE);
+    uc_edge_metric_export_row(1, 2, "prom-export", "Active", 10, UC_WHITE, UC_BLUE);
+    uc_edge_log_clean_row(12, 2, "log-clean-01", 1000, "Cleaning", UC_WHITE, UC_BLUE);
+    uc_edge_log_parse_row(1, 2, "json-parse", 3, "Active", UC_WHITE, UC_BLUE);
+    uc_edge_log_index_row(12, 2, "log-index-01", 5, "Indexed", UC_WHITE, UC_BLUE);
+    uc_edge_log_search_row(1, 2, "search-01", 50, "Active", UC_WHITE, UC_BLUE);
+    uc_edge_log_retention_row(12, 2, "retention-01", 30, 1, UC_WHITE, UC_BLUE);
     uc_dump_svg("/tmp/uic_dump_test.svg");
     uc_render();
     return 0;

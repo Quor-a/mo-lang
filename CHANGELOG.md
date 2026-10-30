@@ -1,3 +1,19 @@
+## [1.860.0]
+
+- lib/uic_edge.mo 继续新增边缘指标与日志画布组件（v1.851~v1.860，10 个）：
+  - uc_edge_metric_threshold_row：边缘指标阈值行 [T] temp-threshold 50°C Active
+  - uc_edge_metric_agg_row：边缘指标聚合行 [A] avg-temp avg 10 devices
+  - uc_edge_metric_forecast_row：边缘指标预测行 [F] temp-forecast +2°C 24h
+  - uc_edge_metric_anomaly_row：边缘指标异常检测行 [A] anomaly-01 Normal 0 alerts
+  - uc_edge_metric_export_row：边缘指标导出行 [E] prom-export Active 10 targets
+  - uc_edge_log_clean_row：边缘日志清洗行 [C] log-clean-01 1000 lines Cleaning
+  - uc_edge_log_parse_row：边缘日志解析行 [P] json-parse 3 fields Active
+  - uc_edge_log_index_row：边缘日志索引行 [I] log-index-01 5 GB Indexed
+  - uc_edge_log_search_row：边缘日志搜索行 [S] search-01 50 queries Active
+  - uc_edge_log_retention_row：边缘日志留存行 [R] retention-01 30 days Active
+- tests/101_uic.mo 覆盖全部新增组件。
+- 门禁：tests 249/249、projcheck 11/11、自举三级一致、sweep 全绿。
+
 ## [1.850.0]
 
 - lib/uic_edge.mo 继续新增边缘事件处理画布组件（v1.841~v1.850，10 个）：
