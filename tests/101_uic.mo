@@ -245,6 +245,16 @@ fn main() -> i64 {
     uc_event_source_row(12, 2, "db-cdc", "Pg", 1, UC_WHITE, UC_BLUE);
     uc_stream_job_row(1, 2, "click", 1200, 1, UC_WHITE, UC_BLUE);
     uc_pipeline_row2(12, 2, "etl", "Sched", 1, UC_WHITE, UC_BLUE);
+    uc_model_version_row(1, 2, "v1.2", 1, UC_WHITE, UC_BLUE);
+    uc_training_job_row(12, 2, "fine-tune", 3, 1, UC_WHITE, UC_BLUE);
+    uc_eval_row(1, 2, "accuracy", 94, 1, UC_WHITE, UC_BLUE);
+    uc_deploy_endpoint_row(12, 2, "prod", 1, UC_WHITE, UC_BLUE);
+    uc_experiment_row(1, 2, "lr-0.01", 1, UC_WHITE, UC_BLUE);
+    uc_feature_store_row(12, 2, "user_feat", 1024, 1, UC_WHITE, UC_BLUE);
+    uc_label_job_row(1, 2, "image-class", 120, 500, UC_WHITE, UC_BLUE);
+    uc_quality_check_row(12, 2, "null-rate", 21, 1, UC_WHITE, UC_BLUE);
+    uc_model_monitor_row(1, 2, "drift", 1, 2, UC_WHITE, UC_BLUE);
+    uc_inference_batch_row(12, 2, "batch-42", 1000, 1, UC_WHITE, UC_BLUE);
     uc_dump_svg("/tmp/uic_dump_test.svg");
     uc_render();
     return 0;

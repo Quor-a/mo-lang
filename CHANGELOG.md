@@ -1,3 +1,19 @@
+## [1.560.0]
+
+- lib/uic.mo 大版本批量新增 10 个画布组件：
+  - uc_model_version_row：模型版本行 [V] v1.2.3 Production
+  - uc_training_job_row：训练作业行 [J] fine-tune-1 Running 3 epochs
+  - uc_eval_row：评估行 [E] accuracy 0.94 Good
+  - uc_deploy_endpoint_row：部署端点行 [E] prod-endpoint Active
+  - uc_experiment_row：实验行 [X] lr-0.01 Completed best
+  - uc_feature_store_row：特征存储行 [F] user_features 1024 dims Active
+  - uc_label_job_row：数据标注作业行 [J] image-class In Progress 120/500
+  - uc_quality_check_row：数据质量检查行 [Q] null-rate 2.1% Pass
+  - uc_model_monitor_row：模型监控行 [M] drift Normal 0.02
+  - uc_inference_batch_row：推理批次行 [B] batch-42 Completed 1000 items
+- tests/101_uic.mo 覆盖全部新增组件。
+- 门禁：tests 249/249、projcheck 11/11、自举三级一致、sweep 全绿。
+
 ## [1.550.0]
 
 - lib/uic.mo 大版本批量新增 10 个画布组件：

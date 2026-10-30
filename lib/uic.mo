@@ -9056,3 +9056,432 @@ fn uc_pipeline_row2(x: i64, y: i64, name: ptr, schedule: ptr, state: i64, fg: i6
     }
     return 0;
 }
+
+# ============ v1.551 模型版本行 ============
+
+# uc_model_version_row：绘制模型版本行 [V]  v1.2.3  Production
+# version 为版本号，state 0=暂存 1=生产。
+# 用于 ML 模型版本管理。
+fn uc_model_version_row(x: i64, y: i64, version: ptr, state: i64, fg: i64, bg: i64) -> i64 {
+    let vlen: i64 = 0;
+    let i: i64 = 0;
+    vlen = strlen(version);
+    uc_set(x, y, '[', UC_MAGENTA, bg);
+    uc_set(x + 1, y, 'V', UC_MAGENTA, bg);
+    uc_set(x + 2, y, ']', UC_MAGENTA, bg);
+    uc_set(x + 5, y, ' ', fg, bg);
+    i = 0;
+    while i < vlen {
+        uc_set(x + 6 + i, y, version[i], UC_YELLOW, bg);
+        i = i + 1;
+    }
+    uc_set(x + 8 + vlen, y, ' ', fg, bg);
+    if state != 0 {
+        uc_set(x + 9 + vlen, y, 'P', UC_GREEN, bg);
+        uc_set(x + 10 + vlen, y, 'r', UC_GREEN, bg);
+        uc_set(x + 11 + vlen, y, 'o', UC_GREEN, bg);
+        uc_set(x + 12 + vlen, y, 'd', UC_GREEN, bg);
+        uc_set(x + 13 + vlen, y, 'u', UC_GREEN, bg);
+        uc_set(x + 14 + vlen, y, 'c', UC_GREEN, bg);
+        uc_set(x + 15 + vlen, y, 't', UC_GREEN, bg);
+        uc_set(x + 16 + vlen, y, 'i', UC_GREEN, bg);
+        uc_set(x + 17 + vlen, y, 'o', UC_GREEN, bg);
+        uc_set(x + 18 + vlen, y, 'n', UC_GREEN, bg);
+    } else {
+        uc_set(x + 9 + vlen, y, 'S', UC_CYAN, bg);
+        uc_set(x + 10 + vlen, y, 't', UC_CYAN, bg);
+        uc_set(x + 11 + vlen, y, 'a', UC_CYAN, bg);
+        uc_set(x + 12 + vlen, y, 'g', UC_CYAN, bg);
+        uc_set(x + 13 + vlen, y, 'i', UC_CYAN, bg);
+        uc_set(x + 14 + vlen, y, 'n', UC_CYAN, bg);
+        uc_set(x + 15 + vlen, y, 'g', UC_CYAN, bg);
+    }
+    return 0;
+}
+
+# ============ v1.552 训练作业行 ============
+
+# uc_training_job_row：绘制训练作业行 [J]  fine-tune-1  Running  3 epochs
+# name 为作业名，epochs 为轮数，state 0=停止 1=运行。
+# 用于 ML 训练作业管理。
+fn uc_training_job_row(x: i64, y: i64, name: ptr, epochs: i64, state: i64, fg: i64, bg: i64) -> i64 {
+    let nlen: i64 = 0;
+    let i: i64 = 0;
+    nlen = strlen(name);
+    uc_set(x, y, '[', UC_GREEN, bg);
+    uc_set(x + 1, y, 'J', UC_GREEN, bg);
+    uc_set(x + 2, y, ']', UC_GREEN, bg);
+    uc_set(x + 5, y, ' ', fg, bg);
+    i = 0;
+    while i < nlen {
+        uc_set(x + 6 + i, y, name[i], UC_YELLOW, bg);
+        i = i + 1;
+    }
+    uc_set(x + 8 + nlen, y, ' ', fg, bg);
+    if state != 0 {
+        uc_set(x + 9 + nlen, y, 'R', UC_CYAN, bg);
+        uc_set(x + 10 + nlen, y, 'u', UC_CYAN, bg);
+        uc_set(x + 11 + nlen, y, 'n', UC_CYAN, bg);
+        uc_set(x + 12 + nlen, y, 'n', UC_CYAN, bg);
+        uc_set(x + 13 + nlen, y, 'i', UC_CYAN, bg);
+        uc_set(x + 14 + nlen, y, 'n', UC_CYAN, bg);
+        uc_set(x + 15 + nlen, y, 'g', UC_CYAN, bg);
+    } else {
+        uc_set(x + 9 + nlen, y, 'S', fg, bg);
+        uc_set(x + 10 + nlen, y, 't', fg, bg);
+        uc_set(x + 11 + nlen, y, 'o', fg, bg);
+        uc_set(x + 12 + nlen, y, 'p', fg, bg);
+        uc_set(x + 13 + nlen, y, 'p', fg, bg);
+        uc_set(x + 14 + nlen, y, 'e', fg, bg);
+        uc_set(x + 15 + nlen, y, 'd', fg, bg);
+    }
+    uc_set(x + 17 + nlen, y, ' ', fg, bg);
+    uc_set(x + 18 + nlen, y, '0' + epochs, UC_CYAN, bg);
+    uc_set(x + 19 + nlen, y, ' ', UC_CYAN, bg);
+    uc_set(x + 20 + nlen, y, 'e', UC_CYAN, bg);
+    uc_set(x + 21 + nlen, y, 'p', UC_CYAN, bg);
+    uc_set(x + 22 + nlen, y, 'o', UC_CYAN, bg);
+    uc_set(x + 23 + nlen, y, 'c', UC_CYAN, bg);
+    uc_set(x + 24 + nlen, y, 'h', UC_CYAN, bg);
+    uc_set(x + 25 + nlen, y, 's', UC_CYAN, bg);
+    return 0;
+}
+
+# ============ v1.553 评估行 ============
+
+# uc_eval_row：绘制评估行 [E]  accuracy  0.94  Good
+# name 为指标名，value 为数值，state 0=差 1=好。
+# 用于模型评估指标展示。
+fn uc_eval_row(x: i64, y: i64, name: ptr, value: i64, state: i64, fg: i64, bg: i64) -> i64 {
+    let nlen: i64 = 0;
+    let i: i64 = 0;
+    nlen = strlen(name);
+    uc_set(x, y, '[', UC_MAGENTA, bg);
+    uc_set(x + 1, y, 'E', UC_MAGENTA, bg);
+    uc_set(x + 2, y, ']', UC_MAGENTA, bg);
+    uc_set(x + 5, y, ' ', fg, bg);
+    i = 0;
+    while i < nlen {
+        uc_set(x + 6 + i, y, name[i], UC_YELLOW, bg);
+        i = i + 1;
+    }
+    uc_set(x + 8 + nlen, y, ' ', fg, bg);
+    uc_set(x + 9 + nlen, y, '0', UC_CYAN, bg);
+    uc_set(x + 10 + nlen, y, '.', UC_CYAN, bg);
+    uc_set(x + 11 + nlen, y, '0' + value / 10, UC_CYAN, bg);
+    uc_set(x + 12 + nlen, y, '0' + value % 10, UC_CYAN, bg);
+    uc_set(x + 14 + nlen, y, ' ', fg, bg);
+    if state != 0 {
+        uc_set(x + 15 + nlen, y, 'G', UC_GREEN, bg);
+        uc_set(x + 16 + nlen, y, 'o', UC_GREEN, bg);
+        uc_set(x + 17 + nlen, y, 'o', UC_GREEN, bg);
+        uc_set(x + 18 + nlen, y, 'd', UC_GREEN, bg);
+    } else {
+        uc_set(x + 15 + nlen, y, 'B', UC_RED, bg);
+        uc_set(x + 16 + nlen, y, 'a', UC_RED, bg);
+        uc_set(x + 17 + nlen, y, 'd', UC_RED, bg);
+    }
+    return 0;
+}
+
+# ============ v1.554 部署端点行 ============
+
+# uc_deploy_endpoint_row：绘制部署端点行 [E]  prod-endpoint  Active
+# name 为端点名，state 0=停止 1=运行。
+# 用于模型部署端点管理。
+fn uc_deploy_endpoint_row(x: i64, y: i64, name: ptr, state: i64, fg: i64, bg: i64) -> i64 {
+    let nlen: i64 = 0;
+    let i: i64 = 0;
+    nlen = strlen(name);
+    uc_set(x, y, '[', UC_CYAN, bg);
+    uc_set(x + 1, y, 'E', UC_CYAN, bg);
+    uc_set(x + 2, y, ']', UC_CYAN, bg);
+    uc_set(x + 5, y, ' ', fg, bg);
+    i = 0;
+    while i < nlen {
+        uc_set(x + 6 + i, y, name[i], UC_YELLOW, bg);
+        i = i + 1;
+    }
+    uc_set(x + 8 + nlen, y, ' ', fg, bg);
+    if state != 0 {
+        uc_set(x + 9 + nlen, y, 'A', UC_GREEN, bg);
+        uc_set(x + 10 + nlen, y, 'c', UC_GREEN, bg);
+        uc_set(x + 11 + nlen, y, 't', UC_GREEN, bg);
+        uc_set(x + 12 + nlen, y, 'i', UC_GREEN, bg);
+        uc_set(x + 13 + nlen, y, 'v', UC_GREEN, bg);
+        uc_set(x + 14 + nlen, y, 'e', UC_GREEN, bg);
+    } else {
+        uc_set(x + 9 + nlen, y, 'S', fg, bg);
+        uc_set(x + 10 + nlen, y, 't', fg, bg);
+        uc_set(x + 11 + nlen, y, 'o', fg, bg);
+        uc_set(x + 12 + nlen, y, 'p', fg, bg);
+        uc_set(x + 13 + nlen, y, 'p', fg, bg);
+        uc_set(x + 14 + nlen, y, 'e', fg, bg);
+        uc_set(x + 15 + nlen, y, 'd', fg, bg);
+    }
+    return 0;
+}
+
+# ============ v1.555 实验行 ============
+
+# uc_experiment_row：绘制实验行 [X]  lr-0.01  Completed  best
+# name 为实验名，state 0=运行 1=完成。
+# 用于 ML 实验跟踪。
+fn uc_experiment_row(x: i64, y: i64, name: ptr, state: i64, fg: i64, bg: i64) -> i64 {
+    let nlen: i64 = 0;
+    let i: i64 = 0;
+    nlen = strlen(name);
+    uc_set(x, y, '[', UC_GREEN, bg);
+    uc_set(x + 1, y, 'X', UC_GREEN, bg);
+    uc_set(x + 2, y, ']', UC_GREEN, bg);
+    uc_set(x + 5, y, ' ', fg, bg);
+    i = 0;
+    while i < nlen {
+        uc_set(x + 6 + i, y, name[i], UC_YELLOW, bg);
+        i = i + 1;
+    }
+    uc_set(x + 8 + nlen, y, ' ', fg, bg);
+    if state != 0 {
+        uc_set(x + 9 + nlen, y, 'C', UC_GREEN, bg);
+        uc_set(x + 10 + nlen, y, 'o', UC_GREEN, bg);
+        uc_set(x + 11 + nlen, y, 'm', UC_GREEN, bg);
+        uc_set(x + 12 + nlen, y, 'p', UC_GREEN, bg);
+        uc_set(x + 13 + nlen, y, 'l', UC_GREEN, bg);
+        uc_set(x + 14 + nlen, y, 'e', UC_GREEN, bg);
+        uc_set(x + 15 + nlen, y, 't', UC_GREEN, bg);
+        uc_set(x + 16 + nlen, y, 'e', UC_GREEN, bg);
+        uc_set(x + 17 + nlen, y, 'd', UC_GREEN, bg);
+    } else {
+        uc_set(x + 9 + nlen, y, 'R', UC_CYAN, bg);
+        uc_set(x + 10 + nlen, y, 'u', UC_CYAN, bg);
+        uc_set(x + 11 + nlen, y, 'n', UC_CYAN, bg);
+        uc_set(x + 12 + nlen, y, 'n', UC_CYAN, bg);
+        uc_set(x + 13 + nlen, y, 'i', UC_CYAN, bg);
+        uc_set(x + 14 + nlen, y, 'n', UC_CYAN, bg);
+        uc_set(x + 15 + nlen, y, 'g', UC_CYAN, bg);
+    }
+    return 0;
+}
+
+# ============ v1.556 特征存储行 ============
+
+# uc_feature_store_row：绘制特征存储行 [F]  user_features  1024 dims  Active
+# name 为特征组名，dims 为维度数，state 0=停用 1=启用。
+# 用于特征存储管理。
+fn uc_feature_store_row(x: i64, y: i64, name: ptr, dims: i64, state: i64, fg: i64, bg: i64) -> i64 {
+    let nlen: i64 = 0;
+    let i: i64 = 0;
+    nlen = strlen(name);
+    uc_set(x, y, '[', UC_MAGENTA, bg);
+    uc_set(x + 1, y, 'F', UC_MAGENTA, bg);
+    uc_set(x + 2, y, ']', UC_MAGENTA, bg);
+    uc_set(x + 5, y, ' ', fg, bg);
+    i = 0;
+    while i < nlen {
+        uc_set(x + 6 + i, y, name[i], UC_YELLOW, bg);
+        i = i + 1;
+    }
+    uc_set(x + 8 + nlen, y, ' ', fg, bg);
+    uc_set(x + 9 + nlen, y, '0' + dims / 1000, UC_CYAN, bg);
+    uc_set(x + 10 + nlen, y, '0' + (dims / 100) % 10, UC_CYAN, bg);
+    uc_set(x + 11 + nlen, y, '0' + (dims / 10) % 10, UC_CYAN, bg);
+    uc_set(x + 12 + nlen, y, '0' + dims % 10, UC_CYAN, bg);
+    uc_set(x + 13 + nlen, y, ' ', UC_CYAN, bg);
+    uc_set(x + 14 + nlen, y, 'd', UC_CYAN, bg);
+    uc_set(x + 15 + nlen, y, 'i', UC_CYAN, bg);
+    uc_set(x + 16 + nlen, y, 'm', UC_CYAN, bg);
+    uc_set(x + 17 + nlen, y, 's', UC_CYAN, bg);
+    uc_set(x + 19 + nlen, y, ' ', fg, bg);
+    if state != 0 {
+        uc_set(x + 20 + nlen, y, 'A', UC_GREEN, bg);
+        uc_set(x + 21 + nlen, y, 'c', UC_GREEN, bg);
+        uc_set(x + 22 + nlen, y, 't', UC_GREEN, bg);
+        uc_set(x + 23 + nlen, y, 'i', UC_GREEN, bg);
+        uc_set(x + 24 + nlen, y, 'v', UC_GREEN, bg);
+        uc_set(x + 25 + nlen, y, 'e', UC_GREEN, bg);
+    } else {
+        uc_set(x + 20 + nlen, y, 'I', fg, bg);
+        uc_set(x + 21 + nlen, y, 'n', fg, bg);
+        uc_set(x + 22 + nlen, y, 'a', fg, bg);
+        uc_set(x + 23 + nlen, y, 'c', fg, bg);
+        uc_set(x + 24 + nlen, y, 't', fg, bg);
+        uc_set(x + 25 + nlen, y, 'i', fg, bg);
+        uc_set(x + 26 + nlen, y, 'v', fg, bg);
+        uc_set(x + 27 + nlen, y, 'e', fg, bg);
+    }
+    return 0;
+}
+
+# ============ v1.557 数据标注作业行 ============
+
+# uc_label_job_row：绘制数据标注作业行 [J]  image-class  In Progress  120/500
+# name 为作业名，done 为已完成，total 为总数。
+# 用于数据标注作业。
+fn uc_label_job_row(x: i64, y: i64, name: ptr, done: i64, total: i64, fg: i64, bg: i64) -> i64 {
+    let nlen: i64 = 0;
+    let i: i64 = 0;
+    nlen = strlen(name);
+    uc_set(x, y, '[', UC_GREEN, bg);
+    uc_set(x + 1, y, 'J', UC_GREEN, bg);
+    uc_set(x + 2, y, ']', UC_GREEN, bg);
+    uc_set(x + 5, y, ' ', fg, bg);
+    i = 0;
+    while i < nlen {
+        uc_set(x + 6 + i, y, name[i], UC_YELLOW, bg);
+        i = i + 1;
+    }
+    uc_set(x + 8 + nlen, y, ' ', fg, bg);
+    uc_set(x + 9 + nlen, y, 'I', UC_CYAN, bg);
+    uc_set(x + 10 + nlen, y, 'n', UC_CYAN, bg);
+    uc_set(x + 11 + nlen, y, ' ', UC_CYAN, bg);
+    uc_set(x + 12 + nlen, y, 'P', UC_CYAN, bg);
+    uc_set(x + 13 + nlen, y, 'r', UC_CYAN, bg);
+    uc_set(x + 14 + nlen, y, 'o', UC_CYAN, bg);
+    uc_set(x + 15 + nlen, y, 'g', UC_CYAN, bg);
+    uc_set(x + 16 + nlen, y, 'r', UC_CYAN, bg);
+    uc_set(x + 17 + nlen, y, 'e', UC_CYAN, bg);
+    uc_set(x + 18 + nlen, y, 's', UC_CYAN, bg);
+    uc_set(x + 19 + nlen, y, 's', UC_CYAN, bg);
+    uc_set(x + 21 + nlen, y, ' ', fg, bg);
+    uc_set(x + 22 + nlen, y, '0' + done / 100, UC_CYAN, bg);
+    uc_set(x + 23 + nlen, y, '0' + (done / 10) % 10, UC_CYAN, bg);
+    uc_set(x + 24 + nlen, y, '0' + done % 10, UC_CYAN, bg);
+    uc_set(x + 25 + nlen, y, '/', UC_CYAN, bg);
+    uc_set(x + 26 + nlen, y, '0' + total / 100, UC_CYAN, bg);
+    uc_set(x + 27 + nlen, y, '0' + (total / 10) % 10, UC_CYAN, bg);
+    uc_set(x + 28 + nlen, y, '0' + total % 10, UC_CYAN, bg);
+    return 0;
+}
+
+# ============ v1.558 数据质量检查行 ============
+
+# uc_quality_check_row：绘制数据质量检查行 [Q]  null-rate  2.1%  Pass
+# name 为检查名，value 为数值，state 0=失败 1=通过。
+# 用于数据质量监控。
+fn uc_quality_check_row(x: i64, y: i64, name: ptr, value: i64, state: i64, fg: i64, bg: i64) -> i64 {
+    let nlen: i64 = 0;
+    let i: i64 = 0;
+    nlen = strlen(name);
+    uc_set(x, y, '[', UC_YELLOW, bg);
+    uc_set(x + 1, y, 'Q', UC_YELLOW, bg);
+    uc_set(x + 2, y, ']', UC_YELLOW, bg);
+    uc_set(x + 5, y, ' ', fg, bg);
+    i = 0;
+    while i < nlen {
+        uc_set(x + 6 + i, y, name[i], UC_YELLOW, bg);
+        i = i + 1;
+    }
+    uc_set(x + 8 + nlen, y, ' ', fg, bg);
+    uc_set(x + 9 + nlen, y, '0' + value / 10, UC_CYAN, bg);
+    uc_set(x + 10 + nlen, y, '.', UC_CYAN, bg);
+    uc_set(x + 11 + nlen, y, '0' + value % 10, UC_CYAN, bg);
+    uc_set(x + 12 + nlen, y, '%', UC_CYAN, bg);
+    uc_set(x + 14 + nlen, y, ' ', fg, bg);
+    if state != 0 {
+        uc_set(x + 15 + nlen, y, 'P', UC_GREEN, bg);
+        uc_set(x + 16 + nlen, y, 'a', UC_GREEN, bg);
+        uc_set(x + 17 + nlen, y, 's', UC_GREEN, bg);
+        uc_set(x + 18 + nlen, y, 's', UC_GREEN, bg);
+    } else {
+        uc_set(x + 15 + nlen, y, 'F', UC_RED, bg);
+        uc_set(x + 16 + nlen, y, 'a', UC_RED, bg);
+        uc_set(x + 17 + nlen, y, 'i', UC_RED, bg);
+        uc_set(x + 18 + nlen, y, 'l', UC_RED, bg);
+    }
+    return 0;
+}
+
+# ============ v1.559 模型监控行 ============
+
+# uc_model_monitor_row：绘制模型监控行 [M]  drift  Normal  0.02
+# metric 为监控指标，state 0=异常 1=正常，value 为数值。
+# 用于模型监控告警。
+fn uc_model_monitor_row(x: i64, y: i64, metric: ptr, state: i64, value: i64, fg: i64, bg: i64) -> i64 {
+    let mlen: i64 = 0;
+    let i: i64 = 0;
+    mlen = strlen(metric);
+    uc_set(x, y, '[', UC_MAGENTA, bg);
+    uc_set(x + 1, y, 'M', UC_MAGENTA, bg);
+    uc_set(x + 2, y, ']', UC_MAGENTA, bg);
+    uc_set(x + 5, y, ' ', fg, bg);
+    i = 0;
+    while i < mlen {
+        uc_set(x + 6 + i, y, metric[i], UC_YELLOW, bg);
+        i = i + 1;
+    }
+    uc_set(x + 8 + mlen, y, ' ', fg, bg);
+    if state != 0 {
+        uc_set(x + 9 + mlen, y, 'N', UC_GREEN, bg);
+        uc_set(x + 10 + mlen, y, 'o', UC_GREEN, bg);
+        uc_set(x + 11 + mlen, y, 'r', UC_GREEN, bg);
+        uc_set(x + 12 + mlen, y, 'm', UC_GREEN, bg);
+        uc_set(x + 13 + mlen, y, 'a', UC_GREEN, bg);
+        uc_set(x + 14 + mlen, y, 'l', UC_GREEN, bg);
+    } else {
+        uc_set(x + 9 + mlen, y, 'D', UC_RED, bg);
+        uc_set(x + 10 + mlen, y, 'r', UC_RED, bg);
+        uc_set(x + 11 + mlen, y, 'i', UC_RED, bg);
+        uc_set(x + 12 + mlen, y, 'f', UC_RED, bg);
+        uc_set(x + 13 + mlen, y, 't', UC_RED, bg);
+        uc_set(x + 14 + mlen, y, 'E', UC_RED, bg);
+        uc_set(x + 15 + mlen, y, 'D', UC_RED, bg);
+    }
+    uc_set(x + 17 + mlen, y, ' ', fg, bg);
+    uc_set(x + 18 + mlen, y, '0', UC_CYAN, bg);
+    uc_set(x + 19 + mlen, y, '.', UC_CYAN, bg);
+    uc_set(x + 20 + mlen, y, '0' + value / 10, UC_CYAN, bg);
+    uc_set(x + 21 + mlen, y, '0' + value % 10, UC_CYAN, bg);
+    return 0;
+}
+
+# ============ v1.560 推理批次行 ============
+
+# uc_inference_batch_row：绘制推理批次行 [B]  batch-42  Completed  1000 items
+# name 为批次名，items 为数量，state 0=运行 1=完成。
+# 用于推理批次管理。
+fn uc_inference_batch_row(x: i64, y: i64, name: ptr, items: i64, state: i64, fg: i64, bg: i64) -> i64 {
+    let nlen: i64 = 0;
+    let i: i64 = 0;
+    nlen = strlen(name);
+    uc_set(x, y, '[', UC_CYAN, bg);
+    uc_set(x + 1, y, 'B', UC_CYAN, bg);
+    uc_set(x + 2, y, ']', UC_CYAN, bg);
+    uc_set(x + 5, y, ' ', fg, bg);
+    i = 0;
+    while i < nlen {
+        uc_set(x + 6 + i, y, name[i], UC_YELLOW, bg);
+        i = i + 1;
+    }
+    uc_set(x + 8 + nlen, y, ' ', fg, bg);
+    if state != 0 {
+        uc_set(x + 9 + nlen, y, 'C', UC_GREEN, bg);
+        uc_set(x + 10 + nlen, y, 'o', UC_GREEN, bg);
+        uc_set(x + 11 + nlen, y, 'm', UC_GREEN, bg);
+        uc_set(x + 12 + nlen, y, 'p', UC_GREEN, bg);
+        uc_set(x + 13 + nlen, y, 'l', UC_GREEN, bg);
+        uc_set(x + 14 + nlen, y, 'e', UC_GREEN, bg);
+        uc_set(x + 15 + nlen, y, 't', UC_GREEN, bg);
+        uc_set(x + 16 + nlen, y, 'e', UC_GREEN, bg);
+        uc_set(x + 17 + nlen, y, 'd', UC_GREEN, bg);
+    } else {
+        uc_set(x + 9 + nlen, y, 'R', UC_CYAN, bg);
+        uc_set(x + 10 + nlen, y, 'u', UC_CYAN, bg);
+        uc_set(x + 11 + nlen, y, 'n', UC_CYAN, bg);
+        uc_set(x + 12 + nlen, y, 'n', UC_CYAN, bg);
+        uc_set(x + 13 + nlen, y, 'i', UC_CYAN, bg);
+        uc_set(x + 14 + nlen, y, 'n', UC_CYAN, bg);
+        uc_set(x + 15 + nlen, y, 'g', UC_CYAN, bg);
+    }
+    uc_set(x + 19 + nlen, y, ' ', fg, bg);
+    uc_set(x + 20 + nlen, y, '0' + items / 1000, UC_CYAN, bg);
+    uc_set(x + 21 + nlen, y, '0' + (items / 100) % 10, UC_CYAN, bg);
+    uc_set(x + 22 + nlen, y, '0' + (items / 10) % 10, UC_CYAN, bg);
+    uc_set(x + 23 + nlen, y, '0' + items % 10, UC_CYAN, bg);
+    uc_set(x + 24 + nlen, y, ' ', UC_CYAN, bg);
+    uc_set(x + 25 + nlen, y, 'i', UC_CYAN, bg);
+    uc_set(x + 26 + nlen, y, 't', UC_CYAN, bg);
+    uc_set(x + 27 + nlen, y, 'e', UC_CYAN, bg);
+    uc_set(x + 28 + nlen, y, 'm', UC_CYAN, bg);
+    uc_set(x + 29 + nlen, y, 's', UC_CYAN, bg);
+    return 0;
+}
