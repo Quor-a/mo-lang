@@ -396,6 +396,16 @@ fn main() -> i64 {
     uc_federated_row(12, 2, "fed-round-1", 5, 1, UC_WHITE, UC_BLUE);
     uc_edge_cache_row(1, 2, "img-cache", "512MB", 1, UC_WHITE, UC_BLUE);
     uc_edge_lb_row(12, 2, "edge-lb-1", 3, 1, UC_WHITE, UC_BLUE);
+    uc_edge_cert_row(1, 2, "edge-cert-01", 1, 30, UC_WHITE, UC_BLUE);
+    uc_edge_key_row(12, 2, "device-key", "ed25519", 1, UC_WHITE, UC_BLUE);
+    uc_edge_access_policy_row(1, 2, "edge-readonly", "Allow", "read", UC_WHITE, UC_BLUE);
+    uc_edge_device_group_row(12, 2, "factory-a", 12, 1, UC_WHITE, UC_BLUE);
+    uc_edge_device_template_row(1, 2, "sensor-template", 3, 1, UC_WHITE, UC_BLUE);
+    uc_edge_datasource_row(12, 2, "temp-sensor", "MQTT", 1, UC_WHITE, UC_BLUE);
+    uc_edge_pipeline_row(1, 2, "temp-pipe", 5, 1, UC_WHITE, UC_BLUE);
+    uc_edge_data_sink_row(12, 2, "cloud-upload", "InfluxDB", 1, UC_WHITE, UC_BLUE);
+    uc_edge_dashboard_row(1, 2, "factory-dash", 5, 1, UC_WHITE, UC_BLUE);
+    uc_edge_report_row(12, 2, "monthly-report", 12, 1, UC_WHITE, UC_BLUE);
     uc_dump_svg("/tmp/uic_dump_test.svg");
     uc_render();
     return 0;

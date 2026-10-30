@@ -1,3 +1,19 @@
+## [1.710.0]
+
+- lib/uic_edge.mo 继续新增边缘计算画布组件（v1.701~v1.710，10 个）：
+  - uc_edge_cert_row：边缘证书行 [C] edge-cert-01 Valid 30 days
+  - uc_edge_key_row：边缘密钥行 [K] device-key Active ed25519
+  - uc_edge_access_policy_row：边缘访问策略行 [P] edge-readonly Allow read
+  - uc_edge_device_group_row：边缘设备组行 [G] factory-a 12 devices Active
+  - uc_edge_device_template_row：边缘设备模板行 [T] sensor-template 3 fields Published
+  - uc_edge_datasource_row：边缘数据源行 [S] temp-sensor MQTT Connected
+  - uc_edge_pipeline_row：边缘数据管道行 [P] temp-pipe Running 5 stages
+  - uc_edge_data_sink_row：边缘数据目标行 [T] cloud-upload InfluxDB Healthy
+  - uc_edge_dashboard_row：边缘仪表盘行 [D] factory-dash 5 widgets Active
+  - uc_edge_report_row：边缘报告行 [R] monthly-report 12 pages Generated
+- tests/101_uic.mo 覆盖全部新增组件。
+- 门禁：tests 249/249、projcheck 11/11、自举三级一致、sweep 全绿。
+
 ## [1.700.0]
 
 - lib/uic_edge.mo 继续新增边缘计算画布组件（v1.691~v1.700，10 个）：
