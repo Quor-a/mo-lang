@@ -1,3 +1,19 @@
+## [1.670.0]
+
+- lib/uic.mo 大版本批量新增 10 个画布组件：
+  - uc_statefulset_row：K8s 状态集行 [S] db-set StatefulSet 3/3 ready
+  - uc_daemonset_row：K8s 守护进程集行 [D] node-exporter DaemonSet 5/5 ready
+  - uc_pvc_row：K8s PVC 行 [V] data-pvc 10Gi Bound
+  - uc_resource_quota_row：K8s 资源配额行 [Q] default cpu 10 mem 20Gi
+  - uc_limitrange_row：K8s LimitRange 行 [L] default cpu 100m-2 Active
+  - uc_endpoint_row：K8s 端点行 [E] web-svc 3 endpoints Active
+  - uc_node_pool_row：K8s 节点池行 [P] pool-1 3 nodes Active
+  - uc_taint_row：K8s 污点行 [T] dedicated NoSchedule node-01
+  - uc_affinity_row：K8s 亲和性行 [A] zone preferred topology.kubernetes.io/zone
+  - uc_topology_row：K8s 拓扑行 [T] zone-a region-east 5 nodes
+- tests/101_uic.mo 覆盖全部新增组件。
+- 门禁：tests 249/249、projcheck 11/11、自举三级一致、sweep 全绿。
+
 ## [1.660.0]
 
 - lib/uic.mo 大版本批量新增 10 个画布组件：

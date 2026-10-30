@@ -355,6 +355,16 @@ fn main() -> i64 {
     uc_netpol_row(12, 2, "allow-api", "ingress", 1, UC_WHITE, UC_BLUE);
     uc_pod_row(1, 2, "web-6b4d", "node-01", 1, UC_WHITE, UC_BLUE);
     uc_k8s_node_row(12, 2, "node-01", 1, "linux", UC_WHITE, UC_BLUE);
+    uc_statefulset_row(1, 2, "db-set", "StatefulSet", 1, UC_WHITE, UC_BLUE);
+    uc_daemonset_row(12, 2, "node-exp", "DaemonSet", 1, UC_WHITE, UC_BLUE);
+    uc_pvc_row(1, 2, "data-pvc", "10Gi", 1, UC_WHITE, UC_BLUE);
+    uc_resource_quota_row(12, 2, "default", 10, 20, UC_WHITE, UC_BLUE);
+    uc_limitrange_row(1, 2, "default", "cpu", 1, UC_WHITE, UC_BLUE);
+    uc_endpoint_row(12, 2, "web-svc", 3, 1, UC_WHITE, UC_BLUE);
+    uc_node_pool_row(1, 2, "pool-1", 3, 1, UC_WHITE, UC_BLUE);
+    uc_taint_row(12, 2, "dedicated", "NoSchedule", "node-01", UC_WHITE, UC_BLUE);
+    uc_affinity_row(1, 2, "zone", "preferred", "zone", UC_WHITE, UC_BLUE);
+    uc_topology_row(12, 2, "zone-a", "east", 5, UC_WHITE, UC_BLUE);
     uc_dump_svg("/tmp/uic_dump_test.svg");
     uc_render();
     return 0;
