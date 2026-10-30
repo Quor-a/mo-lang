@@ -8206,3 +8206,391 @@ fn uc_edge_workflow_metric_row(x: i64, y: i64, name: ptr, success: i64, runs: i6
     uc_set(x + 21 + nlen, y, 's', UC_CYAN, bg);
     return 0;
 }
+
+# ============ v1.871 边缘应用性能行 ============
+
+# uc_edge_app_perf_row：绘制边缘应用性能行 [A]  app-01  250ms latency  99% success
+# name 为应用名，latency 为延迟，success 为成功率。
+# 用于边缘应用性能管理。
+fn uc_edge_app_perf_row(x: i64, y: i64, name: ptr, latency: ptr, success: i64, fg: i64, bg: i64) -> i64 {
+    let nlen: i64 = 0;
+    let llen: i64 = 0;
+    let i: i64 = 0;
+    nlen = strlen(name);
+    llen = strlen(latency);
+    uc_set(x, y, '[', UC_CYAN, bg);
+    uc_set(x + 1, y, 'A', UC_CYAN, bg);
+    uc_set(x + 2, y, ']', UC_CYAN, bg);
+    uc_set(x + 5, y, ' ', fg, bg);
+    i = 0;
+    while i < nlen {
+        uc_set(x + 6 + i, y, name[i], UC_YELLOW, bg);
+        i = i + 1;
+    }
+    uc_set(x + 8 + nlen, y, ' ', fg, bg);
+    i = 0;
+    while i < llen {
+        uc_set(x + 9 + nlen + i, y, latency[i], UC_WHITE, bg);
+        i = i + 1;
+    }
+    uc_set(x + 11 + nlen + llen, y, ' ', fg, bg);
+    uc_set(x + 12 + nlen + llen, y, '0' + success / 10, UC_GREEN, bg);
+    uc_set(x + 13 + nlen + llen, y, '0' + success % 10, UC_GREEN, bg);
+    uc_set(x + 14 + nlen + llen, y, '%', UC_GREEN, bg);
+    uc_set(x + 15 + nlen + llen, y, ' ', UC_GREEN, bg);
+    uc_set(x + 16 + nlen + llen, y, 's', UC_GREEN, bg);
+    uc_set(x + 17 + nlen + llen, y, 'u', UC_GREEN, bg);
+    uc_set(x + 18 + nlen + llen, y, 'c', UC_GREEN, bg);
+    uc_set(x + 19 + nlen + llen, y, 'c', UC_GREEN, bg);
+    uc_set(x + 20 + nlen + llen, y, 'e', UC_GREEN, bg);
+    uc_set(x + 21 + nlen + llen, y, 's', UC_GREEN, bg);
+    uc_set(x + 22 + nlen + llen, y, 's', UC_GREEN, bg);
+    return 0;
+}
+
+# ============ v1.872 边缘数据库性能行 ============
+
+# uc_edge_db_perf_row：绘制边缘数据库性能行 [D]  db-01  5ms query  1000 qps
+# name 为数据库名，latency 为延迟，qps 为查询率。
+# 用于边缘数据库性能管理。
+fn uc_edge_db_perf_row(x: i64, y: i64, name: ptr, latency: ptr, qps: i64, fg: i64, bg: i64) -> i64 {
+    let nlen: i64 = 0;
+    let llen: i64 = 0;
+    let i: i64 = 0;
+    nlen = strlen(name);
+    llen = strlen(latency);
+    uc_set(x, y, '[', UC_MAGENTA, bg);
+    uc_set(x + 1, y, 'D', UC_MAGENTA, bg);
+    uc_set(x + 2, y, ']', UC_MAGENTA, bg);
+    uc_set(x + 5, y, ' ', fg, bg);
+    i = 0;
+    while i < nlen {
+        uc_set(x + 6 + i, y, name[i], UC_YELLOW, bg);
+        i = i + 1;
+    }
+    uc_set(x + 8 + nlen, y, ' ', fg, bg);
+    i = 0;
+    while i < llen {
+        uc_set(x + 9 + nlen + i, y, latency[i], UC_WHITE, bg);
+        i = i + 1;
+    }
+    uc_set(x + 11 + nlen + llen, y, ' ', fg, bg);
+    uc_set(x + 12 + nlen + llen, y, '0' + qps / 100, UC_GREEN, bg);
+    uc_set(x + 13 + nlen + llen, y, '0' + (qps / 10) % 10, UC_GREEN, bg);
+    uc_set(x + 14 + nlen + llen, y, '0' + qps % 10, UC_GREEN, bg);
+    uc_set(x + 15 + nlen + llen, y, ' ', UC_GREEN, bg);
+    uc_set(x + 16 + nlen + llen, y, 'q', UC_GREEN, bg);
+    uc_set(x + 17 + nlen + llen, y, 'p', UC_GREEN, bg);
+    uc_set(x + 18 + nlen + llen, y, 's', UC_GREEN, bg);
+    return 0;
+}
+
+# ============ v1.873 边缘网络性能行 ============
+
+# uc_edge_net_perf_row：绘制边缘网络性能行 [N]  net-01  10ms latency  1Gbps
+# name 为网络名，latency 为延迟，bandwidth 为带宽。
+# 用于边缘网络性能管理。
+fn uc_edge_net_perf_row(x: i64, y: i64, name: ptr, latency: ptr, bandwidth: ptr, fg: i64, bg: i64) -> i64 {
+    let nlen: i64 = 0;
+    let llen: i64 = 0;
+    let blen: i64 = 0;
+    let i: i64 = 0;
+    nlen = strlen(name);
+    llen = strlen(latency);
+    blen = strlen(bandwidth);
+    uc_set(x, y, '[', UC_GREEN, bg);
+    uc_set(x + 1, y, 'N', UC_GREEN, bg);
+    uc_set(x + 2, y, ']', UC_GREEN, bg);
+    uc_set(x + 5, y, ' ', fg, bg);
+    i = 0;
+    while i < nlen {
+        uc_set(x + 6 + i, y, name[i], UC_YELLOW, bg);
+        i = i + 1;
+    }
+    uc_set(x + 8 + nlen, y, ' ', fg, bg);
+    i = 0;
+    while i < llen {
+        uc_set(x + 9 + nlen + i, y, latency[i], UC_WHITE, bg);
+        i = i + 1;
+    }
+    uc_set(x + 11 + nlen + llen, y, ' ', fg, bg);
+    i = 0;
+    while i < blen {
+        uc_set(x + 12 + nlen + llen + i, y, bandwidth[i], UC_CYAN, bg);
+        i = i + 1;
+    }
+    return 0;
+}
+
+# ============ v1.874 边缘存储性能行 ============
+
+# uc_edge_storage_perf_row：绘制边缘存储性能行 [S]  storage-01  0.5ms IO  500 IOPS
+# name 为存储名，latency 为延迟，iops 为 IOPS。
+# 用于边缘存储性能管理。
+fn uc_edge_storage_perf_row(x: i64, y: i64, name: ptr, latency: ptr, iops: i64, fg: i64, bg: i64) -> i64 {
+    let nlen: i64 = 0;
+    let llen: i64 = 0;
+    let i: i64 = 0;
+    nlen = strlen(name);
+    llen = strlen(latency);
+    uc_set(x, y, '[', UC_MAGENTA, bg);
+    uc_set(x + 1, y, 'S', UC_MAGENTA, bg);
+    uc_set(x + 2, y, ']', UC_MAGENTA, bg);
+    uc_set(x + 5, y, ' ', fg, bg);
+    i = 0;
+    while i < nlen {
+        uc_set(x + 6 + i, y, name[i], UC_YELLOW, bg);
+        i = i + 1;
+    }
+    uc_set(x + 8 + nlen, y, ' ', fg, bg);
+    i = 0;
+    while i < llen {
+        uc_set(x + 9 + nlen + i, y, latency[i], UC_WHITE, bg);
+        i = i + 1;
+    }
+    uc_set(x + 11 + nlen + llen, y, ' ', fg, bg);
+    uc_set(x + 12 + nlen + llen, y, '0' + iops / 100, UC_CYAN, bg);
+    uc_set(x + 13 + nlen + llen, y, '0' + (iops / 10) % 10, UC_CYAN, bg);
+    uc_set(x + 14 + nlen + llen, y, '0' + iops % 10, UC_CYAN, bg);
+    uc_set(x + 15 + nlen + llen, y, ' ', UC_CYAN, bg);
+    uc_set(x + 16 + nlen + llen, y, 'I', UC_CYAN, bg);
+    uc_set(x + 17 + nlen + llen, y, 'O', UC_CYAN, bg);
+    uc_set(x + 18 + nlen + llen, y, 'P', UC_CYAN, bg);
+    uc_set(x + 19 + nlen + llen, y, 'S', UC_CYAN, bg);
+    return 0;
+}
+
+# ============ v1.875 边缘用户体验行 ============
+
+# uc_edge_user_exp_row：绘制边缘用户体验行 [U]  ux-01  4.5 score  92% satis
+# name 为体验名，score 为评分，satisfaction 为满意度。
+# 用于边缘用户体验管理。
+fn uc_edge_user_exp_row(x: i64, y: i64, name: ptr, score: ptr, satisfaction: i64, fg: i64, bg: i64) -> i64 {
+    let nlen: i64 = 0;
+    let slen: i64 = 0;
+    let i: i64 = 0;
+    nlen = strlen(name);
+    slen = strlen(score);
+    uc_set(x, y, '[', UC_YELLOW, bg);
+    uc_set(x + 1, y, 'U', UC_YELLOW, bg);
+    uc_set(x + 2, y, ']', UC_YELLOW, bg);
+    uc_set(x + 5, y, ' ', fg, bg);
+    i = 0;
+    while i < nlen {
+        uc_set(x + 6 + i, y, name[i], UC_YELLOW, bg);
+        i = i + 1;
+    }
+    uc_set(x + 8 + nlen, y, ' ', fg, bg);
+    i = 0;
+    while i < slen {
+        uc_set(x + 9 + nlen + i, y, score[i], UC_WHITE, bg);
+        i = i + 1;
+    }
+    uc_set(x + 11 + nlen + slen, y, ' ', fg, bg);
+    uc_set(x + 12 + nlen + slen, y, '0' + satisfaction / 10, UC_GREEN, bg);
+    uc_set(x + 13 + nlen + slen, y, '0' + satisfaction % 10, UC_GREEN, bg);
+    uc_set(x + 14 + nlen + slen, y, '%', UC_GREEN, bg);
+    uc_set(x + 15 + nlen + slen, y, ' ', UC_GREEN, bg);
+    uc_set(x + 16 + nlen + slen, y, 's', UC_GREEN, bg);
+    uc_set(x + 17 + nlen + slen, y, 'a', UC_GREEN, bg);
+    uc_set(x + 18 + nlen + slen, y, 't', UC_GREEN, bg);
+    uc_set(x + 19 + nlen + slen, y, 'i', UC_GREEN, bg);
+    uc_set(x + 20 + nlen + slen, y, 's', UC_GREEN, bg);
+    return 0;
+}
+
+# ============ v1.876 边缘资源利用率行 ============
+
+# uc_edge_resource_util_row：绘制边缘资源利用率行 [R]  node-01  75% CPU  60% MEM
+# name 为节点名，cpu 为 CPU 使用率，mem 为内存使用率。
+# 用于边缘资源利用率管理。
+fn uc_edge_resource_util_row(x: i64, y: i64, name: ptr, cpu: i64, mem: i64, fg: i64, bg: i64) -> i64 {
+    let nlen: i64 = 0;
+    let i: i64 = 0;
+    nlen = strlen(name);
+    uc_set(x, y, '[', UC_CYAN, bg);
+    uc_set(x + 1, y, 'R', UC_CYAN, bg);
+    uc_set(x + 2, y, ']', UC_CYAN, bg);
+    uc_set(x + 5, y, ' ', fg, bg);
+    i = 0;
+    while i < nlen {
+        uc_set(x + 6 + i, y, name[i], UC_YELLOW, bg);
+        i = i + 1;
+    }
+    uc_set(x + 8 + nlen, y, ' ', fg, bg);
+    uc_set(x + 9 + nlen, y, '0' + cpu / 10, UC_MAGENTA, bg);
+    uc_set(x + 10 + nlen, y, '0' + cpu % 10, UC_MAGENTA, bg);
+    uc_set(x + 11 + nlen, y, '%', UC_MAGENTA, bg);
+    uc_set(x + 12 + nlen, y, ' ', UC_MAGENTA, bg);
+    uc_set(x + 13 + nlen, y, 'C', UC_MAGENTA, bg);
+    uc_set(x + 14 + nlen, y, 'P', UC_MAGENTA, bg);
+    uc_set(x + 15 + nlen, y, 'U', UC_MAGENTA, bg);
+    uc_set(x + 17 + nlen, y, ' ', fg, bg);
+    uc_set(x + 18 + nlen, y, '0' + mem / 10, UC_GREEN, bg);
+    uc_set(x + 19 + nlen, y, '0' + mem % 10, UC_GREEN, bg);
+    uc_set(x + 20 + nlen, y, '%', UC_GREEN, bg);
+    uc_set(x + 21 + nlen, y, ' ', UC_GREEN, bg);
+    uc_set(x + 22 + nlen, y, 'M', UC_GREEN, bg);
+    uc_set(x + 23 + nlen, y, 'E', UC_GREEN, bg);
+    uc_set(x + 24 + nlen, y, 'M', UC_GREEN, bg);
+    return 0;
+}
+
+# ============ v1.877 边缘容量规划行 ============
+
+# uc_edge_capacity_plan_row：绘制边缘容量规划行 [P]  plan-01  80% used  20% headroom
+# name 为规划名，used 为使用率，headroom 为余量。
+# 用于边缘容量规划管理。
+fn uc_edge_capacity_plan_row(x: i64, y: i64, name: ptr, used: i64, headroom: i64, fg: i64, bg: i64) -> i64 {
+    let nlen: i64 = 0;
+    let i: i64 = 0;
+    nlen = strlen(name);
+    uc_set(x, y, '[', UC_GREEN, bg);
+    uc_set(x + 1, y, 'P', UC_GREEN, bg);
+    uc_set(x + 2, y, ']', UC_GREEN, bg);
+    uc_set(x + 5, y, ' ', fg, bg);
+    i = 0;
+    while i < nlen {
+        uc_set(x + 6 + i, y, name[i], UC_YELLOW, bg);
+        i = i + 1;
+    }
+    uc_set(x + 8 + nlen, y, ' ', fg, bg);
+    uc_set(x + 9 + nlen, y, '0' + used / 10, UC_MAGENTA, bg);
+    uc_set(x + 10 + nlen, y, '0' + used % 10, UC_MAGENTA, bg);
+    uc_set(x + 11 + nlen, y, '%', UC_MAGENTA, bg);
+    uc_set(x + 12 + nlen, y, ' ', UC_MAGENTA, bg);
+    uc_set(x + 13 + nlen, y, 'u', UC_MAGENTA, bg);
+    uc_set(x + 14 + nlen, y, 's', UC_MAGENTA, bg);
+    uc_set(x + 15 + nlen, y, 'e', UC_MAGENTA, bg);
+    uc_set(x + 16 + nlen, y, 'd', UC_MAGENTA, bg);
+    uc_set(x + 18 + nlen, y, ' ', fg, bg);
+    uc_set(x + 19 + nlen, y, '0' + headroom / 10, UC_GREEN, bg);
+    uc_set(x + 20 + nlen, y, '0' + headroom % 10, UC_GREEN, bg);
+    uc_set(x + 21 + nlen, y, '%', UC_GREEN, bg);
+    uc_set(x + 22 + nlen, y, ' ', UC_GREEN, bg);
+    uc_set(x + 23 + nlen, y, 'h', UC_GREEN, bg);
+    uc_set(x + 24 + nlen, y, 'e', UC_GREEN, bg);
+    uc_set(x + 25 + nlen, y, 'a', UC_GREEN, bg);
+    uc_set(x + 26 + nlen, y, 'd', UC_GREEN, bg);
+    uc_set(x + 27 + nlen, y, 'r', UC_GREEN, bg);
+    uc_set(x + 28 + nlen, y, 'o', UC_GREEN, bg);
+    uc_set(x + 29 + nlen, y, 'o', UC_GREEN, bg);
+    uc_set(x + 30 + nlen, y, 'm', UC_GREEN, bg);
+    return 0;
+}
+
+# ============ v1.878 边缘成本分析行 ============
+
+# uc_edge_cost_analysis_row：绘制边缘成本分析行 [C]  cost-01  120 USD  5 services
+# name 为分析名，cost 为成本，services 为服务数。
+# 用于边缘成本分析管理。
+fn uc_edge_cost_analysis_row(x: i64, y: i64, name: ptr, cost: ptr, services: i64, fg: i64, bg: i64) -> i64 {
+    let nlen: i64 = 0;
+    let clen: i64 = 0;
+    let i: i64 = 0;
+    nlen = strlen(name);
+    clen = strlen(cost);
+    uc_set(x, y, '[', UC_YELLOW, bg);
+    uc_set(x + 1, y, 'C', UC_YELLOW, bg);
+    uc_set(x + 2, y, ']', UC_YELLOW, bg);
+    uc_set(x + 5, y, ' ', fg, bg);
+    i = 0;
+    while i < nlen {
+        uc_set(x + 6 + i, y, name[i], UC_YELLOW, bg);
+        i = i + 1;
+    }
+    uc_set(x + 8 + nlen, y, ' ', fg, bg);
+    i = 0;
+    while i < clen {
+        uc_set(x + 9 + nlen + i, y, cost[i], UC_WHITE, bg);
+        i = i + 1;
+    }
+    uc_set(x + 11 + nlen + clen, y, ' ', fg, bg);
+    uc_set(x + 12 + nlen + clen, y, '0' + services, UC_CYAN, bg);
+    uc_set(x + 13 + nlen + clen, y, ' ', UC_CYAN, bg);
+    uc_set(x + 14 + nlen + clen, y, 's', UC_CYAN, bg);
+    uc_set(x + 15 + nlen + clen, y, 'e', UC_CYAN, bg);
+    uc_set(x + 16 + nlen + clen, y, 'r', UC_CYAN, bg);
+    uc_set(x + 17 + nlen + clen, y, 'v', UC_CYAN, bg);
+    uc_set(x + 18 + nlen + clen, y, 'i', UC_CYAN, bg);
+    uc_set(x + 19 + nlen + clen, y, 'c', UC_CYAN, bg);
+    uc_set(x + 20 + nlen + clen, y, 'e', UC_CYAN, bg);
+    uc_set(x + 21 + nlen + clen, y, 's', UC_CYAN, bg);
+    return 0;
+}
+
+# ============ v1.879 边缘性能基准对比行 ============
+
+# uc_edge_perf_compare_row：绘制边缘性能基准对比行 [C]  bench-a  +15%  vs bench-b
+# name 为基准名，delta 为差异，baseline 为基线。
+# 用于边缘性能基准对比管理。
+fn uc_edge_perf_compare_row(x: i64, y: i64, name: ptr, delta: ptr, baseline: ptr, fg: i64, bg: i64) -> i64 {
+    let nlen: i64 = 0;
+    let dlen: i64 = 0;
+    let blen: i64 = 0;
+    let i: i64 = 0;
+    nlen = strlen(name);
+    dlen = strlen(delta);
+    blen = strlen(baseline);
+    uc_set(x, y, '[', UC_MAGENTA, bg);
+    uc_set(x + 1, y, 'C', UC_MAGENTA, bg);
+    uc_set(x + 2, y, ']', UC_MAGENTA, bg);
+    uc_set(x + 5, y, ' ', fg, bg);
+    i = 0;
+    while i < nlen {
+        uc_set(x + 6 + i, y, name[i], UC_YELLOW, bg);
+        i = i + 1;
+    }
+    uc_set(x + 8 + nlen, y, ' ', fg, bg);
+    i = 0;
+    while i < dlen {
+        uc_set(x + 9 + nlen + i, y, delta[i], UC_GREEN, bg);
+        i = i + 1;
+    }
+    uc_set(x + 11 + nlen + dlen, y, ' ', fg, bg);
+    i = 0;
+    while i < blen {
+        uc_set(x + 12 + nlen + dlen + i, y, baseline[i], UC_WHITE, bg);
+        i = i + 1;
+    }
+    return 0;
+}
+
+# ============ v1.880 边缘性能调优建议行 ============
+
+# uc_edge_perf_tuning_row：绘制边缘性能调优建议行 [T]  tune-01  Reduce IO  3 actions
+# name 为建议名，area 为领域，actions 为动作数。
+# 用于边缘性能调优建议管理。
+fn uc_edge_perf_tuning_row(x: i64, y: i64, name: ptr, area: ptr, actions: i64, fg: i64, bg: i64) -> i64 {
+    let nlen: i64 = 0;
+    let alen: i64 = 0;
+    let i: i64 = 0;
+    nlen = strlen(name);
+    alen = strlen(area);
+    uc_set(x, y, '[', UC_GREEN, bg);
+    uc_set(x + 1, y, 'T', UC_GREEN, bg);
+    uc_set(x + 2, y, ']', UC_GREEN, bg);
+    uc_set(x + 5, y, ' ', fg, bg);
+    i = 0;
+    while i < nlen {
+        uc_set(x + 6 + i, y, name[i], UC_YELLOW, bg);
+        i = i + 1;
+    }
+    uc_set(x + 8 + nlen, y, ' ', fg, bg);
+    i = 0;
+    while i < alen {
+        uc_set(x + 9 + nlen + i, y, area[i], UC_WHITE, bg);
+        i = i + 1;
+    }
+    uc_set(x + 11 + nlen + alen, y, ' ', fg, bg);
+    uc_set(x + 12 + nlen + alen, y, '0' + actions, UC_CYAN, bg);
+    uc_set(x + 13 + nlen + alen, y, ' ', UC_CYAN, bg);
+    uc_set(x + 14 + nlen + alen, y, 'a', UC_CYAN, bg);
+    uc_set(x + 15 + nlen + alen, y, 'c', UC_CYAN, bg);
+    uc_set(x + 16 + nlen + alen, y, 't', UC_CYAN, bg);
+    uc_set(x + 17 + nlen + alen, y, 'i', UC_CYAN, bg);
+    uc_set(x + 18 + nlen + alen, y, 'o', UC_CYAN, bg);
+    uc_set(x + 19 + nlen + alen, y, 'n', UC_CYAN, bg);
+    uc_set(x + 20 + nlen + alen, y, 's', UC_CYAN, bg);
+    return 0;
+}

@@ -1,3 +1,19 @@
+## [1.880.0]
+
+- lib/uic_edge.mo 继续新增边缘性能监控画布组件（v1.871~v1.880，10 个）：
+  - uc_edge_app_perf_row：边缘应用性能行 [A] app-01 250ms latency 99% success
+  - uc_edge_db_perf_row：边缘数据库性能行 [D] db-01 5ms query 1000 qps
+  - uc_edge_net_perf_row：边缘网络性能行 [N] net-01 10ms latency 1Gbps
+  - uc_edge_storage_perf_row：边缘存储性能行 [S] storage-01 0.5ms IO 500 IOPS
+  - uc_edge_user_exp_row：边缘用户体验行 [U] ux-01 4.5 score 92% satis
+  - uc_edge_resource_util_row：边缘资源利用率行 [R] node-01 75% CPU 60% MEM
+  - uc_edge_capacity_plan_row：边缘容量规划行 [P] plan-01 80% used 20% headroom
+  - uc_edge_cost_analysis_row：边缘成本分析行 [C] cost-01 120 USD 5 services
+  - uc_edge_perf_compare_row：边缘性能基准对比行 [C] bench-a +15% vs bench-b
+  - uc_edge_perf_tuning_row：边缘性能调优建议行 [T] tune-01 Reduce IO 3 actions
+- tests/101_uic.mo 覆盖全部新增组件。
+- 门禁：tests 249/249、projcheck 11/11、自举三级一致、sweep 全绿。
+
 ## [1.870.0]
 
 - lib/uic_edge.mo 继续新增边缘流程编排画布组件（v1.861~v1.870，10 个）：

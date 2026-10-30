@@ -566,6 +566,16 @@ fn main() -> i64 {
     uc_edge_workflow_audit_row(12, 2, "audit-001", 500, "Clean", UC_WHITE, UC_BLUE);
     uc_edge_workflow_version_row(1, 2, "order-flow", "v2", 1, UC_WHITE, UC_BLUE);
     uc_edge_workflow_metric_row(12, 2, "order-flow", 95, 100, UC_WHITE, UC_BLUE);
+    uc_edge_app_perf_row(1, 2, "app-01", "250ms", 99, UC_WHITE, UC_BLUE);
+    uc_edge_db_perf_row(12, 2, "db-01", "5ms", 1000, UC_WHITE, UC_BLUE);
+    uc_edge_net_perf_row(1, 2, "net-01", "10ms", "1Gbps", UC_WHITE, UC_BLUE);
+    uc_edge_storage_perf_row(12, 2, "storage-01", "0.5ms", 500, UC_WHITE, UC_BLUE);
+    uc_edge_user_exp_row(1, 2, "ux-01", "4.5", 92, UC_WHITE, UC_BLUE);
+    uc_edge_resource_util_row(12, 2, "node-01", 75, 60, UC_WHITE, UC_BLUE);
+    uc_edge_capacity_plan_row(1, 2, "plan-01", 80, 20, UC_WHITE, UC_BLUE);
+    uc_edge_cost_analysis_row(12, 2, "cost-01", "120USD", 5, UC_WHITE, UC_BLUE);
+    uc_edge_perf_compare_row(1, 2, "bench-a", "+15%", "bench-b", UC_WHITE, UC_BLUE);
+    uc_edge_perf_tuning_row(12, 2, "tune-01", "Reduce IO", 3, UC_WHITE, UC_BLUE);
     uc_dump_svg("/tmp/uic_dump_test.svg");
     uc_render();
     return 0;
