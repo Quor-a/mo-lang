@@ -1,3 +1,19 @@
+## [1.790.0]
+
+- lib/uic_edge.mo 继续新增边缘可观测性画布组件（v1.781~v1.790，10 个）：
+  - uc_edge_log_management_row：边缘日志管理行 [L] log-center 2.3 GB Active
+  - uc_edge_log_stream_row：边缘日志流行 [S] syslog-stream Streaming 200 eps
+  - uc_edge_audit_log_row：边缘审计日志行 [A] audit-log-01 500 entries Retained
+  - uc_edge_metric_collector_row：边缘指标采集行 [M] node-exporter Collecting 100 sps
+  - uc_edge_monitor_dashboard_row：边缘监控仪表盘行 [D] edge-monitor 5 panels Live
+  - uc_edge_alert_route_row：边缘告警路由行 [R] route-01 3 targets Active
+  - uc_edge_alert_escalation_row：边缘告警升级行 [E] esc-01 3 levels Enabled
+  - uc_edge_health_check_row：边缘健康检查行 [H] hc-01 Healthy 5 checks
+  - uc_edge_perf_benchmark_row：边缘性能基准行 [B] bench-01 1200 ops Pass
+  - uc_edge_telemetry_stream_row：边缘遥测流行 [S] telemetry-01 Streaming 500 dps
+- tests/101_uic.mo 覆盖全部新增组件。
+- 门禁：tests 249/249、projcheck 11/11、自举三级一致、sweep 全绿。
+
 ## [1.780.0]
 
 - lib/uic_edge.mo 继续新增边缘安全画布组件（v1.771~v1.780，10 个）：

@@ -4575,3 +4575,427 @@ fn uc_edge_identity_row(x: i64, y: i64, name: ptr, method: ptr, state: i64, fg: 
     }
     return 0;
 }
+
+# ============ v1.781 边缘日志管理行 ============
+
+# uc_edge_log_management_row：绘制边缘日志管理行 [L]  log-center  2.3 GB  Active
+# name 为管理名，storage 为存储量，state 0=停用 1=启用。
+# 用于边缘日志管理。
+fn uc_edge_log_management_row(x: i64, y: i64, name: ptr, storage: ptr, state: i64, fg: i64, bg: i64) -> i64 {
+    let nlen: i64 = 0;
+    let slen: i64 = 0;
+    let i: i64 = 0;
+    nlen = strlen(name);
+    slen = strlen(storage);
+    uc_set(x, y, '[', UC_CYAN, bg);
+    uc_set(x + 1, y, 'L', UC_CYAN, bg);
+    uc_set(x + 2, y, ']', UC_CYAN, bg);
+    uc_set(x + 5, y, ' ', fg, bg);
+    i = 0;
+    while i < nlen {
+        uc_set(x + 6 + i, y, name[i], UC_YELLOW, bg);
+        i = i + 1;
+    }
+    uc_set(x + 8 + nlen, y, ' ', fg, bg);
+    i = 0;
+    while i < slen {
+        uc_set(x + 9 + nlen + i, y, storage[i], UC_WHITE, bg);
+        i = i + 1;
+    }
+    uc_set(x + 11 + nlen + slen, y, ' ', fg, bg);
+    if state != 0 {
+        uc_set(x + 12 + nlen + slen, y, 'A', UC_GREEN, bg);
+        uc_set(x + 13 + nlen + slen, y, 'c', UC_GREEN, bg);
+        uc_set(x + 14 + nlen + slen, y, 't', UC_GREEN, bg);
+        uc_set(x + 15 + nlen + slen, y, 'i', UC_GREEN, bg);
+        uc_set(x + 16 + nlen + slen, y, 'v', UC_GREEN, bg);
+        uc_set(x + 17 + nlen + slen, y, 'e', UC_GREEN, bg);
+    } else {
+        uc_set(x + 12 + nlen + slen, y, 'I', UC_RED, bg);
+        uc_set(x + 13 + nlen + slen, y, 'n', UC_RED, bg);
+        uc_set(x + 14 + nlen + slen, y, 'a', UC_RED, bg);
+        uc_set(x + 15 + nlen + slen, y, 'c', UC_RED, bg);
+        uc_set(x + 16 + nlen + slen, y, 't', UC_RED, bg);
+        uc_set(x + 17 + nlen + slen, y, 'i', UC_RED, bg);
+        uc_set(x + 18 + nlen + slen, y, 'v', UC_RED, bg);
+        uc_set(x + 19 + nlen + slen, y, 'e', UC_RED, bg);
+    }
+    return 0;
+}
+
+# ============ v1.782 边缘日志流行 ============
+
+# uc_edge_log_stream_row：绘制边缘日志流行 [S]  syslog-stream  Streaming  200 eps
+# name 为流名，state 为状态，eps 为事件率。
+# 用于边缘日志流管理。
+fn uc_edge_log_stream_row(x: i64, y: i64, name: ptr, state: ptr, eps: i64, fg: i64, bg: i64) -> i64 {
+    let nlen: i64 = 0;
+    let slen: i64 = 0;
+    let i: i64 = 0;
+    nlen = strlen(name);
+    slen = strlen(state);
+    uc_set(x, y, '[', UC_MAGENTA, bg);
+    uc_set(x + 1, y, 'S', UC_MAGENTA, bg);
+    uc_set(x + 2, y, ']', UC_MAGENTA, bg);
+    uc_set(x + 5, y, ' ', fg, bg);
+    i = 0;
+    while i < nlen {
+        uc_set(x + 6 + i, y, name[i], UC_YELLOW, bg);
+        i = i + 1;
+    }
+    uc_set(x + 8 + nlen, y, ' ', fg, bg);
+    i = 0;
+    while i < slen {
+        uc_set(x + 9 + nlen + i, y, state[i], UC_WHITE, bg);
+        i = i + 1;
+    }
+    uc_set(x + 11 + nlen + slen, y, ' ', fg, bg);
+    uc_set(x + 12 + nlen + slen, y, '0' + eps / 100, UC_CYAN, bg);
+    uc_set(x + 13 + nlen + slen, y, '0' + (eps / 10) % 10, UC_CYAN, bg);
+    uc_set(x + 14 + nlen + slen, y, '0' + eps % 10, UC_CYAN, bg);
+    uc_set(x + 15 + nlen + slen, y, ' ', UC_CYAN, bg);
+    uc_set(x + 16 + nlen + slen, y, 'e', UC_CYAN, bg);
+    uc_set(x + 17 + nlen + slen, y, 'p', UC_CYAN, bg);
+    uc_set(x + 18 + nlen + slen, y, 's', UC_CYAN, bg);
+    return 0;
+}
+
+# ============ v1.783 边缘审计日志行 ============
+
+# uc_edge_audit_log_row：绘制边缘审计日志行 [A]  audit-log-01  500 entries  Retained
+# name 为日志名，entries 为条数，state 为状态。
+# 用于边缘审计日志管理。
+fn uc_edge_audit_log_row(x: i64, y: i64, name: ptr, entries: i64, state: ptr, fg: i64, bg: i64) -> i64 {
+    let nlen: i64 = 0;
+    let slen: i64 = 0;
+    let i: i64 = 0;
+    nlen = strlen(name);
+    slen = strlen(state);
+    uc_set(x, y, '[', UC_GREEN, bg);
+    uc_set(x + 1, y, 'A', UC_GREEN, bg);
+    uc_set(x + 2, y, ']', UC_GREEN, bg);
+    uc_set(x + 5, y, ' ', fg, bg);
+    i = 0;
+    while i < nlen {
+        uc_set(x + 6 + i, y, name[i], UC_YELLOW, bg);
+        i = i + 1;
+    }
+    uc_set(x + 8 + nlen, y, ' ', fg, bg);
+    uc_set(x + 9 + nlen, y, '0' + entries / 100, UC_WHITE, bg);
+    uc_set(x + 10 + nlen, y, '0' + (entries / 10) % 10, UC_WHITE, bg);
+    uc_set(x + 11 + nlen, y, '0' + entries % 10, UC_WHITE, bg);
+    uc_set(x + 12 + nlen, y, ' ', UC_WHITE, bg);
+    uc_set(x + 13 + nlen, y, 'e', UC_WHITE, bg);
+    uc_set(x + 14 + nlen, y, 'n', UC_WHITE, bg);
+    uc_set(x + 15 + nlen, y, 't', UC_WHITE, bg);
+    uc_set(x + 16 + nlen, y, 'r', UC_WHITE, bg);
+    uc_set(x + 17 + nlen, y, 'i', UC_WHITE, bg);
+    uc_set(x + 18 + nlen, y, 'e', UC_WHITE, bg);
+    uc_set(x + 19 + nlen, y, 's', UC_WHITE, bg);
+    uc_set(x + 21 + nlen, y, ' ', fg, bg);
+    i = 0;
+    while i < slen {
+        uc_set(x + 22 + nlen + i, y, state[i], UC_CYAN, bg);
+        i = i + 1;
+    }
+    return 0;
+}
+
+# ============ v1.784 边缘指标采集行 ============
+
+# uc_edge_metric_collector_row：绘制边缘指标采集行 [M]  node-exporter  Collecting  100 sps
+# name 为采集器名，state 为状态，sps 为采样率。
+# 用于边缘指标采集管理。
+fn uc_edge_metric_collector_row(x: i64, y: i64, name: ptr, state: ptr, sps: i64, fg: i64, bg: i64) -> i64 {
+    let nlen: i64 = 0;
+    let slen: i64 = 0;
+    let i: i64 = 0;
+    nlen = strlen(name);
+    slen = strlen(state);
+    uc_set(x, y, '[', UC_CYAN, bg);
+    uc_set(x + 1, y, 'M', UC_CYAN, bg);
+    uc_set(x + 2, y, ']', UC_CYAN, bg);
+    uc_set(x + 5, y, ' ', fg, bg);
+    i = 0;
+    while i < nlen {
+        uc_set(x + 6 + i, y, name[i], UC_YELLOW, bg);
+        i = i + 1;
+    }
+    uc_set(x + 8 + nlen, y, ' ', fg, bg);
+    i = 0;
+    while i < slen {
+        uc_set(x + 9 + nlen + i, y, state[i], UC_WHITE, bg);
+        i = i + 1;
+    }
+    uc_set(x + 11 + nlen + slen, y, ' ', fg, bg);
+    uc_set(x + 12 + nlen + slen, y, '0' + sps / 100, UC_GREEN, bg);
+    uc_set(x + 13 + nlen + slen, y, '0' + (sps / 10) % 10, UC_GREEN, bg);
+    uc_set(x + 14 + nlen + slen, y, '0' + sps % 10, UC_GREEN, bg);
+    uc_set(x + 15 + nlen + slen, y, ' ', UC_GREEN, bg);
+    uc_set(x + 16 + nlen + slen, y, 's', UC_GREEN, bg);
+    uc_set(x + 17 + nlen + slen, y, 'p', UC_GREEN, bg);
+    uc_set(x + 18 + nlen + slen, y, 's', UC_GREEN, bg);
+    return 0;
+}
+
+# ============ v1.785 边缘监控仪表盘行 ============
+
+# uc_edge_monitor_dashboard_row：绘制边缘监控仪表盘行 [D]  edge-monitor  5 panels  Live
+# name 为仪表盘名，panels 为面板数，state 0=离线 1=在线。
+# 用于边缘监控仪表盘管理。
+fn uc_edge_monitor_dashboard_row(x: i64, y: i64, name: ptr, panels: i64, state: i64, fg: i64, bg: i64) -> i64 {
+    let nlen: i64 = 0;
+    let i: i64 = 0;
+    nlen = strlen(name);
+    uc_set(x, y, '[', UC_MAGENTA, bg);
+    uc_set(x + 1, y, 'D', UC_MAGENTA, bg);
+    uc_set(x + 2, y, ']', UC_MAGENTA, bg);
+    uc_set(x + 5, y, ' ', fg, bg);
+    i = 0;
+    while i < nlen {
+        uc_set(x + 6 + i, y, name[i], UC_YELLOW, bg);
+        i = i + 1;
+    }
+    uc_set(x + 8 + nlen, y, ' ', fg, bg);
+    uc_set(x + 9 + nlen, y, '0' + panels, UC_WHITE, bg);
+    uc_set(x + 10 + nlen, y, ' ', UC_WHITE, bg);
+    uc_set(x + 11 + nlen, y, 'p', UC_WHITE, bg);
+    uc_set(x + 12 + nlen, y, 'a', UC_WHITE, bg);
+    uc_set(x + 13 + nlen, y, 'n', UC_WHITE, bg);
+    uc_set(x + 14 + nlen, y, 'e', UC_WHITE, bg);
+    uc_set(x + 15 + nlen, y, 'l', UC_WHITE, bg);
+    uc_set(x + 16 + nlen, y, 's', UC_WHITE, bg);
+    uc_set(x + 18 + nlen, y, ' ', fg, bg);
+    if state != 0 {
+        uc_set(x + 19 + nlen, y, 'L', UC_GREEN, bg);
+        uc_set(x + 20 + nlen, y, 'i', UC_GREEN, bg);
+        uc_set(x + 21 + nlen, y, 'v', UC_GREEN, bg);
+        uc_set(x + 22 + nlen, y, 'e', UC_GREEN, bg);
+    } else {
+        uc_set(x + 19 + nlen, y, 'O', UC_RED, bg);
+        uc_set(x + 20 + nlen, y, 'f', UC_RED, bg);
+        uc_set(x + 21 + nlen, y, 'f', UC_RED, bg);
+        uc_set(x + 22 + nlen, y, 'l', UC_RED, bg);
+        uc_set(x + 23 + nlen, y, 'i', UC_RED, bg);
+        uc_set(x + 24 + nlen, y, 'n', UC_RED, bg);
+        uc_set(x + 25 + nlen, y, 'e', UC_RED, bg);
+    }
+    return 0;
+}
+
+# ============ v1.786 边缘告警路由行 ============
+
+# uc_edge_alert_route_row：绘制边缘告警路由行 [R]  route-01  3 targets  Active
+# name 为路由名，targets 为目标数，state 0=停用 1=启用。
+# 用于边缘告警路由管理。
+fn uc_edge_alert_route_row(x: i64, y: i64, name: ptr, targets: i64, state: i64, fg: i64, bg: i64) -> i64 {
+    let nlen: i64 = 0;
+    let i: i64 = 0;
+    nlen = strlen(name);
+    uc_set(x, y, '[', UC_YELLOW, bg);
+    uc_set(x + 1, y, 'R', UC_YELLOW, bg);
+    uc_set(x + 2, y, ']', UC_YELLOW, bg);
+    uc_set(x + 5, y, ' ', fg, bg);
+    i = 0;
+    while i < nlen {
+        uc_set(x + 6 + i, y, name[i], UC_YELLOW, bg);
+        i = i + 1;
+    }
+    uc_set(x + 8 + nlen, y, ' ', fg, bg);
+    uc_set(x + 9 + nlen, y, '0' + targets, UC_WHITE, bg);
+    uc_set(x + 10 + nlen, y, ' ', UC_WHITE, bg);
+    uc_set(x + 11 + nlen, y, 't', UC_WHITE, bg);
+    uc_set(x + 12 + nlen, y, 'a', UC_WHITE, bg);
+    uc_set(x + 13 + nlen, y, 'r', UC_WHITE, bg);
+    uc_set(x + 14 + nlen, y, 'g', UC_WHITE, bg);
+    uc_set(x + 15 + nlen, y, 'e', UC_WHITE, bg);
+    uc_set(x + 16 + nlen, y, 't', UC_WHITE, bg);
+    uc_set(x + 17 + nlen, y, 's', UC_WHITE, bg);
+    uc_set(x + 19 + nlen, y, ' ', fg, bg);
+    if state != 0 {
+        uc_set(x + 20 + nlen, y, 'A', UC_GREEN, bg);
+        uc_set(x + 21 + nlen, y, 'c', UC_GREEN, bg);
+        uc_set(x + 22 + nlen, y, 't', UC_GREEN, bg);
+        uc_set(x + 23 + nlen, y, 'i', UC_GREEN, bg);
+        uc_set(x + 24 + nlen, y, 'v', UC_GREEN, bg);
+        uc_set(x + 25 + nlen, y, 'e', UC_GREEN, bg);
+    } else {
+        uc_set(x + 20 + nlen, y, 'I', UC_RED, bg);
+        uc_set(x + 21 + nlen, y, 'n', UC_RED, bg);
+        uc_set(x + 22 + nlen, y, 'a', UC_RED, bg);
+        uc_set(x + 23 + nlen, y, 'c', UC_RED, bg);
+        uc_set(x + 24 + nlen, y, 't', UC_RED, bg);
+        uc_set(x + 25 + nlen, y, 'i', UC_RED, bg);
+        uc_set(x + 26 + nlen, y, 'v', UC_RED, bg);
+        uc_set(x + 27 + nlen, y, 'e', UC_RED, bg);
+    }
+    return 0;
+}
+
+# ============ v1.787 边缘告警升级行 ============
+
+# uc_edge_alert_escalation_row：绘制边缘告警升级行 [E]  esc-01  3 levels  Enabled
+# name 为升级名，levels 为级别数，state 0=禁用 1=启用。
+# 用于边缘告警升级管理。
+fn uc_edge_alert_escalation_row(x: i64, y: i64, name: ptr, levels: i64, state: i64, fg: i64, bg: i64) -> i64 {
+    let nlen: i64 = 0;
+    let i: i64 = 0;
+    nlen = strlen(name);
+    uc_set(x, y, '[', UC_RED, bg);
+    uc_set(x + 1, y, 'E', UC_RED, bg);
+    uc_set(x + 2, y, ']', UC_RED, bg);
+    uc_set(x + 5, y, ' ', fg, bg);
+    i = 0;
+    while i < nlen {
+        uc_set(x + 6 + i, y, name[i], UC_YELLOW, bg);
+        i = i + 1;
+    }
+    uc_set(x + 8 + nlen, y, ' ', fg, bg);
+    uc_set(x + 9 + nlen, y, '0' + levels, UC_WHITE, bg);
+    uc_set(x + 10 + nlen, y, ' ', UC_WHITE, bg);
+    uc_set(x + 11 + nlen, y, 'l', UC_WHITE, bg);
+    uc_set(x + 12 + nlen, y, 'e', UC_WHITE, bg);
+    uc_set(x + 13 + nlen, y, 'v', UC_WHITE, bg);
+    uc_set(x + 14 + nlen, y, 'e', UC_WHITE, bg);
+    uc_set(x + 15 + nlen, y, 'l', UC_WHITE, bg);
+    uc_set(x + 16 + nlen, y, 's', UC_WHITE, bg);
+    uc_set(x + 18 + nlen, y, ' ', fg, bg);
+    if state != 0 {
+        uc_set(x + 19 + nlen, y, 'E', UC_GREEN, bg);
+        uc_set(x + 20 + nlen, y, 'n', UC_GREEN, bg);
+        uc_set(x + 21 + nlen, y, 'a', UC_GREEN, bg);
+        uc_set(x + 22 + nlen, y, 'b', UC_GREEN, bg);
+        uc_set(x + 23 + nlen, y, 'l', UC_GREEN, bg);
+        uc_set(x + 24 + nlen, y, 'e', UC_GREEN, bg);
+        uc_set(x + 25 + nlen, y, 'd', UC_GREEN, bg);
+    } else {
+        uc_set(x + 19 + nlen, y, 'D', UC_RED, bg);
+        uc_set(x + 20 + nlen, y, 'i', UC_RED, bg);
+        uc_set(x + 21 + nlen, y, 's', UC_RED, bg);
+        uc_set(x + 22 + nlen, y, 'a', UC_RED, bg);
+        uc_set(x + 23 + nlen, y, 'b', UC_RED, bg);
+        uc_set(x + 24 + nlen, y, 'l', UC_RED, bg);
+        uc_set(x + 25 + nlen, y, 'e', UC_RED, bg);
+        uc_set(x + 26 + nlen, y, 'd', UC_RED, bg);
+    }
+    return 0;
+}
+
+# ============ v1.788 边缘健康检查行 ============
+
+# uc_edge_health_check_row：绘制边缘健康检查行 [H]  hc-01  Healthy  5 checks
+# name 为检查名，state 为状态，checks 为检查数。
+# 用于边缘健康检查管理。
+fn uc_edge_health_check_row(x: i64, y: i64, name: ptr, state: ptr, checks: i64, fg: i64, bg: i64) -> i64 {
+    let nlen: i64 = 0;
+    let slen: i64 = 0;
+    let i: i64 = 0;
+    nlen = strlen(name);
+    slen = strlen(state);
+    uc_set(x, y, '[', UC_GREEN, bg);
+    uc_set(x + 1, y, 'H', UC_GREEN, bg);
+    uc_set(x + 2, y, ']', UC_GREEN, bg);
+    uc_set(x + 5, y, ' ', fg, bg);
+    i = 0;
+    while i < nlen {
+        uc_set(x + 6 + i, y, name[i], UC_YELLOW, bg);
+        i = i + 1;
+    }
+    uc_set(x + 8 + nlen, y, ' ', fg, bg);
+    i = 0;
+    while i < slen {
+        uc_set(x + 9 + nlen + i, y, state[i], UC_WHITE, bg);
+        i = i + 1;
+    }
+    uc_set(x + 11 + nlen + slen, y, ' ', fg, bg);
+    uc_set(x + 12 + nlen + slen, y, '0' + checks, UC_CYAN, bg);
+    uc_set(x + 13 + nlen + slen, y, ' ', UC_CYAN, bg);
+    uc_set(x + 14 + nlen + slen, y, 'c', UC_CYAN, bg);
+    uc_set(x + 15 + nlen + slen, y, 'h', UC_CYAN, bg);
+    uc_set(x + 16 + nlen + slen, y, 'e', UC_CYAN, bg);
+    uc_set(x + 17 + nlen + slen, y, 'c', UC_CYAN, bg);
+    uc_set(x + 18 + nlen + slen, y, 'k', UC_CYAN, bg);
+    uc_set(x + 19 + nlen + slen, y, 's', UC_CYAN, bg);
+    return 0;
+}
+
+# ============ v1.789 边缘性能基准行 ============
+
+# uc_edge_perf_benchmark_row：绘制边缘性能基准行 [B]  bench-01  1200 ops  Pass
+# name 为基准名，ops 为操作数，state 0=失败 1=通过。
+# 用于边缘性能基准管理。
+fn uc_edge_perf_benchmark_row(x: i64, y: i64, name: ptr, ops: i64, state: i64, fg: i64, bg: i64) -> i64 {
+    let nlen: i64 = 0;
+    let i: i64 = 0;
+    nlen = strlen(name);
+    uc_set(x, y, '[', UC_MAGENTA, bg);
+    uc_set(x + 1, y, 'B', UC_MAGENTA, bg);
+    uc_set(x + 2, y, ']', UC_MAGENTA, bg);
+    uc_set(x + 5, y, ' ', fg, bg);
+    i = 0;
+    while i < nlen {
+        uc_set(x + 6 + i, y, name[i], UC_YELLOW, bg);
+        i = i + 1;
+    }
+    uc_set(x + 8 + nlen, y, ' ', fg, bg);
+    uc_set(x + 9 + nlen, y, '0' + ops / 1000, UC_WHITE, bg);
+    uc_set(x + 10 + nlen, y, '0' + (ops / 100) % 10, UC_WHITE, bg);
+    uc_set(x + 11 + nlen, y, '0' + (ops / 10) % 10, UC_WHITE, bg);
+    uc_set(x + 12 + nlen, y, '0' + ops % 10, UC_WHITE, bg);
+    uc_set(x + 13 + nlen, y, ' ', UC_WHITE, bg);
+    uc_set(x + 14 + nlen, y, 'o', UC_WHITE, bg);
+    uc_set(x + 15 + nlen, y, 'p', UC_WHITE, bg);
+    uc_set(x + 16 + nlen, y, 's', UC_WHITE, bg);
+    uc_set(x + 18 + nlen, y, ' ', fg, bg);
+    if state != 0 {
+        uc_set(x + 19 + nlen, y, 'P', UC_GREEN, bg);
+        uc_set(x + 20 + nlen, y, 'a', UC_GREEN, bg);
+        uc_set(x + 21 + nlen, y, 's', UC_GREEN, bg);
+        uc_set(x + 22 + nlen, y, 's', UC_GREEN, bg);
+    } else {
+        uc_set(x + 19 + nlen, y, 'F', UC_RED, bg);
+        uc_set(x + 20 + nlen, y, 'a', UC_RED, bg);
+        uc_set(x + 21 + nlen, y, 'i', UC_RED, bg);
+        uc_set(x + 22 + nlen, y, 'l', UC_RED, bg);
+        uc_set(x + 23 + nlen, y, 'e', UC_RED, bg);
+        uc_set(x + 24 + nlen, y, 'd', UC_RED, bg);
+    }
+    return 0;
+}
+
+# ============ v1.790 边缘遥测流行 ============
+
+# uc_edge_telemetry_stream_row：绘制边缘遥测流行 [S]  telemetry-01  Streaming  500 dps
+# name 为流名，state 为状态，dps 为数据率。
+# 用于边缘遥测流管理。
+fn uc_edge_telemetry_stream_row(x: i64, y: i64, name: ptr, state: ptr, dps: i64, fg: i64, bg: i64) -> i64 {
+    let nlen: i64 = 0;
+    let slen: i64 = 0;
+    let i: i64 = 0;
+    nlen = strlen(name);
+    slen = strlen(state);
+    uc_set(x, y, '[', UC_CYAN, bg);
+    uc_set(x + 1, y, 'S', UC_CYAN, bg);
+    uc_set(x + 2, y, ']', UC_CYAN, bg);
+    uc_set(x + 5, y, ' ', fg, bg);
+    i = 0;
+    while i < nlen {
+        uc_set(x + 6 + i, y, name[i], UC_YELLOW, bg);
+        i = i + 1;
+    }
+    uc_set(x + 8 + nlen, y, ' ', fg, bg);
+    i = 0;
+    while i < slen {
+        uc_set(x + 9 + nlen + i, y, state[i], UC_WHITE, bg);
+        i = i + 1;
+    }
+    uc_set(x + 11 + nlen + slen, y, ' ', fg, bg);
+    uc_set(x + 12 + nlen + slen, y, '0' + dps / 100, UC_GREEN, bg);
+    uc_set(x + 13 + nlen + slen, y, '0' + (dps / 10) % 10, UC_GREEN, bg);
+    uc_set(x + 14 + nlen + slen, y, '0' + dps % 10, UC_GREEN, bg);
+    uc_set(x + 15 + nlen + slen, y, ' ', UC_GREEN, bg);
+    uc_set(x + 16 + nlen + slen, y, 'd', UC_GREEN, bg);
+    uc_set(x + 17 + nlen + slen, y, 'p', UC_GREEN, bg);
+    uc_set(x + 18 + nlen + slen, y, 's', UC_GREEN, bg);
+    return 0;
+}

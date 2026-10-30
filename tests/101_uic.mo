@@ -476,6 +476,16 @@ fn main() -> i64 {
     uc_edge_encryption_row(12, 2, "key-rotator", "AES-256", 1, UC_WHITE, UC_BLUE);
     uc_edge_cert_mgmt_row(1, 2, "cert-01", "Valid", 30, UC_WHITE, UC_BLUE);
     uc_edge_identity_row(12, 2, "identity-01", "OAuth2", 1, UC_WHITE, UC_BLUE);
+    uc_edge_log_management_row(1, 2, "log-center", "2.3GB", 1, UC_WHITE, UC_BLUE);
+    uc_edge_log_stream_row(12, 2, "syslog-stream", "Streaming", 200, UC_WHITE, UC_BLUE);
+    uc_edge_audit_log_row(1, 2, "audit-log-01", 500, "Retained", UC_WHITE, UC_BLUE);
+    uc_edge_metric_collector_row(12, 2, "node-exporter", "Collecting", 100, UC_WHITE, UC_BLUE);
+    uc_edge_monitor_dashboard_row(1, 2, "edge-monitor", 5, 1, UC_WHITE, UC_BLUE);
+    uc_edge_alert_route_row(12, 2, "route-01", 3, 1, UC_WHITE, UC_BLUE);
+    uc_edge_alert_escalation_row(1, 2, "esc-01", 3, 1, UC_WHITE, UC_BLUE);
+    uc_edge_health_check_row(12, 2, "hc-01", "Healthy", 5, UC_WHITE, UC_BLUE);
+    uc_edge_perf_benchmark_row(1, 2, "bench-01", 1200, 1, UC_WHITE, UC_BLUE);
+    uc_edge_telemetry_stream_row(12, 2, "telemetry-01", "Streaming", 500, UC_WHITE, UC_BLUE);
     uc_dump_svg("/tmp/uic_dump_test.svg");
     uc_render();
     return 0;
