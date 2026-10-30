@@ -6776,3 +6776,454 @@ fn uc_audit_row(x: i64, y: i64, time: ptr, action: ptr, state: i64, fg: i64, bg:
     }
     return 0;
 }
+
+# ============ v1.501 告警规则行 ============
+
+# uc_alert_rule_row：绘制告警规则行 [R]  cpu>90  5m  Active
+# name 为规则名，period 为周期，state 0=停用 1=启用。
+# 用于告警规则管理。
+fn uc_alert_rule_row(x: i64, y: i64, name: ptr, period: ptr, state: i64, fg: i64, bg: i64) -> i64 {
+    let nlen: i64 = 0;
+    let plen: i64 = 0;
+    let i: i64 = 0;
+    nlen = strlen(name);
+    plen = strlen(period);
+    uc_set(x, y, '[', UC_RED, bg);
+    uc_set(x + 1, y, 'R', UC_RED, bg);
+    uc_set(x + 2, y, ']', UC_RED, bg);
+    uc_set(x + 5, y, ' ', fg, bg);
+    i = 0;
+    while i < nlen {
+        uc_set(x + 6 + i, y, name[i], UC_YELLOW, bg);
+        i = i + 1;
+    }
+    uc_set(x + 8 + nlen, y, ' ', fg, bg);
+    i = 0;
+    while i < plen {
+        uc_set(x + 9 + nlen + i, y, period[i], UC_CYAN, bg);
+        i = i + 1;
+    }
+    uc_set(x + 11 + nlen + plen, y, ' ', fg, bg);
+    if state != 0 {
+        uc_set(x + 12 + nlen + plen, y, 'A', UC_GREEN, bg);
+        uc_set(x + 13 + nlen + plen, y, 'c', UC_GREEN, bg);
+        uc_set(x + 14 + nlen + plen, y, 't', UC_GREEN, bg);
+        uc_set(x + 15 + nlen + plen, y, 'i', UC_GREEN, bg);
+        uc_set(x + 16 + nlen + plen, y, 'v', UC_GREEN, bg);
+        uc_set(x + 17 + nlen + plen, y, 'e', UC_GREEN, bg);
+    } else {
+        uc_set(x + 12 + nlen + plen, y, 'P', fg, bg);
+        uc_set(x + 13 + nlen + plen, y, 'a', fg, bg);
+        uc_set(x + 14 + nlen + plen, y, 'u', fg, bg);
+        uc_set(x + 15 + nlen + plen, y, 's', fg, bg);
+        uc_set(x + 16 + nlen + plen, y, 'e', fg, bg);
+        uc_set(x + 17 + nlen + plen, y, 'd', fg, bg);
+    }
+    return 0;
+}
+
+# ============ v1.502 配额策略行 ============
+
+# uc_quota_policy_row：绘制配额策略行 [Q]  api-calls  10000/min  Enforced
+# name 为策略名，limit 为限制，state 0=宽松 1=强制。
+# 用于配额策略管理。
+fn uc_quota_policy_row(x: i64, y: i64, name: ptr, limit: ptr, state: i64, fg: i64, bg: i64) -> i64 {
+    let nlen: i64 = 0;
+    let llen: i64 = 0;
+    let i: i64 = 0;
+    nlen = strlen(name);
+    llen = strlen(limit);
+    uc_set(x, y, '[', UC_MAGENTA, bg);
+    uc_set(x + 1, y, 'Q', UC_MAGENTA, bg);
+    uc_set(x + 2, y, ']', UC_MAGENTA, bg);
+    uc_set(x + 5, y, ' ', fg, bg);
+    i = 0;
+    while i < nlen {
+        uc_set(x + 6 + i, y, name[i], UC_YELLOW, bg);
+        i = i + 1;
+    }
+    uc_set(x + 8 + nlen, y, ' ', fg, bg);
+    i = 0;
+    while i < llen {
+        uc_set(x + 9 + nlen + i, y, limit[i], UC_CYAN, bg);
+        i = i + 1;
+    }
+    uc_set(x + 11 + nlen + llen, y, ' ', fg, bg);
+    if state != 0 {
+        uc_set(x + 12 + nlen + llen, y, 'E', UC_GREEN, bg);
+        uc_set(x + 13 + nlen + llen, y, 'n', UC_GREEN, bg);
+        uc_set(x + 14 + nlen + llen, y, 'f', UC_GREEN, bg);
+        uc_set(x + 15 + nlen + llen, y, 'o', UC_GREEN, bg);
+        uc_set(x + 16 + nlen + llen, y, 'r', UC_GREEN, bg);
+        uc_set(x + 17 + nlen + llen, y, 'c', UC_GREEN, bg);
+        uc_set(x + 18 + nlen + llen, y, 'e', UC_GREEN, bg);
+        uc_set(x + 19 + nlen + llen, y, 'd', UC_GREEN, bg);
+    } else {
+        uc_set(x + 12 + nlen + llen, y, 'S', fg, bg);
+        uc_set(x + 13 + nlen + llen, y, 'o', fg, bg);
+        uc_set(x + 14 + nlen + llen, y, 'f', fg, bg);
+        uc_set(x + 15 + nlen + llen, y, 't', fg, bg);
+    }
+    return 0;
+}
+
+# ============ v1.503 价格行 ============
+
+# uc_price_row：绘制价格行 [P]  Pro Plan  $29/mo
+# name 为产品名，price 为价格，currency 为货币符号。
+# 用于定价页面、订阅展示。
+fn uc_price_row(x: i64, y: i64, name: ptr, price: i64, currency: i64, fg: i64, bg: i64) -> i64 {
+    let nlen: i64 = 0;
+    let i: i64 = 0;
+    nlen = strlen(name);
+    uc_set(x, y, '[', UC_GREEN, bg);
+    uc_set(x + 1, y, 'P', UC_GREEN, bg);
+    uc_set(x + 2, y, ']', UC_GREEN, bg);
+    uc_set(x + 5, y, ' ', fg, bg);
+    i = 0;
+    while i < nlen {
+        uc_set(x + 6 + i, y, name[i], UC_WHITE, bg);
+        i = i + 1;
+    }
+    uc_set(x + 8 + nlen, y, ' ', fg, bg);
+    uc_set(x + 9 + nlen, y, currency, UC_YELLOW, bg);
+    if price >= 100 {
+        uc_set(x + 10 + nlen, y, '0' + price / 100, UC_YELLOW, bg);
+        uc_set(x + 11 + nlen, y, '0' + (price / 10) % 10, UC_YELLOW, bg);
+        uc_set(x + 12 + nlen, y, '0' + price % 10, UC_YELLOW, bg);
+        uc_set(x + 13 + nlen, y, '/', UC_YELLOW, bg);
+        uc_set(x + 14 + nlen, y, 'm', UC_YELLOW, bg);
+        uc_set(x + 15 + nlen, y, 'o', UC_YELLOW, bg);
+    } else {
+        uc_set(x + 10 + nlen, y, '0' + price / 10, UC_YELLOW, bg);
+        uc_set(x + 11 + nlen, y, '0' + price % 10, UC_YELLOW, bg);
+        uc_set(x + 12 + nlen, y, '/', UC_YELLOW, bg);
+        uc_set(x + 13 + nlen, y, 'm', UC_YELLOW, bg);
+        uc_set(x + 14 + nlen, y, 'o', UC_YELLOW, bg);
+    }
+    return 0;
+}
+
+# ============ v1.504 库存行 ============
+
+# uc_inventory_row：绘制库存行 [I]  SKU-1234  42  In Stock
+# sku 为库存单位，qty 为数量，state 0=缺货 1=有货。
+# 用于库存管理。
+fn uc_inventory_row(x: i64, y: i64, sku: ptr, qty: i64, state: i64, fg: i64, bg: i64) -> i64 {
+    let slen: i64 = 0;
+    let i: i64 = 0;
+    slen = strlen(sku);
+    uc_set(x, y, '[', UC_CYAN, bg);
+    uc_set(x + 1, y, 'I', UC_CYAN, bg);
+    uc_set(x + 2, y, ']', UC_CYAN, bg);
+    uc_set(x + 5, y, ' ', fg, bg);
+    i = 0;
+    while i < slen {
+        uc_set(x + 6 + i, y, sku[i], UC_YELLOW, bg);
+        i = i + 1;
+    }
+    uc_set(x + 8 + slen, y, ' ', fg, bg);
+    if qty >= 100 {
+        uc_set(x + 9 + slen, y, '0' + qty / 100, UC_CYAN, bg);
+        uc_set(x + 10 + slen, y, '0' + (qty / 10) % 10, UC_CYAN, bg);
+        uc_set(x + 11 + slen, y, '0' + qty % 10, UC_CYAN, bg);
+    } else {
+        uc_set(x + 9 + slen, y, '0' + qty / 10, UC_CYAN, bg);
+        uc_set(x + 10 + slen, y, '0' + qty % 10, UC_CYAN, bg);
+    }
+    uc_set(x + 12 + slen, y, ' ', UC_CYAN, bg);
+    uc_set(x + 13 + slen, y, 'i', UC_CYAN, bg);
+    uc_set(x + 14 + slen, y, 'n', UC_CYAN, bg);
+    uc_set(x + 15 + slen, y, ' ', fg, bg);
+    if state != 0 {
+        uc_set(x + 16 + slen, y, 'S', UC_GREEN, bg);
+        uc_set(x + 17 + slen, y, 't', UC_GREEN, bg);
+        uc_set(x + 18 + slen, y, 'o', UC_GREEN, bg);
+        uc_set(x + 19 + slen, y, 'c', UC_GREEN, bg);
+        uc_set(x + 20 + slen, y, 'k', UC_GREEN, bg);
+    } else {
+        uc_set(x + 16 + slen, y, 'O', UC_RED, bg);
+        uc_set(x + 17 + slen, y, 'O', UC_RED, bg);
+        uc_set(x + 18 + slen, y, 'S', UC_RED, bg);
+    }
+    return 0;
+}
+
+# ============ v1.505 订单行 ============
+
+# uc_order_row：绘制订单行 [O]  #1024  bob  $45  Paid
+# order_id 为订单号，customer 为客户名，amount 为金额，state 0=待付 1=已付。
+# 用于订单管理。
+fn uc_order_row(x: i64, y: i64, order_id: ptr, customer: ptr, amount: i64, state: i64, fg: i64, bg: i64) -> i64 {
+    let olen: i64 = 0;
+    let clen: i64 = 0;
+    let i: i64 = 0;
+    olen = strlen(order_id);
+    clen = strlen(customer);
+    uc_set(x, y, '[', UC_MAGENTA, bg);
+    uc_set(x + 1, y, 'O', UC_MAGENTA, bg);
+    uc_set(x + 2, y, ']', UC_MAGENTA, bg);
+    uc_set(x + 5, y, ' ', fg, bg);
+    i = 0;
+    while i < olen {
+        uc_set(x + 6 + i, y, order_id[i], UC_YELLOW, bg);
+        i = i + 1;
+    }
+    uc_set(x + 8 + olen, y, ' ', fg, bg);
+    i = 0;
+    while i < clen {
+        uc_set(x + 9 + olen + i, y, customer[i], UC_WHITE, bg);
+        i = i + 1;
+    }
+    uc_set(x + 11 + olen + clen, y, ' ', fg, bg);
+    uc_set(x + 12 + olen + clen, y, '$', UC_CYAN, bg);
+    uc_set(x + 13 + olen + clen, y, '0' + amount / 10, UC_CYAN, bg);
+    uc_set(x + 14 + olen + clen, y, '0' + amount % 10, UC_CYAN, bg);
+    uc_set(x + 16 + olen + clen, y, ' ', fg, bg);
+    if state != 0 {
+        uc_set(x + 17 + olen + clen, y, 'P', UC_GREEN, bg);
+        uc_set(x + 18 + olen + clen, y, 'a', UC_GREEN, bg);
+        uc_set(x + 19 + olen + clen, y, 'i', UC_GREEN, bg);
+        uc_set(x + 20 + olen + clen, y, 'd', UC_GREEN, bg);
+    } else {
+        uc_set(x + 17 + olen + clen, y, 'P', UC_RED, bg);
+        uc_set(x + 18 + olen + clen, y, 'e', UC_RED, bg);
+        uc_set(x + 19 + olen + clen, y, 'n', UC_RED, bg);
+        uc_set(x + 20 + olen + clen, y, 'd', UC_RED, bg);
+        uc_set(x + 21 + olen + clen, y, 'i', UC_RED, bg);
+        uc_set(x + 22 + olen + clen, y, 'n', UC_RED, bg);
+        uc_set(x + 23 + olen + clen, y, 'g', UC_RED, bg);
+    }
+    return 0;
+}
+
+# ============ v1.506 优惠券行 ============
+
+# uc_coupon_row：绘制优惠券行 [C]  SUMMER20  20% OFF  Active
+# code 为优惠码，desc 为描述，state 0=过期 1=有效。
+# 用于促销管理、优惠券列表。
+fn uc_coupon_row(x: i64, y: i64, code: ptr, desc: ptr, state: i64, fg: i64, bg: i64) -> i64 {
+    let clen: i64 = 0;
+    let dlen: i64 = 0;
+    let i: i64 = 0;
+    clen = strlen(code);
+    dlen = strlen(desc);
+    uc_set(x, y, '[', UC_GREEN, bg);
+    uc_set(x + 1, y, 'C', UC_GREEN, bg);
+    uc_set(x + 2, y, ']', UC_GREEN, bg);
+    uc_set(x + 5, y, ' ', fg, bg);
+    i = 0;
+    while i < clen {
+        uc_set(x + 6 + i, y, code[i], UC_YELLOW, bg);
+        i = i + 1;
+    }
+    uc_set(x + 8 + clen, y, ' ', fg, bg);
+    i = 0;
+    while i < dlen {
+        uc_set(x + 9 + clen + i, y, desc[i], UC_WHITE, bg);
+        i = i + 1;
+    }
+    uc_set(x + 11 + clen + dlen, y, ' ', fg, bg);
+    if state != 0 {
+        uc_set(x + 12 + clen + dlen, y, 'A', UC_GREEN, bg);
+        uc_set(x + 13 + clen + dlen, y, 'c', UC_GREEN, bg);
+        uc_set(x + 14 + clen + dlen, y, 't', UC_GREEN, bg);
+        uc_set(x + 15 + clen + dlen, y, 'i', UC_GREEN, bg);
+        uc_set(x + 16 + clen + dlen, y, 'v', UC_GREEN, bg);
+        uc_set(x + 17 + clen + dlen, y, 'e', UC_GREEN, bg);
+    } else {
+        uc_set(x + 12 + clen + dlen, y, 'E', UC_RED, bg);
+        uc_set(x + 13 + clen + dlen, y, 'x', UC_RED, bg);
+        uc_set(x + 14 + clen + dlen, y, 'p', UC_RED, bg);
+        uc_set(x + 15 + clen + dlen, y, 'i', UC_RED, bg);
+        uc_set(x + 16 + clen + dlen, y, 'r', UC_RED, bg);
+        uc_set(x + 17 + clen + dlen, y, 'e', UC_RED, bg);
+        uc_set(x + 18 + clen + dlen, y, 'd', UC_RED, bg);
+    }
+    return 0;
+}
+
+# ============ v1.507 退货行 ============
+
+# uc_return_row：绘制退货行 [R]  #1024  refund $45  Approved
+# order_id 为订单号，amount 为退款金额，state 0=拒绝 1=通过。
+# 用于退货管理。
+fn uc_return_row(x: i64, y: i64, order_id: ptr, amount: i64, state: i64, fg: i64, bg: i64) -> i64 {
+    let olen: i64 = 0;
+    let i: i64 = 0;
+    olen = strlen(order_id);
+    uc_set(x, y, '[', UC_RED, bg);
+    uc_set(x + 1, y, 'R', UC_RED, bg);
+    uc_set(x + 2, y, ']', UC_RED, bg);
+    uc_set(x + 5, y, ' ', fg, bg);
+    i = 0;
+    while i < olen {
+        uc_set(x + 6 + i, y, order_id[i], UC_YELLOW, bg);
+        i = i + 1;
+    }
+    uc_set(x + 8 + olen, y, ' ', fg, bg);
+    uc_set(x + 9 + olen, y, '$', UC_CYAN, bg);
+    uc_set(x + 10 + olen, y, '0' + amount / 10, UC_CYAN, bg);
+    uc_set(x + 11 + olen, y, '0' + amount % 10, UC_CYAN, bg);
+    uc_set(x + 13 + olen, y, ' ', fg, bg);
+    if state != 0 {
+        uc_set(x + 14 + olen, y, 'A', UC_GREEN, bg);
+        uc_set(x + 15 + olen, y, 'p', UC_GREEN, bg);
+        uc_set(x + 16 + olen, y, 'p', UC_GREEN, bg);
+        uc_set(x + 17 + olen, y, 'r', UC_GREEN, bg);
+        uc_set(x + 18 + olen, y, 'o', UC_GREEN, bg);
+        uc_set(x + 19 + olen, y, 'v', UC_GREEN, bg);
+        uc_set(x + 20 + olen, y, 'e', UC_GREEN, bg);
+        uc_set(x + 21 + olen, y, 'd', UC_GREEN, bg);
+    } else {
+        uc_set(x + 14 + olen, y, 'D', UC_RED, bg);
+        uc_set(x + 15 + olen, y, 'e', UC_RED, bg);
+        uc_set(x + 16 + olen, y, 'n', UC_RED, bg);
+        uc_set(x + 17 + olen, y, 'i', UC_RED, bg);
+        uc_set(x + 18 + olen, y, 'e', UC_RED, bg);
+        uc_set(x + 19 + olen, y, 'd', UC_RED, bg);
+    }
+    return 0;
+}
+
+# ============ v1.508 供应商行 ============
+
+# uc_supplier_row：绘制供应商行 [S]  acme-corp  Active
+# name 为供应商名，state 0=停用 1=启用。
+# 用于供应商管理。
+fn uc_supplier_row(x: i64, y: i64, name: ptr, state: i64, fg: i64, bg: i64) -> i64 {
+    let nlen: i64 = 0;
+    let i: i64 = 0;
+    nlen = strlen(name);
+    uc_set(x, y, '[', UC_YELLOW, bg);
+    uc_set(x + 1, y, 'S', UC_YELLOW, bg);
+    uc_set(x + 2, y, ']', UC_YELLOW, bg);
+    uc_set(x + 5, y, ' ', fg, bg);
+    i = 0;
+    while i < nlen {
+        uc_set(x + 6 + i, y, name[i], UC_YELLOW, bg);
+        i = i + 1;
+    }
+    uc_set(x + 8 + nlen, y, ' ', fg, bg);
+    if state != 0 {
+        uc_set(x + 9 + nlen, y, 'A', UC_GREEN, bg);
+        uc_set(x + 10 + nlen, y, 'c', UC_GREEN, bg);
+        uc_set(x + 11 + nlen, y, 't', UC_GREEN, bg);
+        uc_set(x + 12 + nlen, y, 'i', UC_GREEN, bg);
+        uc_set(x + 13 + nlen, y, 'v', UC_GREEN, bg);
+        uc_set(x + 14 + nlen, y, 'e', UC_GREEN, bg);
+    } else {
+        uc_set(x + 9 + nlen, y, 'I', fg, bg);
+        uc_set(x + 10 + nlen, y, 'n', fg, bg);
+        uc_set(x + 11 + nlen, y, 'a', fg, bg);
+        uc_set(x + 12 + nlen, y, 'c', fg, bg);
+        uc_set(x + 13 + nlen, y, 't', fg, bg);
+        uc_set(x + 14 + nlen, y, 'i', fg, bg);
+        uc_set(x + 15 + nlen, y, 'v', fg, bg);
+        uc_set(x + 16 + nlen, y, 'e', fg, bg);
+    }
+    return 0;
+}
+
+# ============ v1.509 仓储行 ============
+
+# uc_warehouse_row：绘制仓储行 [W]  WH-East  Capacity 80%
+# name 为仓库名，usage 为使用率，state 0=超载 1=正常。
+# 用于仓储管理。
+fn uc_warehouse_row(x: i64, y: i64, name: ptr, usage: i64, state: i64, fg: i64, bg: i64) -> i64 {
+    let nlen: i64 = 0;
+    let i: i64 = 0;
+    nlen = strlen(name);
+    uc_set(x, y, '[', UC_MAGENTA, bg);
+    uc_set(x + 1, y, 'W', UC_MAGENTA, bg);
+    uc_set(x + 2, y, ']', UC_MAGENTA, bg);
+    uc_set(x + 5, y, ' ', fg, bg);
+    i = 0;
+    while i < nlen {
+        uc_set(x + 6 + i, y, name[i], UC_YELLOW, bg);
+        i = i + 1;
+    }
+    uc_set(x + 8 + nlen, y, ' ', fg, bg);
+    uc_set(x + 9 + nlen, y, 'C', UC_CYAN, bg);
+    uc_set(x + 10 + nlen, y, 'a', UC_CYAN, bg);
+    uc_set(x + 11 + nlen, y, 'p', UC_CYAN, bg);
+    uc_set(x + 12 + nlen, y, 'a', UC_CYAN, bg);
+    uc_set(x + 13 + nlen, y, 'c', UC_CYAN, bg);
+    uc_set(x + 14 + nlen, y, 'i', UC_CYAN, bg);
+    uc_set(x + 15 + nlen, y, 't', UC_CYAN, bg);
+    uc_set(x + 16 + nlen, y, 'y', UC_CYAN, bg);
+    uc_set(x + 17 + nlen, y, ' ', UC_CYAN, bg);
+    uc_set(x + 18 + nlen, y, '0' + usage / 10, UC_WHITE, bg);
+    uc_set(x + 19 + nlen, y, '0' + usage % 10, UC_WHITE, bg);
+    uc_set(x + 20 + nlen, y, '%', UC_WHITE, bg);
+    uc_set(x + 22 + nlen, y, ' ', fg, bg);
+    if state != 0 {
+        uc_set(x + 23 + nlen, y, 'O', UC_GREEN, bg);
+        uc_set(x + 24 + nlen, y, 'K', UC_GREEN, bg);
+    } else {
+        uc_set(x + 23 + nlen, y, 'F', UC_RED, bg);
+        uc_set(x + 24 + nlen, y, 'U', UC_RED, bg);
+        uc_set(x + 25 + nlen, y, 'L', UC_RED, bg);
+        uc_set(x + 26 + nlen, y, 'L', UC_RED, bg);
+    }
+    return 0;
+}
+
+# ============ v1.510 配送行 ============
+
+# uc_delivery_row：绘制配送行 [D]  #1024  bob  In Transit
+# order_id 为订单号，customer 为客户名，state 0=待发 1=运输 2=已签收。
+# 用于物流跟踪。
+fn uc_delivery_row(x: i64, y: i64, order_id: ptr, customer: ptr, state: i64, fg: i64, bg: i64) -> i64 {
+    let olen: i64 = 0;
+    let clen: i64 = 0;
+    let i: i64 = 0;
+    olen = strlen(order_id);
+    clen = strlen(customer);
+    uc_set(x, y, '[', UC_CYAN, bg);
+    uc_set(x + 1, y, 'D', UC_CYAN, bg);
+    uc_set(x + 2, y, ']', UC_CYAN, bg);
+    uc_set(x + 5, y, ' ', fg, bg);
+    i = 0;
+    while i < olen {
+        uc_set(x + 6 + i, y, order_id[i], UC_YELLOW, bg);
+        i = i + 1;
+    }
+    uc_set(x + 8 + olen, y, ' ', fg, bg);
+    i = 0;
+    while i < clen {
+        uc_set(x + 9 + olen + i, y, customer[i], UC_WHITE, bg);
+        i = i + 1;
+    }
+    uc_set(x + 11 + olen + clen, y, ' ', fg, bg);
+    if state == 0 {
+        uc_set(x + 12 + olen + clen, y, 'P', UC_YELLOW, bg);
+        uc_set(x + 13 + olen + clen, y, 'e', UC_YELLOW, bg);
+        uc_set(x + 14 + olen + clen, y, 'n', UC_YELLOW, bg);
+        uc_set(x + 15 + olen + clen, y, 'd', UC_YELLOW, bg);
+        uc_set(x + 16 + olen + clen, y, 'i', UC_YELLOW, bg);
+        uc_set(x + 17 + olen + clen, y, 'n', UC_YELLOW, bg);
+        uc_set(x + 18 + olen + clen, y, 'g', UC_YELLOW, bg);
+    } else {
+        if state == 1 {
+            uc_set(x + 12 + olen + clen, y, 'T', UC_CYAN, bg);
+            uc_set(x + 13 + olen + clen, y, 'r', UC_CYAN, bg);
+            uc_set(x + 14 + olen + clen, y, 'a', UC_CYAN, bg);
+            uc_set(x + 15 + olen + clen, y, 'n', UC_CYAN, bg);
+            uc_set(x + 16 + olen + clen, y, 's', UC_CYAN, bg);
+            uc_set(x + 17 + olen + clen, y, 'i', UC_CYAN, bg);
+            uc_set(x + 18 + olen + clen, y, 't', UC_CYAN, bg);
+        } else {
+            uc_set(x + 12 + olen + clen, y, 'D', UC_GREEN, bg);
+            uc_set(x + 13 + olen + clen, y, 'e', UC_GREEN, bg);
+            uc_set(x + 14 + olen + clen, y, 'l', UC_GREEN, bg);
+            uc_set(x + 15 + olen + clen, y, 'i', UC_GREEN, bg);
+            uc_set(x + 16 + olen + clen, y, 'v', UC_GREEN, bg);
+            uc_set(x + 17 + olen + clen, y, 'e', UC_GREEN, bg);
+            uc_set(x + 18 + olen + clen, y, 'r', UC_GREEN, bg);
+            uc_set(x + 19 + olen + clen, y, 'e', UC_GREEN, bg);
+            uc_set(x + 20 + olen + clen, y, 'd', UC_GREEN, bg);
+        }
+    }
+    return 0;
+}

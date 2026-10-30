@@ -195,6 +195,16 @@ fn main() -> i64 {
     uc_route_row(12, 2, "/api", "auth", UC_WHITE, UC_BLUE);
     uc_cluster_node_row(1, 2, "node", 1, UC_WHITE, UC_BLUE);
     uc_audit_row(12, 2, "14:05", "login", 1, UC_WHITE, UC_BLUE);
+    uc_alert_rule_row(1, 2, "cpu", "5m", 1, UC_WHITE, UC_BLUE);
+    uc_quota_policy_row(12, 2, "api", "1k", 1, UC_WHITE, UC_BLUE);
+    uc_price_row(1, 2, "pro", 29, '$', UC_WHITE, UC_BLUE);
+    uc_inventory_row(12, 2, "SKU", 42, 1, UC_WHITE, UC_BLUE);
+    uc_order_row(1, 2, "#10", "bob", 45, 1, UC_WHITE, UC_BLUE);
+    uc_coupon_row(12, 2, "SUM", "20", 1, UC_WHITE, UC_BLUE);
+    uc_return_row(1, 2, "#10", 45, 1, UC_WHITE, UC_BLUE);
+    uc_supplier_row(12, 2, "acme", 1, UC_WHITE, UC_BLUE);
+    uc_warehouse_row(1, 2, "WH", 80, 1, UC_WHITE, UC_BLUE);
+    uc_delivery_row(12, 2, "#10", "bob", 1, UC_WHITE, UC_BLUE);
     uc_dump_svg("/tmp/uic_dump_test.svg");
     uc_render();
     return 0;

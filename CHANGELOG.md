@@ -1,3 +1,19 @@
+## [1.510.0]
+
+- lib/uic.mo 大版本批量新增 10 个画布组件：
+  - uc_alert_rule_row：告警规则行 [R] cpu>90 5m Active
+  - uc_quota_policy_row：配额策略行 [Q] api-calls 10000/min Enforced
+  - uc_price_row：价格行 [P] Pro Plan $29/mo
+  - uc_inventory_row：库存行 [I] SKU-1234 42 In Stock
+  - uc_order_row：订单行 [O] #1024 bob $45 Paid
+  - uc_coupon_row：优惠券行 [C] SUMMER20 20% OFF Active
+  - uc_return_row：退货行 [R] #1024 refund $45 Approved
+  - uc_supplier_row：供应商行 [S] acme-corp Active
+  - uc_warehouse_row：仓储行 [W] WH-East Capacity 80%
+  - uc_delivery_row：配送行 [D] #1024 bob In Transit
+- tests/101_uic.mo 覆盖全部新增组件。
+- 门禁：tests 249/249、projcheck 11/11、自举三级一致、sweep 全绿。
+
 ## [1.500.0]
 
 - lib/uic.mo 大版本批量新增 10 个画布组件：
