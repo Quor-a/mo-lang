@@ -1,3 +1,19 @@
+## [1.630.0]
+
+- lib/uic.mo 大版本批量新增 10 个画布组件：
+  - uc_compliance_row：合规状态行 [C] soc2 In Progress 85%
+  - uc_cert_issue_row：证书签发行 [I] api.example.com Valid expires 2025-01
+  - uc_key_rotation_row：密钥轮换行 [R] db-password 90 days Active
+  - uc_vuln_scan_row：漏洞扫描行 [S] prod-cluster 2024-01-01 Completed
+  - uc_security_report_row：安全报告行 [R] Q1-2024 Generated 24 findings
+  - uc_security_scan_row：安全扫描行 [S] trivy image Clean
+  - uc_policy_eval_row：策略评估行 [E] check-s3-public PASS 3 resources
+  - uc_key_access_row：密钥访问行 [A] db-prod 2024-01-01 admin Allow
+  - uc_incident_response_row：事件响应行 [R] INC-001 triage Active
+  - uc_backup_verify_row：备份验证行 [V] nightly-backup 2024-01-01 Passed
+- tests/101_uic.mo 覆盖全部新增组件。
+- 门禁：tests 249/249、projcheck 11/11、自举三级一致、sweep 全绿。
+
 ## [1.620.0]
 
 - lib/uic.mo 大版本批量新增 10 个画布组件：

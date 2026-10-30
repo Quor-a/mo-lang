@@ -315,6 +315,16 @@ fn main() -> i64 {
     uc_price_row2(12, 2, "standard", "per-hour", 23, UC_WHITE, UC_BLUE);
     uc_quota_adjust_row(1, 2, "increase-vcpu", 50, 1, UC_WHITE, UC_BLUE);
     uc_approval_row(12, 2, "prod-deploy", "pending", "ops-team", UC_WHITE, UC_BLUE);
+    uc_compliance_row(1, 2, "soc2", 1, 85, UC_WHITE, UC_BLUE);
+    uc_cert_issue_row(12, 2, "api.example", 1, "2025-01", UC_WHITE, UC_BLUE);
+    uc_key_rotation_row(1, 2, "db-password", "90d", 1, UC_WHITE, UC_BLUE);
+    uc_vuln_scan_row(12, 2, "prod-cluster", "2024-01", 1, UC_WHITE, UC_BLUE);
+    uc_security_report_row(1, 2, "Q1-2024", 24, 1, UC_WHITE, UC_BLUE);
+    uc_security_scan_row(12, 2, "trivy", "image", 1, UC_WHITE, UC_BLUE);
+    uc_policy_eval_row(1, 2, "check-s3", 3, 1, UC_WHITE, UC_BLUE);
+    uc_key_access_row(12, 2, "db-prod", "2024-01", "admin", 1, UC_WHITE, UC_BLUE);
+    uc_incident_response_row(1, 2, "INC-001", "triage", 1, UC_WHITE, UC_BLUE);
+    uc_backup_verify_row(12, 2, "nightly", "2024-01", 1, UC_WHITE, UC_BLUE);
     uc_dump_svg("/tmp/uic_dump_test.svg");
     uc_render();
     return 0;
