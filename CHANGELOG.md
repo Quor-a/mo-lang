@@ -1,3 +1,19 @@
+## [1.590.0]
+
+- lib/uic.mo 大版本批量新增 10 个画布组件：
+  - uc_terraform_row：Terraform 工作区行 [T] prod-infra Planned Active
+  - uc_env_var_row：环境变量行 [V] DATABASE_URL postgres://... Set
+  - uc_build_config_row：构建配置行 [C] web-build Dockerfile Active
+  - uc_deploy_stage_row：部署阶段行 [D] staging Approved Waiting
+  - uc_rollback_row：回滚行 [B] 20240101-1200 web-01 Completed
+  - uc_git_repo_row：Git 仓库行 [G] mo-lang Public 42 branches
+  - uc_pr_row：PR 行 [P] #42 add-login open 2 files
+  - uc_branch_detail_row：分支详情行 [B] feature/login protected ahead 2
+  - uc_code_scan_row：代码扫描行 [S] gosec 3 critical 12 issues
+  - uc_vuln_row：依赖漏洞行 [V] lodash 4.17.20 high patched
+- tests/101_uic.mo 覆盖全部新增组件。
+- 门禁：tests 249/249、projcheck 11/11、自举三级一致、sweep 全绿。
+
 ## [1.580.0]
 
 - lib/uic.mo 大版本批量新增 10 个画布组件：
