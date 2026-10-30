@@ -1,3 +1,19 @@
+## [1.550.0]
+
+- lib/uic.mo 大版本批量新增 10 个画布组件：
+  - uc_vpn_row：VPN 连接行 [V] vpn-east Connected 10.0.0.1
+  - uc_cdn_row：CDN 域名行 [C] static.example.com Enabled
+  - uc_dns_zone_row：DNS 区域行 [Z] example.com Active 12 records
+  - uc_gateway_route_row：API 网关路由行 [R] /v1/orders order-svc GET
+  - uc_static_site_row：静态站点行 [S] docs.example.com Deployed
+  - uc_function_row：函数计算行 [F] process-order 128MB Active
+  - uc_consumer_row：消息队列消费者行 [C] order-consumer Running 3 pods
+  - uc_event_source_row：事件源行 [S] db-cdc PostgreSQL Active
+  - uc_stream_job_row：流处理作业行 [J] click-stream Running 1200 events/s
+  - uc_pipeline_row2：数据管道行 [P] etl-daily Scheduled Active
+- tests/101_uic.mo 覆盖全部新增组件。
+- 门禁：tests 249/249、projcheck 11/11、自举三级一致、sweep 全绿。
+
 ## [1.540.0]
 
 - lib/uic.mo 大版本批量新增 10 个画布组件：
