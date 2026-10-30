@@ -325,6 +325,16 @@ fn main() -> i64 {
     uc_key_access_row(12, 2, "db-prod", "2024-01", "admin", 1, UC_WHITE, UC_BLUE);
     uc_incident_response_row(1, 2, "INC-001", "triage", 1, UC_WHITE, UC_BLUE);
     uc_backup_verify_row(12, 2, "nightly", "2024-01", 1, UC_WHITE, UC_BLUE);
+    uc_retention_task_row(1, 2, "purge-logs", "24h", 1, UC_WHITE, UC_BLUE);
+    uc_archive_task_row(12, 2, "archive", "Monthly", 1, UC_WHITE, UC_BLUE);
+    uc_cleanup_task_row(1, 2, "temp-files", "Daily", 1, UC_WHITE, UC_BLUE);
+    uc_sync_job_row(12, 2, "mysql-to-dw", 42, 1, UC_WHITE, UC_BLUE);
+    uc_replication_task_row(1, 2, "s3-replicate", 3, 1, UC_WHITE, UC_BLUE);
+    uc_test_case_row(12, 2, "login_success", 3, 1, UC_WHITE, UC_BLUE);
+    uc_test_suite_row(1, 2, "api-tests", 42, 1, UC_WHITE, UC_BLUE);
+    uc_test_run_row(12, 2, 123, "CI", 1, "2m", UC_WHITE, UC_BLUE);
+    uc_coverage_row(1, 2, "core/", 85, 1, UC_WHITE, UC_BLUE);
+    uc_quality_gate_row(12, 2, "main", 0, 1, UC_WHITE, UC_BLUE);
     uc_dump_svg("/tmp/uic_dump_test.svg");
     uc_render();
     return 0;

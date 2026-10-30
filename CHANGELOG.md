@@ -1,3 +1,19 @@
+## [1.640.0]
+
+- lib/uic.mo 大版本批量新增 10 个画布组件：
+  - uc_retention_task_row：数据保留任务行 [R] purge-logs Every 24h Active
+  - uc_archive_task_row：归档任务行 [A] archive-2023 Monthly Active
+  - uc_cleanup_task_row：清理任务行 [C] temp-files Daily Active
+  - uc_sync_job_row：同步作业行 [S] mysql-to-dw Running 42%
+  - uc_replication_task_row：复制任务行 [R] s3-replicate 3 regions Active
+  - uc_test_case_row：测试用例行 [T] login_success passed 0.3s
+  - uc_test_suite_row：测试套件行 [S] api-tests 42 tests Passing
+  - uc_test_run_row：测试运行行 [R] #123 CI passed 2m
+  - uc_coverage_row：覆盖率行 [C] core/ 85% Good
+  - uc_quality_gate_row：代码质量门禁行 [G] main PASS 0 blockers
+- tests/101_uic.mo 覆盖全部新增组件。
+- 门禁：tests 249/249、projcheck 11/11、自举三级一致、sweep 全绿。
+
 ## [1.630.0]
 
 - lib/uic.mo 大版本批量新增 10 个画布组件：
