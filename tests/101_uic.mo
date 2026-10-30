@@ -536,6 +536,16 @@ fn main() -> i64 {
     uc_edge_device_upgrade_row(12, 2, "batch-01", 10, 1, UC_WHITE, UC_BLUE);
     uc_edge_device_stats_row(1, 2, "device-01", 98, 30, UC_WHITE, UC_BLUE);
     uc_edge_device_energy_row(12, 2, "device-01", "5.2kWh", "Today", UC_WHITE, UC_BLUE);
+    uc_edge_event_processor_row(1, 2, "event-proc-01", "Running", 500, UC_WHITE, UC_BLUE);
+    uc_edge_event_source_row(12, 2, "sensor-01", 1000, 1, UC_WHITE, UC_BLUE);
+    uc_edge_event_target_row(1, 2, "sink-01", 5, 1, UC_WHITE, UC_BLUE);
+    uc_edge_event_transform_row(12, 2, "transform-01", 3, "Applied", UC_WHITE, UC_BLUE);
+    uc_edge_event_rule_row(1, 2, "rule-01", "Active", 5, UC_WHITE, UC_BLUE);
+    uc_edge_event_alert_row(12, 2, "ev-alert-01", "Triggered", 5, UC_WHITE, UC_BLUE);
+    uc_edge_event_replay_row(1, 2, "replay-01", "Playing", 500, UC_WHITE, UC_BLUE);
+    uc_edge_event_pattern_row(12, 2, "pattern-01", "Detected", 2, UC_WHITE, UC_BLUE);
+    uc_edge_event_audit_row(1, 2, "ev-audit-01", 1000, "Retained", UC_WHITE, UC_BLUE);
+    uc_edge_event_archive_row(12, 2, "archive-01", 5, 1, UC_WHITE, UC_BLUE);
     uc_dump_svg("/tmp/uic_dump_test.svg");
     uc_render();
     return 0;

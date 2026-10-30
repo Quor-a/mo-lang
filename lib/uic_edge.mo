@@ -7009,3 +7009,416 @@ fn uc_edge_device_energy_row(x: i64, y: i64, name: ptr, value: ptr, period: ptr,
     }
     return 0;
 }
+
+# ============ v1.841 边缘事件处理行 ============
+
+# uc_edge_event_processor_row：绘制边缘事件处理行 [P]  event-proc-01  Running  500 ev/s
+# name 为处理器名，state 为状态，rate 为速率。
+# 用于边缘事件处理管理。
+fn uc_edge_event_processor_row(x: i64, y: i64, name: ptr, state: ptr, rate: i64, fg: i64, bg: i64) -> i64 {
+    let nlen: i64 = 0;
+    let slen: i64 = 0;
+    let i: i64 = 0;
+    nlen = strlen(name);
+    slen = strlen(state);
+    uc_set(x, y, '[', UC_CYAN, bg);
+    uc_set(x + 1, y, 'P', UC_CYAN, bg);
+    uc_set(x + 2, y, ']', UC_CYAN, bg);
+    uc_set(x + 5, y, ' ', fg, bg);
+    i = 0;
+    while i < nlen {
+        uc_set(x + 6 + i, y, name[i], UC_YELLOW, bg);
+        i = i + 1;
+    }
+    uc_set(x + 8 + nlen, y, ' ', fg, bg);
+    i = 0;
+    while i < slen {
+        uc_set(x + 9 + nlen + i, y, state[i], UC_WHITE, bg);
+        i = i + 1;
+    }
+    uc_set(x + 11 + nlen + slen, y, ' ', fg, bg);
+    uc_set(x + 12 + nlen + slen, y, '0' + rate / 100, UC_MAGENTA, bg);
+    uc_set(x + 13 + nlen + slen, y, '0' + (rate / 10) % 10, UC_MAGENTA, bg);
+    uc_set(x + 14 + nlen + slen, y, '0' + rate % 10, UC_MAGENTA, bg);
+    uc_set(x + 15 + nlen + slen, y, ' ', UC_MAGENTA, bg);
+    uc_set(x + 16 + nlen + slen, y, 'e', UC_MAGENTA, bg);
+    uc_set(x + 17 + nlen + slen, y, 'v', UC_MAGENTA, bg);
+    uc_set(x + 18 + nlen + slen, y, '/', UC_MAGENTA, bg);
+    uc_set(x + 19 + nlen + slen, y, 's', UC_MAGENTA, bg);
+    return 0;
+}
+
+# ============ v1.842 边缘事件源行 ============
+
+# uc_edge_event_source_row：绘制边缘事件源行 [S]  sensor-01  1000 events  Active
+# name 为事件源名，events 为事件数，state 0=停用 1=启用。
+# 用于边缘事件源管理。
+fn uc_edge_event_source_row(x: i64, y: i64, name: ptr, events: i64, state: i64, fg: i64, bg: i64) -> i64 {
+    let nlen: i64 = 0;
+    let i: i64 = 0;
+    nlen = strlen(name);
+    uc_set(x, y, '[', UC_MAGENTA, bg);
+    uc_set(x + 1, y, 'S', UC_MAGENTA, bg);
+    uc_set(x + 2, y, ']', UC_MAGENTA, bg);
+    uc_set(x + 5, y, ' ', fg, bg);
+    i = 0;
+    while i < nlen {
+        uc_set(x + 6 + i, y, name[i], UC_YELLOW, bg);
+        i = i + 1;
+    }
+    uc_set(x + 8 + nlen, y, ' ', fg, bg);
+    uc_set(x + 9 + nlen, y, '0' + events / 100, UC_WHITE, bg);
+    uc_set(x + 10 + nlen, y, '0' + (events / 10) % 10, UC_WHITE, bg);
+    uc_set(x + 11 + nlen, y, '0' + events % 10, UC_WHITE, bg);
+    uc_set(x + 12 + nlen, y, ' ', UC_WHITE, bg);
+    uc_set(x + 13 + nlen, y, 'e', UC_WHITE, bg);
+    uc_set(x + 14 + nlen, y, 'v', UC_WHITE, bg);
+    uc_set(x + 15 + nlen, y, 'e', UC_WHITE, bg);
+    uc_set(x + 16 + nlen, y, 'n', UC_WHITE, bg);
+    uc_set(x + 17 + nlen, y, 't', UC_WHITE, bg);
+    uc_set(x + 18 + nlen, y, 's', UC_WHITE, bg);
+    uc_set(x + 20 + nlen, y, ' ', fg, bg);
+    if state != 0 {
+        uc_set(x + 21 + nlen, y, 'A', UC_GREEN, bg);
+        uc_set(x + 22 + nlen, y, 'c', UC_GREEN, bg);
+        uc_set(x + 23 + nlen, y, 't', UC_GREEN, bg);
+        uc_set(x + 24 + nlen, y, 'i', UC_GREEN, bg);
+        uc_set(x + 25 + nlen, y, 'v', UC_GREEN, bg);
+        uc_set(x + 26 + nlen, y, 'e', UC_GREEN, bg);
+    } else {
+        uc_set(x + 21 + nlen, y, 'I', UC_RED, bg);
+        uc_set(x + 22 + nlen, y, 'n', UC_RED, bg);
+        uc_set(x + 23 + nlen, y, 'a', UC_RED, bg);
+        uc_set(x + 24 + nlen, y, 'c', UC_RED, bg);
+        uc_set(x + 25 + nlen, y, 't', UC_RED, bg);
+        uc_set(x + 26 + nlen, y, 'i', UC_RED, bg);
+        uc_set(x + 27 + nlen, y, 'v', UC_RED, bg);
+        uc_set(x + 28 + nlen, y, 'e', UC_RED, bg);
+    }
+    return 0;
+}
+
+# ============ v1.843 边缘事件目标行 ============
+
+# uc_edge_event_target_row：绘制边缘事件目标行 [T]  sink-01  5 targets  Active
+# name 为目标名，targets 为目标数，state 0=停用 1=启用。
+# 用于边缘事件目标管理。
+fn uc_edge_event_target_row(x: i64, y: i64, name: ptr, targets: i64, state: i64, fg: i64, bg: i64) -> i64 {
+    let nlen: i64 = 0;
+    let i: i64 = 0;
+    nlen = strlen(name);
+    uc_set(x, y, '[', UC_GREEN, bg);
+    uc_set(x + 1, y, 'T', UC_GREEN, bg);
+    uc_set(x + 2, y, ']', UC_GREEN, bg);
+    uc_set(x + 5, y, ' ', fg, bg);
+    i = 0;
+    while i < nlen {
+        uc_set(x + 6 + i, y, name[i], UC_YELLOW, bg);
+        i = i + 1;
+    }
+    uc_set(x + 8 + nlen, y, ' ', fg, bg);
+    uc_set(x + 9 + nlen, y, '0' + targets, UC_WHITE, bg);
+    uc_set(x + 10 + nlen, y, ' ', UC_WHITE, bg);
+    uc_set(x + 11 + nlen, y, 't', UC_WHITE, bg);
+    uc_set(x + 12 + nlen, y, 'a', UC_WHITE, bg);
+    uc_set(x + 13 + nlen, y, 'r', UC_WHITE, bg);
+    uc_set(x + 14 + nlen, y, 'g', UC_WHITE, bg);
+    uc_set(x + 15 + nlen, y, 'e', UC_WHITE, bg);
+    uc_set(x + 16 + nlen, y, 't', UC_WHITE, bg);
+    uc_set(x + 17 + nlen, y, 's', UC_WHITE, bg);
+    uc_set(x + 19 + nlen, y, ' ', fg, bg);
+    if state != 0 {
+        uc_set(x + 20 + nlen, y, 'A', UC_GREEN, bg);
+        uc_set(x + 21 + nlen, y, 'c', UC_GREEN, bg);
+        uc_set(x + 22 + nlen, y, 't', UC_GREEN, bg);
+        uc_set(x + 23 + nlen, y, 'i', UC_GREEN, bg);
+        uc_set(x + 24 + nlen, y, 'v', UC_GREEN, bg);
+        uc_set(x + 25 + nlen, y, 'e', UC_GREEN, bg);
+    } else {
+        uc_set(x + 20 + nlen, y, 'I', UC_RED, bg);
+        uc_set(x + 21 + nlen, y, 'n', UC_RED, bg);
+        uc_set(x + 22 + nlen, y, 'a', UC_RED, bg);
+        uc_set(x + 23 + nlen, y, 'c', UC_RED, bg);
+        uc_set(x + 24 + nlen, y, 't', UC_RED, bg);
+        uc_set(x + 25 + nlen, y, 'i', UC_RED, bg);
+        uc_set(x + 26 + nlen, y, 'v', UC_RED, bg);
+        uc_set(x + 27 + nlen, y, 'e', UC_RED, bg);
+    }
+    return 0;
+}
+
+# ============ v1.844 边缘事件转换行 ============
+
+# uc_edge_event_transform_row：绘制边缘事件转换行 [T]  transform-01  3 rules  Applied
+# name 为转换名，rules 为规则数，state 为状态。
+# 用于边缘事件转换管理。
+fn uc_edge_event_transform_row(x: i64, y: i64, name: ptr, rules: i64, state: ptr, fg: i64, bg: i64) -> i64 {
+    let nlen: i64 = 0;
+    let slen: i64 = 0;
+    let i: i64 = 0;
+    nlen = strlen(name);
+    slen = strlen(state);
+    uc_set(x, y, '[', UC_YELLOW, bg);
+    uc_set(x + 1, y, 'T', UC_YELLOW, bg);
+    uc_set(x + 2, y, ']', UC_YELLOW, bg);
+    uc_set(x + 5, y, ' ', fg, bg);
+    i = 0;
+    while i < nlen {
+        uc_set(x + 6 + i, y, name[i], UC_YELLOW, bg);
+        i = i + 1;
+    }
+    uc_set(x + 8 + nlen, y, ' ', fg, bg);
+    uc_set(x + 9 + nlen, y, '0' + rules, UC_WHITE, bg);
+    uc_set(x + 10 + nlen, y, ' ', UC_WHITE, bg);
+    uc_set(x + 11 + nlen, y, 'r', UC_WHITE, bg);
+    uc_set(x + 12 + nlen, y, 'u', UC_WHITE, bg);
+    uc_set(x + 13 + nlen, y, 'l', UC_WHITE, bg);
+    uc_set(x + 14 + nlen, y, 'e', UC_WHITE, bg);
+    uc_set(x + 15 + nlen, y, 's', UC_WHITE, bg);
+    uc_set(x + 17 + nlen, y, ' ', fg, bg);
+    i = 0;
+    while i < slen {
+        uc_set(x + 18 + nlen + i, y, state[i], UC_GREEN, bg);
+        i = i + 1;
+    }
+    return 0;
+}
+
+# ============ v1.845 边缘事件规则行 ============
+
+# uc_edge_event_rule_row：绘制边缘事件规则行 [R]  rule-01  Active  5 triggers
+# name 为规则名，state 为状态，triggers 为触发数。
+# 用于边缘事件规则管理。
+fn uc_edge_event_rule_row(x: i64, y: i64, name: ptr, state: ptr, triggers: i64, fg: i64, bg: i64) -> i64 {
+    let nlen: i64 = 0;
+    let slen: i64 = 0;
+    let i: i64 = 0;
+    nlen = strlen(name);
+    slen = strlen(state);
+    uc_set(x, y, '[', UC_MAGENTA, bg);
+    uc_set(x + 1, y, 'R', UC_MAGENTA, bg);
+    uc_set(x + 2, y, ']', UC_MAGENTA, bg);
+    uc_set(x + 5, y, ' ', fg, bg);
+    i = 0;
+    while i < nlen {
+        uc_set(x + 6 + i, y, name[i], UC_YELLOW, bg);
+        i = i + 1;
+    }
+    uc_set(x + 8 + nlen, y, ' ', fg, bg);
+    i = 0;
+    while i < slen {
+        uc_set(x + 9 + nlen + i, y, state[i], UC_WHITE, bg);
+        i = i + 1;
+    }
+    uc_set(x + 11 + nlen + slen, y, ' ', fg, bg);
+    uc_set(x + 12 + nlen + slen, y, '0' + triggers, UC_CYAN, bg);
+    uc_set(x + 13 + nlen + slen, y, ' ', UC_CYAN, bg);
+    uc_set(x + 14 + nlen + slen, y, 't', UC_CYAN, bg);
+    uc_set(x + 15 + nlen + slen, y, 'r', UC_CYAN, bg);
+    uc_set(x + 16 + nlen + slen, y, 'i', UC_CYAN, bg);
+    uc_set(x + 17 + nlen + slen, y, 'g', UC_CYAN, bg);
+    uc_set(x + 18 + nlen + slen, y, 'g', UC_CYAN, bg);
+    uc_set(x + 19 + nlen + slen, y, 'e', UC_CYAN, bg);
+    uc_set(x + 20 + nlen + slen, y, 'r', UC_CYAN, bg);
+    uc_set(x + 21 + nlen + slen, y, 's', UC_CYAN, bg);
+    return 0;
+}
+
+# ============ v1.846 边缘事件告警行 ============
+
+# uc_edge_event_alert_row：绘制边缘事件告警行 [A]  ev-alert-01  Triggered  5 events
+# name 为告警名，state 为状态，events 为事件数。
+# 用于边缘事件告警管理。
+fn uc_edge_event_alert_row(x: i64, y: i64, name: ptr, state: ptr, events: i64, fg: i64, bg: i64) -> i64 {
+    let nlen: i64 = 0;
+    let slen: i64 = 0;
+    let i: i64 = 0;
+    nlen = strlen(name);
+    slen = strlen(state);
+    uc_set(x, y, '[', UC_RED, bg);
+    uc_set(x + 1, y, 'A', UC_RED, bg);
+    uc_set(x + 2, y, ']', UC_RED, bg);
+    uc_set(x + 5, y, ' ', fg, bg);
+    i = 0;
+    while i < nlen {
+        uc_set(x + 6 + i, y, name[i], UC_YELLOW, bg);
+        i = i + 1;
+    }
+    uc_set(x + 8 + nlen, y, ' ', fg, bg);
+    i = 0;
+    while i < slen {
+        uc_set(x + 9 + nlen + i, y, state[i], UC_WHITE, bg);
+        i = i + 1;
+    }
+    uc_set(x + 11 + nlen + slen, y, ' ', fg, bg);
+    uc_set(x + 12 + nlen + slen, y, '0' + events, UC_MAGENTA, bg);
+    uc_set(x + 13 + nlen + slen, y, ' ', UC_MAGENTA, bg);
+    uc_set(x + 14 + nlen + slen, y, 'e', UC_MAGENTA, bg);
+    uc_set(x + 15 + nlen + slen, y, 'v', UC_MAGENTA, bg);
+    uc_set(x + 16 + nlen + slen, y, 'e', UC_MAGENTA, bg);
+    uc_set(x + 17 + nlen + slen, y, 'n', UC_MAGENTA, bg);
+    uc_set(x + 18 + nlen + slen, y, 't', UC_MAGENTA, bg);
+    uc_set(x + 19 + nlen + slen, y, 's', UC_MAGENTA, bg);
+    return 0;
+}
+
+# ============ v1.847 边缘事件回放行 ============
+
+# uc_edge_event_replay_row：绘制边缘事件回放行 [R]  replay-01  Playing  500 events
+# name 为回放名，state 为状态，events 为事件数。
+# 用于边缘事件回放管理。
+fn uc_edge_event_replay_row(x: i64, y: i64, name: ptr, state: ptr, events: i64, fg: i64, bg: i64) -> i64 {
+    let nlen: i64 = 0;
+    let slen: i64 = 0;
+    let i: i64 = 0;
+    nlen = strlen(name);
+    slen = strlen(state);
+    uc_set(x, y, '[', UC_CYAN, bg);
+    uc_set(x + 1, y, 'R', UC_CYAN, bg);
+    uc_set(x + 2, y, ']', UC_CYAN, bg);
+    uc_set(x + 5, y, ' ', fg, bg);
+    i = 0;
+    while i < nlen {
+        uc_set(x + 6 + i, y, name[i], UC_YELLOW, bg);
+        i = i + 1;
+    }
+    uc_set(x + 8 + nlen, y, ' ', fg, bg);
+    i = 0;
+    while i < slen {
+        uc_set(x + 9 + nlen + i, y, state[i], UC_WHITE, bg);
+        i = i + 1;
+    }
+    uc_set(x + 11 + nlen + slen, y, ' ', fg, bg);
+    uc_set(x + 12 + nlen + slen, y, '0' + events / 100, UC_MAGENTA, bg);
+    uc_set(x + 13 + nlen + slen, y, '0' + (events / 10) % 10, UC_MAGENTA, bg);
+    uc_set(x + 14 + nlen + slen, y, '0' + events % 10, UC_MAGENTA, bg);
+    uc_set(x + 15 + nlen + slen, y, ' ', UC_MAGENTA, bg);
+    uc_set(x + 16 + nlen + slen, y, 'e', UC_MAGENTA, bg);
+    uc_set(x + 17 + nlen + slen, y, 'v', UC_MAGENTA, bg);
+    uc_set(x + 18 + nlen + slen, y, 'e', UC_MAGENTA, bg);
+    uc_set(x + 19 + nlen + slen, y, 'n', UC_MAGENTA, bg);
+    uc_set(x + 20 + nlen + slen, y, 't', UC_MAGENTA, bg);
+    uc_set(x + 21 + nlen + slen, y, 's', UC_MAGENTA, bg);
+    return 0;
+}
+
+# ============ v1.848 边缘事件模式检测行 ============
+
+# uc_edge_event_pattern_row：绘制边缘事件模式检测行 [P]  pattern-01  Detected  2 matches
+# name 为检测器名，state 为状态，matches 为匹配数。
+# 用于边缘事件模式检测管理。
+fn uc_edge_event_pattern_row(x: i64, y: i64, name: ptr, state: ptr, matches: i64, fg: i64, bg: i64) -> i64 {
+    let nlen: i64 = 0;
+    let slen: i64 = 0;
+    let i: i64 = 0;
+    nlen = strlen(name);
+    slen = strlen(state);
+    uc_set(x, y, '[', UC_GREEN, bg);
+    uc_set(x + 1, y, 'P', UC_GREEN, bg);
+    uc_set(x + 2, y, ']', UC_GREEN, bg);
+    uc_set(x + 5, y, ' ', fg, bg);
+    i = 0;
+    while i < nlen {
+        uc_set(x + 6 + i, y, name[i], UC_YELLOW, bg);
+        i = i + 1;
+    }
+    uc_set(x + 8 + nlen, y, ' ', fg, bg);
+    i = 0;
+    while i < slen {
+        uc_set(x + 9 + nlen + i, y, state[i], UC_WHITE, bg);
+        i = i + 1;
+    }
+    uc_set(x + 11 + nlen + slen, y, ' ', fg, bg);
+    uc_set(x + 12 + nlen + slen, y, '0' + matches, UC_CYAN, bg);
+    uc_set(x + 13 + nlen + slen, y, ' ', UC_CYAN, bg);
+    uc_set(x + 14 + nlen + slen, y, 'm', UC_CYAN, bg);
+    uc_set(x + 15 + nlen + slen, y, 'a', UC_CYAN, bg);
+    uc_set(x + 16 + nlen + slen, y, 't', UC_CYAN, bg);
+    uc_set(x + 17 + nlen + slen, y, 'c', UC_CYAN, bg);
+    uc_set(x + 18 + nlen + slen, y, 'h', UC_CYAN, bg);
+    uc_set(x + 19 + nlen + slen, y, 'e', UC_CYAN, bg);
+    uc_set(x + 20 + nlen + slen, y, 's', UC_CYAN, bg);
+    return 0;
+}
+
+# ============ v1.849 边缘事件审计行 ============
+
+# uc_edge_event_audit_row：绘制边缘事件审计行 [A]  ev-audit-01  1000 logs  Retained
+# name 为审计名，logs 为日志数，state 为状态。
+# 用于边缘事件审计管理。
+fn uc_edge_event_audit_row(x: i64, y: i64, name: ptr, logs: i64, state: ptr, fg: i64, bg: i64) -> i64 {
+    let nlen: i64 = 0;
+    let slen: i64 = 0;
+    let i: i64 = 0;
+    nlen = strlen(name);
+    slen = strlen(state);
+    uc_set(x, y, '[', UC_YELLOW, bg);
+    uc_set(x + 1, y, 'A', UC_YELLOW, bg);
+    uc_set(x + 2, y, ']', UC_YELLOW, bg);
+    uc_set(x + 5, y, ' ', fg, bg);
+    i = 0;
+    while i < nlen {
+        uc_set(x + 6 + i, y, name[i], UC_YELLOW, bg);
+        i = i + 1;
+    }
+    uc_set(x + 8 + nlen, y, ' ', fg, bg);
+    uc_set(x + 9 + nlen, y, '0' + logs / 100, UC_WHITE, bg);
+    uc_set(x + 10 + nlen, y, '0' + (logs / 10) % 10, UC_WHITE, bg);
+    uc_set(x + 11 + nlen, y, '0' + logs % 10, UC_WHITE, bg);
+    uc_set(x + 12 + nlen, y, ' ', UC_WHITE, bg);
+    uc_set(x + 13 + nlen, y, 'l', UC_WHITE, bg);
+    uc_set(x + 14 + nlen, y, 'o', UC_WHITE, bg);
+    uc_set(x + 15 + nlen, y, 'g', UC_WHITE, bg);
+    uc_set(x + 16 + nlen, y, 's', UC_WHITE, bg);
+    uc_set(x + 18 + nlen, y, ' ', fg, bg);
+    i = 0;
+    while i < slen {
+        uc_set(x + 19 + nlen + i, y, state[i], UC_CYAN, bg);
+        i = i + 1;
+    }
+    return 0;
+}
+
+# ============ v1.850 边缘事件存档行 ============
+
+# uc_edge_event_archive_row：绘制边缘事件存档行 [A]  archive-01  5 GB  Active
+# name 为存档名，size 为大小，state 0=停用 1=启用。
+# 用于边缘事件存档管理。
+fn uc_edge_event_archive_row(x: i64, y: i64, name: ptr, size: i64, state: i64, fg: i64, bg: i64) -> i64 {
+    let nlen: i64 = 0;
+    let i: i64 = 0;
+    nlen = strlen(name);
+    uc_set(x, y, '[', UC_MAGENTA, bg);
+    uc_set(x + 1, y, 'A', UC_MAGENTA, bg);
+    uc_set(x + 2, y, ']', UC_MAGENTA, bg);
+    uc_set(x + 5, y, ' ', fg, bg);
+    i = 0;
+    while i < nlen {
+        uc_set(x + 6 + i, y, name[i], UC_YELLOW, bg);
+        i = i + 1;
+    }
+    uc_set(x + 8 + nlen, y, ' ', fg, bg);
+    uc_set(x + 9 + nlen, y, '0' + size, UC_WHITE, bg);
+    uc_set(x + 10 + nlen, y, ' ', UC_WHITE, bg);
+    uc_set(x + 11 + nlen, y, 'G', UC_WHITE, bg);
+    uc_set(x + 12 + nlen, y, 'B', UC_WHITE, bg);
+    uc_set(x + 14 + nlen, y, ' ', fg, bg);
+    if state != 0 {
+        uc_set(x + 15 + nlen, y, 'A', UC_GREEN, bg);
+        uc_set(x + 16 + nlen, y, 'c', UC_GREEN, bg);
+        uc_set(x + 17 + nlen, y, 't', UC_GREEN, bg);
+        uc_set(x + 18 + nlen, y, 'i', UC_GREEN, bg);
+        uc_set(x + 19 + nlen, y, 'v', UC_GREEN, bg);
+        uc_set(x + 20 + nlen, y, 'e', UC_GREEN, bg);
+    } else {
+        uc_set(x + 15 + nlen, y, 'I', UC_RED, bg);
+        uc_set(x + 16 + nlen, y, 'n', UC_RED, bg);
+        uc_set(x + 17 + nlen, y, 'a', UC_RED, bg);
+        uc_set(x + 18 + nlen, y, 'c', UC_RED, bg);
+        uc_set(x + 19 + nlen, y, 't', UC_RED, bg);
+        uc_set(x + 20 + nlen, y, 'i', UC_RED, bg);
+        uc_set(x + 21 + nlen, y, 'v', UC_RED, bg);
+        uc_set(x + 22 + nlen, y, 'e', UC_RED, bg);
+    }
+    return 0;
+}

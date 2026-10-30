@@ -1,3 +1,19 @@
+## [1.850.0]
+
+- lib/uic_edge.mo 继续新增边缘事件处理画布组件（v1.841~v1.850，10 个）：
+  - uc_edge_event_processor_row：边缘事件处理行 [P] event-proc-01 Running 500 ev/s
+  - uc_edge_event_source_row：边缘事件源行 [S] sensor-01 1000 events Active
+  - uc_edge_event_target_row：边缘事件目标行 [T] sink-01 5 targets Active
+  - uc_edge_event_transform_row：边缘事件转换行 [T] transform-01 3 rules Applied
+  - uc_edge_event_rule_row：边缘事件规则行 [R] rule-01 Active 5 triggers
+  - uc_edge_event_alert_row：边缘事件告警行 [A] ev-alert-01 Triggered 5 events
+  - uc_edge_event_replay_row：边缘事件回放行 [R] replay-01 Playing 500 events
+  - uc_edge_event_pattern_row：边缘事件模式检测行 [P] pattern-01 Detected 2 matches
+  - uc_edge_event_audit_row：边缘事件审计行 [A] ev-audit-01 1000 logs Retained
+  - uc_edge_event_archive_row：边缘事件存档行 [A] archive-01 5 GB Active
+- tests/101_uic.mo 覆盖全部新增组件。
+- 门禁：tests 249/249、projcheck 11/11、自举三级一致、sweep 全绿。
+
 ## [1.840.0]
 
 - lib/uic_edge.mo 继续新增边缘设备画像与维护画布组件（v1.831~v1.840，10 个）：
