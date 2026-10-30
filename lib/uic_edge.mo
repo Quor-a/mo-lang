@@ -6239,3 +6239,390 @@ fn uc_edge_data_encrypt_row(x: i64, y: i64, name: ptr, algorithm: ptr, state: pt
     }
     return 0;
 }
+
+# ============ v1.821 边缘业务应用行 ============
+
+# uc_edge_biz_app_row：绘制边缘业务应用行 [A]  erp-app  Running  5 nodes
+# name 为应用名，state 为状态，nodes 为节点数。
+# 用于边缘业务应用管理。
+fn uc_edge_biz_app_row(x: i64, y: i64, name: ptr, state: ptr, nodes: i64, fg: i64, bg: i64) -> i64 {
+    let nlen: i64 = 0;
+    let slen: i64 = 0;
+    let i: i64 = 0;
+    nlen = strlen(name);
+    slen = strlen(state);
+    uc_set(x, y, '[', UC_MAGENTA, bg);
+    uc_set(x + 1, y, 'A', UC_MAGENTA, bg);
+    uc_set(x + 2, y, ']', UC_MAGENTA, bg);
+    uc_set(x + 5, y, ' ', fg, bg);
+    i = 0;
+    while i < nlen {
+        uc_set(x + 6 + i, y, name[i], UC_YELLOW, bg);
+        i = i + 1;
+    }
+    uc_set(x + 8 + nlen, y, ' ', fg, bg);
+    i = 0;
+    while i < slen {
+        uc_set(x + 9 + nlen + i, y, state[i], UC_WHITE, bg);
+        i = i + 1;
+    }
+    uc_set(x + 11 + nlen + slen, y, ' ', fg, bg);
+    uc_set(x + 12 + nlen + slen, y, '0' + nodes, UC_CYAN, bg);
+    uc_set(x + 13 + nlen + slen, y, ' ', UC_CYAN, bg);
+    uc_set(x + 14 + nlen + slen, y, 'n', UC_CYAN, bg);
+    uc_set(x + 15 + nlen + slen, y, 'o', UC_CYAN, bg);
+    uc_set(x + 16 + nlen + slen, y, 'd', UC_CYAN, bg);
+    uc_set(x + 17 + nlen + slen, y, 'e', UC_CYAN, bg);
+    uc_set(x + 18 + nlen + slen, y, 's', UC_CYAN, bg);
+    return 0;
+}
+
+# ============ v1.822 边缘行业解决方案行 ============
+
+# uc_edge_solution_row：绘制边缘行业解决方案行 [S]  smart-factory  5 modules  Deployed
+# name 为方案名，modules 为模块数，state 为状态。
+# 用于边缘行业解决方案管理。
+fn uc_edge_solution_row(x: i64, y: i64, name: ptr, modules: i64, state: ptr, fg: i64, bg: i64) -> i64 {
+    let nlen: i64 = 0;
+    let slen: i64 = 0;
+    let i: i64 = 0;
+    nlen = strlen(name);
+    slen = strlen(state);
+    uc_set(x, y, '[', UC_GREEN, bg);
+    uc_set(x + 1, y, 'S', UC_GREEN, bg);
+    uc_set(x + 2, y, ']', UC_GREEN, bg);
+    uc_set(x + 5, y, ' ', fg, bg);
+    i = 0;
+    while i < nlen {
+        uc_set(x + 6 + i, y, name[i], UC_YELLOW, bg);
+        i = i + 1;
+    }
+    uc_set(x + 8 + nlen, y, ' ', fg, bg);
+    uc_set(x + 9 + nlen, y, '0' + modules, UC_WHITE, bg);
+    uc_set(x + 10 + nlen, y, ' ', UC_WHITE, bg);
+    uc_set(x + 11 + nlen, y, 'm', UC_WHITE, bg);
+    uc_set(x + 12 + nlen, y, 'o', UC_WHITE, bg);
+    uc_set(x + 13 + nlen, y, 'd', UC_WHITE, bg);
+    uc_set(x + 14 + nlen, y, 'u', UC_WHITE, bg);
+    uc_set(x + 15 + nlen, y, 'l', UC_WHITE, bg);
+    uc_set(x + 16 + nlen, y, 'e', UC_WHITE, bg);
+    uc_set(x + 17 + nlen, y, 's', UC_WHITE, bg);
+    uc_set(x + 19 + nlen, y, ' ', fg, bg);
+    i = 0;
+    while i < slen {
+        uc_set(x + 20 + nlen + i, y, state[i], UC_CYAN, bg);
+        i = i + 1;
+    }
+    return 0;
+}
+
+# ============ v1.823 边缘模板行 ============
+
+# uc_edge_template_row：绘制边缘模板行 [T]  factory-plant  5 steps  Published
+# name 为模板名，steps 为步骤数，state 为状态。
+# 用于边缘模板管理。
+fn uc_edge_template_row(x: i64, y: i64, name: ptr, steps: i64, state: ptr, fg: i64, bg: i64) -> i64 {
+    let nlen: i64 = 0;
+    let slen: i64 = 0;
+    let i: i64 = 0;
+    nlen = strlen(name);
+    slen = strlen(state);
+    uc_set(x, y, '[', UC_CYAN, bg);
+    uc_set(x + 1, y, 'T', UC_CYAN, bg);
+    uc_set(x + 2, y, ']', UC_CYAN, bg);
+    uc_set(x + 5, y, ' ', fg, bg);
+    i = 0;
+    while i < nlen {
+        uc_set(x + 6 + i, y, name[i], UC_YELLOW, bg);
+        i = i + 1;
+    }
+    uc_set(x + 8 + nlen, y, ' ', fg, bg);
+    uc_set(x + 9 + nlen, y, '0' + steps, UC_WHITE, bg);
+    uc_set(x + 10 + nlen, y, ' ', UC_WHITE, bg);
+    uc_set(x + 11 + nlen, y, 's', UC_WHITE, bg);
+    uc_set(x + 12 + nlen, y, 't', UC_WHITE, bg);
+    uc_set(x + 13 + nlen, y, 'e', UC_WHITE, bg);
+    uc_set(x + 14 + nlen, y, 'p', UC_WHITE, bg);
+    uc_set(x + 15 + nlen, y, 's', UC_WHITE, bg);
+    uc_set(x + 17 + nlen, y, ' ', fg, bg);
+    i = 0;
+    while i < slen {
+        uc_set(x + 18 + nlen + i, y, state[i], UC_GREEN, bg);
+        i = i + 1;
+    }
+    return 0;
+}
+
+# ============ v1.824 边缘许可证行 ============
+
+# uc_edge_license_row：绘制边缘许可证行 [L]  edge-license  Valid  25 devices
+# name 为许可证名，state 为状态，devices 为设备数。
+# 用于边缘许可证管理。
+fn uc_edge_license_row(x: i64, y: i64, name: ptr, state: ptr, devices: i64, fg: i64, bg: i64) -> i64 {
+    let nlen: i64 = 0;
+    let slen: i64 = 0;
+    let i: i64 = 0;
+    nlen = strlen(name);
+    slen = strlen(state);
+    uc_set(x, y, '[', UC_MAGENTA, bg);
+    uc_set(x + 1, y, 'L', UC_MAGENTA, bg);
+    uc_set(x + 2, y, ']', UC_MAGENTA, bg);
+    uc_set(x + 5, y, ' ', fg, bg);
+    i = 0;
+    while i < nlen {
+        uc_set(x + 6 + i, y, name[i], UC_YELLOW, bg);
+        i = i + 1;
+    }
+    uc_set(x + 8 + nlen, y, ' ', fg, bg);
+    i = 0;
+    while i < slen {
+        uc_set(x + 9 + nlen + i, y, state[i], UC_WHITE, bg);
+        i = i + 1;
+    }
+    uc_set(x + 11 + nlen + slen, y, ' ', fg, bg);
+    uc_set(x + 12 + nlen + slen, y, '0' + devices, UC_CYAN, bg);
+    uc_set(x + 13 + nlen + slen, y, ' ', UC_CYAN, bg);
+    uc_set(x + 14 + nlen + slen, y, 'd', UC_CYAN, bg);
+    uc_set(x + 15 + nlen + slen, y, 'e', UC_CYAN, bg);
+    uc_set(x + 16 + nlen + slen, y, 'v', UC_CYAN, bg);
+    uc_set(x + 17 + nlen + slen, y, 'i', UC_CYAN, bg);
+    uc_set(x + 18 + nlen + slen, y, 'c', UC_CYAN, bg);
+    uc_set(x + 19 + nlen + slen, y, 'e', UC_CYAN, bg);
+    uc_set(x + 20 + nlen + slen, y, 's', UC_CYAN, bg);
+    return 0;
+}
+
+# ============ v1.825 边缘计费行 ============
+
+# uc_edge_billing_row：绘制边缘计费行 [B]  billing-01  120 USD  Current
+# name 为计费名，amount 为金额，state 为状态。
+# 用于边缘计费管理。
+fn uc_edge_billing_row(x: i64, y: i64, name: ptr, amount: ptr, state: ptr, fg: i64, bg: i64) -> i64 {
+    let nlen: i64 = 0;
+    let alen: i64 = 0;
+    let slen: i64 = 0;
+    let i: i64 = 0;
+    nlen = strlen(name);
+    alen = strlen(amount);
+    slen = strlen(state);
+    uc_set(x, y, '[', UC_GREEN, bg);
+    uc_set(x + 1, y, 'B', UC_GREEN, bg);
+    uc_set(x + 2, y, ']', UC_GREEN, bg);
+    uc_set(x + 5, y, ' ', fg, bg);
+    i = 0;
+    while i < nlen {
+        uc_set(x + 6 + i, y, name[i], UC_YELLOW, bg);
+        i = i + 1;
+    }
+    uc_set(x + 8 + nlen, y, ' ', fg, bg);
+    i = 0;
+    while i < alen {
+        uc_set(x + 9 + nlen + i, y, amount[i], UC_WHITE, bg);
+        i = i + 1;
+    }
+    uc_set(x + 11 + nlen + alen, y, ' ', fg, bg);
+    i = 0;
+    while i < slen {
+        uc_set(x + 12 + nlen + alen + i, y, state[i], UC_CYAN, bg);
+        i = i + 1;
+    }
+    return 0;
+}
+
+# ============ v1.826 边缘工单行 ============
+
+# uc_edge_ticket_row：绘制边缘工单行 [T]  TC-2001  Open  High priority
+# name 为工单号，state 为状态，priority 为优先级。
+# 用于边缘工单管理。
+fn uc_edge_ticket_row(x: i64, y: i64, name: ptr, state: ptr, priority: ptr, fg: i64, bg: i64) -> i64 {
+    let nlen: i64 = 0;
+    let slen: i64 = 0;
+    let plen: i64 = 0;
+    let i: i64 = 0;
+    nlen = strlen(name);
+    slen = strlen(state);
+    plen = strlen(priority);
+    uc_set(x, y, '[', UC_YELLOW, bg);
+    uc_set(x + 1, y, 'T', UC_YELLOW, bg);
+    uc_set(x + 2, y, ']', UC_YELLOW, bg);
+    uc_set(x + 5, y, ' ', fg, bg);
+    i = 0;
+    while i < nlen {
+        uc_set(x + 6 + i, y, name[i], UC_YELLOW, bg);
+        i = i + 1;
+    }
+    uc_set(x + 8 + nlen, y, ' ', fg, bg);
+    i = 0;
+    while i < slen {
+        uc_set(x + 9 + nlen + i, y, state[i], UC_WHITE, bg);
+        i = i + 1;
+    }
+    uc_set(x + 11 + nlen + slen, y, ' ', fg, bg);
+    i = 0;
+    while i < plen {
+        uc_set(x + 12 + nlen + slen + i, y, priority[i], UC_RED, bg);
+        i = i + 1;
+    }
+    return 0;
+}
+
+# ============ v1.827 边缘服务等级协议行 ============
+
+# uc_edge_sla_row：绘制边缘服务等级协议行 [S]  sla-gold  99.9%  Met
+# name 为协议名，uptime 为可用率，state 为状态。
+# 用于边缘服务等级协议管理。
+fn uc_edge_sla_row(x: i64, y: i64, name: ptr, uptime: ptr, state: ptr, fg: i64, bg: i64) -> i64 {
+    let nlen: i64 = 0;
+    let ulen: i64 = 0;
+    let slen: i64 = 0;
+    let i: i64 = 0;
+    nlen = strlen(name);
+    ulen = strlen(uptime);
+    slen = strlen(state);
+    uc_set(x, y, '[', UC_GREEN, bg);
+    uc_set(x + 1, y, 'S', UC_GREEN, bg);
+    uc_set(x + 2, y, ']', UC_GREEN, bg);
+    uc_set(x + 5, y, ' ', fg, bg);
+    i = 0;
+    while i < nlen {
+        uc_set(x + 6 + i, y, name[i], UC_YELLOW, bg);
+        i = i + 1;
+    }
+    uc_set(x + 8 + nlen, y, ' ', fg, bg);
+    i = 0;
+    while i < ulen {
+        uc_set(x + 9 + nlen + i, y, uptime[i], UC_WHITE, bg);
+        i = i + 1;
+    }
+    uc_set(x + 11 + nlen + ulen, y, ' ', fg, bg);
+    i = 0;
+    while i < slen {
+        uc_set(x + 12 + nlen + ulen + i, y, state[i], UC_CYAN, bg);
+        i = i + 1;
+    }
+    return 0;
+}
+
+# ============ v1.828 边缘知识库行 ============
+
+# uc_edge_kb_row：绘制边缘知识库行 [K]  edge-kb  50 articles  Active
+# name 为知识库名，articles 为文章数，state 0=停用 1=启用。
+# 用于边缘知识库管理。
+fn uc_edge_kb_row(x: i64, y: i64, name: ptr, articles: i64, state: i64, fg: i64, bg: i64) -> i64 {
+    let nlen: i64 = 0;
+    let i: i64 = 0;
+    nlen = strlen(name);
+    uc_set(x, y, '[', UC_CYAN, bg);
+    uc_set(x + 1, y, 'K', UC_CYAN, bg);
+    uc_set(x + 2, y, ']', UC_CYAN, bg);
+    uc_set(x + 5, y, ' ', fg, bg);
+    i = 0;
+    while i < nlen {
+        uc_set(x + 6 + i, y, name[i], UC_YELLOW, bg);
+        i = i + 1;
+    }
+    uc_set(x + 8 + nlen, y, ' ', fg, bg);
+    uc_set(x + 9 + nlen, y, '0' + articles, UC_WHITE, bg);
+    uc_set(x + 10 + nlen, y, ' ', UC_WHITE, bg);
+    uc_set(x + 11 + nlen, y, 'a', UC_WHITE, bg);
+    uc_set(x + 12 + nlen, y, 'r', UC_WHITE, bg);
+    uc_set(x + 13 + nlen, y, 't', UC_WHITE, bg);
+    uc_set(x + 14 + nlen, y, 'i', UC_WHITE, bg);
+    uc_set(x + 15 + nlen, y, 'c', UC_WHITE, bg);
+    uc_set(x + 16 + nlen, y, 'l', UC_WHITE, bg);
+    uc_set(x + 17 + nlen, y, 'e', UC_WHITE, bg);
+    uc_set(x + 18 + nlen, y, 's', UC_WHITE, bg);
+    uc_set(x + 20 + nlen, y, ' ', fg, bg);
+    if state != 0 {
+        uc_set(x + 21 + nlen, y, 'A', UC_GREEN, bg);
+        uc_set(x + 22 + nlen, y, 'c', UC_GREEN, bg);
+        uc_set(x + 23 + nlen, y, 't', UC_GREEN, bg);
+        uc_set(x + 24 + nlen, y, 'i', UC_GREEN, bg);
+        uc_set(x + 25 + nlen, y, 'v', UC_GREEN, bg);
+        uc_set(x + 26 + nlen, y, 'e', UC_GREEN, bg);
+    } else {
+        uc_set(x + 21 + nlen, y, 'I', UC_RED, bg);
+        uc_set(x + 22 + nlen, y, 'n', UC_RED, bg);
+        uc_set(x + 23 + nlen, y, 'a', UC_RED, bg);
+        uc_set(x + 24 + nlen, y, 'c', UC_RED, bg);
+        uc_set(x + 25 + nlen, y, 't', UC_RED, bg);
+        uc_set(x + 26 + nlen, y, 'i', UC_RED, bg);
+        uc_set(x + 27 + nlen, y, 'v', UC_RED, bg);
+        uc_set(x + 28 + nlen, y, 'e', UC_RED, bg);
+    }
+    return 0;
+}
+
+# ============ v1.829 边缘文档行 ============
+
+# uc_edge_doc_row：绘制边缘文档行 [D]  user-guide  20 pages  Published
+# name 为文档名，pages 为页数，state 为状态。
+# 用于边缘文档管理。
+fn uc_edge_doc_row(x: i64, y: i64, name: ptr, pages: i64, state: ptr, fg: i64, bg: i64) -> i64 {
+    let nlen: i64 = 0;
+    let slen: i64 = 0;
+    let i: i64 = 0;
+    nlen = strlen(name);
+    slen = strlen(state);
+    uc_set(x, y, '[', UC_MAGENTA, bg);
+    uc_set(x + 1, y, 'D', UC_MAGENTA, bg);
+    uc_set(x + 2, y, ']', UC_MAGENTA, bg);
+    uc_set(x + 5, y, ' ', fg, bg);
+    i = 0;
+    while i < nlen {
+        uc_set(x + 6 + i, y, name[i], UC_YELLOW, bg);
+        i = i + 1;
+    }
+    uc_set(x + 8 + nlen, y, ' ', fg, bg);
+    uc_set(x + 9 + nlen, y, '0' + pages, UC_WHITE, bg);
+    uc_set(x + 10 + nlen, y, ' ', UC_WHITE, bg);
+    uc_set(x + 11 + nlen, y, 'p', UC_WHITE, bg);
+    uc_set(x + 12 + nlen, y, 'a', UC_WHITE, bg);
+    uc_set(x + 13 + nlen, y, 'g', UC_WHITE, bg);
+    uc_set(x + 14 + nlen, y, 'e', UC_WHITE, bg);
+    uc_set(x + 15 + nlen, y, 's', UC_WHITE, bg);
+    uc_set(x + 17 + nlen, y, ' ', fg, bg);
+    i = 0;
+    while i < slen {
+        uc_set(x + 18 + nlen + i, y, state[i], UC_GREEN, bg);
+        i = i + 1;
+    }
+    return 0;
+}
+
+# ============ v1.830 边缘反馈行 ============
+
+# uc_edge_feedback_row：绘制边缘反馈行 [F]  feedback-01  4.5 rating  Reviewed
+# name 为反馈名，rating 为评分，state 为状态。
+# 用于边缘反馈管理。
+fn uc_edge_feedback_row(x: i64, y: i64, name: ptr, rating: ptr, state: ptr, fg: i64, bg: i64) -> i64 {
+    let nlen: i64 = 0;
+    let rlen: i64 = 0;
+    let slen: i64 = 0;
+    let i: i64 = 0;
+    nlen = strlen(name);
+    rlen = strlen(rating);
+    slen = strlen(state);
+    uc_set(x, y, '[', UC_YELLOW, bg);
+    uc_set(x + 1, y, 'F', UC_YELLOW, bg);
+    uc_set(x + 2, y, ']', UC_YELLOW, bg);
+    uc_set(x + 5, y, ' ', fg, bg);
+    i = 0;
+    while i < nlen {
+        uc_set(x + 6 + i, y, name[i], UC_YELLOW, bg);
+        i = i + 1;
+    }
+    uc_set(x + 8 + nlen, y, ' ', fg, bg);
+    i = 0;
+    while i < rlen {
+        uc_set(x + 9 + nlen + i, y, rating[i], UC_WHITE, bg);
+        i = i + 1;
+    }
+    uc_set(x + 11 + nlen + rlen, y, ' ', fg, bg);
+    i = 0;
+    while i < slen {
+        uc_set(x + 12 + nlen + rlen + i, y, state[i], UC_GREEN, bg);
+        i = i + 1;
+    }
+    return 0;
+}

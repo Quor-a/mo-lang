@@ -1,3 +1,19 @@
+## [1.830.0]
+
+- lib/uic_edge.mo 继续新增边缘业务运营画布组件（v1.821~v1.830，10 个）：
+  - uc_edge_biz_app_row：边缘业务应用行 [A] erp-app Running 5 nodes
+  - uc_edge_solution_row：边缘行业解决方案行 [S] smart-factory 5 modules Deployed
+  - uc_edge_template_row：边缘模板行 [T] factory-plant 5 steps Published
+  - uc_edge_license_row：边缘许可证行 [L] edge-license Valid 25 devices
+  - uc_edge_billing_row：边缘计费行 [B] billing-01 120 USD Current
+  - uc_edge_ticket_row：边缘工单行 [T] TC-2001 Open High priority
+  - uc_edge_sla_row：边缘服务等级协议行 [S] sla-gold 99.9% Met
+  - uc_edge_kb_row：边缘知识库行 [K] edge-kb 50 articles Active
+  - uc_edge_doc_row：边缘文档行 [D] user-guide 20 pages Published
+  - uc_edge_feedback_row：边缘反馈行 [F] feedback-01 4.5 rating Reviewed
+- tests/101_uic.mo 覆盖全部新增组件。
+- 门禁：tests 249/249、projcheck 11/11、自举三级一致、sweep 全绿。
+
 ## [1.820.0]
 
 - lib/uic_edge.mo 继续新增边缘网络与数据画布组件（v1.811~v1.820，10 个）：

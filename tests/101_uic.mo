@@ -516,6 +516,16 @@ fn main() -> i64 {
     uc_edge_data_sync_row(12, 2, "data-sync", 500, "Synced", UC_WHITE, UC_BLUE);
     uc_edge_data_compress_row(1, 2, "zstd-01", 75, 1, UC_WHITE, UC_BLUE);
     uc_edge_data_encrypt_row(12, 2, "encrypt-01", "AES-256", "At Rest", UC_WHITE, UC_BLUE);
+    uc_edge_biz_app_row(1, 2, "erp-app", "Running", 5, UC_WHITE, UC_BLUE);
+    uc_edge_solution_row(12, 2, "smart-factory", 5, "Deployed", UC_WHITE, UC_BLUE);
+    uc_edge_template_row(1, 2, "factory-plant", 5, "Published", UC_WHITE, UC_BLUE);
+    uc_edge_license_row(12, 2, "edge-license", "Valid", 25, UC_WHITE, UC_BLUE);
+    uc_edge_billing_row(1, 2, "billing-01", "120USD", "Current", UC_WHITE, UC_BLUE);
+    uc_edge_ticket_row(12, 2, "TC-2001", "Open", "High", UC_WHITE, UC_BLUE);
+    uc_edge_sla_row(1, 2, "sla-gold", "99.9%", "Met", UC_WHITE, UC_BLUE);
+    uc_edge_kb_row(12, 2, "edge-kb", 50, 1, UC_WHITE, UC_BLUE);
+    uc_edge_doc_row(1, 2, "user-guide", 20, "Published", UC_WHITE, UC_BLUE);
+    uc_edge_feedback_row(12, 2, "feedback-01", "4.5", "Reviewed", UC_WHITE, UC_BLUE);
     uc_dump_svg("/tmp/uic_dump_test.svg");
     uc_render();
     return 0;
