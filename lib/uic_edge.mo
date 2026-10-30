@@ -5832,3 +5832,410 @@ fn uc_edge_image_scan_row(x: i64, y: i64, name: ptr, state: ptr, layers: i64, fg
     uc_set(x + 19 + nlen + slen, y, 's', UC_CYAN, bg);
     return 0;
 }
+
+# ============ v1.811 边缘云连接行 ============
+
+# uc_edge_cloud_conn_row：绘制边缘云连接行 [C]  aws-conn  Connected  20 ms
+# name 为连接名，state 为状态，latency 为延迟。
+# 用于边缘云连接管理。
+fn uc_edge_cloud_conn_row(x: i64, y: i64, name: ptr, state: ptr, latency: ptr, fg: i64, bg: i64) -> i64 {
+    let nlen: i64 = 0;
+    let slen: i64 = 0;
+    let llen: i64 = 0;
+    let i: i64 = 0;
+    nlen = strlen(name);
+    slen = strlen(state);
+    llen = strlen(latency);
+    uc_set(x, y, '[', UC_CYAN, bg);
+    uc_set(x + 1, y, 'C', UC_CYAN, bg);
+    uc_set(x + 2, y, ']', UC_CYAN, bg);
+    uc_set(x + 5, y, ' ', fg, bg);
+    i = 0;
+    while i < nlen {
+        uc_set(x + 6 + i, y, name[i], UC_YELLOW, bg);
+        i = i + 1;
+    }
+    uc_set(x + 8 + nlen, y, ' ', fg, bg);
+    i = 0;
+    while i < slen {
+        uc_set(x + 9 + nlen + i, y, state[i], UC_WHITE, bg);
+        i = i + 1;
+    }
+    uc_set(x + 11 + nlen + slen, y, ' ', fg, bg);
+    i = 0;
+    while i < llen {
+        uc_set(x + 12 + nlen + slen + i, y, latency[i], UC_MAGENTA, bg);
+        i = i + 1;
+    }
+    return 0;
+}
+
+# ============ v1.812 边缘私有网络行 ============
+
+# uc_edge_private_net_row：绘制边缘私有网络行 [N]  vpc-edge  10.0.0.0/16  Active
+# name 为网络名，cidr 为网段，state 0=停用 1=启用。
+# 用于边缘私有网络管理。
+fn uc_edge_private_net_row(x: i64, y: i64, name: ptr, cidr: ptr, state: i64, fg: i64, bg: i64) -> i64 {
+    let nlen: i64 = 0;
+    let clen: i64 = 0;
+    let i: i64 = 0;
+    nlen = strlen(name);
+    clen = strlen(cidr);
+    uc_set(x, y, '[', UC_MAGENTA, bg);
+    uc_set(x + 1, y, 'N', UC_MAGENTA, bg);
+    uc_set(x + 2, y, ']', UC_MAGENTA, bg);
+    uc_set(x + 5, y, ' ', fg, bg);
+    i = 0;
+    while i < nlen {
+        uc_set(x + 6 + i, y, name[i], UC_YELLOW, bg);
+        i = i + 1;
+    }
+    uc_set(x + 8 + nlen, y, ' ', fg, bg);
+    i = 0;
+    while i < clen {
+        uc_set(x + 9 + nlen + i, y, cidr[i], UC_WHITE, bg);
+        i = i + 1;
+    }
+    uc_set(x + 11 + nlen + clen, y, ' ', fg, bg);
+    if state != 0 {
+        uc_set(x + 12 + nlen + clen, y, 'A', UC_GREEN, bg);
+        uc_set(x + 13 + nlen + clen, y, 'c', UC_GREEN, bg);
+        uc_set(x + 14 + nlen + clen, y, 't', UC_GREEN, bg);
+        uc_set(x + 15 + nlen + clen, y, 'i', UC_GREEN, bg);
+        uc_set(x + 16 + nlen + clen, y, 'v', UC_GREEN, bg);
+        uc_set(x + 17 + nlen + clen, y, 'e', UC_GREEN, bg);
+    } else {
+        uc_set(x + 12 + nlen + clen, y, 'I', UC_RED, bg);
+        uc_set(x + 13 + nlen + clen, y, 'n', UC_RED, bg);
+        uc_set(x + 14 + nlen + clen, y, 'a', UC_RED, bg);
+        uc_set(x + 15 + nlen + clen, y, 'c', UC_RED, bg);
+        uc_set(x + 16 + nlen + clen, y, 't', UC_RED, bg);
+        uc_set(x + 17 + nlen + clen, y, 'i', UC_RED, bg);
+        uc_set(x + 18 + nlen + clen, y, 'v', UC_RED, bg);
+        uc_set(x + 19 + nlen + clen, y, 'e', UC_RED, bg);
+    }
+    return 0;
+}
+
+# ============ v1.813 边缘 VPN 行 ============
+
+# uc_edge_vpn_row：绘制边缘 VPN 行 [V]  vpn-01  Connected  2 tunnels
+# name 为 VPN 名，state 为状态，tunnels 为隧道数。
+# 用于边缘 VPN 管理。
+fn uc_edge_vpn_row(x: i64, y: i64, name: ptr, state: ptr, tunnels: i64, fg: i64, bg: i64) -> i64 {
+    let nlen: i64 = 0;
+    let slen: i64 = 0;
+    let i: i64 = 0;
+    nlen = strlen(name);
+    slen = strlen(state);
+    uc_set(x, y, '[', UC_GREEN, bg);
+    uc_set(x + 1, y, 'V', UC_GREEN, bg);
+    uc_set(x + 2, y, ']', UC_GREEN, bg);
+    uc_set(x + 5, y, ' ', fg, bg);
+    i = 0;
+    while i < nlen {
+        uc_set(x + 6 + i, y, name[i], UC_YELLOW, bg);
+        i = i + 1;
+    }
+    uc_set(x + 8 + nlen, y, ' ', fg, bg);
+    i = 0;
+    while i < slen {
+        uc_set(x + 9 + nlen + i, y, state[i], UC_WHITE, bg);
+        i = i + 1;
+    }
+    uc_set(x + 11 + nlen + slen, y, ' ', fg, bg);
+    uc_set(x + 12 + nlen + slen, y, '0' + tunnels, UC_CYAN, bg);
+    uc_set(x + 13 + nlen + slen, y, ' ', UC_CYAN, bg);
+    uc_set(x + 14 + nlen + slen, y, 't', UC_CYAN, bg);
+    uc_set(x + 15 + nlen + slen, y, 'u', UC_CYAN, bg);
+    uc_set(x + 16 + nlen + slen, y, 'n', UC_CYAN, bg);
+    uc_set(x + 17 + nlen + slen, y, 'n', UC_CYAN, bg);
+    uc_set(x + 18 + nlen + slen, y, 'e', UC_CYAN, bg);
+    uc_set(x + 19 + nlen + slen, y, 'l', UC_CYAN, bg);
+    uc_set(x + 20 + nlen + slen, y, 's', UC_CYAN, bg);
+    return 0;
+}
+
+# ============ v1.814 边缘 DNS 行 ============
+
+# uc_edge_dns_row：绘制边缘 DNS 行 [D]  edge-dns  5 records  Active
+# name 为 DNS 名，records 为记录数，state 0=停用 1=启用。
+# 用于边缘 DNS 管理。
+fn uc_edge_dns_row(x: i64, y: i64, name: ptr, records: i64, state: i64, fg: i64, bg: i64) -> i64 {
+    let nlen: i64 = 0;
+    let i: i64 = 0;
+    nlen = strlen(name);
+    uc_set(x, y, '[', UC_CYAN, bg);
+    uc_set(x + 1, y, 'D', UC_CYAN, bg);
+    uc_set(x + 2, y, ']', UC_CYAN, bg);
+    uc_set(x + 5, y, ' ', fg, bg);
+    i = 0;
+    while i < nlen {
+        uc_set(x + 6 + i, y, name[i], UC_YELLOW, bg);
+        i = i + 1;
+    }
+    uc_set(x + 8 + nlen, y, ' ', fg, bg);
+    uc_set(x + 9 + nlen, y, '0' + records, UC_WHITE, bg);
+    uc_set(x + 10 + nlen, y, ' ', UC_WHITE, bg);
+    uc_set(x + 11 + nlen, y, 'r', UC_WHITE, bg);
+    uc_set(x + 12 + nlen, y, 'e', UC_WHITE, bg);
+    uc_set(x + 13 + nlen, y, 'c', UC_WHITE, bg);
+    uc_set(x + 14 + nlen, y, 'o', UC_WHITE, bg);
+    uc_set(x + 15 + nlen, y, 'r', UC_WHITE, bg);
+    uc_set(x + 16 + nlen, y, 'd', UC_WHITE, bg);
+    uc_set(x + 17 + nlen, y, 's', UC_WHITE, bg);
+    uc_set(x + 19 + nlen, y, ' ', fg, bg);
+    if state != 0 {
+        uc_set(x + 20 + nlen, y, 'A', UC_GREEN, bg);
+        uc_set(x + 21 + nlen, y, 'c', UC_GREEN, bg);
+        uc_set(x + 22 + nlen, y, 't', UC_GREEN, bg);
+        uc_set(x + 23 + nlen, y, 'i', UC_GREEN, bg);
+        uc_set(x + 24 + nlen, y, 'v', UC_GREEN, bg);
+        uc_set(x + 25 + nlen, y, 'e', UC_GREEN, bg);
+    } else {
+        uc_set(x + 20 + nlen, y, 'I', UC_RED, bg);
+        uc_set(x + 21 + nlen, y, 'n', UC_RED, bg);
+        uc_set(x + 22 + nlen, y, 'a', UC_RED, bg);
+        uc_set(x + 23 + nlen, y, 'c', UC_RED, bg);
+        uc_set(x + 24 + nlen, y, 't', UC_RED, bg);
+        uc_set(x + 25 + nlen, y, 'i', UC_RED, bg);
+        uc_set(x + 26 + nlen, y, 'v', UC_RED, bg);
+        uc_set(x + 27 + nlen, y, 'e', UC_RED, bg);
+    }
+    return 0;
+}
+
+# ============ v1.815 边缘负载均衡策略行 ============
+
+# uc_edge_lb_policy_row：绘制边缘负载均衡策略行 [P]  round-robin  3 backends  Applied
+# name 为策略名，backends 为后端数，state 为状态。
+# 用于边缘负载均衡策略管理。
+fn uc_edge_lb_policy_row(x: i64, y: i64, name: ptr, backends: i64, state: ptr, fg: i64, bg: i64) -> i64 {
+    let nlen: i64 = 0;
+    let slen: i64 = 0;
+    let i: i64 = 0;
+    nlen = strlen(name);
+    slen = strlen(state);
+    uc_set(x, y, '[', UC_MAGENTA, bg);
+    uc_set(x + 1, y, 'P', UC_MAGENTA, bg);
+    uc_set(x + 2, y, ']', UC_MAGENTA, bg);
+    uc_set(x + 5, y, ' ', fg, bg);
+    i = 0;
+    while i < nlen {
+        uc_set(x + 6 + i, y, name[i], UC_YELLOW, bg);
+        i = i + 1;
+    }
+    uc_set(x + 8 + nlen, y, ' ', fg, bg);
+    uc_set(x + 9 + nlen, y, '0' + backends, UC_WHITE, bg);
+    uc_set(x + 10 + nlen, y, ' ', UC_WHITE, bg);
+    uc_set(x + 11 + nlen, y, 'b', UC_WHITE, bg);
+    uc_set(x + 12 + nlen, y, 'a', UC_WHITE, bg);
+    uc_set(x + 13 + nlen, y, 'c', UC_WHITE, bg);
+    uc_set(x + 14 + nlen, y, 'k', UC_WHITE, bg);
+    uc_set(x + 15 + nlen, y, 'e', UC_WHITE, bg);
+    uc_set(x + 16 + nlen, y, 'n', UC_WHITE, bg);
+    uc_set(x + 17 + nlen, y, 'd', UC_WHITE, bg);
+    uc_set(x + 18 + nlen, y, 's', UC_WHITE, bg);
+    uc_set(x + 20 + nlen, y, ' ', fg, bg);
+    i = 0;
+    while i < slen {
+        uc_set(x + 21 + nlen + i, y, state[i], UC_GREEN, bg);
+        i = i + 1;
+    }
+    return 0;
+}
+
+# ============ v1.816 边缘云同步行 ============
+
+# uc_edge_cloud_sync_row：绘制边缘云同步行 [S]  cloud-sync-01  Synced  10 min ago
+# name 为同步名，state 为状态，last 为上次时间。
+# 用于边缘云同步管理。
+fn uc_edge_cloud_sync_row(x: i64, y: i64, name: ptr, state: ptr, last: ptr, fg: i64, bg: i64) -> i64 {
+    let nlen: i64 = 0;
+    let slen: i64 = 0;
+    let llen: i64 = 0;
+    let i: i64 = 0;
+    nlen = strlen(name);
+    slen = strlen(state);
+    llen = strlen(last);
+    uc_set(x, y, '[', UC_CYAN, bg);
+    uc_set(x + 1, y, 'S', UC_CYAN, bg);
+    uc_set(x + 2, y, ']', UC_CYAN, bg);
+    uc_set(x + 5, y, ' ', fg, bg);
+    i = 0;
+    while i < nlen {
+        uc_set(x + 6 + i, y, name[i], UC_YELLOW, bg);
+        i = i + 1;
+    }
+    uc_set(x + 8 + nlen, y, ' ', fg, bg);
+    i = 0;
+    while i < slen {
+        uc_set(x + 9 + nlen + i, y, state[i], UC_WHITE, bg);
+        i = i + 1;
+    }
+    uc_set(x + 11 + nlen + slen, y, ' ', fg, bg);
+    i = 0;
+    while i < llen {
+        uc_set(x + 12 + nlen + slen + i, y, last[i], UC_MAGENTA, bg);
+        i = i + 1;
+    }
+    return 0;
+}
+
+# ============ v1.817 边缘离线数据行 ============
+
+# uc_edge_offline_data_row：绘制边缘离线数据行 [O]  offline-buffer  2 GB  Buffering
+# name 为数据名，size 为大小，state 为状态。
+# 用于边缘离线数据管理。
+fn uc_edge_offline_data_row(x: i64, y: i64, name: ptr, size: ptr, state: ptr, fg: i64, bg: i64) -> i64 {
+    let nlen: i64 = 0;
+    let sizlen: i64 = 0;
+    let slen: i64 = 0;
+    let i: i64 = 0;
+    nlen = strlen(name);
+    sizlen = strlen(size);
+    slen = strlen(state);
+    uc_set(x, y, '[', UC_MAGENTA, bg);
+    uc_set(x + 1, y, 'O', UC_MAGENTA, bg);
+    uc_set(x + 2, y, ']', UC_MAGENTA, bg);
+    uc_set(x + 5, y, ' ', fg, bg);
+    i = 0;
+    while i < nlen {
+        uc_set(x + 6 + i, y, name[i], UC_YELLOW, bg);
+        i = i + 1;
+    }
+    uc_set(x + 8 + nlen, y, ' ', fg, bg);
+    i = 0;
+    while i < sizlen {
+        uc_set(x + 9 + nlen + i, y, size[i], UC_WHITE, bg);
+        i = i + 1;
+    }
+    uc_set(x + 11 + nlen + sizlen, y, ' ', fg, bg);
+    i = 0;
+    while i < slen {
+        uc_set(x + 12 + nlen + sizlen + i, y, state[i], UC_CYAN, bg);
+        i = i + 1;
+    }
+    return 0;
+}
+
+# ============ v1.818 边缘数据同步行 ============
+
+# uc_edge_data_sync_row：绘制边缘数据同步行 [S]  data-sync  500 records  Synced
+# name 为同步名，records 为记录数，state 为状态。
+# 用于边缘数据同步管理。
+fn uc_edge_data_sync_row(x: i64, y: i64, name: ptr, records: i64, state: ptr, fg: i64, bg: i64) -> i64 {
+    let nlen: i64 = 0;
+    let slen: i64 = 0;
+    let i: i64 = 0;
+    nlen = strlen(name);
+    slen = strlen(state);
+    uc_set(x, y, '[', UC_GREEN, bg);
+    uc_set(x + 1, y, 'S', UC_GREEN, bg);
+    uc_set(x + 2, y, ']', UC_GREEN, bg);
+    uc_set(x + 5, y, ' ', fg, bg);
+    i = 0;
+    while i < nlen {
+        uc_set(x + 6 + i, y, name[i], UC_YELLOW, bg);
+        i = i + 1;
+    }
+    uc_set(x + 8 + nlen, y, ' ', fg, bg);
+    uc_set(x + 9 + nlen, y, '0' + records / 100, UC_WHITE, bg);
+    uc_set(x + 10 + nlen, y, '0' + (records / 10) % 10, UC_WHITE, bg);
+    uc_set(x + 11 + nlen, y, '0' + records % 10, UC_WHITE, bg);
+    uc_set(x + 12 + nlen, y, ' ', UC_WHITE, bg);
+    uc_set(x + 13 + nlen, y, 'r', UC_WHITE, bg);
+    uc_set(x + 14 + nlen, y, 'e', UC_WHITE, bg);
+    uc_set(x + 15 + nlen, y, 'c', UC_WHITE, bg);
+    uc_set(x + 16 + nlen, y, 'o', UC_WHITE, bg);
+    uc_set(x + 17 + nlen, y, 'r', UC_WHITE, bg);
+    uc_set(x + 18 + nlen, y, 'd', UC_WHITE, bg);
+    uc_set(x + 19 + nlen, y, 's', UC_WHITE, bg);
+    uc_set(x + 21 + nlen, y, ' ', fg, bg);
+    i = 0;
+    while i < slen {
+        uc_set(x + 22 + nlen + i, y, state[i], UC_CYAN, bg);
+        i = i + 1;
+    }
+    return 0;
+}
+
+# ============ v1.819 边缘数据压缩行 ============
+
+# uc_edge_data_compress_row：绘制边缘数据压缩行 [C]  zstd-01  75% ratio  Active
+# name 为压缩器名，ratio 为比率，state 0=停用 1=启用。
+# 用于边缘数据压缩管理。
+fn uc_edge_data_compress_row(x: i64, y: i64, name: ptr, ratio: i64, state: i64, fg: i64, bg: i64) -> i64 {
+    let nlen: i64 = 0;
+    let i: i64 = 0;
+    nlen = strlen(name);
+    uc_set(x, y, '[', UC_CYAN, bg);
+    uc_set(x + 1, y, 'C', UC_CYAN, bg);
+    uc_set(x + 2, y, ']', UC_CYAN, bg);
+    uc_set(x + 5, y, ' ', fg, bg);
+    i = 0;
+    while i < nlen {
+        uc_set(x + 6 + i, y, name[i], UC_YELLOW, bg);
+        i = i + 1;
+    }
+    uc_set(x + 8 + nlen, y, ' ', fg, bg);
+    uc_set(x + 9 + nlen, y, '0' + ratio / 10, UC_WHITE, bg);
+    uc_set(x + 10 + nlen, y, '0' + ratio % 10, UC_WHITE, bg);
+    uc_set(x + 11 + nlen, y, '%', UC_WHITE, bg);
+    uc_set(x + 13 + nlen, y, ' ', fg, bg);
+    if state != 0 {
+        uc_set(x + 14 + nlen, y, 'A', UC_GREEN, bg);
+        uc_set(x + 15 + nlen, y, 'c', UC_GREEN, bg);
+        uc_set(x + 16 + nlen, y, 't', UC_GREEN, bg);
+        uc_set(x + 17 + nlen, y, 'i', UC_GREEN, bg);
+        uc_set(x + 18 + nlen, y, 'v', UC_GREEN, bg);
+        uc_set(x + 19 + nlen, y, 'e', UC_GREEN, bg);
+    } else {
+        uc_set(x + 14 + nlen, y, 'I', UC_RED, bg);
+        uc_set(x + 15 + nlen, y, 'n', UC_RED, bg);
+        uc_set(x + 16 + nlen, y, 'a', UC_RED, bg);
+        uc_set(x + 17 + nlen, y, 'c', UC_RED, bg);
+        uc_set(x + 18 + nlen, y, 't', UC_RED, bg);
+        uc_set(x + 19 + nlen, y, 'i', UC_RED, bg);
+        uc_set(x + 20 + nlen, y, 'v', UC_RED, bg);
+        uc_set(x + 21 + nlen, y, 'e', UC_RED, bg);
+    }
+    return 0;
+}
+
+# ============ v1.820 边缘数据加密行 ============
+
+# uc_edge_data_encrypt_row：绘制边缘数据加密行 [E]  encrypt-01  AES-256  At Rest
+# name 为加密器名，algorithm 为算法，state 为状态。
+# 用于边缘数据加密管理。
+fn uc_edge_data_encrypt_row(x: i64, y: i64, name: ptr, algorithm: ptr, state: ptr, fg: i64, bg: i64) -> i64 {
+    let nlen: i64 = 0;
+    let alen: i64 = 0;
+    let slen: i64 = 0;
+    let i: i64 = 0;
+    nlen = strlen(name);
+    alen = strlen(algorithm);
+    slen = strlen(state);
+    uc_set(x, y, '[', UC_MAGENTA, bg);
+    uc_set(x + 1, y, 'E', UC_MAGENTA, bg);
+    uc_set(x + 2, y, ']', UC_MAGENTA, bg);
+    uc_set(x + 5, y, ' ', fg, bg);
+    i = 0;
+    while i < nlen {
+        uc_set(x + 6 + i, y, name[i], UC_YELLOW, bg);
+        i = i + 1;
+    }
+    uc_set(x + 8 + nlen, y, ' ', fg, bg);
+    i = 0;
+    while i < alen {
+        uc_set(x + 9 + nlen + i, y, algorithm[i], UC_WHITE, bg);
+        i = i + 1;
+    }
+    uc_set(x + 11 + nlen + alen, y, ' ', fg, bg);
+    i = 0;
+    while i < slen {
+        uc_set(x + 12 + nlen + alen + i, y, state[i], UC_GREEN, bg);
+        i = i + 1;
+    }
+    return 0;
+}

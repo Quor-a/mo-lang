@@ -506,6 +506,16 @@ fn main() -> i64 {
     uc_edge_image_repo_row(12, 2, "edge-images", 50, 1, UC_WHITE, UC_BLUE);
     uc_edge_registry_row(1, 2, "registry-01", 5, 1, UC_WHITE, UC_BLUE);
     uc_edge_image_scan_row(12, 2, "scan-01", "No Issues", 25, UC_WHITE, UC_BLUE);
+    uc_edge_cloud_conn_row(1, 2, "aws-conn", "Connected", "20ms", UC_WHITE, UC_BLUE);
+    uc_edge_private_net_row(12, 2, "vpc-edge", "10.0.0.0/16", 1, UC_WHITE, UC_BLUE);
+    uc_edge_vpn_row(1, 2, "vpn-01", "Connected", 2, UC_WHITE, UC_BLUE);
+    uc_edge_dns_row(12, 2, "edge-dns", 5, 1, UC_WHITE, UC_BLUE);
+    uc_edge_lb_policy_row(1, 2, "round-robin", 3, "Applied", UC_WHITE, UC_BLUE);
+    uc_edge_cloud_sync_row(12, 2, "cloud-sync-01", "Synced", "10min", UC_WHITE, UC_BLUE);
+    uc_edge_offline_data_row(1, 2, "offline-buffer", "2GB", "Buffering", UC_WHITE, UC_BLUE);
+    uc_edge_data_sync_row(12, 2, "data-sync", 500, "Synced", UC_WHITE, UC_BLUE);
+    uc_edge_data_compress_row(1, 2, "zstd-01", 75, 1, UC_WHITE, UC_BLUE);
+    uc_edge_data_encrypt_row(12, 2, "encrypt-01", "AES-256", "At Rest", UC_WHITE, UC_BLUE);
     uc_dump_svg("/tmp/uic_dump_test.svg");
     uc_render();
     return 0;

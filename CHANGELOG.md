@@ -1,3 +1,19 @@
+## [1.820.0]
+
+- lib/uic_edge.mo 继续新增边缘网络与数据画布组件（v1.811~v1.820，10 个）：
+  - uc_edge_cloud_conn_row：边缘云连接行 [C] aws-conn Connected 20 ms
+  - uc_edge_private_net_row：边缘私有网络行 [N] vpc-edge 10.0.0.0/16 Active
+  - uc_edge_vpn_row：边缘 VPN 行 [V] vpn-01 Connected 2 tunnels
+  - uc_edge_dns_row：边缘 DNS 行 [D] edge-dns 5 records Active
+  - uc_edge_lb_policy_row：边缘负载均衡策略行 [P] round-robin 3 backends Applied
+  - uc_edge_cloud_sync_row：边缘云同步行 [S] cloud-sync-01 Synced 10 min ago
+  - uc_edge_offline_data_row：边缘离线数据行 [O] offline-buffer 2 GB Buffering
+  - uc_edge_data_sync_row：边缘数据同步行 [S] data-sync 500 records Synced
+  - uc_edge_data_compress_row：边缘数据压缩行 [C] zstd-01 75% ratio Active
+  - uc_edge_data_encrypt_row：边缘数据加密行 [E] encrypt-01 AES-256 At Rest
+- tests/101_uic.mo 覆盖全部新增组件。
+- 门禁：tests 249/249、projcheck 11/11、自举三级一致、sweep 全绿。
+
 ## [1.810.0]
 
 - lib/uic_edge.mo 继续新增边缘 CI/CD 与配置画布组件（v1.801~v1.810，10 个）：
