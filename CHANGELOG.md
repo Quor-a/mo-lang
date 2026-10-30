@@ -1,3 +1,20 @@
+## [1.690.0]
+
+- lib/uic_edge.mo 新增边缘计算画布组件（v1.681~v1.690，10 个）：
+  - uc_edge_node_row：边缘节点行 [N] edge-node-01 Online 2 cores
+  - uc_edge_device_row：边缘设备行 [D] sensor-01 Connected temperature
+  - uc_edge_app_row：边缘应用行 [A] face-recog 1.0.3 Running
+  - uc_edge_function_row：边缘函数行 [F] image-resize 256MB 12ms
+  - uc_edge_stream_row：边缘流规则行 [S] temp-alert > 50C Active
+  - uc_edge_model_row：边缘模型行 [M] yolov5 2.1.0 Deployed
+  - uc_edge_model_version_row：边缘模型版本行 [V] yolov5 2.1.0 Active
+  - uc_edge_deployment_row：边缘部署行 [D] cam-01-deploy Running 5 devices
+  - uc_edge_schedule_row：边缘调度行 [S] daily-sync Every 1h Active
+  - uc_edge_telemetry_row：边缘遥测行 [T] temp-01 23.5C 1s interval
+- 架构调整：uic.mo 已超过编译器 512KB import 缓冲，将 v1.681+ 组件拆分至 lib/uic_edge.mo。
+- tests/101_uic.mo 覆盖全部新增组件。
+- 门禁：tests 249/249、projcheck 11/11、自举三级一致、sweep 全绿。
+
 ## [1.680.0]
 
 - lib/uic.mo 大版本批量新增 10 个画布组件：

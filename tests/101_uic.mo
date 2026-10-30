@@ -2,6 +2,7 @@
 # 用画布原语绘制一个简单窗口，验证库可编译可运行。
 # 期望退出码 0。
 import "uic.mo";
+import "uic_edge.mo";
 
 fn main() -> i64 {
     uc_init(40, 10);
@@ -375,6 +376,16 @@ fn main() -> i64 {
     uc_fault_injection_row(12, 2, "delay-reviews", "5s", 1, UC_WHITE, UC_BLUE);
     uc_traffic_shift_row(1, 2, "reviews-v1", 50, 1, UC_WHITE, UC_BLUE);
     uc_tracing_row(12, 2, "jaeger", "sampling", 1, UC_WHITE, UC_BLUE);
+    uc_edge_node_row(1, 2, "edge-node-01", 1, "2 cores", UC_WHITE, UC_BLUE);
+    uc_edge_device_row(12, 2, "sensor-01", "temp", 1, UC_WHITE, UC_BLUE);
+    uc_edge_app_row(1, 2, "face-recog", "1.0.3", 1, UC_WHITE, UC_BLUE);
+    uc_edge_function_row(12, 2, "image-resize", "256MB", "12ms", UC_WHITE, UC_BLUE);
+    uc_edge_stream_row(1, 2, "temp-alert", ">50C", 1, UC_WHITE, UC_BLUE);
+    uc_edge_model_row(12, 2, "yolov5", "2.1.0", 1, UC_WHITE, UC_BLUE);
+    uc_edge_model_version_row(1, 2, "yolov5", "2.1.0", 1, UC_WHITE, UC_BLUE);
+    uc_edge_deployment_row(12, 2, "cam-01-deploy", 1, 5, UC_WHITE, UC_BLUE);
+    uc_edge_schedule_row(1, 2, "daily-sync", "Every 1h", 1, UC_WHITE, UC_BLUE);
+    uc_edge_telemetry_row(12, 2, "temp-01", "23.5C", "1s", UC_WHITE, UC_BLUE);
     uc_dump_svg("/tmp/uic_dump_test.svg");
     uc_render();
     return 0;
