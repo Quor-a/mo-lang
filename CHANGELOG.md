@@ -1,3 +1,19 @@
+## [1.910.0]
+
+- lib/uic_edge.mo 继续新增边缘安全画布组件（v1.901~v1.910，10 个）：
+  - uc_edge_certificate_row：边缘证书行 [C] cert-01 Valid 30d expiry
+  - uc_edge_secret_row：边缘密钥行 [S] secret-01 Rotated 10d ago
+  - uc_edge_token_row：边缘访问令牌行 [T] token-01 Active 15d left
+  - uc_edge_identity_provider_row：边缘身份提供商行 [I] idp-01 AzureAD Active
+  - uc_edge_role_binding_row：边缘角色绑定行 [B] bind-01 admin user-01 Active
+  - uc_edge_security_audit_row：边缘安全审计日志行 [A] audit-01 500 logs Clean
+  - uc_edge_intrusion_detect_row：边缘入侵检测行 [I] ids-01 Normal 0 alerts
+  - uc_edge_vuln_scan_row：边缘漏洞扫描行 [V] vuln-01 5 critical 20 open
+  - uc_edge_patch_manage_row：边缘安全补丁行 [P] patch-01 10 installed 2 pending
+  - uc_edge_compliance_row：边缘合规检查行 [C] gdpr-01 GDPR Compliant 100%
+- tests/101_uic.mo 覆盖全部新增组件。
+- 门禁：tests 249/249、projcheck 11/11、自举三级一致、sweep 全绿。
+
 ## [1.900.0]
 
 - lib/uic_edge.mo 继续新增边缘数据管理画布组件（v1.891~v1.900，10 个）：

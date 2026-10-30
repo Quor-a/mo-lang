@@ -9378,3 +9378,400 @@ fn uc_edge_data_export_row(x: i64, y: i64, name: ptr, target: ptr, size: ptr, st
     }
     return 0;
 }
+
+# ============ v1.901 边缘证书行 ============
+
+# uc_edge_certificate_row：绘制边缘证书行 [C]  cert-01  Valid  30d expiry
+# name 为证书名，state 为状态，days 为剩余天数。
+# 用于边缘证书管理。
+fn uc_edge_certificate_row(x: i64, y: i64, name: ptr, state: ptr, days: i64, fg: i64, bg: i64) -> i64 {
+    let nlen: i64 = 0;
+    let slen: i64 = 0;
+    let i: i64 = 0;
+    nlen = strlen(name);
+    slen = strlen(state);
+    uc_set(x, y, '[', UC_GREEN, bg);
+    uc_set(x + 1, y, 'C', UC_GREEN, bg);
+    uc_set(x + 2, y, ']', UC_GREEN, bg);
+    uc_set(x + 5, y, ' ', fg, bg);
+    i = 0;
+    while i < nlen {
+        uc_set(x + 6 + i, y, name[i], UC_YELLOW, bg);
+        i = i + 1;
+    }
+    uc_set(x + 8 + nlen, y, ' ', fg, bg);
+    i = 0;
+    while i < slen {
+        uc_set(x + 9 + nlen + i, y, state[i], UC_WHITE, bg);
+        i = i + 1;
+    }
+    uc_set(x + 11 + nlen + slen, y, ' ', fg, bg);
+    uc_set(x + 12 + nlen + slen, y, '0' + days / 10, UC_CYAN, bg);
+    uc_set(x + 13 + nlen + slen, y, '0' + days % 10, UC_CYAN, bg);
+    uc_set(x + 14 + nlen + slen, y, 'd', UC_CYAN, bg);
+    uc_set(x + 15 + nlen + slen, y, ' ', UC_CYAN, bg);
+    uc_set(x + 16 + nlen + slen, y, 'e', UC_CYAN, bg);
+    uc_set(x + 17 + nlen + slen, y, 'x', UC_CYAN, bg);
+    uc_set(x + 18 + nlen + slen, y, 'p', UC_CYAN, bg);
+    uc_set(x + 19 + nlen + slen, y, 'i', UC_CYAN, bg);
+    uc_set(x + 20 + nlen + slen, y, 'r', UC_CYAN, bg);
+    uc_set(x + 21 + nlen + slen, y, 'y', UC_CYAN, bg);
+    return 0;
+}
+
+# ============ v1.902 边缘密钥行 ============
+
+# uc_edge_secret_row：绘制边缘密钥行 [S]  secret-01  Rotated  10d ago
+# name 为密钥名，state 为状态，days 为天数。
+# 用于边缘密钥管理。
+fn uc_edge_secret_row(x: i64, y: i64, name: ptr, state: ptr, days: i64, fg: i64, bg: i64) -> i64 {
+    let nlen: i64 = 0;
+    let slen: i64 = 0;
+    let i: i64 = 0;
+    nlen = strlen(name);
+    slen = strlen(state);
+    uc_set(x, y, '[', UC_MAGENTA, bg);
+    uc_set(x + 1, y, 'S', UC_MAGENTA, bg);
+    uc_set(x + 2, y, ']', UC_MAGENTA, bg);
+    uc_set(x + 5, y, ' ', fg, bg);
+    i = 0;
+    while i < nlen {
+        uc_set(x + 6 + i, y, name[i], UC_YELLOW, bg);
+        i = i + 1;
+    }
+    uc_set(x + 8 + nlen, y, ' ', fg, bg);
+    i = 0;
+    while i < slen {
+        uc_set(x + 9 + nlen + i, y, state[i], UC_WHITE, bg);
+        i = i + 1;
+    }
+    uc_set(x + 11 + nlen + slen, y, ' ', fg, bg);
+    uc_set(x + 12 + nlen + slen, y, '0' + days / 10, UC_CYAN, bg);
+    uc_set(x + 13 + nlen + slen, y, '0' + days % 10, UC_CYAN, bg);
+    uc_set(x + 14 + nlen + slen, y, 'd', UC_CYAN, bg);
+    uc_set(x + 15 + nlen + slen, y, ' ', UC_CYAN, bg);
+    uc_set(x + 16 + nlen + slen, y, 'a', UC_CYAN, bg);
+    uc_set(x + 17 + nlen + slen, y, 'g', UC_CYAN, bg);
+    uc_set(x + 18 + nlen + slen, y, 'o', UC_CYAN, bg);
+    return 0;
+}
+
+# ============ v1.903 边缘访问令牌行 ============
+
+# uc_edge_token_row：绘制边缘访问令牌行 [T]  token-01  Active  15d left
+# name 为令牌名，state 为状态，days 为剩余天数。
+# 用于边缘访问令牌管理。
+fn uc_edge_token_row(x: i64, y: i64, name: ptr, state: ptr, days: i64, fg: i64, bg: i64) -> i64 {
+    let nlen: i64 = 0;
+    let slen: i64 = 0;
+    let i: i64 = 0;
+    nlen = strlen(name);
+    slen = strlen(state);
+    uc_set(x, y, '[', UC_CYAN, bg);
+    uc_set(x + 1, y, 'T', UC_CYAN, bg);
+    uc_set(x + 2, y, ']', UC_CYAN, bg);
+    uc_set(x + 5, y, ' ', fg, bg);
+    i = 0;
+    while i < nlen {
+        uc_set(x + 6 + i, y, name[i], UC_YELLOW, bg);
+        i = i + 1;
+    }
+    uc_set(x + 8 + nlen, y, ' ', fg, bg);
+    i = 0;
+    while i < slen {
+        uc_set(x + 9 + nlen + i, y, state[i], UC_WHITE, bg);
+        i = i + 1;
+    }
+    uc_set(x + 11 + nlen + slen, y, ' ', fg, bg);
+    uc_set(x + 12 + nlen + slen, y, '0' + days / 10, UC_GREEN, bg);
+    uc_set(x + 13 + nlen + slen, y, '0' + days % 10, UC_GREEN, bg);
+    uc_set(x + 14 + nlen + slen, y, 'd', UC_GREEN, bg);
+    uc_set(x + 15 + nlen + slen, y, ' ', UC_GREEN, bg);
+    uc_set(x + 16 + nlen + slen, y, 'l', UC_GREEN, bg);
+    uc_set(x + 17 + nlen + slen, y, 'e', UC_GREEN, bg);
+    uc_set(x + 18 + nlen + slen, y, 'f', UC_GREEN, bg);
+    uc_set(x + 19 + nlen + slen, y, 't', UC_GREEN, bg);
+    return 0;
+}
+
+# ============ v1.904 边缘身份提供商行 ============
+
+# uc_edge_identity_provider_row：绘制边缘身份提供商行 [I]  idp-01  AzureAD  Active
+# name 为提供商名，provider 为提供商类型，state 为状态。
+# 用于边缘身份提供商管理。
+fn uc_edge_identity_provider_row(x: i64, y: i64, name: ptr, provider: ptr, state: ptr, fg: i64, bg: i64) -> i64 {
+    let nlen: i64 = 0;
+    let plen: i64 = 0;
+    let slen: i64 = 0;
+    let i: i64 = 0;
+    nlen = strlen(name);
+    plen = strlen(provider);
+    slen = strlen(state);
+    uc_set(x, y, '[', UC_GREEN, bg);
+    uc_set(x + 1, y, 'I', UC_GREEN, bg);
+    uc_set(x + 2, y, ']', UC_GREEN, bg);
+    uc_set(x + 5, y, ' ', fg, bg);
+    i = 0;
+    while i < nlen {
+        uc_set(x + 6 + i, y, name[i], UC_YELLOW, bg);
+        i = i + 1;
+    }
+    uc_set(x + 8 + nlen, y, ' ', fg, bg);
+    i = 0;
+    while i < plen {
+        uc_set(x + 9 + nlen + i, y, provider[i], UC_WHITE, bg);
+        i = i + 1;
+    }
+    uc_set(x + 11 + nlen + plen, y, ' ', fg, bg);
+    i = 0;
+    while i < slen {
+        uc_set(x + 12 + nlen + plen + i, y, state[i], UC_MAGENTA, bg);
+        i = i + 1;
+    }
+    return 0;
+}
+
+# ============ v1.905 边缘角色绑定行 ============
+
+# uc_edge_role_binding_row：绘制边缘角色绑定行 [B]  bind-01  admin  user-01  Active
+# name 为绑定名，role 为角色，subject 为主体，state 为状态。
+# 用于边缘角色绑定管理。
+fn uc_edge_role_binding_row(x: i64, y: i64, name: ptr, role: ptr, subject: ptr, state: ptr, fg: i64, bg: i64) -> i64 {
+    let nlen: i64 = 0;
+    let rlen: i64 = 0;
+    let slen: i64 = 0;
+    let stlen: i64 = 0;
+    let i: i64 = 0;
+    nlen = strlen(name);
+    rlen = strlen(role);
+    slen = strlen(subject);
+    stlen = strlen(state);
+    uc_set(x, y, '[', UC_MAGENTA, bg);
+    uc_set(x + 1, y, 'B', UC_MAGENTA, bg);
+    uc_set(x + 2, y, ']', UC_MAGENTA, bg);
+    uc_set(x + 5, y, ' ', fg, bg);
+    i = 0;
+    while i < nlen {
+        uc_set(x + 6 + i, y, name[i], UC_YELLOW, bg);
+        i = i + 1;
+    }
+    uc_set(x + 8 + nlen, y, ' ', fg, bg);
+    i = 0;
+    while i < rlen {
+        uc_set(x + 9 + nlen + i, y, role[i], UC_WHITE, bg);
+        i = i + 1;
+    }
+    uc_set(x + 11 + nlen + rlen, y, ' ', fg, bg);
+    i = 0;
+    while i < slen {
+        uc_set(x + 12 + nlen + rlen + i, y, subject[i], UC_CYAN, bg);
+        i = i + 1;
+    }
+    uc_set(x + 14 + nlen + rlen + slen, y, ' ', fg, bg);
+    i = 0;
+    while i < stlen {
+        uc_set(x + 15 + nlen + rlen + slen + i, y, state[i], UC_GREEN, bg);
+        i = i + 1;
+    }
+    return 0;
+}
+
+# ============ v1.906 边缘安全审计日志行 ============
+
+# uc_edge_audit_log_row：绘制边缘安全审计日志行 [A]  audit-01  500 logs  Clean
+# name 为日志名，count 为数量，state 为状态。
+# 用于边缘安全审计日志管理。
+fn uc_edge_security_audit_row(x: i64, y: i64, name: ptr, count: i64, state: ptr, fg: i64, bg: i64) -> i64 {
+    let nlen: i64 = 0;
+    let slen: i64 = 0;
+    let i: i64 = 0;
+    nlen = strlen(name);
+    slen = strlen(state);
+    uc_set(x, y, '[', UC_CYAN, bg);
+    uc_set(x + 1, y, 'A', UC_CYAN, bg);
+    uc_set(x + 2, y, ']', UC_CYAN, bg);
+    uc_set(x + 5, y, ' ', fg, bg);
+    i = 0;
+    while i < nlen {
+        uc_set(x + 6 + i, y, name[i], UC_YELLOW, bg);
+        i = i + 1;
+    }
+    uc_set(x + 8 + nlen, y, ' ', fg, bg);
+    uc_set(x + 9 + nlen, y, '0' + count / 100, UC_WHITE, bg);
+    uc_set(x + 10 + nlen, y, '0' + (count / 10) % 10, UC_WHITE, bg);
+    uc_set(x + 11 + nlen, y, '0' + count % 10, UC_WHITE, bg);
+    uc_set(x + 12 + nlen, y, ' ', UC_WHITE, bg);
+    uc_set(x + 13 + nlen, y, 'l', UC_WHITE, bg);
+    uc_set(x + 14 + nlen, y, 'o', UC_WHITE, bg);
+    uc_set(x + 15 + nlen, y, 'g', UC_WHITE, bg);
+    uc_set(x + 16 + nlen, y, 's', UC_WHITE, bg);
+    uc_set(x + 18 + nlen, y, ' ', fg, bg);
+    i = 0;
+    while i < slen {
+        uc_set(x + 19 + nlen + i, y, state[i], UC_GREEN, bg);
+        i = i + 1;
+    }
+    return 0;
+}
+
+# ============ v1.907 边缘入侵检测行 ============
+
+# uc_edge_intrusion_detect_row：绘制边缘入侵检测行 [I]  ids-01  Normal  0 alerts
+# name 为检测名，state 为状态，alerts 为告警数。
+# 用于边缘入侵检测管理。
+fn uc_edge_intrusion_detect_row(x: i64, y: i64, name: ptr, state: ptr, alerts: i64, fg: i64, bg: i64) -> i64 {
+    let nlen: i64 = 0;
+    let slen: i64 = 0;
+    let i: i64 = 0;
+    nlen = strlen(name);
+    slen = strlen(state);
+    uc_set(x, y, '[', UC_MAGENTA, bg);
+    uc_set(x + 1, y, 'I', UC_MAGENTA, bg);
+    uc_set(x + 2, y, ']', UC_MAGENTA, bg);
+    uc_set(x + 5, y, ' ', fg, bg);
+    i = 0;
+    while i < nlen {
+        uc_set(x + 6 + i, y, name[i], UC_YELLOW, bg);
+        i = i + 1;
+    }
+    uc_set(x + 8 + nlen, y, ' ', fg, bg);
+    i = 0;
+    while i < slen {
+        uc_set(x + 9 + nlen + i, y, state[i], UC_WHITE, bg);
+        i = i + 1;
+    }
+    uc_set(x + 11 + nlen + slen, y, ' ', fg, bg);
+    uc_set(x + 12 + nlen + slen, y, '0' + alerts, UC_GREEN, bg);
+    uc_set(x + 13 + nlen + slen, y, ' ', UC_GREEN, bg);
+    uc_set(x + 14 + nlen + slen, y, 'a', UC_GREEN, bg);
+    uc_set(x + 15 + nlen + slen, y, 'l', UC_GREEN, bg);
+    uc_set(x + 16 + nlen + slen, y, 'e', UC_GREEN, bg);
+    uc_set(x + 17 + nlen + slen, y, 'r', UC_GREEN, bg);
+    uc_set(x + 18 + nlen + slen, y, 't', UC_GREEN, bg);
+    uc_set(x + 19 + nlen + slen, y, 's', UC_GREEN, bg);
+    return 0;
+}
+
+# ============ v1.908 边缘漏洞扫描行 ============
+
+# uc_edge_vulnerability_row：绘制边缘漏洞扫描行 [V]  vuln-01  5 critical  20 open
+# name 为扫描名，critical 为严重数，open 为开放数。
+# 用于边缘漏洞扫描管理。
+fn uc_edge_vuln_scan_row(x: i64, y: i64, name: ptr, critical: i64, open: i64, fg: i64, bg: i64) -> i64 {
+    let nlen: i64 = 0;
+    let i: i64 = 0;
+    nlen = strlen(name);
+    uc_set(x, y, '[', UC_YELLOW, bg);
+    uc_set(x + 1, y, 'V', UC_YELLOW, bg);
+    uc_set(x + 2, y, ']', UC_YELLOW, bg);
+    uc_set(x + 5, y, ' ', fg, bg);
+    i = 0;
+    while i < nlen {
+        uc_set(x + 6 + i, y, name[i], UC_YELLOW, bg);
+        i = i + 1;
+    }
+    uc_set(x + 8 + nlen, y, ' ', fg, bg);
+    uc_set(x + 9 + nlen, y, '0' + critical, UC_RED, bg);
+    uc_set(x + 10 + nlen, y, ' ', UC_RED, bg);
+    uc_set(x + 11 + nlen, y, 'c', UC_RED, bg);
+    uc_set(x + 12 + nlen, y, 'r', UC_RED, bg);
+    uc_set(x + 13 + nlen, y, 'i', UC_RED, bg);
+    uc_set(x + 14 + nlen, y, 't', UC_RED, bg);
+    uc_set(x + 15 + nlen, y, 'i', UC_RED, bg);
+    uc_set(x + 16 + nlen, y, 'c', UC_RED, bg);
+    uc_set(x + 17 + nlen, y, 'a', UC_RED, bg);
+    uc_set(x + 18 + nlen, y, 'l', UC_RED, bg);
+    uc_set(x + 20 + nlen, y, ' ', fg, bg);
+    uc_set(x + 21 + nlen, y, '0' + open / 10, UC_MAGENTA, bg);
+    uc_set(x + 22 + nlen, y, '0' + open % 10, UC_MAGENTA, bg);
+    uc_set(x + 23 + nlen, y, ' ', UC_MAGENTA, bg);
+    uc_set(x + 24 + nlen, y, 'o', UC_MAGENTA, bg);
+    uc_set(x + 25 + nlen, y, 'p', UC_MAGENTA, bg);
+    uc_set(x + 26 + nlen, y, 'e', UC_MAGENTA, bg);
+    uc_set(x + 27 + nlen, y, 'n', UC_MAGENTA, bg);
+    return 0;
+}
+
+# ============ v1.909 边缘安全补丁行 ============
+
+# uc_edge_patch_row：绘制边缘安全补丁行 [P]  patch-01  10 installed  2 pending
+# name 为补丁名，installed 为已装数，pending 为待装数。
+# 用于边缘安全补丁管理。
+fn uc_edge_patch_manage_row(x: i64, y: i64, name: ptr, installed: i64, pending: i64, fg: i64, bg: i64) -> i64 {
+    let nlen: i64 = 0;
+    let i: i64 = 0;
+    nlen = strlen(name);
+    uc_set(x, y, '[', UC_GREEN, bg);
+    uc_set(x + 1, y, 'P', UC_GREEN, bg);
+    uc_set(x + 2, y, ']', UC_GREEN, bg);
+    uc_set(x + 5, y, ' ', fg, bg);
+    i = 0;
+    while i < nlen {
+        uc_set(x + 6 + i, y, name[i], UC_YELLOW, bg);
+        i = i + 1;
+    }
+    uc_set(x + 8 + nlen, y, ' ', fg, bg);
+    uc_set(x + 9 + nlen, y, '0' + installed, UC_CYAN, bg);
+    uc_set(x + 10 + nlen, y, ' ', UC_CYAN, bg);
+    uc_set(x + 11 + nlen, y, 'i', UC_CYAN, bg);
+    uc_set(x + 12 + nlen, y, 'n', UC_CYAN, bg);
+    uc_set(x + 13 + nlen, y, 's', UC_CYAN, bg);
+    uc_set(x + 14 + nlen, y, 't', UC_CYAN, bg);
+    uc_set(x + 15 + nlen, y, 'a', UC_CYAN, bg);
+    uc_set(x + 16 + nlen, y, 'l', UC_CYAN, bg);
+    uc_set(x + 17 + nlen, y, 'l', UC_CYAN, bg);
+    uc_set(x + 18 + nlen, y, 'e', UC_CYAN, bg);
+    uc_set(x + 19 + nlen, y, 'd', UC_CYAN, bg);
+    uc_set(x + 21 + nlen, y, ' ', fg, bg);
+    uc_set(x + 22 + nlen, y, '0' + pending, UC_MAGENTA, bg);
+    uc_set(x + 23 + nlen, y, ' ', UC_MAGENTA, bg);
+    uc_set(x + 24 + nlen, y, 'p', UC_MAGENTA, bg);
+    uc_set(x + 25 + nlen, y, 'e', UC_MAGENTA, bg);
+    uc_set(x + 26 + nlen, y, 'n', UC_MAGENTA, bg);
+    uc_set(x + 27 + nlen, y, 'd', UC_MAGENTA, bg);
+    uc_set(x + 28 + nlen, y, 'i', UC_MAGENTA, bg);
+    uc_set(x + 29 + nlen, y, 'n', UC_MAGENTA, bg);
+    uc_set(x + 30 + nlen, y, 'g', UC_MAGENTA, bg);
+    return 0;
+}
+
+# ============ v1.910 边缘合规检查行 ============
+
+# uc_edge_compliance_row：绘制边缘合规检查行 [C]  gdpr-01  Compliant  100%
+# name 为检查名，standard 为标准，state 为状态，percent 为合规率。
+# 用于边缘合规检查管理。
+fn uc_edge_compliance_row(x: i64, y: i64, name: ptr, standard: ptr, state: ptr, percent: i64, fg: i64, bg: i64) -> i64 {
+    let nlen: i64 = 0;
+    let stlen: i64 = 0;
+    let slen: i64 = 0;
+    let i: i64 = 0;
+    nlen = strlen(name);
+    stlen = strlen(standard);
+    slen = strlen(state);
+    uc_set(x, y, '[', UC_CYAN, bg);
+    uc_set(x + 1, y, 'C', UC_CYAN, bg);
+    uc_set(x + 2, y, ']', UC_CYAN, bg);
+    uc_set(x + 5, y, ' ', fg, bg);
+    i = 0;
+    while i < nlen {
+        uc_set(x + 6 + i, y, name[i], UC_YELLOW, bg);
+        i = i + 1;
+    }
+    uc_set(x + 8 + nlen, y, ' ', fg, bg);
+    i = 0;
+    while i < stlen {
+        uc_set(x + 9 + nlen + i, y, standard[i], UC_WHITE, bg);
+        i = i + 1;
+    }
+    uc_set(x + 11 + nlen + stlen, y, ' ', fg, bg);
+    i = 0;
+    while i < slen {
+        uc_set(x + 12 + nlen + stlen + i, y, state[i], UC_MAGENTA, bg);
+        i = i + 1;
+    }
+    uc_set(x + 14 + nlen + stlen + slen, y, ' ', fg, bg);
+    uc_set(x + 15 + nlen + stlen + slen, y, '0' + percent / 10, UC_GREEN, bg);
+    uc_set(x + 16 + nlen + stlen + slen, y, '0' + percent % 10, UC_GREEN, bg);
+    uc_set(x + 17 + nlen + stlen + slen, y, '%', UC_GREEN, bg);
+    return 0;
+}

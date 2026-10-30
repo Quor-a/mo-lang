@@ -596,6 +596,16 @@ fn main() -> i64 {
     uc_edge_data_catalog_row(12, 2, "catalog-01", 20, "Indexed", UC_WHITE, UC_BLUE);
     uc_edge_data_subscription_row(1, 2, "sub-01", 100, "Active", UC_WHITE, UC_BLUE);
     uc_edge_data_export_row(12, 2, "export-01", "S3", "500MB", "Done", UC_WHITE, UC_BLUE);
+    uc_edge_certificate_row(1, 2, "cert-01", "Valid", 30, UC_WHITE, UC_BLUE);
+    uc_edge_secret_row(12, 2, "secret-01", "Rotated", 10, UC_WHITE, UC_BLUE);
+    uc_edge_token_row(1, 2, "token-01", "Active", 15, UC_WHITE, UC_BLUE);
+    uc_edge_identity_provider_row(12, 2, "idp-01", "AzureAD", "Active", UC_WHITE, UC_BLUE);
+    uc_edge_role_binding_row(1, 2, "bind-01", "admin", "user-01", "Active", UC_WHITE, UC_BLUE);
+    uc_edge_security_audit_row(12, 2, "audit-01", 500, "Clean", UC_WHITE, UC_BLUE);
+    uc_edge_intrusion_detect_row(1, 2, "ids-01", "Normal", 0, UC_WHITE, UC_BLUE);
+    uc_edge_vuln_scan_row(12, 2, "vuln-01", 5, 20, UC_WHITE, UC_BLUE);
+    uc_edge_patch_manage_row(1, 2, "patch-01", 10, 2, UC_WHITE, UC_BLUE);
+    uc_edge_compliance_row(12, 2, "gdpr-01", "GDPR", "Compliant", 100, UC_WHITE, UC_BLUE);
     uc_dump_svg("/tmp/uic_dump_test.svg");
     uc_render();
     return 0;
