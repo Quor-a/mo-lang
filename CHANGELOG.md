@@ -1,3 +1,19 @@
+## [1.810.0]
+
+- lib/uic_edge.mo 继续新增边缘 CI/CD 与配置画布组件（v1.801~v1.810，10 个）：
+  - uc_edge_repo_row：边缘代码仓库行 [R] edge-app master 120 commits
+  - uc_edge_build_task_row：边缘构建任务行 [B] build-001 Succeeded 2.5 min
+  - uc_edge_deploy_pipeline_row：边缘部署流水线行 [P] deploy-pipe Running stage 2/5
+  - uc_edge_release_row：边缘发布行 [R] v1.0.0 Published 5 assets
+  - uc_edge_env_config_row：边缘环境配置行 [C] production 5 vars Applied
+  - uc_edge_config_mgmt_row：边缘配置管理行 [C] config-server 10 configs Active
+  - uc_edge_key_mgmt_row：边缘密钥管理行 [K] kms-01 3 keys Rotated
+  - uc_edge_image_repo_row：边缘镜像仓库行 [I] edge-images 50 images Active
+  - uc_edge_registry_row：边缘容器注册表行 [R] registry-01 5 repos Active
+  - uc_edge_image_scan_row：边缘镜像扫描行 [S] scan-01 No Issues 25 layers
+- tests/101_uic.mo 覆盖全部新增组件。
+- 门禁：tests 249/249、projcheck 11/11、自举三级一致、sweep 全绿。
+
 ## [1.800.0]
 
 - lib/uic_edge.mo 继续新增边缘服务网络画布组件（v1.791~v1.800，10 个）：

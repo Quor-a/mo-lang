@@ -496,6 +496,16 @@ fn main() -> i64 {
     uc_edge_circuit_breaker_row(12, 2, "cb-01", "Closed", 5, UC_WHITE, UC_BLUE);
     uc_edge_retry_policy_row(1, 2, "retry-01", 3, "500ms", UC_WHITE, UC_BLUE);
     uc_edge_load_balancer_row(12, 2, "lb-01", 3, 1, UC_WHITE, UC_BLUE);
+    uc_edge_repo_row(1, 2, "edge-app", "master", 120, UC_WHITE, UC_BLUE);
+    uc_edge_build_task_row(12, 2, "build-001", "Succeeded", "2.5min", UC_WHITE, UC_BLUE);
+    uc_edge_deploy_pipeline_row(1, 2, "deploy-pipe", "Running", 2, UC_WHITE, UC_BLUE);
+    uc_edge_release_row(12, 2, "v1.0.0", "Published", 5, UC_WHITE, UC_BLUE);
+    uc_edge_env_config_row(1, 2, "production", 5, "Applied", UC_WHITE, UC_BLUE);
+    uc_edge_config_mgmt_row(12, 2, "config-server", 10, 1, UC_WHITE, UC_BLUE);
+    uc_edge_key_mgmt_row(1, 2, "kms-01", 3, "Rotated", UC_WHITE, UC_BLUE);
+    uc_edge_image_repo_row(12, 2, "edge-images", 50, 1, UC_WHITE, UC_BLUE);
+    uc_edge_registry_row(1, 2, "registry-01", 5, 1, UC_WHITE, UC_BLUE);
+    uc_edge_image_scan_row(12, 2, "scan-01", "No Issues", 25, UC_WHITE, UC_BLUE);
     uc_dump_svg("/tmp/uic_dump_test.svg");
     uc_render();
     return 0;
