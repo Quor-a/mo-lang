@@ -8,4 +8,4 @@
 .set NAME_CAP,    262144       # 256KB 符号名池
 .set NSYM_MAX,    1024
 .set NPATCH_MAX,  16384
-.set NLAB_MAX,    4096
+.set NLAB_MAX,    16384

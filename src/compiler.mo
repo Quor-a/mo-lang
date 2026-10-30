@@ -28,7 +28,10 @@ var O_FP: i64 = 6897664;
 var O_FS: i64 = 7028736;
 var O_JP: i64 = 7160800;
 var O_JL: i64 = 7291872;
-var O_LB: i64 = 7324640;
+var O_LB: i64 = 92000000;   # label 地址表。原 7324640 与 O_SCAL(7357408) 只隔 32768 字节
+                             # (=4096 条目)。NLAB_MAX 提到 16384 后 O_LB 写越界到 O_SCAL
+                             # 破坏 token 缓冲 → 报错位置异常/文件末尾 syntax error。
+                             # 移到主堆高区 92MB，容量 16384*8=131072 字节。
 var O_SCAL: i64 = 7357408;
 # 接口（interface）与虚函数表：放在 O_SRT 之后到 O_FILES 之间的空档里
 var O_IFN: i64 = 10000000;   # 接口名（指向 O_IFNB 里名字串的指针）
@@ -2189,7 +2192,7 @@ fn emit_call_patch(sym: i64) -> i64 {
 
 fn new_label() -> i64 {
     let k: i64 = gv(K_NLAB);
-    if k >= 4096 { return die("too many labels (limit 4096)"); }
+    if k >= 16384 { return die("too many labels (limit 16384)"); }
     sv(K_NLAB, k + 1);
     return k;
 }

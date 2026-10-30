@@ -1491,7 +1491,7 @@ fn emit_call_patch(sym: i64) -> i64 {
 
 fn new_label() -> i64 {
     let k: i64 = gv(K_NLAB);
-    if k >= 4096 { return die("too many labels (limit 4096)"); }
+    if k >= 16384 { return die("too many labels (limit 16384)"); }
     sv(K_NLAB, k + 1);
     return k;
 }

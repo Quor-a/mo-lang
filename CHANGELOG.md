@@ -1,3 +1,22 @@
+## [1.940.0]
+
+- lib/uic_edge.mo 继续新增边缘任务画布组件（v1.931~v1.940，10 个）：
+  - uc_edge_task_def_row：边缘任务定义行 [D] task-01 every 5m Active
+  - uc_edge_task_schedule_row：边缘任务调度行 [S] sched-01 cron 5 Running
+  - uc_edge_task_execution_row：边缘任务执行行 [E] exec-001 task-01 Success 5s
+  - uc_edge_task_dependency_row：边缘任务依赖行 [D] task-02 task-01 Active
+  - uc_edge_task_timeout_row：边缘任务超时行 [T] timeout-01 30s limit 5 alerts
+  - uc_edge_task_queue_row：边缘任务队列行 [Q] queue-01 100 queued 5 running
+  - uc_edge_task_retry_row：边缘任务重试行 [R] task-01 3 max 2 used
+  - uc_edge_task_concurrency_row：边缘任务并发控制行 [C] task-01 5 max 3 active
+  - uc_edge_task_batch_row：边缘任务批处理行 [B] batch-01 10 jobs 8 success
+  - uc_edge_task_audit_row：边缘任务审计行 [A] audit-01 500 logs Clean
+- tests/101_uic.mo 覆盖全部新增组件。
+- 🔧 编译器自举容量提升：NLAB_MAX 4096→16384（src/asm/base.s、consts.s、compiler_part2.mo）；
+  label 地址表 O_LB 从 7324640 移到主堆高区 92MB —— 修复库文件函数/循环增多时 label 表
+  写越界到 O_SCAL（破坏 token 缓冲，报错位置异常、文件末尾 syntax error）的问题。
+- 门禁：tests 249/249、projcheck 11/11、自举三级一致、sweep 全绿。
+
 ## [1.930.0]
 
 - lib/uic_edge.mo 继续新增边缘服务与流量画布组件（v1.921~v1.930，10 个）：

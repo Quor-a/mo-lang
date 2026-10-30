@@ -626,6 +626,16 @@ fn main() -> i64 {
     uc_edge_traffic_route_row2(12, 2, "route-01", "svc-a", 50, UC_WHITE, UC_BLUE);
     uc_edge_traffic_mirror_row(1, 2, "mirror-01", "dst", 10, UC_WHITE, UC_BLUE);
     uc_edge_traffic_policy_row(12, 2, "policy-01", "Canary", 10, UC_WHITE, UC_BLUE);
+    uc_edge_task_def_row(1, 2, "task-01", "every 5m", "Active", UC_WHITE, UC_BLUE);
+    uc_edge_task_schedule_row(12, 2, "sched-01", "cron", 5, "Running", UC_WHITE, UC_BLUE);
+    uc_edge_task_execution_row(1, 2, "exec-001", "task-01", "Success", 5, UC_WHITE, UC_BLUE);
+    uc_edge_task_dependency_row(12, 2, "task-02", "task-01", "Active", UC_WHITE, UC_BLUE);
+    uc_edge_task_timeout_row(1, 2, "timeout-01", "30s", 5, UC_WHITE, UC_BLUE);
+    uc_edge_task_queue_row(12, 2, "queue-01", 100, 5, UC_WHITE, UC_BLUE);
+    uc_edge_task_retry_row(1, 2, "task-01", 3, 2, UC_WHITE, UC_BLUE);
+    uc_edge_task_concurrency_row(12, 2, "task-01", 5, 3, UC_WHITE, UC_BLUE);
+    uc_edge_task_batch_row(1, 2, "batch-01", 10, 8, UC_WHITE, UC_BLUE);
+    uc_edge_task_audit_row(12, 2, "audit-01", 500, "Clean", UC_WHITE, UC_BLUE);
     uc_dump_svg("/tmp/uic_dump_test.svg");
     uc_render();
     return 0;

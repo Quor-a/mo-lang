@@ -10515,3 +10515,398 @@ fn uc_edge_traffic_policy_row(x: i64, y: i64, name: ptr, mode: ptr, rules: i64, 
     uc_set(x + 18 + nlen + mlen, y, 's', UC_MAGENTA, bg);
     return 0;
 }
+
+# lib/uic_edge_task.mo —— 边缘任务画布组件（v1.931+）
+# 依赖 uic.mo（uc_set/颜色常量）与 str.mo（strlen）。
+import "uic.mo";
+import "str.mo";
+
+
+# ============ v1.931 边缘任务定义行 ============
+
+# uc_edge_task_def_row：绘制边缘任务定义行 [D]  task-01  every 5m  Active
+# name 为任务名，schedule 为调度，state 为状态。
+# 用于边缘任务定义管理。
+fn uc_edge_task_def_row(x: i64, y: i64, name: ptr, schedule: ptr, state: ptr, fg: i64, bg: i64) -> i64 {
+    let nlen: i64 = 0;
+    let slen: i64 = 0;
+    let stlen: i64 = 0;
+    let i: i64 = 0;
+    nlen = strlen(name);
+    slen = strlen(schedule);
+    stlen = strlen(state);
+    uc_set(x, y, '[', UC_CYAN, bg);
+    uc_set(x + 1, y, 'D', UC_CYAN, bg);
+    uc_set(x + 2, y, ']', UC_CYAN, bg);
+    uc_set(x + 5, y, ' ', fg, bg);
+    i = 0;
+    while i < nlen {
+        uc_set(x + 6 + i, y, name[i], UC_YELLOW, bg);
+        i = i + 1;
+    }
+    uc_set(x + 8 + nlen, y, ' ', fg, bg);
+    i = 0;
+    while i < slen {
+        uc_set(x + 9 + nlen + i, y, schedule[i], UC_WHITE, bg);
+        i = i + 1;
+    }
+    uc_set(x + 11 + nlen + slen, y, ' ', fg, bg);
+    i = 0;
+    while i < stlen {
+        uc_set(x + 12 + nlen + slen + i, y, state[i], UC_GREEN, bg);
+        i = i + 1;
+    }
+    return 0;
+}
+
+# ============ v1.932 边缘任务调度行 ============
+
+# uc_edge_task_schedule_row：绘制边缘任务调度行 [S]  sched-01  cron  5 jobs  Running
+# name 为调度名，schedule 为调度类型，jobs 为任务数，state 为状态。
+# 用于边缘任务调度管理。
+fn uc_edge_task_schedule_row(x: i64, y: i64, name: ptr, schedule: ptr, jobs: i64, state: ptr, fg: i64, bg: i64) -> i64 {
+    let nlen: i64 = 0;
+    let slen: i64 = 0;
+    let stlen: i64 = 0;
+    let i: i64 = 0;
+    nlen = strlen(name);
+    slen = strlen(schedule);
+    stlen = strlen(state);
+    uc_set(x, y, '[', UC_MAGENTA, bg);
+    uc_set(x + 1, y, 'S', UC_MAGENTA, bg);
+    uc_set(x + 2, y, ']', UC_MAGENTA, bg);
+    uc_set(x + 5, y, ' ', fg, bg);
+    i = 0;
+    while i < nlen {
+        uc_set(x + 6 + i, y, name[i], UC_YELLOW, bg);
+        i = i + 1;
+    }
+    uc_set(x + 8 + nlen, y, ' ', fg, bg);
+    i = 0;
+    while i < slen {
+        uc_set(x + 9 + nlen + i, y, schedule[i], UC_WHITE, bg);
+        i = i + 1;
+    }
+    uc_set(x + 11 + nlen + slen, y, ' ', fg, bg);
+    uc_set(x + 12 + nlen + slen, y, '0' + jobs, UC_MAGENTA, bg);
+    uc_set(x + 13 + nlen + slen, y, ' ', UC_MAGENTA, bg);
+    uc_set(x + 14 + nlen + slen, y, 'j', UC_MAGENTA, bg);
+    uc_set(x + 15 + nlen + slen, y, 'o', UC_MAGENTA, bg);
+    uc_set(x + 16 + nlen + slen, y, 'b', UC_MAGENTA, bg);
+    uc_set(x + 17 + nlen + slen, y, 's', UC_MAGENTA, bg);
+    uc_set(x + 19 + nlen + slen, y, ' ', fg, bg);
+    i = 0;
+    while i < stlen {
+        uc_set(x + 20 + nlen + slen + i, y, state[i], UC_GREEN, bg);
+        i = i + 1;
+    }
+    return 0;
+}
+
+# ============ v1.933 边缘任务执行行 ============
+
+# uc_edge_task_execution_row：绘制边缘任务执行行 [X]  exec-001  task-01  Success  5s
+# name 为执行名，task 为任务，state 为状态，duration 为耗时。
+# 用于边缘任务执行管理。
+fn uc_edge_task_execution_row(x: i64, y: i64, name: ptr, task: ptr, state: ptr, duration: i64, fg: i64, bg: i64) -> i64 {
+    let nlen: i64 = 0;
+    let tlen: i64 = 0;
+    let slen: i64 = 0;
+    let i: i64 = 0;
+    nlen = strlen(name);
+    tlen = strlen(task);
+    slen = strlen(state);
+    uc_set(x, y, '[', UC_GREEN, bg);
+    uc_set(x + 1, y, 'X', UC_GREEN, bg);
+    uc_set(x + 2, y, ']', UC_GREEN, bg);
+    uc_set(x + 5, y, ' ', fg, bg);
+    i = 0;
+    while i < nlen {
+        uc_set(x + 6 + i, y, name[i], UC_YELLOW, bg);
+        i = i + 1;
+    }
+    uc_set(x + 8 + nlen, y, ' ', fg, bg);
+    i = 0;
+    while i < tlen {
+        uc_set(x + 9 + nlen + i, y, task[i], UC_WHITE, bg);
+        i = i + 1;
+    }
+    uc_set(x + 11 + nlen + tlen, y, ' ', fg, bg);
+    i = 0;
+    while i < slen {
+        uc_set(x + 12 + nlen + tlen + i, y, state[i], UC_MAGENTA, bg);
+        i = i + 1;
+    }
+    uc_set(x + 14 + nlen + tlen + slen, y, ' ', fg, bg);
+    uc_set(x + 15 + nlen + tlen + slen, y, '0' + duration / 10, UC_CYAN, bg);
+    uc_set(x + 16 + nlen + tlen + slen, y, '0' + duration % 10, UC_CYAN, bg);
+    uc_set(x + 17 + nlen + tlen + slen, y, 's', UC_CYAN, bg);
+    return 0;
+}
+
+# ============ v1.934 边缘任务依赖行 ============
+
+# uc_edge_task_dependency_row：绘制边缘任务依赖行 [D]  task-02 → task-01  Active
+# name 为依赖名，dependency 为依赖，state 为状态。
+# 用于边缘任务依赖管理。
+fn uc_edge_task_dependency_row(x: i64, y: i64, name: ptr, dependency: ptr, state: ptr, fg: i64, bg: i64) -> i64 {
+    let nlen: i64 = 0;
+    let dlen: i64 = 0;
+    let slen: i64 = 0;
+    let i: i64 = 0;
+    nlen = strlen(name);
+    dlen = strlen(dependency);
+    slen = strlen(state);
+    uc_set(x, y, '[', UC_CYAN, bg);
+    uc_set(x + 1, y, 'D', UC_CYAN, bg);
+    uc_set(x + 2, y, ']', UC_CYAN, bg);
+    uc_set(x + 5, y, ' ', fg, bg);
+    i = 0;
+    while i < nlen {
+        uc_set(x + 6 + i, y, name[i], UC_YELLOW, bg);
+        i = i + 1;
+    }
+    uc_set(x + 8 + nlen, y, ' ', fg, bg);
+    i = 0;
+    while i < dlen {
+        uc_set(x + 9 + nlen + i, y, dependency[i], UC_WHITE, bg);
+        i = i + 1;
+    }
+    uc_set(x + 11 + nlen + dlen, y, ' ', fg, bg);
+    i = 0;
+    while i < slen {
+        uc_set(x + 12 + nlen + dlen + i, y, state[i], UC_GREEN, bg);
+        i = i + 1;
+    }
+    return 0;
+}
+
+# ============ v1.935 边缘任务超时行 ============
+
+# uc_edge_task_timeout_row：绘制边缘任务超时行 [T]  timeout-01  30s limit  5 alerts
+# name 为超时名，limit 为限制，alerts 为告警数。
+# 用于边缘任务超时管理。
+fn uc_edge_task_timeout_row(x: i64, y: i64, name: ptr, limit: ptr, alerts: i64, fg: i64, bg: i64) -> i64 {
+    let nlen: i64 = 0;
+    let llen: i64 = 0;
+    let i: i64 = 0;
+    nlen = strlen(name);
+    llen = strlen(limit);
+    uc_set(x, y, '[', UC_MAGENTA, bg);
+    uc_set(x + 1, y, 'T', UC_MAGENTA, bg);
+    uc_set(x + 2, y, ']', UC_MAGENTA, bg);
+    uc_set(x + 5, y, ' ', fg, bg);
+    i = 0;
+    while i < nlen {
+        uc_set(x + 6 + i, y, name[i], UC_YELLOW, bg);
+        i = i + 1;
+    }
+    uc_set(x + 8 + nlen, y, ' ', fg, bg);
+    i = 0;
+    while i < llen {
+        uc_set(x + 9 + nlen + i, y, limit[i], UC_WHITE, bg);
+        i = i + 1;
+    }
+    uc_set(x + 11 + nlen + llen, y, ' ', fg, bg);
+    uc_set(x + 12 + nlen + llen, y, '0' + alerts, UC_GREEN, bg);
+    uc_set(x + 13 + nlen + llen, y, ' ', UC_GREEN, bg);
+    uc_set(x + 14 + nlen + llen, y, 'a', UC_GREEN, bg);
+    uc_set(x + 15 + nlen + llen, y, 'l', UC_GREEN, bg);
+    uc_set(x + 16 + nlen + llen, y, 'e', UC_GREEN, bg);
+    uc_set(x + 17 + nlen + llen, y, 'r', UC_GREEN, bg);
+    uc_set(x + 18 + nlen + llen, y, 't', UC_GREEN, bg);
+    uc_set(x + 19 + nlen + llen, y, 's', UC_GREEN, bg);
+    return 0;
+}
+# ============ v1.936 边缘任务队列行 ============
+
+# uc_edge_task_queue_row：绘制边缘任务队列行 [Q]  queue-01  100 queued  5 running
+# name 为队列名，queued 为排队数，running 为运行数。
+# 用于边缘任务队列管理。
+fn uc_edge_task_queue_row(x: i64, y: i64, name: ptr, queued: i64, running: i64, fg: i64, bg: i64) -> i64 {
+    let nlen: i64 = 0;
+    let i: i64 = 0;
+    nlen = strlen(name);
+    uc_set(x, y, '[', UC_CYAN, bg);
+    uc_set(x + 1, y, 'Q', UC_CYAN, bg);
+    uc_set(x + 2, y, ']', UC_CYAN, bg);
+    uc_set(x + 5, y, ' ', fg, bg);
+    i = 0;
+    while i < nlen {
+        uc_set(x + 6 + i, y, name[i], UC_YELLOW, bg);
+        i = i + 1;
+    }
+    uc_set(x + 8 + nlen, y, ' ', fg, bg);
+    uc_set(x + 9 + nlen, y, '0' + queued / 100, UC_MAGENTA, bg);
+    uc_set(x + 10 + nlen, y, '0' + (queued / 10) % 10, UC_MAGENTA, bg);
+    uc_set(x + 11 + nlen, y, '0' + queued % 10, UC_MAGENTA, bg);
+    uc_set(x + 12 + nlen, y, ' ', UC_MAGENTA, bg);
+    uc_set(x + 13 + nlen, y, 'q', UC_MAGENTA, bg);
+    uc_set(x + 14 + nlen, y, 'u', UC_MAGENTA, bg);
+    uc_set(x + 15 + nlen, y, 'e', UC_MAGENTA, bg);
+    uc_set(x + 16 + nlen, y, 'u', UC_MAGENTA, bg);
+    uc_set(x + 17 + nlen, y, 'e', UC_MAGENTA, bg);
+    uc_set(x + 18 + nlen, y, 'd', UC_MAGENTA, bg);
+    uc_set(x + 20 + nlen, y, ' ', fg, bg);
+    uc_set(x + 21 + nlen, y, '0' + running, UC_GREEN, bg);
+    uc_set(x + 22 + nlen, y, ' ', UC_GREEN, bg);
+    uc_set(x + 23 + nlen, y, 'r', UC_GREEN, bg);
+    uc_set(x + 24 + nlen, y, 'u', UC_GREEN, bg);
+    uc_set(x + 25 + nlen, y, 'n', UC_GREEN, bg);
+    uc_set(x + 26 + nlen, y, 'n', UC_GREEN, bg);
+    uc_set(x + 27 + nlen, y, 'i', UC_GREEN, bg);
+    uc_set(x + 28 + nlen, y, 'n', UC_GREEN, bg);
+    uc_set(x + 29 + nlen, y, 'g', UC_GREEN, bg);
+    return 0;
+}
+
+# ============ v1.937 边缘任务重试行 ============
+
+# uc_edge_task_retry_row：绘制边缘任务重试行 [R]  task-01  3 retries  2 used
+# name 为任务名，max 为最大重试，used 为已用重试。
+# 用于边缘任务重试管理。
+fn uc_edge_task_retry_row(x: i64, y: i64, name: ptr, max: i64, used: i64, fg: i64, bg: i64) -> i64 {
+    let nlen: i64 = 0;
+    let i: i64 = 0;
+    nlen = strlen(name);
+    uc_set(x, y, '[', UC_MAGENTA, bg);
+    uc_set(x + 1, y, 'R', UC_MAGENTA, bg);
+    uc_set(x + 2, y, ']', UC_MAGENTA, bg);
+    uc_set(x + 5, y, ' ', fg, bg);
+    i = 0;
+    while i < nlen {
+        uc_set(x + 6 + i, y, name[i], UC_YELLOW, bg);
+        i = i + 1;
+    }
+    uc_set(x + 8 + nlen, y, ' ', fg, bg);
+    uc_set(x + 9 + nlen, y, '0' + max, UC_WHITE, bg);
+    uc_set(x + 10 + nlen, y, ' ', UC_WHITE, bg);
+    uc_set(x + 11 + nlen, y, 'r', UC_WHITE, bg);
+    uc_set(x + 12 + nlen, y, 'e', UC_WHITE, bg);
+    uc_set(x + 13 + nlen, y, 't', UC_WHITE, bg);
+    uc_set(x + 14 + nlen, y, 'r', UC_WHITE, bg);
+    uc_set(x + 15 + nlen, y, 'i', UC_WHITE, bg);
+    uc_set(x + 16 + nlen, y, 'e', UC_WHITE, bg);
+    uc_set(x + 17 + nlen, y, 's', UC_WHITE, bg);
+    uc_set(x + 19 + nlen, y, ' ', fg, bg);
+    uc_set(x + 20 + nlen, y, '0' + used, UC_CYAN, bg);
+    uc_set(x + 21 + nlen, y, ' ', UC_CYAN, bg);
+    uc_set(x + 22 + nlen, y, 'u', UC_CYAN, bg);
+    uc_set(x + 23 + nlen, y, 's', UC_CYAN, bg);
+    uc_set(x + 24 + nlen, y, 'e', UC_CYAN, bg);
+    uc_set(x + 25 + nlen, y, 'd', UC_CYAN, bg);
+    return 0;
+}
+
+# ============ v1.938 边缘任务并发控制行 ============
+
+# uc_edge_task_concurrency_row：绘制边缘任务并发控制行 [C]  task-01  5 max  3 active
+# name 为任务名，max 为最大并发，active 为活动数。
+# 用于边缘任务并发控制管理。
+fn uc_edge_task_concurrency_row(x: i64, y: i64, name: ptr, max: i64, active: i64, fg: i64, bg: i64) -> i64 {
+    let nlen: i64 = 0;
+    let i: i64 = 0;
+    nlen = strlen(name);
+    uc_set(x, y, '[', UC_GREEN, bg);
+    uc_set(x + 1, y, 'C', UC_GREEN, bg);
+    uc_set(x + 2, y, ']', UC_GREEN, bg);
+    uc_set(x + 5, y, ' ', fg, bg);
+    i = 0;
+    while i < nlen {
+        uc_set(x + 6 + i, y, name[i], UC_YELLOW, bg);
+        i = i + 1;
+    }
+    uc_set(x + 8 + nlen, y, ' ', fg, bg);
+    uc_set(x + 9 + nlen, y, '0' + max, UC_WHITE, bg);
+    uc_set(x + 10 + nlen, y, ' ', UC_WHITE, bg);
+    uc_set(x + 11 + nlen, y, 'm', UC_WHITE, bg);
+    uc_set(x + 12 + nlen, y, 'a', UC_WHITE, bg);
+    uc_set(x + 13 + nlen, y, 'x', UC_WHITE, bg);
+    uc_set(x + 15 + nlen, y, ' ', fg, bg);
+    uc_set(x + 16 + nlen, y, '0' + active, UC_CYAN, bg);
+    uc_set(x + 17 + nlen, y, ' ', UC_CYAN, bg);
+    uc_set(x + 18 + nlen, y, 'a', UC_CYAN, bg);
+    uc_set(x + 19 + nlen, y, 'c', UC_CYAN, bg);
+    uc_set(x + 20 + nlen, y, 't', UC_CYAN, bg);
+    uc_set(x + 21 + nlen, y, 'i', UC_CYAN, bg);
+    uc_set(x + 22 + nlen, y, 'v', UC_CYAN, bg);
+    uc_set(x + 23 + nlen, y, 'e', UC_CYAN, bg);
+    return 0;
+}
+
+# ============ v1.939 边缘任务批处理行 ============
+
+# uc_edge_task_batch_row：绘制边缘任务批处理行 [B]  batch-01  10 jobs  8 success
+# name 为批次名，jobs 为任务数，success 为成功数。
+# 用于边缘任务批处理管理。
+fn uc_edge_task_batch_row(x: i64, y: i64, name: ptr, jobs: i64, success: i64, fg: i64, bg: i64) -> i64 {
+    let nlen: i64 = 0;
+    let i: i64 = 0;
+    nlen = strlen(name);
+    uc_set(x, y, '[', UC_CYAN, bg);
+    uc_set(x + 1, y, 'B', UC_CYAN, bg);
+    uc_set(x + 2, y, ']', UC_CYAN, bg);
+    uc_set(x + 5, y, ' ', fg, bg);
+    i = 0;
+    while i < nlen {
+        uc_set(x + 6 + i, y, name[i], UC_YELLOW, bg);
+        i = i + 1;
+    }
+    uc_set(x + 8 + nlen, y, ' ', fg, bg);
+    uc_set(x + 9 + nlen, y, '0' + jobs / 10, UC_WHITE, bg);
+    uc_set(x + 10 + nlen, y, '0' + jobs % 10, UC_WHITE, bg);
+    uc_set(x + 11 + nlen, y, ' ', UC_WHITE, bg);
+    uc_set(x + 12 + nlen, y, 'j', UC_WHITE, bg);
+    uc_set(x + 13 + nlen, y, 'o', UC_WHITE, bg);
+    uc_set(x + 14 + nlen, y, 'b', UC_WHITE, bg);
+    uc_set(x + 15 + nlen, y, 's', UC_WHITE, bg);
+    uc_set(x + 17 + nlen, y, ' ', fg, bg);
+    uc_set(x + 18 + nlen, y, '0' + success, UC_GREEN, bg);
+    uc_set(x + 19 + nlen, y, ' ', UC_GREEN, bg);
+    uc_set(x + 20 + nlen, y, 's', UC_GREEN, bg);
+    uc_set(x + 21 + nlen, y, 'u', UC_GREEN, bg);
+    uc_set(x + 22 + nlen, y, 'c', UC_GREEN, bg);
+    uc_set(x + 23 + nlen, y, 'c', UC_GREEN, bg);
+    uc_set(x + 24 + nlen, y, 'e', UC_GREEN, bg);
+    uc_set(x + 25 + nlen, y, 's', UC_GREEN, bg);
+    uc_set(x + 26 + nlen, y, 's', UC_GREEN, bg);
+    return 0;
+}
+
+# ============ v1.940 边缘任务审计行 ============
+
+# uc_edge_task_audit_row：绘制边缘任务审计行 [A]  audit-01  500 logs  Clean
+# name 为审计名，logs 为日志数，state 为状态。
+# 用于边缘任务审计管理。
+fn uc_edge_task_audit_row(x: i64, y: i64, name: ptr, logs: i64, state: ptr, fg: i64, bg: i64) -> i64 {
+    let nlen: i64 = 0;
+    let slen: i64 = 0;
+    let i: i64 = 0;
+    nlen = strlen(name);
+    slen = strlen(state);
+    uc_set(x, y, '[', UC_MAGENTA, bg);
+    uc_set(x + 1, y, 'A', UC_MAGENTA, bg);
+    uc_set(x + 2, y, ']', UC_MAGENTA, bg);
+    uc_set(x + 5, y, ' ', fg, bg);
+    i = 0;
+    while i < nlen {
+        uc_set(x + 6 + i, y, name[i], UC_YELLOW, bg);
+        i = i + 1;
+    }
+    uc_set(x + 8 + nlen, y, ' ', fg, bg);
+    uc_set(x + 9 + nlen, y, '0' + logs / 100, UC_WHITE, bg);
+    uc_set(x + 10 + nlen, y, '0' + (logs / 10) % 10, UC_WHITE, bg);
+    uc_set(x + 11 + nlen, y, '0' + logs % 10, UC_WHITE, bg);
+    uc_set(x + 12 + nlen, y, ' ', UC_WHITE, bg);
+    uc_set(x + 13 + nlen, y, 'l', UC_WHITE, bg);
+    uc_set(x + 14 + nlen, y, 'o', UC_WHITE, bg);
+    uc_set(x + 15 + nlen, y, 'g', UC_WHITE, bg);
+    uc_set(x + 16 + nlen, y, 's', UC_WHITE, bg);
+    uc_set(x + 18 + nlen, y, ' ', fg, bg);
+    i = 0;
+    while i < slen {
+        uc_set(x + 19 + nlen + i, y, state[i], UC_GREEN, bg);
+        i = i + 1;
+    }
+    return 0;
+}
