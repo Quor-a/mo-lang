@@ -1,3 +1,19 @@
+## [1.730.0]
+
+- lib/uic_edge.mo 继续新增边缘计算画布组件（v1.721~v1.730，10 个）：
+  - uc_edge_storage_row：边缘存储行 [S] edge-data 500GB 60% used
+  - uc_edge_pv_row：边缘持久卷行 [P] edge-pv-1 50Gi Bound
+  - uc_edge_storage_class_row：边缘存储类行 [C] fast-storage ssd Active
+  - uc_edge_volume_snapshot_row：边缘卷快照行 [S] snap-01 10Gi Ready
+  - uc_edge_backup_row：边缘备份行 [B] config-backup Completed 12:00
+  - uc_edge_restore_point_row：边缘恢复点行 [P] rp-20240115 Available 50GB
+  - uc_edge_retention_row：边缘保留策略行 [R] backup-retention 7 days Active
+  - uc_edge_replication_task_row：边缘复制任务行 [R] sync-data Running 3/5
+  - uc_edge_migration_task_row：边缘迁移任务行 [M] migrate-app Running 60%
+  - uc_edge_archive_task_row：边缘归档任务行 [A] archive-logs Completed 2GB
+- tests/101_uic.mo 覆盖全部新增组件。
+- 门禁：tests 249/249、projcheck 11/11、自举三级一致、sweep 全绿。
+
 ## [1.720.0]
 
 - lib/uic_edge.mo 继续新增边缘计算画布组件（v1.711~v1.720，10 个）：

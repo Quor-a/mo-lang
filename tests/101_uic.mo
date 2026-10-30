@@ -416,6 +416,16 @@ fn main() -> i64 {
     uc_edge_secret_ref_row(12, 2, "db-secret", "db-pass", 1, UC_WHITE, UC_BLUE);
     uc_edge_service_account_row(1, 2, "deploy-bot", "read-only", 1, UC_WHITE, UC_BLUE);
     uc_edge_rbac_row(12, 2, "edge-admin", "cluster", 1, UC_WHITE, UC_BLUE);
+    uc_edge_storage_row(1, 2, "edge-data", "500GB", 1, UC_WHITE, UC_BLUE);
+    uc_edge_pv_row(12, 2, "edge-pv-1", "50Gi", 1, UC_WHITE, UC_BLUE);
+    uc_edge_storage_class_row(1, 2, "fast-storage", "ssd", 1, UC_WHITE, UC_BLUE);
+    uc_edge_volume_snapshot_row(12, 2, "snap-01", "10Gi", 1, UC_WHITE, UC_BLUE);
+    uc_edge_backup_row(1, 2, "config-backup", 1, "12:00", UC_WHITE, UC_BLUE);
+    uc_edge_restore_point_row(12, 2, "rp-20240115", "50GB", 1, UC_WHITE, UC_BLUE);
+    uc_edge_retention_row(1, 2, "backup-retention", 7, 1, UC_WHITE, UC_BLUE);
+    uc_edge_replication_task_row(12, 2, "sync-data", 1, 3, UC_WHITE, UC_BLUE);
+    uc_edge_migration_task_row(1, 2, "migrate-app", 1, 60, UC_WHITE, UC_BLUE);
+    uc_edge_archive_task_row(12, 2, "archive-logs", 1, "2GB", UC_WHITE, UC_BLUE);
     uc_dump_svg("/tmp/uic_dump_test.svg");
     uc_render();
     return 0;
