@@ -1,3 +1,19 @@
+## [1.520.0]
+
+- lib/uic.mo 大版本批量新增 10 个画布组件：
+  - uc_maintenance_row：维护窗口行 [M] db-upgrade Scheduled
+  - uc_ticket_row：工单行 [T] #4821 Login issue Open
+  - uc_asset_row：资产行 [A] laptop-01 In Use bob
+  - uc_license_row：许可证行 [L] prod-license Valid 10/20 seats
+  - uc_datasource_row：数据源行 [D] analytics-db PostgreSQL Connected
+  - uc_trigger_row：触发器行 [T] after_insert ON users Enabled
+  - uc_view_row：视图行 [V] active_users users Materialized
+  - uc_proc_row2：存储过程行 [P] get_users success
+  - uc_event_row：事件行 [E] user.created published
+  - uc_schedule_row：调度任务行 [S] nightly-report Cron 0 2 * * * Enabled
+- tests/101_uic.mo 覆盖全部新增组件。
+- 门禁：tests 249/249、projcheck 11/11、自举三级一致、sweep 全绿。
+
 ## [1.510.0]
 
 - lib/uic.mo 大版本批量新增 10 个画布组件：

@@ -205,6 +205,16 @@ fn main() -> i64 {
     uc_supplier_row(12, 2, "acme", 1, UC_WHITE, UC_BLUE);
     uc_warehouse_row(1, 2, "WH", 80, 1, UC_WHITE, UC_BLUE);
     uc_delivery_row(12, 2, "#10", "bob", 1, UC_WHITE, UC_BLUE);
+    uc_maintenance_row(1, 2, "db", 1, UC_WHITE, UC_BLUE);
+    uc_ticket_row(12, 2, "#48", "Login", 1, UC_WHITE, UC_BLUE);
+    uc_asset_row(1, 2, "lap", 1, "bob", UC_WHITE, UC_BLUE);
+    uc_license_row(12, 2, "prod", 10, 20, UC_WHITE, UC_BLUE);
+    uc_datasource_row(1, 2, "analytics", "Pg", 1, UC_WHITE, UC_BLUE);
+    uc_trigger_row(12, 2, "after", "users", 1, UC_WHITE, UC_BLUE);
+    uc_view_row(1, 2, "active", "users", 1, UC_WHITE, UC_BLUE);
+    uc_proc_row2(12, 2, "get_users", 1, UC_WHITE, UC_BLUE);
+    uc_event_row(1, 2, "user.created", 1, UC_WHITE, UC_BLUE);
+    uc_schedule_row(12, 2, "nightly", "cron", 1, UC_WHITE, UC_BLUE);
     uc_dump_svg("/tmp/uic_dump_test.svg");
     uc_render();
     return 0;
