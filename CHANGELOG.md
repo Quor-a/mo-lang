@@ -1,3 +1,19 @@
+## [1.770.0]
+
+- lib/uic_edge.mo 继续新增边缘能源与电力画布组件（v1.761~v1.770，10 个）：
+  - uc_edge_energy_meter_row：边缘能源计量行 [M] meter-01 12.5 kWh 15:00
+  - uc_edge_energy_dashboard_row：边缘能耗仪表盘行 [D] plant-dash 3 widgets Active
+  - uc_edge_carbon_row：边缘碳排放行 [C] plant-emission 2.3 tCO2 Today
+  - uc_edge_energy_opt_row：边缘能源优化建议行 [O] reduce-idle Save 5% 3 actions
+  - uc_edge_power_adjust_row：边缘功率调节行 [P] turbine-01 85% Adjusting
+  - uc_edge_demand_response_row：边缘需求响应行 [D] DR-001 50 kW Enrolled
+  - uc_edge_grid_interaction_row：边缘电网交互行 [G] grid-01 Buying 1.2 MW
+  - uc_edge_microgrid_row：边缘微网行 [M] microgrid-1 5 sources Islanded
+  - uc_edge_storage_battery_row：边缘储能行 [B] battery-01 80% 200 kWh
+  - uc_edge_charger_row：边缘充电桩行 [C] charger-01 50 kW In Use
+- tests/101_uic.mo 覆盖全部新增组件。
+- 门禁：tests 249/249、projcheck 11/11、自举三级一致、sweep 全绿。
+
 ## [1.760.0]
 
 - lib/uic_edge.mo 继续新增边缘计算画布组件（v1.751~v1.760，10 个）：

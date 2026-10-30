@@ -456,6 +456,16 @@ fn main() -> i64 {
     uc_edge_spare_part_row(12, 2, "bearing-6205", 50, 1, UC_WHITE, UC_BLUE);
     uc_edge_maintenance_plan_row(1, 2, "PM-001", "Monthly", 1, UC_WHITE, UC_BLUE);
     uc_edge_downtime_event_row(12, 2, "DT-001", 1, "45min", UC_WHITE, UC_BLUE);
+    uc_edge_energy_meter_row(1, 2, "meter-01", "12.5kWh", "15:00", UC_WHITE, UC_BLUE);
+    uc_edge_energy_dashboard_row(12, 2, "plant-dash", 3, 1, UC_WHITE, UC_BLUE);
+    uc_edge_carbon_row(1, 2, "plant-emission", "2.3t", "Today", UC_WHITE, UC_BLUE);
+    uc_edge_energy_opt_row(12, 2, "reduce-idle", "Save 5%", 3, UC_WHITE, UC_BLUE);
+    uc_edge_power_adjust_row(1, 2, "turbine-01", 85, 1, UC_WHITE, UC_BLUE);
+    uc_edge_demand_response_row(12, 2, "DR-001", "50kW", 1, UC_WHITE, UC_BLUE);
+    uc_edge_grid_interaction_row(1, 2, "grid-01", "Buying", "1.2MW", UC_WHITE, UC_BLUE);
+    uc_edge_microgrid_row(12, 2, "microgrid-1", 5, 1, UC_WHITE, UC_BLUE);
+    uc_edge_storage_battery_row(1, 2, "battery-01", 80, "200kWh", UC_WHITE, UC_BLUE);
+    uc_edge_charger_row(12, 2, "charger-01", "50kW", 1, UC_WHITE, UC_BLUE);
     uc_dump_svg("/tmp/uic_dump_test.svg");
     uc_render();
     return 0;

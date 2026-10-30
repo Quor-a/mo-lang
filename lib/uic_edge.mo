@@ -3733,3 +3733,426 @@ fn uc_edge_downtime_event_row(x: i64, y: i64, name: ptr, state: i64, duration: p
     }
     return 0;
 }
+
+# ============ v1.761 边缘能源计量行 ============
+
+# uc_edge_energy_meter_row：绘制边缘能源计量行 [M]  meter-01  12.5 kWh  15:00
+# name 为计量点，value 为读数，time 为时间。
+# 用于边缘能源计量管理。
+fn uc_edge_energy_meter_row(x: i64, y: i64, name: ptr, value: ptr, time: ptr, fg: i64, bg: i64) -> i64 {
+    let nlen: i64 = 0;
+    let vlen: i64 = 0;
+    let tlen: i64 = 0;
+    let i: i64 = 0;
+    nlen = strlen(name);
+    vlen = strlen(value);
+    tlen = strlen(time);
+    uc_set(x, y, '[', UC_CYAN, bg);
+    uc_set(x + 1, y, 'M', UC_CYAN, bg);
+    uc_set(x + 2, y, ']', UC_CYAN, bg);
+    uc_set(x + 5, y, ' ', fg, bg);
+    i = 0;
+    while i < nlen {
+        uc_set(x + 6 + i, y, name[i], UC_YELLOW, bg);
+        i = i + 1;
+    }
+    uc_set(x + 8 + nlen, y, ' ', fg, bg);
+    i = 0;
+    while i < vlen {
+        uc_set(x + 9 + nlen + i, y, value[i], UC_WHITE, bg);
+        i = i + 1;
+    }
+    uc_set(x + 11 + nlen + vlen, y, ' ', fg, bg);
+    i = 0;
+    while i < tlen {
+        uc_set(x + 12 + nlen + vlen + i, y, time[i], UC_MAGENTA, bg);
+        i = i + 1;
+    }
+    return 0;
+}
+
+# ============ v1.762 边缘能耗仪表盘行 ============
+
+# uc_edge_energy_dashboard_row：绘制边缘能耗仪表盘行 [D]  plant-dash  3 widgets  Active
+# name 为仪表盘名，widgets 为组件数，state 0=停用 1=启用。
+# 用于边缘能耗仪表盘管理。
+fn uc_edge_energy_dashboard_row(x: i64, y: i64, name: ptr, widgets: i64, state: i64, fg: i64, bg: i64) -> i64 {
+    let nlen: i64 = 0;
+    let i: i64 = 0;
+    nlen = strlen(name);
+    uc_set(x, y, '[', UC_MAGENTA, bg);
+    uc_set(x + 1, y, 'D', UC_MAGENTA, bg);
+    uc_set(x + 2, y, ']', UC_MAGENTA, bg);
+    uc_set(x + 5, y, ' ', fg, bg);
+    i = 0;
+    while i < nlen {
+        uc_set(x + 6 + i, y, name[i], UC_YELLOW, bg);
+        i = i + 1;
+    }
+    uc_set(x + 8 + nlen, y, ' ', fg, bg);
+    uc_set(x + 9 + nlen, y, '0' + widgets, UC_WHITE, bg);
+    uc_set(x + 10 + nlen, y, ' ', UC_WHITE, bg);
+    uc_set(x + 11 + nlen, y, 'w', UC_WHITE, bg);
+    uc_set(x + 12 + nlen, y, 'i', UC_WHITE, bg);
+    uc_set(x + 13 + nlen, y, 'd', UC_WHITE, bg);
+    uc_set(x + 14 + nlen, y, 'g', UC_WHITE, bg);
+    uc_set(x + 15 + nlen, y, 'e', UC_WHITE, bg);
+    uc_set(x + 16 + nlen, y, 't', UC_WHITE, bg);
+    uc_set(x + 17 + nlen, y, 's', UC_WHITE, bg);
+    uc_set(x + 19 + nlen, y, ' ', fg, bg);
+    if state != 0 {
+        uc_set(x + 20 + nlen, y, 'A', UC_GREEN, bg);
+        uc_set(x + 21 + nlen, y, 'c', UC_GREEN, bg);
+        uc_set(x + 22 + nlen, y, 't', UC_GREEN, bg);
+        uc_set(x + 23 + nlen, y, 'i', UC_GREEN, bg);
+        uc_set(x + 24 + nlen, y, 'v', UC_GREEN, bg);
+        uc_set(x + 25 + nlen, y, 'e', UC_GREEN, bg);
+    } else {
+        uc_set(x + 20 + nlen, y, 'I', UC_RED, bg);
+        uc_set(x + 21 + nlen, y, 'n', UC_RED, bg);
+        uc_set(x + 22 + nlen, y, 'a', UC_RED, bg);
+        uc_set(x + 23 + nlen, y, 'c', UC_RED, bg);
+        uc_set(x + 24 + nlen, y, 't', UC_RED, bg);
+        uc_set(x + 25 + nlen, y, 'i', UC_RED, bg);
+        uc_set(x + 26 + nlen, y, 'v', UC_RED, bg);
+        uc_set(x + 27 + nlen, y, 'e', UC_RED, bg);
+    }
+    return 0;
+}
+
+# ============ v1.763 边缘碳排放行 ============
+
+# uc_edge_carbon_row：绘制边缘碳排放行 [C]  plant-emission  2.3 tCO2  Today
+# name 为排放源，value 为排放量，period 为周期。
+# 用于边缘碳排放管理。
+fn uc_edge_carbon_row(x: i64, y: i64, name: ptr, value: ptr, period: ptr, fg: i64, bg: i64) -> i64 {
+    let nlen: i64 = 0;
+    let vlen: i64 = 0;
+    let plen: i64 = 0;
+    let i: i64 = 0;
+    nlen = strlen(name);
+    vlen = strlen(value);
+    plen = strlen(period);
+    uc_set(x, y, '[', UC_GREEN, bg);
+    uc_set(x + 1, y, 'C', UC_GREEN, bg);
+    uc_set(x + 2, y, ']', UC_GREEN, bg);
+    uc_set(x + 5, y, ' ', fg, bg);
+    i = 0;
+    while i < nlen {
+        uc_set(x + 6 + i, y, name[i], UC_YELLOW, bg);
+        i = i + 1;
+    }
+    uc_set(x + 8 + nlen, y, ' ', fg, bg);
+    i = 0;
+    while i < vlen {
+        uc_set(x + 9 + nlen + i, y, value[i], UC_WHITE, bg);
+        i = i + 1;
+    }
+    uc_set(x + 11 + nlen + vlen, y, ' ', fg, bg);
+    i = 0;
+    while i < plen {
+        uc_set(x + 12 + nlen + vlen + i, y, period[i], UC_CYAN, bg);
+        i = i + 1;
+    }
+    return 0;
+}
+
+# ============ v1.764 边缘能源优化建议行 ============
+
+# uc_edge_energy_opt_row：绘制边缘能源优化建议行 [O]  reduce-idle  Save 5%  3 actions
+# name 为建议名，effect 为效果，actions 为动作数。
+# 用于边缘能源优化建议管理。
+fn uc_edge_energy_opt_row(x: i64, y: i64, name: ptr, effect: ptr, actions: i64, fg: i64, bg: i64) -> i64 {
+    let nlen: i64 = 0;
+    let elen: i64 = 0;
+    let i: i64 = 0;
+    nlen = strlen(name);
+    elen = strlen(effect);
+    uc_set(x, y, '[', UC_YELLOW, bg);
+    uc_set(x + 1, y, 'O', UC_YELLOW, bg);
+    uc_set(x + 2, y, ']', UC_YELLOW, bg);
+    uc_set(x + 5, y, ' ', fg, bg);
+    i = 0;
+    while i < nlen {
+        uc_set(x + 6 + i, y, name[i], UC_YELLOW, bg);
+        i = i + 1;
+    }
+    uc_set(x + 8 + nlen, y, ' ', fg, bg);
+    i = 0;
+    while i < elen {
+        uc_set(x + 9 + nlen + i, y, effect[i], UC_WHITE, bg);
+        i = i + 1;
+    }
+    uc_set(x + 11 + nlen + elen, y, ' ', fg, bg);
+    uc_set(x + 12 + nlen + elen, y, '0' + actions, UC_CYAN, bg);
+    uc_set(x + 13 + nlen + elen, y, ' ', UC_CYAN, bg);
+    uc_set(x + 14 + nlen + elen, y, 'a', UC_CYAN, bg);
+    uc_set(x + 15 + nlen + elen, y, 'c', UC_CYAN, bg);
+    uc_set(x + 16 + nlen + elen, y, 't', UC_CYAN, bg);
+    uc_set(x + 17 + nlen + elen, y, 'i', UC_CYAN, bg);
+    uc_set(x + 18 + nlen + elen, y, 'o', UC_CYAN, bg);
+    uc_set(x + 19 + nlen + elen, y, 'n', UC_CYAN, bg);
+    uc_set(x + 20 + nlen + elen, y, 's', UC_CYAN, bg);
+    return 0;
+}
+
+# ============ v1.765 边缘功率调节行 ============
+
+# uc_edge_power_adjust_row：绘制边缘功率调节行 [P]  turbine-01  85%  Adjusting
+# name 为调节点，power 为功率，state 0=停止 1=调节中。
+# 用于边缘功率调节管理。
+fn uc_edge_power_adjust_row(x: i64, y: i64, name: ptr, power: i64, state: i64, fg: i64, bg: i64) -> i64 {
+    let nlen: i64 = 0;
+    let i: i64 = 0;
+    nlen = strlen(name);
+    uc_set(x, y, '[', UC_CYAN, bg);
+    uc_set(x + 1, y, 'P', UC_CYAN, bg);
+    uc_set(x + 2, y, ']', UC_CYAN, bg);
+    uc_set(x + 5, y, ' ', fg, bg);
+    i = 0;
+    while i < nlen {
+        uc_set(x + 6 + i, y, name[i], UC_YELLOW, bg);
+        i = i + 1;
+    }
+    uc_set(x + 8 + nlen, y, ' ', fg, bg);
+    uc_set(x + 9 + nlen, y, '0' + power / 10, UC_WHITE, bg);
+    uc_set(x + 10 + nlen, y, '0' + power % 10, UC_WHITE, bg);
+    uc_set(x + 11 + nlen, y, '%', UC_WHITE, bg);
+    uc_set(x + 13 + nlen, y, ' ', fg, bg);
+    if state != 0 {
+        uc_set(x + 14 + nlen, y, 'A', UC_GREEN, bg);
+        uc_set(x + 15 + nlen, y, 'd', UC_GREEN, bg);
+        uc_set(x + 16 + nlen, y, 'j', UC_GREEN, bg);
+        uc_set(x + 17 + nlen, y, 'u', UC_GREEN, bg);
+        uc_set(x + 18 + nlen, y, 's', UC_GREEN, bg);
+        uc_set(x + 19 + nlen, y, 't', UC_GREEN, bg);
+        uc_set(x + 20 + nlen, y, 'i', UC_GREEN, bg);
+        uc_set(x + 21 + nlen, y, 'n', UC_GREEN, bg);
+        uc_set(x + 22 + nlen, y, 'g', UC_GREEN, bg);
+    } else {
+        uc_set(x + 14 + nlen, y, 'S', UC_RED, bg);
+        uc_set(x + 15 + nlen, y, 't', UC_RED, bg);
+        uc_set(x + 16 + nlen, y, 'o', UC_RED, bg);
+        uc_set(x + 17 + nlen, y, 'p', UC_RED, bg);
+        uc_set(x + 18 + nlen, y, 'p', UC_RED, bg);
+        uc_set(x + 19 + nlen, y, 'e', UC_RED, bg);
+        uc_set(x + 20 + nlen, y, 'd', UC_RED, bg);
+    }
+    return 0;
+}
+
+# ============ v1.766 边缘需求响应行 ============
+
+# uc_edge_demand_response_row：绘制边缘需求响应行 [D]  DR-001  50 kW  Enrolled
+# name 为响应名，capacity 为容量，state 0=未参与 1=已参与。
+# 用于边缘需求响应管理。
+fn uc_edge_demand_response_row(x: i64, y: i64, name: ptr, capacity: ptr, state: i64, fg: i64, bg: i64) -> i64 {
+    let nlen: i64 = 0;
+    let clen: i64 = 0;
+    let i: i64 = 0;
+    nlen = strlen(name);
+    clen = strlen(capacity);
+    uc_set(x, y, '[', UC_MAGENTA, bg);
+    uc_set(x + 1, y, 'D', UC_MAGENTA, bg);
+    uc_set(x + 2, y, ']', UC_MAGENTA, bg);
+    uc_set(x + 5, y, ' ', fg, bg);
+    i = 0;
+    while i < nlen {
+        uc_set(x + 6 + i, y, name[i], UC_YELLOW, bg);
+        i = i + 1;
+    }
+    uc_set(x + 8 + nlen, y, ' ', fg, bg);
+    i = 0;
+    while i < clen {
+        uc_set(x + 9 + nlen + i, y, capacity[i], UC_WHITE, bg);
+        i = i + 1;
+    }
+    uc_set(x + 11 + nlen + clen, y, ' ', fg, bg);
+    if state != 0 {
+        uc_set(x + 12 + nlen + clen, y, 'E', UC_GREEN, bg);
+        uc_set(x + 13 + nlen + clen, y, 'n', UC_GREEN, bg);
+        uc_set(x + 14 + nlen + clen, y, 'r', UC_GREEN, bg);
+        uc_set(x + 15 + nlen + clen, y, 'o', UC_GREEN, bg);
+        uc_set(x + 16 + nlen + clen, y, 'l', UC_GREEN, bg);
+        uc_set(x + 17 + nlen + clen, y, 'l', UC_GREEN, bg);
+        uc_set(x + 18 + nlen + clen, y, 'e', UC_GREEN, bg);
+        uc_set(x + 19 + nlen + clen, y, 'd', UC_GREEN, bg);
+    } else {
+        uc_set(x + 12 + nlen + clen, y, 'N', UC_RED, bg);
+        uc_set(x + 13 + nlen + clen, y, 'o', UC_RED, bg);
+        uc_set(x + 14 + nlen + clen, y, 't', UC_RED, bg);
+        uc_set(x + 15 + nlen + clen, y, ' ', UC_RED, bg);
+        uc_set(x + 16 + nlen + clen, y, 'J', UC_RED, bg);
+        uc_set(x + 17 + nlen + clen, y, 'o', UC_RED, bg);
+        uc_set(x + 18 + nlen + clen, y, 'i', UC_RED, bg);
+        uc_set(x + 19 + nlen + clen, y, 'n', UC_RED, bg);
+        uc_set(x + 20 + nlen + clen, y, 'e', UC_RED, bg);
+        uc_set(x + 21 + nlen + clen, y, 'd', UC_RED, bg);
+    }
+    return 0;
+}
+
+# ============ v1.767 边缘电网交互行 ============
+
+# uc_edge_grid_interaction_row：绘制边缘电网交互行 [G]  grid-01  Buying  1.2 MW
+# name 为交互点，mode 为模式，power 为功率。
+# 用于边缘电网交互管理。
+fn uc_edge_grid_interaction_row(x: i64, y: i64, name: ptr, mode: ptr, power: ptr, fg: i64, bg: i64) -> i64 {
+    let nlen: i64 = 0;
+    let mlen: i64 = 0;
+    let plen: i64 = 0;
+    let i: i64 = 0;
+    nlen = strlen(name);
+    mlen = strlen(mode);
+    plen = strlen(power);
+    uc_set(x, y, '[', UC_GREEN, bg);
+    uc_set(x + 1, y, 'G', UC_GREEN, bg);
+    uc_set(x + 2, y, ']', UC_GREEN, bg);
+    uc_set(x + 5, y, ' ', fg, bg);
+    i = 0;
+    while i < nlen {
+        uc_set(x + 6 + i, y, name[i], UC_YELLOW, bg);
+        i = i + 1;
+    }
+    uc_set(x + 8 + nlen, y, ' ', fg, bg);
+    i = 0;
+    while i < mlen {
+        uc_set(x + 9 + nlen + i, y, mode[i], UC_WHITE, bg);
+        i = i + 1;
+    }
+    uc_set(x + 11 + nlen + mlen, y, ' ', fg, bg);
+    i = 0;
+    while i < plen {
+        uc_set(x + 12 + nlen + mlen + i, y, power[i], UC_CYAN, bg);
+        i = i + 1;
+    }
+    return 0;
+}
+
+# ============ v1.768 边缘微网行 ============
+
+# uc_edge_microgrid_row：绘制边缘微网行 [M]  microgrid-1  5 sources  Islanded
+# name 为微网名，sources 为电源数，state 0=并网 1=孤岛。
+# 用于边缘微网管理。
+fn uc_edge_microgrid_row(x: i64, y: i64, name: ptr, sources: i64, state: i64, fg: i64, bg: i64) -> i64 {
+    let nlen: i64 = 0;
+    let i: i64 = 0;
+    nlen = strlen(name);
+    uc_set(x, y, '[', UC_CYAN, bg);
+    uc_set(x + 1, y, 'M', UC_CYAN, bg);
+    uc_set(x + 2, y, ']', UC_CYAN, bg);
+    uc_set(x + 5, y, ' ', fg, bg);
+    i = 0;
+    while i < nlen {
+        uc_set(x + 6 + i, y, name[i], UC_YELLOW, bg);
+        i = i + 1;
+    }
+    uc_set(x + 8 + nlen, y, ' ', fg, bg);
+    uc_set(x + 9 + nlen, y, '0' + sources, UC_WHITE, bg);
+    uc_set(x + 10 + nlen, y, ' ', UC_WHITE, bg);
+    uc_set(x + 11 + nlen, y, 's', UC_WHITE, bg);
+    uc_set(x + 12 + nlen, y, 'o', UC_WHITE, bg);
+    uc_set(x + 13 + nlen, y, 'u', UC_WHITE, bg);
+    uc_set(x + 14 + nlen, y, 'r', UC_WHITE, bg);
+    uc_set(x + 15 + nlen, y, 'c', UC_WHITE, bg);
+    uc_set(x + 16 + nlen, y, 'e', UC_WHITE, bg);
+    uc_set(x + 17 + nlen, y, 's', UC_WHITE, bg);
+    uc_set(x + 19 + nlen, y, ' ', fg, bg);
+    if state != 0 {
+        uc_set(x + 20 + nlen, y, 'I', UC_CYAN, bg);
+        uc_set(x + 21 + nlen, y, 's', UC_CYAN, bg);
+        uc_set(x + 22 + nlen, y, 'l', UC_CYAN, bg);
+        uc_set(x + 23 + nlen, y, 'a', UC_CYAN, bg);
+        uc_set(x + 24 + nlen, y, 'n', UC_CYAN, bg);
+        uc_set(x + 25 + nlen, y, 'd', UC_CYAN, bg);
+        uc_set(x + 26 + nlen, y, 'e', UC_CYAN, bg);
+        uc_set(x + 27 + nlen, y, 'd', UC_CYAN, bg);
+    } else {
+        uc_set(x + 20 + nlen, y, 'G', UC_GREEN, bg);
+        uc_set(x + 21 + nlen, y, 'r', UC_GREEN, bg);
+        uc_set(x + 22 + nlen, y, 'i', UC_GREEN, bg);
+        uc_set(x + 23 + nlen, y, 'd', UC_GREEN, bg);
+        uc_set(x + 24 + nlen, y, ' ', UC_GREEN, bg);
+        uc_set(x + 25 + nlen, y, 'T', UC_GREEN, bg);
+        uc_set(x + 26 + nlen, y, 'i', UC_GREEN, bg);
+        uc_set(x + 27 + nlen, y, 'e', UC_GREEN, bg);
+        uc_set(x + 28 + nlen, y, 'd', UC_GREEN, bg);
+    }
+    return 0;
+}
+
+# ============ v1.769 边缘储能行 ============
+
+# uc_edge_storage_battery_row：绘制边缘储能行 [B]  battery-01  80%  200 kWh
+# name 为储能名，soc 为电量，capacity 为容量。
+# 用于边缘储能管理。
+fn uc_edge_storage_battery_row(x: i64, y: i64, name: ptr, soc: i64, capacity: ptr, fg: i64, bg: i64) -> i64 {
+    let nlen: i64 = 0;
+    let clen: i64 = 0;
+    let i: i64 = 0;
+    nlen = strlen(name);
+    clen = strlen(capacity);
+    uc_set(x, y, '[', UC_MAGENTA, bg);
+    uc_set(x + 1, y, 'B', UC_MAGENTA, bg);
+    uc_set(x + 2, y, ']', UC_MAGENTA, bg);
+    uc_set(x + 5, y, ' ', fg, bg);
+    i = 0;
+    while i < nlen {
+        uc_set(x + 6 + i, y, name[i], UC_YELLOW, bg);
+        i = i + 1;
+    }
+    uc_set(x + 8 + nlen, y, ' ', fg, bg);
+    uc_set(x + 9 + nlen, y, '0' + soc / 10, UC_GREEN, bg);
+    uc_set(x + 10 + nlen, y, '0' + soc % 10, UC_GREEN, bg);
+    uc_set(x + 11 + nlen, y, '%', UC_GREEN, bg);
+    uc_set(x + 13 + nlen, y, ' ', fg, bg);
+    i = 0;
+    while i < clen {
+        uc_set(x + 14 + nlen + i, y, capacity[i], UC_WHITE, bg);
+        i = i + 1;
+    }
+    return 0;
+}
+
+# ============ v1.770 边缘充电桩行 ============
+
+# uc_edge_charger_row：绘制边缘充电桩行 [C]  charger-01  50 kW  In Use
+# name 为充电桩名，power 为功率，state 0=空闲 1=使用中。
+# 用于边缘充电桩管理。
+fn uc_edge_charger_row(x: i64, y: i64, name: ptr, power: ptr, state: i64, fg: i64, bg: i64) -> i64 {
+    let nlen: i64 = 0;
+    let plen: i64 = 0;
+    let i: i64 = 0;
+    nlen = strlen(name);
+    plen = strlen(power);
+    uc_set(x, y, '[', UC_GREEN, bg);
+    uc_set(x + 1, y, 'C', UC_GREEN, bg);
+    uc_set(x + 2, y, ']', UC_GREEN, bg);
+    uc_set(x + 5, y, ' ', fg, bg);
+    i = 0;
+    while i < nlen {
+        uc_set(x + 6 + i, y, name[i], UC_YELLOW, bg);
+        i = i + 1;
+    }
+    uc_set(x + 8 + nlen, y, ' ', fg, bg);
+    i = 0;
+    while i < plen {
+        uc_set(x + 9 + nlen + i, y, power[i], UC_WHITE, bg);
+        i = i + 1;
+    }
+    uc_set(x + 11 + nlen + plen, y, ' ', fg, bg);
+    if state != 0 {
+        uc_set(x + 12 + nlen + plen, y, 'I', UC_CYAN, bg);
+        uc_set(x + 13 + nlen + plen, y, 'n', UC_CYAN, bg);
+        uc_set(x + 14 + nlen + plen, y, ' ', UC_CYAN, bg);
+        uc_set(x + 15 + nlen + plen, y, 'U', UC_CYAN, bg);
+        uc_set(x + 16 + nlen + plen, y, 's', UC_CYAN, bg);
+        uc_set(x + 17 + nlen + plen, y, 'e', UC_CYAN, bg);
+    } else {
+        uc_set(x + 12 + nlen + plen, y, 'I', UC_GREEN, bg);
+        uc_set(x + 13 + nlen + plen, y, 'd', UC_GREEN, bg);
+        uc_set(x + 14 + nlen + plen, y, 'l', UC_GREEN, bg);
+        uc_set(x + 15 + nlen + plen, y, 'e', UC_GREEN, bg);
+    }
+    return 0;
+}
