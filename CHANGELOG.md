@@ -1,3 +1,19 @@
+## [1.540.0]
+
+- lib/uic.mo 大版本批量新增 10 个画布组件：
+  - uc_backup_plan_row：备份计划行 [P] daily-backup Every 24h Enabled
+  - uc_restore_point_row：恢复点行 [R] rp-20240101 Available
+  - uc_retention_row：数据保留策略行 [R] logs 30 days Active
+  - uc_storage_class_row：存储类行 [C] STANDARD Hot 0.023$/GB
+  - uc_snapshot_row：卷快照行 [S] snap-20240101 Completed
+  - uc_lb_target_row：负载均衡目标行 [T] web-01 192.168.1.10:8080 Healthy
+  - uc_health_check_row：健康检查行 [H] web-health GET /health 200 Pass
+  - uc_firewall_rule_row：防火墙规则行 [F] allow-web 0.0.0.0/0 443 Allow
+  - uc_subnet_row：子网行 [S] private-a 10.0.1.0/24 Active
+  - uc_security_group_row：安全组行 [G] sg-web Inbound 10 rules Active
+- tests/101_uic.mo 覆盖全部新增组件。
+- 门禁：tests 249/249、projcheck 11/11、自举三级一致、sweep 全绿。
+
 ## [1.530.0]
 
 - lib/uic.mo 大版本批量新增 10 个画布组件：
