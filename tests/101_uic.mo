@@ -586,6 +586,16 @@ fn main() -> i64 {
     uc_edge_model_version_row2(12, 2, "yolo", "v3.1", 5, UC_WHITE, UC_BLUE);
     uc_edge_model_rollback_row(1, 2, "rollback-01", "v3.0", "Completed", UC_WHITE, UC_BLUE);
     uc_edge_model_abtest_row(12, 2, "ab-yolo", "A", 60, UC_WHITE, UC_BLUE);
+    uc_edge_data_lake_row(1, 2, "lake-01", "500GB", "Raw", 10, UC_WHITE, UC_BLUE);
+    uc_edge_data_warehouse_row(12, 2, "wh-01", "100GB", "Clean", 50, UC_WHITE, UC_BLUE);
+    uc_edge_data_lineage_row(1, 2, "lineage-01", 5, 3, UC_WHITE, UC_BLUE);
+    uc_edge_data_mask_row(12, 2, "mask-01", "SSN", 100, "Active", UC_WHITE, UC_BLUE);
+    uc_edge_data_policy_row(1, 2, "policy-01", 10, "Enforced", UC_WHITE, UC_BLUE);
+    uc_edge_data_quality_row(12, 2, "ds-01", 95, "Good", UC_WHITE, UC_BLUE);
+    uc_edge_data_validate_row(1, 2, "rule-01", "NOT_NULL", 100, UC_WHITE, UC_BLUE);
+    uc_edge_data_catalog_row(12, 2, "catalog-01", 20, "Indexed", UC_WHITE, UC_BLUE);
+    uc_edge_data_subscription_row(1, 2, "sub-01", 100, "Active", UC_WHITE, UC_BLUE);
+    uc_edge_data_export_row(12, 2, "export-01", "S3", "500MB", "Done", UC_WHITE, UC_BLUE);
     uc_dump_svg("/tmp/uic_dump_test.svg");
     uc_render();
     return 0;

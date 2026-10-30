@@ -1,3 +1,19 @@
+## [1.900.0]
+
+- lib/uic_edge.mo 继续新增边缘数据管理画布组件（v1.891~v1.900，10 个）：
+  - uc_edge_data_lake_row：边缘数据湖行 [L] lake-01 500GB Raw 10 datasets
+  - uc_edge_data_warehouse_row：边缘数据仓库行 [W] wh-01 100GB Clean 50 tables
+  - uc_edge_data_lineage_row：边缘数据血缘行 [G] lineage-01 5 hops 3 sources
+  - uc_edge_data_mask_row：边缘数据掩码行 [M] mask-01 SSN 100 fields Active
+  - uc_edge_data_policy_row：边缘数据访问策略行 [P] policy-01 10 rules Enforced
+  - uc_edge_data_quality_row：边缘数据质量评分行 [Q] ds-01 95 score Good
+  - uc_edge_data_validate_row：边缘数据校验规则行 [V] rule-01 NOT_NULL 100 pass
+  - uc_edge_data_catalog_row：边缘数据目录行 [C] catalog-01 20 tables Indexed
+  - uc_edge_data_subscription_row：边缘数据订阅行 [S] sub-01 100 topics Active
+  - uc_edge_data_export_row：边缘数据导出任务行 [E] export-01 S3 500MB Done
+- tests/101_uic.mo 覆盖全部新增组件。
+- 门禁：tests 249/249、projcheck 11/11、自举三级一致、sweep 全绿。
+
 ## [1.890.0]
 
 - lib/uic_edge.mo 继续新增边缘机器学习画布组件（v1.881~v1.890，10 个）：
