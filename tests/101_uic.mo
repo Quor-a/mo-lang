@@ -426,6 +426,16 @@ fn main() -> i64 {
     uc_edge_replication_task_row(12, 2, "sync-data", 1, 3, UC_WHITE, UC_BLUE);
     uc_edge_migration_task_row(1, 2, "migrate-app", 1, 60, UC_WHITE, UC_BLUE);
     uc_edge_archive_task_row(12, 2, "archive-logs", 1, "2GB", UC_WHITE, UC_BLUE);
+    uc_edge_alert_rule_row(1, 2, "high-temp-rule", "temp>50", 1, UC_WHITE, UC_BLUE);
+    uc_edge_notify_channel_row(12, 2, "email-alert", "Email", 1, UC_WHITE, UC_BLUE);
+    uc_edge_alert_inhibit_row(1, 2, "inhibit-maint", "30m", 1, UC_WHITE, UC_BLUE);
+    uc_edge_alert_silence_row(12, 2, "silence-01", "14:00", 1, UC_WHITE, UC_BLUE);
+    uc_edge_event_bus_row(1, 2, "edge-events", 1, 1200, UC_WHITE, UC_BLUE);
+    uc_edge_mq_row(12, 2, "edge-queue", 5000, 1, UC_WHITE, UC_BLUE);
+    uc_edge_stream_processor_row(1, 2, "temp-stream", 1, "10ms", UC_WHITE, UC_BLUE);
+    uc_edge_connector_row(12, 2, "cloud-connector", "AWS", 1, UC_WHITE, UC_BLUE);
+    uc_edge_lake_row(1, 2, "edge-lake", "5TB", 3, UC_WHITE, UC_BLUE);
+    uc_edge_warehouse_row(12, 2, "edge-wh", "2TB", 50, UC_WHITE, UC_BLUE);
     uc_dump_svg("/tmp/uic_dump_test.svg");
     uc_render();
     return 0;

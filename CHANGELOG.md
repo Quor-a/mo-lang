@@ -1,3 +1,19 @@
+## [1.740.0]
+
+- lib/uic_edge.mo 继续新增边缘计算画布组件（v1.731~v1.740，10 个）：
+  - uc_edge_alert_rule_row：边缘告警规则行 [R] high-temp-rule temp > 50 Active
+  - uc_edge_notify_channel_row：边缘通知渠道行 [C] email-alert Email Active
+  - uc_edge_alert_inhibit_row：边缘告警抑制行 [I] inhibit-maintenance 30m Active
+  - uc_edge_alert_silence_row：边缘告警静默行 [S] silence-01 until 14:00 Active
+  - uc_edge_event_bus_row：边缘事件总线行 [E] edge-events Running 1200 msg/s
+  - uc_edge_mq_row：边缘消息队列行 [Q] edge-queue 5000 pending Active
+  - uc_edge_stream_processor_row：边缘流处理器行 [P] temp-stream Running 10 ms
+  - uc_edge_connector_row：边缘连接器行 [C] cloud-connector AWS IoT Connected
+  - uc_edge_lake_row：边缘数据湖行 [L] edge-lake 5TB 3 tables
+  - uc_edge_warehouse_row：边缘数据仓库行 [W] edge-wh 2TB 50 queries
+- tests/101_uic.mo 覆盖全部新增组件。
+- 门禁：tests 249/249、projcheck 11/11、自举三级一致、sweep 全绿。
+
 ## [1.730.0]
 
 - lib/uic_edge.mo 继续新增边缘计算画布组件（v1.721~v1.730，10 个）：

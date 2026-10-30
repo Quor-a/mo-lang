@@ -2318,3 +2318,470 @@ fn uc_edge_archive_task_row(x: i64, y: i64, name: ptr, state: i64, size: ptr, fg
     }
     return 0;
 }
+
+# ============ v1.731 边缘告警规则行 ============
+
+# uc_edge_alert_rule_row：绘制边缘告警规则行 [R]  high-temp-rule  temp > 50  Active
+# name 为规则名，condition 为条件，state 0=停用 1=启用。
+# 用于边缘告警规则管理。
+fn uc_edge_alert_rule_row(x: i64, y: i64, name: ptr, condition: ptr, state: i64, fg: i64, bg: i64) -> i64 {
+    let nlen: i64 = 0;
+    let clen: i64 = 0;
+    let i: i64 = 0;
+    nlen = strlen(name);
+    clen = strlen(condition);
+    uc_set(x, y, '[', UC_YELLOW, bg);
+    uc_set(x + 1, y, 'R', UC_YELLOW, bg);
+    uc_set(x + 2, y, ']', UC_YELLOW, bg);
+    uc_set(x + 5, y, ' ', fg, bg);
+    i = 0;
+    while i < nlen {
+        uc_set(x + 6 + i, y, name[i], UC_YELLOW, bg);
+        i = i + 1;
+    }
+    uc_set(x + 8 + nlen, y, ' ', fg, bg);
+    i = 0;
+    while i < clen {
+        uc_set(x + 9 + nlen + i, y, condition[i], UC_WHITE, bg);
+        i = i + 1;
+    }
+    uc_set(x + 11 + nlen + clen, y, ' ', fg, bg);
+    if state != 0 {
+        uc_set(x + 12 + nlen + clen, y, 'A', UC_GREEN, bg);
+        uc_set(x + 13 + nlen + clen, y, 'c', UC_GREEN, bg);
+        uc_set(x + 14 + nlen + clen, y, 't', UC_GREEN, bg);
+        uc_set(x + 15 + nlen + clen, y, 'i', UC_GREEN, bg);
+        uc_set(x + 16 + nlen + clen, y, 'v', UC_GREEN, bg);
+        uc_set(x + 17 + nlen + clen, y, 'e', UC_GREEN, bg);
+    } else {
+        uc_set(x + 12 + nlen + clen, y, 'I', UC_RED, bg);
+        uc_set(x + 13 + nlen + clen, y, 'n', UC_RED, bg);
+        uc_set(x + 14 + nlen + clen, y, 'a', UC_RED, bg);
+        uc_set(x + 15 + nlen + clen, y, 'c', UC_RED, bg);
+        uc_set(x + 16 + nlen + clen, y, 't', UC_RED, bg);
+        uc_set(x + 17 + nlen + clen, y, 'i', UC_RED, bg);
+        uc_set(x + 18 + nlen + clen, y, 'v', UC_RED, bg);
+        uc_set(x + 19 + nlen + clen, y, 'e', UC_RED, bg);
+    }
+    return 0;
+}
+
+# ============ v1.732 边缘通知渠道行 ============
+
+# uc_edge_notify_channel_row：绘制边缘通知渠道行 [C]  email-alert  Email  Active
+# name 为渠道名，type 为类型，state 0=停用 1=启用。
+# 用于边缘通知渠道管理。
+fn uc_edge_notify_channel_row(x: i64, y: i64, name: ptr, type: ptr, state: i64, fg: i64, bg: i64) -> i64 {
+    let nlen: i64 = 0;
+    let tlen: i64 = 0;
+    let i: i64 = 0;
+    nlen = strlen(name);
+    tlen = strlen(type);
+    uc_set(x, y, '[', UC_CYAN, bg);
+    uc_set(x + 1, y, 'C', UC_CYAN, bg);
+    uc_set(x + 2, y, ']', UC_CYAN, bg);
+    uc_set(x + 5, y, ' ', fg, bg);
+    i = 0;
+    while i < nlen {
+        uc_set(x + 6 + i, y, name[i], UC_YELLOW, bg);
+        i = i + 1;
+    }
+    uc_set(x + 8 + nlen, y, ' ', fg, bg);
+    i = 0;
+    while i < tlen {
+        uc_set(x + 9 + nlen + i, y, type[i], UC_WHITE, bg);
+        i = i + 1;
+    }
+    uc_set(x + 11 + nlen + tlen, y, ' ', fg, bg);
+    if state != 0 {
+        uc_set(x + 12 + nlen + tlen, y, 'A', UC_GREEN, bg);
+        uc_set(x + 13 + nlen + tlen, y, 'c', UC_GREEN, bg);
+        uc_set(x + 14 + nlen + tlen, y, 't', UC_GREEN, bg);
+        uc_set(x + 15 + nlen + tlen, y, 'i', UC_GREEN, bg);
+        uc_set(x + 16 + nlen + tlen, y, 'v', UC_GREEN, bg);
+        uc_set(x + 17 + nlen + tlen, y, 'e', UC_GREEN, bg);
+    } else {
+        uc_set(x + 12 + nlen + tlen, y, 'I', UC_RED, bg);
+        uc_set(x + 13 + nlen + tlen, y, 'n', UC_RED, bg);
+        uc_set(x + 14 + nlen + tlen, y, 'a', UC_RED, bg);
+        uc_set(x + 15 + nlen + tlen, y, 'c', UC_RED, bg);
+        uc_set(x + 16 + nlen + tlen, y, 't', UC_RED, bg);
+        uc_set(x + 17 + nlen + tlen, y, 'i', UC_RED, bg);
+        uc_set(x + 18 + nlen + tlen, y, 'v', UC_RED, bg);
+        uc_set(x + 19 + nlen + tlen, y, 'e', UC_RED, bg);
+    }
+    return 0;
+}
+
+# ============ v1.733 边缘告警抑制行 ============
+
+# uc_edge_alert_inhibit_row：绘制边缘告警抑制行 [I]  inhibit-maintenance  30m  Active
+# name 为抑制名，duration 为时长，state 0=停用 1=启用。
+# 用于边缘告警抑制管理。
+fn uc_edge_alert_inhibit_row(x: i64, y: i64, name: ptr, duration: ptr, state: i64, fg: i64, bg: i64) -> i64 {
+    let nlen: i64 = 0;
+    let dlen: i64 = 0;
+    let i: i64 = 0;
+    nlen = strlen(name);
+    dlen = strlen(duration);
+    uc_set(x, y, '[', UC_MAGENTA, bg);
+    uc_set(x + 1, y, 'I', UC_MAGENTA, bg);
+    uc_set(x + 2, y, ']', UC_MAGENTA, bg);
+    uc_set(x + 5, y, ' ', fg, bg);
+    i = 0;
+    while i < nlen {
+        uc_set(x + 6 + i, y, name[i], UC_YELLOW, bg);
+        i = i + 1;
+    }
+    uc_set(x + 8 + nlen, y, ' ', fg, bg);
+    i = 0;
+    while i < dlen {
+        uc_set(x + 9 + nlen + i, y, duration[i], UC_WHITE, bg);
+        i = i + 1;
+    }
+    uc_set(x + 11 + nlen + dlen, y, ' ', fg, bg);
+    if state != 0 {
+        uc_set(x + 12 + nlen + dlen, y, 'A', UC_GREEN, bg);
+        uc_set(x + 13 + nlen + dlen, y, 'c', UC_GREEN, bg);
+        uc_set(x + 14 + nlen + dlen, y, 't', UC_GREEN, bg);
+        uc_set(x + 15 + nlen + dlen, y, 'i', UC_GREEN, bg);
+        uc_set(x + 16 + nlen + dlen, y, 'v', UC_GREEN, bg);
+        uc_set(x + 17 + nlen + dlen, y, 'e', UC_GREEN, bg);
+    } else {
+        uc_set(x + 12 + nlen + dlen, y, 'I', UC_RED, bg);
+        uc_set(x + 13 + nlen + dlen, y, 'n', UC_RED, bg);
+        uc_set(x + 14 + nlen + dlen, y, 'a', UC_RED, bg);
+        uc_set(x + 15 + nlen + dlen, y, 'c', UC_RED, bg);
+        uc_set(x + 16 + nlen + dlen, y, 't', UC_RED, bg);
+        uc_set(x + 17 + nlen + dlen, y, 'i', UC_RED, bg);
+        uc_set(x + 18 + nlen + dlen, y, 'v', UC_RED, bg);
+        uc_set(x + 19 + nlen + dlen, y, 'e', UC_RED, bg);
+    }
+    return 0;
+}
+
+# ============ v1.734 边缘告警静默行 ============
+
+# uc_edge_alert_silence_row：绘制边缘告警静默行 [S]  silence-01  until 14:00  Active
+# name 为静默名，until 为截止时间，state 0=停用 1=启用。
+# 用于边缘告警静默管理。
+fn uc_edge_alert_silence_row(x: i64, y: i64, name: ptr, until: ptr, state: i64, fg: i64, bg: i64) -> i64 {
+    let nlen: i64 = 0;
+    let ulen: i64 = 0;
+    let i: i64 = 0;
+    nlen = strlen(name);
+    ulen = strlen(until);
+    uc_set(x, y, '[', UC_GREEN, bg);
+    uc_set(x + 1, y, 'S', UC_GREEN, bg);
+    uc_set(x + 2, y, ']', UC_GREEN, bg);
+    uc_set(x + 5, y, ' ', fg, bg);
+    i = 0;
+    while i < nlen {
+        uc_set(x + 6 + i, y, name[i], UC_YELLOW, bg);
+        i = i + 1;
+    }
+    uc_set(x + 8 + nlen, y, ' ', fg, bg);
+    i = 0;
+    while i < ulen {
+        uc_set(x + 9 + nlen + i, y, until[i], UC_WHITE, bg);
+        i = i + 1;
+    }
+    uc_set(x + 11 + nlen + ulen, y, ' ', fg, bg);
+    if state != 0 {
+        uc_set(x + 12 + nlen + ulen, y, 'A', UC_GREEN, bg);
+        uc_set(x + 13 + nlen + ulen, y, 'c', UC_GREEN, bg);
+        uc_set(x + 14 + nlen + ulen, y, 't', UC_GREEN, bg);
+        uc_set(x + 15 + nlen + ulen, y, 'i', UC_GREEN, bg);
+        uc_set(x + 16 + nlen + ulen, y, 'v', UC_GREEN, bg);
+        uc_set(x + 17 + nlen + ulen, y, 'e', UC_GREEN, bg);
+    } else {
+        uc_set(x + 12 + nlen + ulen, y, 'I', UC_RED, bg);
+        uc_set(x + 13 + nlen + ulen, y, 'n', UC_RED, bg);
+        uc_set(x + 14 + nlen + ulen, y, 'a', UC_RED, bg);
+        uc_set(x + 15 + nlen + ulen, y, 'c', UC_RED, bg);
+        uc_set(x + 16 + nlen + ulen, y, 't', UC_RED, bg);
+        uc_set(x + 17 + nlen + ulen, y, 'i', UC_RED, bg);
+        uc_set(x + 18 + nlen + ulen, y, 'v', UC_RED, bg);
+        uc_set(x + 19 + nlen + ulen, y, 'e', UC_RED, bg);
+    }
+    return 0;
+}
+
+# ============ v1.735 边缘事件总线行 ============
+
+# uc_edge_event_bus_row：绘制边缘事件总线行 [E]  edge-events  Running  1200 msg/s
+# name 为总线名，state 0=停止 1=运行，rate 为速率。
+# 用于边缘事件总线管理。
+fn uc_edge_event_bus_row(x: i64, y: i64, name: ptr, state: i64, rate: i64, fg: i64, bg: i64) -> i64 {
+    let nlen: i64 = 0;
+    let i: i64 = 0;
+    nlen = strlen(name);
+    uc_set(x, y, '[', UC_CYAN, bg);
+    uc_set(x + 1, y, 'E', UC_CYAN, bg);
+    uc_set(x + 2, y, ']', UC_CYAN, bg);
+    uc_set(x + 5, y, ' ', fg, bg);
+    i = 0;
+    while i < nlen {
+        uc_set(x + 6 + i, y, name[i], UC_YELLOW, bg);
+        i = i + 1;
+    }
+    uc_set(x + 8 + nlen, y, ' ', fg, bg);
+    if state != 0 {
+        uc_set(x + 9 + nlen, y, 'R', UC_GREEN, bg);
+        uc_set(x + 10 + nlen, y, 'u', UC_GREEN, bg);
+        uc_set(x + 11 + nlen, y, 'n', UC_GREEN, bg);
+        uc_set(x + 12 + nlen, y, 'n', UC_GREEN, bg);
+        uc_set(x + 13 + nlen, y, 'i', UC_GREEN, bg);
+        uc_set(x + 14 + nlen, y, 'n', UC_GREEN, bg);
+        uc_set(x + 15 + nlen, y, 'g', UC_GREEN, bg);
+    } else {
+        uc_set(x + 9 + nlen, y, 'S', UC_RED, bg);
+        uc_set(x + 10 + nlen, y, 't', UC_RED, bg);
+        uc_set(x + 11 + nlen, y, 'o', UC_RED, bg);
+        uc_set(x + 12 + nlen, y, 'p', UC_RED, bg);
+        uc_set(x + 13 + nlen, y, 'p', UC_RED, bg);
+        uc_set(x + 14 + nlen, y, 'e', UC_RED, bg);
+        uc_set(x + 15 + nlen, y, 'd', UC_RED, bg);
+    }
+    uc_set(x + 17 + nlen, y, ' ', fg, bg);
+    uc_set(x + 18 + nlen, y, '0' + rate / 1000, UC_WHITE, bg);
+    uc_set(x + 19 + nlen, y, '0' + (rate / 100) % 10, UC_WHITE, bg);
+    uc_set(x + 20 + nlen, y, '0' + (rate / 10) % 10, UC_WHITE, bg);
+    uc_set(x + 21 + nlen, y, '0' + rate % 10, UC_WHITE, bg);
+    uc_set(x + 22 + nlen, y, ' ', UC_WHITE, bg);
+    uc_set(x + 23 + nlen, y, 'm', UC_WHITE, bg);
+    uc_set(x + 24 + nlen, y, 's', UC_WHITE, bg);
+    uc_set(x + 25 + nlen, y, 'g', UC_WHITE, bg);
+    uc_set(x + 26 + nlen, y, '/', UC_WHITE, bg);
+    uc_set(x + 27 + nlen, y, 's', UC_WHITE, bg);
+    return 0;
+}
+
+# ============ v1.736 边缘消息队列行 ============
+
+# uc_edge_mq_row：绘制边缘消息队列行 [Q]  edge-queue  5000 pending  Active
+# name 为队列名，pending 为积压数，state 0=停用 1=启用。
+# 用于边缘消息队列管理。
+fn uc_edge_mq_row(x: i64, y: i64, name: ptr, pending: i64, state: i64, fg: i64, bg: i64) -> i64 {
+    let nlen: i64 = 0;
+    let i: i64 = 0;
+    nlen = strlen(name);
+    uc_set(x, y, '[', UC_MAGENTA, bg);
+    uc_set(x + 1, y, 'Q', UC_MAGENTA, bg);
+    uc_set(x + 2, y, ']', UC_MAGENTA, bg);
+    uc_set(x + 5, y, ' ', fg, bg);
+    i = 0;
+    while i < nlen {
+        uc_set(x + 6 + i, y, name[i], UC_YELLOW, bg);
+        i = i + 1;
+    }
+    uc_set(x + 8 + nlen, y, ' ', fg, bg);
+    uc_set(x + 9 + nlen, y, '0' + pending / 1000, UC_WHITE, bg);
+    uc_set(x + 10 + nlen, y, '0' + (pending / 100) % 10, UC_WHITE, bg);
+    uc_set(x + 11 + nlen, y, '0' + (pending / 10) % 10, UC_WHITE, bg);
+    uc_set(x + 12 + nlen, y, '0' + pending % 10, UC_WHITE, bg);
+    uc_set(x + 13 + nlen, y, ' ', UC_WHITE, bg);
+    uc_set(x + 14 + nlen, y, 'p', UC_WHITE, bg);
+    uc_set(x + 15 + nlen, y, 'e', UC_WHITE, bg);
+    uc_set(x + 16 + nlen, y, 'n', UC_WHITE, bg);
+    uc_set(x + 17 + nlen, y, 'd', UC_WHITE, bg);
+    uc_set(x + 18 + nlen, y, 'i', UC_WHITE, bg);
+    uc_set(x + 19 + nlen, y, 'n', UC_WHITE, bg);
+    uc_set(x + 20 + nlen, y, 'g', UC_WHITE, bg);
+    uc_set(x + 22 + nlen, y, ' ', fg, bg);
+    if state != 0 {
+        uc_set(x + 23 + nlen, y, 'A', UC_GREEN, bg);
+        uc_set(x + 24 + nlen, y, 'c', UC_GREEN, bg);
+        uc_set(x + 25 + nlen, y, 't', UC_GREEN, bg);
+        uc_set(x + 26 + nlen, y, 'i', UC_GREEN, bg);
+        uc_set(x + 27 + nlen, y, 'v', UC_GREEN, bg);
+        uc_set(x + 28 + nlen, y, 'e', UC_GREEN, bg);
+    } else {
+        uc_set(x + 23 + nlen, y, 'I', UC_RED, bg);
+        uc_set(x + 24 + nlen, y, 'n', UC_RED, bg);
+        uc_set(x + 25 + nlen, y, 'a', UC_RED, bg);
+        uc_set(x + 26 + nlen, y, 'c', UC_RED, bg);
+        uc_set(x + 27 + nlen, y, 't', UC_RED, bg);
+        uc_set(x + 28 + nlen, y, 'i', UC_RED, bg);
+        uc_set(x + 29 + nlen, y, 'v', UC_RED, bg);
+        uc_set(x + 30 + nlen, y, 'e', UC_RED, bg);
+    }
+    return 0;
+}
+
+# ============ v1.737 边缘流处理器行 ============
+
+# uc_edge_stream_processor_row：绘制边缘流处理器行 [P]  temp-stream  Running  10 ms
+# name 为处理器名，state 0=停止 1=运行，latency 为延迟。
+# 用于边缘流处理器管理。
+fn uc_edge_stream_processor_row(x: i64, y: i64, name: ptr, state: i64, latency: ptr, fg: i64, bg: i64) -> i64 {
+    let nlen: i64 = 0;
+    let llen: i64 = 0;
+    let i: i64 = 0;
+    nlen = strlen(name);
+    llen = strlen(latency);
+    uc_set(x, y, '[', UC_GREEN, bg);
+    uc_set(x + 1, y, 'P', UC_GREEN, bg);
+    uc_set(x + 2, y, ']', UC_GREEN, bg);
+    uc_set(x + 5, y, ' ', fg, bg);
+    i = 0;
+    while i < nlen {
+        uc_set(x + 6 + i, y, name[i], UC_YELLOW, bg);
+        i = i + 1;
+    }
+    uc_set(x + 8 + nlen, y, ' ', fg, bg);
+    if state != 0 {
+        uc_set(x + 9 + nlen, y, 'R', UC_GREEN, bg);
+        uc_set(x + 10 + nlen, y, 'u', UC_GREEN, bg);
+        uc_set(x + 11 + nlen, y, 'n', UC_GREEN, bg);
+        uc_set(x + 12 + nlen, y, 'n', UC_GREEN, bg);
+        uc_set(x + 13 + nlen, y, 'i', UC_GREEN, bg);
+        uc_set(x + 14 + nlen, y, 'n', UC_GREEN, bg);
+        uc_set(x + 15 + nlen, y, 'g', UC_GREEN, bg);
+    } else {
+        uc_set(x + 9 + nlen, y, 'S', UC_RED, bg);
+        uc_set(x + 10 + nlen, y, 't', UC_RED, bg);
+        uc_set(x + 11 + nlen, y, 'o', UC_RED, bg);
+        uc_set(x + 12 + nlen, y, 'p', UC_RED, bg);
+        uc_set(x + 13 + nlen, y, 'p', UC_RED, bg);
+        uc_set(x + 14 + nlen, y, 'e', UC_RED, bg);
+        uc_set(x + 15 + nlen, y, 'd', UC_RED, bg);
+    }
+    uc_set(x + 17 + nlen, y, ' ', fg, bg);
+    i = 0;
+    while i < llen {
+        uc_set(x + 18 + nlen + i, y, latency[i], UC_CYAN, bg);
+        i = i + 1;
+    }
+    return 0;
+}
+
+# ============ v1.738 边缘连接器行 ============
+
+# uc_edge_connector_row：绘制边缘连接器行 [C]  cloud-connector  AWS IoT  Connected
+# name 为连接器名，target 为目标，state 0=断开 1=已连接。
+# 用于边缘连接器管理。
+fn uc_edge_connector_row(x: i64, y: i64, name: ptr, target: ptr, state: i64, fg: i64, bg: i64) -> i64 {
+    let nlen: i64 = 0;
+    let tlen: i64 = 0;
+    let i: i64 = 0;
+    nlen = strlen(name);
+    tlen = strlen(target);
+    uc_set(x, y, '[', UC_CYAN, bg);
+    uc_set(x + 1, y, 'C', UC_CYAN, bg);
+    uc_set(x + 2, y, ']', UC_CYAN, bg);
+    uc_set(x + 5, y, ' ', fg, bg);
+    i = 0;
+    while i < nlen {
+        uc_set(x + 6 + i, y, name[i], UC_YELLOW, bg);
+        i = i + 1;
+    }
+    uc_set(x + 8 + nlen, y, ' ', fg, bg);
+    i = 0;
+    while i < tlen {
+        uc_set(x + 9 + nlen + i, y, target[i], UC_WHITE, bg);
+        i = i + 1;
+    }
+    uc_set(x + 11 + nlen + tlen, y, ' ', fg, bg);
+    if state != 0 {
+        uc_set(x + 12 + nlen + tlen, y, 'C', UC_GREEN, bg);
+        uc_set(x + 13 + nlen + tlen, y, 'o', UC_GREEN, bg);
+        uc_set(x + 14 + nlen + tlen, y, 'n', UC_GREEN, bg);
+        uc_set(x + 15 + nlen + tlen, y, 'n', UC_GREEN, bg);
+        uc_set(x + 16 + nlen + tlen, y, 'e', UC_GREEN, bg);
+        uc_set(x + 17 + nlen + tlen, y, 'c', UC_GREEN, bg);
+        uc_set(x + 18 + nlen + tlen, y, 't', UC_GREEN, bg);
+        uc_set(x + 19 + nlen + tlen, y, 'e', UC_GREEN, bg);
+        uc_set(x + 20 + nlen + tlen, y, 'd', UC_GREEN, bg);
+    } else {
+        uc_set(x + 12 + nlen + tlen, y, 'D', UC_RED, bg);
+        uc_set(x + 13 + nlen + tlen, y, 'i', UC_RED, bg);
+        uc_set(x + 14 + nlen + tlen, y, 's', UC_RED, bg);
+        uc_set(x + 15 + nlen + tlen, y, 'c', UC_RED, bg);
+        uc_set(x + 16 + nlen + tlen, y, 'o', UC_RED, bg);
+        uc_set(x + 17 + nlen + tlen, y, 'n', UC_RED, bg);
+        uc_set(x + 18 + nlen + tlen, y, 'n', UC_RED, bg);
+        uc_set(x + 19 + nlen + tlen, y, 'e', UC_RED, bg);
+        uc_set(x + 20 + nlen + tlen, y, 'c', UC_RED, bg);
+        uc_set(x + 21 + nlen + tlen, y, 't', UC_RED, bg);
+    }
+    return 0;
+}
+
+# ============ v1.739 边缘数据湖行 ============
+
+# uc_edge_lake_row：绘制边缘数据湖行 [L]  edge-lake  5TB  3 tables
+# name 为数据湖名，size 为大小，tables 为表数。
+# 用于边缘数据湖管理。
+fn uc_edge_lake_row(x: i64, y: i64, name: ptr, size: ptr, tables: i64, fg: i64, bg: i64) -> i64 {
+    let nlen: i64 = 0;
+    let slen: i64 = 0;
+    let i: i64 = 0;
+    nlen = strlen(name);
+    slen = strlen(size);
+    uc_set(x, y, '[', UC_MAGENTA, bg);
+    uc_set(x + 1, y, 'L', UC_MAGENTA, bg);
+    uc_set(x + 2, y, ']', UC_MAGENTA, bg);
+    uc_set(x + 5, y, ' ', fg, bg);
+    i = 0;
+    while i < nlen {
+        uc_set(x + 6 + i, y, name[i], UC_YELLOW, bg);
+        i = i + 1;
+    }
+    uc_set(x + 8 + nlen, y, ' ', fg, bg);
+    i = 0;
+    while i < slen {
+        uc_set(x + 9 + nlen + i, y, size[i], UC_WHITE, bg);
+        i = i + 1;
+    }
+    uc_set(x + 11 + nlen + slen, y, ' ', fg, bg);
+    uc_set(x + 12 + nlen + slen, y, '0' + tables, UC_CYAN, bg);
+    uc_set(x + 13 + nlen + slen, y, ' ', UC_CYAN, bg);
+    uc_set(x + 14 + nlen + slen, y, 't', UC_CYAN, bg);
+    uc_set(x + 15 + nlen + slen, y, 'a', UC_CYAN, bg);
+    uc_set(x + 16 + nlen + slen, y, 'b', UC_CYAN, bg);
+    uc_set(x + 17 + nlen + slen, y, 'l', UC_CYAN, bg);
+    uc_set(x + 18 + nlen + slen, y, 'e', UC_CYAN, bg);
+    uc_set(x + 19 + nlen + slen, y, 's', UC_CYAN, bg);
+    return 0;
+}
+
+# ============ v1.740 边缘数据仓库行 ============
+
+# uc_edge_warehouse_row：绘制边缘数据仓库行 [W]  edge-wh  2TB  50 queries
+# name 为仓库名，size 为大小，queries 为查询数。
+# 用于边缘数据仓库管理。
+fn uc_edge_warehouse_row(x: i64, y: i64, name: ptr, size: ptr, queries: i64, fg: i64, bg: i64) -> i64 {
+    let nlen: i64 = 0;
+    let slen: i64 = 0;
+    let i: i64 = 0;
+    nlen = strlen(name);
+    slen = strlen(size);
+    uc_set(x, y, '[', UC_GREEN, bg);
+    uc_set(x + 1, y, 'W', UC_GREEN, bg);
+    uc_set(x + 2, y, ']', UC_GREEN, bg);
+    uc_set(x + 5, y, ' ', fg, bg);
+    i = 0;
+    while i < nlen {
+        uc_set(x + 6 + i, y, name[i], UC_YELLOW, bg);
+        i = i + 1;
+    }
+    uc_set(x + 8 + nlen, y, ' ', fg, bg);
+    i = 0;
+    while i < slen {
+        uc_set(x + 9 + nlen + i, y, size[i], UC_WHITE, bg);
+        i = i + 1;
+    }
+    uc_set(x + 11 + nlen + slen, y, ' ', fg, bg);
+    uc_set(x + 12 + nlen + slen, y, '0' + queries / 10, UC_CYAN, bg);
+    uc_set(x + 13 + nlen + slen, y, '0' + queries % 10, UC_CYAN, bg);
+    uc_set(x + 14 + nlen + slen, y, ' ', UC_CYAN, bg);
+    uc_set(x + 15 + nlen + slen, y, 'q', UC_CYAN, bg);
+    uc_set(x + 16 + nlen + slen, y, 'u', UC_CYAN, bg);
+    uc_set(x + 17 + nlen + slen, y, 'e', UC_CYAN, bg);
+    uc_set(x + 18 + nlen + slen, y, 'r', UC_CYAN, bg);
+    uc_set(x + 19 + nlen + slen, y, 'i', UC_CYAN, bg);
+    uc_set(x + 20 + nlen + slen, y, 'e', UC_CYAN, bg);
+    uc_set(x + 21 + nlen + slen, y, 's', UC_CYAN, bg);
+    return 0;
+}
