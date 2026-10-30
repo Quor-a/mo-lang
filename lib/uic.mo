@@ -13597,3 +13597,466 @@ fn uc_ingress_row(x: i64, y: i64, name: ptr, controller: ptr, state: i64, fg: i6
     }
     return 0;
 }
+
+# ============ v1.651 Helm Release 行 ============
+
+# uc_helm_release_row：绘制 Helm Release 行 [R]  my-app  deployed  v2.1.0
+# name 为 Release 名，status 为状态，version 为版本。
+# 用于 Helm Release 管理。
+fn uc_helm_release_row(x: i64, y: i64, name: ptr, status: ptr, version: ptr, fg: i64, bg: i64) -> i64 {
+    let nlen: i64 = 0;
+    let slen: i64 = 0;
+    let vlen: i64 = 0;
+    let i: i64 = 0;
+    nlen = strlen(name);
+    slen = strlen(status);
+    vlen = strlen(version);
+    uc_set(x, y, '[', UC_GREEN, bg);
+    uc_set(x + 1, y, 'R', UC_GREEN, bg);
+    uc_set(x + 2, y, ']', UC_GREEN, bg);
+    uc_set(x + 5, y, ' ', fg, bg);
+    i = 0;
+    while i < nlen {
+        uc_set(x + 6 + i, y, name[i], UC_YELLOW, bg);
+        i = i + 1;
+    }
+    uc_set(x + 8 + nlen, y, ' ', fg, bg);
+    i = 0;
+    while i < slen {
+        uc_set(x + 9 + nlen + i, y, status[i], UC_WHITE, bg);
+        i = i + 1;
+    }
+    uc_set(x + 11 + nlen + slen, y, ' ', fg, bg);
+    i = 0;
+    while i < vlen {
+        uc_set(x + 12 + nlen + slen + i, y, version[i], UC_CYAN, bg);
+        i = i + 1;
+    }
+    return 0;
+}
+
+# ============ v1.652 Helm Chart 行 ============
+
+# uc_helm_chart_row：绘制 Helm Chart 行 [C]  nginx-ingress  4.8.0  Published
+# name 为 Chart 名，version 为版本，state 0=未发布 1=已发布。
+# 用于 Helm Chart 管理。
+fn uc_helm_chart_row(x: i64, y: i64, name: ptr, version: ptr, state: i64, fg: i64, bg: i64) -> i64 {
+    let nlen: i64 = 0;
+    let vlen: i64 = 0;
+    let i: i64 = 0;
+    nlen = strlen(name);
+    vlen = strlen(version);
+    uc_set(x, y, '[', UC_MAGENTA, bg);
+    uc_set(x + 1, y, 'C', UC_MAGENTA, bg);
+    uc_set(x + 2, y, ']', UC_MAGENTA, bg);
+    uc_set(x + 5, y, ' ', fg, bg);
+    i = 0;
+    while i < nlen {
+        uc_set(x + 6 + i, y, name[i], UC_YELLOW, bg);
+        i = i + 1;
+    }
+    uc_set(x + 8 + nlen, y, ' ', fg, bg);
+    i = 0;
+    while i < vlen {
+        uc_set(x + 9 + nlen + i, y, version[i], UC_WHITE, bg);
+        i = i + 1;
+    }
+    uc_set(x + 11 + nlen + vlen, y, ' ', fg, bg);
+    if state != 0 {
+        uc_set(x + 12 + nlen + vlen, y, 'P', UC_GREEN, bg);
+        uc_set(x + 13 + nlen + vlen, y, 'u', UC_GREEN, bg);
+        uc_set(x + 14 + nlen + vlen, y, 'b', UC_GREEN, bg);
+        uc_set(x + 15 + nlen + vlen, y, 'l', UC_GREEN, bg);
+        uc_set(x + 16 + nlen + vlen, y, 'i', UC_GREEN, bg);
+        uc_set(x + 17 + nlen + vlen, y, 's', UC_GREEN, bg);
+        uc_set(x + 18 + nlen + vlen, y, 'h', UC_GREEN, bg);
+        uc_set(x + 19 + nlen + vlen, y, 'e', UC_GREEN, bg);
+        uc_set(x + 20 + nlen + vlen, y, 'd', UC_GREEN, bg);
+    } else {
+        uc_set(x + 12 + nlen + vlen, y, 'D', UC_CYAN, bg);
+        uc_set(x + 13 + nlen + vlen, y, 'r', UC_CYAN, bg);
+        uc_set(x + 14 + nlen + vlen, y, 'a', UC_CYAN, bg);
+        uc_set(x + 15 + nlen + vlen, y, 'f', UC_CYAN, bg);
+        uc_set(x + 16 + nlen + vlen, y, 't', UC_CYAN, bg);
+    }
+    return 0;
+}
+
+# ============ v1.653 K8s 作业行 ============
+
+# uc_k8s_job_row：绘制 K8s 作业行 [J]  migration-1  Succeeded  3 pods
+# name 为作业名，pods 为 Pod 数，state 0=运行 1=成功。
+# 用于 Kubernetes Job 管理。
+fn uc_k8s_job_row(x: i64, y: i64, name: ptr, pods: i64, state: i64, fg: i64, bg: i64) -> i64 {
+    let nlen: i64 = 0;
+    let i: i64 = 0;
+    nlen = strlen(name);
+    uc_set(x, y, '[', UC_CYAN, bg);
+    uc_set(x + 1, y, 'J', UC_CYAN, bg);
+    uc_set(x + 2, y, ']', UC_CYAN, bg);
+    uc_set(x + 5, y, ' ', fg, bg);
+    i = 0;
+    while i < nlen {
+        uc_set(x + 6 + i, y, name[i], UC_YELLOW, bg);
+        i = i + 1;
+    }
+    uc_set(x + 8 + nlen, y, ' ', fg, bg);
+    if state != 0 {
+        uc_set(x + 9 + nlen, y, 'S', UC_GREEN, bg);
+        uc_set(x + 10 + nlen, y, 'u', UC_GREEN, bg);
+        uc_set(x + 11 + nlen, y, 'c', UC_GREEN, bg);
+        uc_set(x + 12 + nlen, y, 'c', UC_GREEN, bg);
+        uc_set(x + 13 + nlen, y, 'e', UC_GREEN, bg);
+        uc_set(x + 14 + nlen, y, 'e', UC_GREEN, bg);
+        uc_set(x + 15 + nlen, y, 'd', UC_GREEN, bg);
+        uc_set(x + 16 + nlen, y, 'e', UC_GREEN, bg);
+        uc_set(x + 17 + nlen, y, 'd', UC_GREEN, bg);
+    } else {
+        uc_set(x + 9 + nlen, y, 'R', UC_CYAN, bg);
+        uc_set(x + 10 + nlen, y, 'u', UC_CYAN, bg);
+        uc_set(x + 11 + nlen, y, 'n', UC_CYAN, bg);
+        uc_set(x + 12 + nlen, y, 'n', UC_CYAN, bg);
+        uc_set(x + 13 + nlen, y, 'i', UC_CYAN, bg);
+        uc_set(x + 14 + nlen, y, 'n', UC_CYAN, bg);
+        uc_set(x + 15 + nlen, y, 'g', UC_CYAN, bg);
+    }
+    uc_set(x + 17 + nlen, y, ' ', fg, bg);
+    uc_set(x + 18 + nlen, y, '0' + pods, UC_WHITE, bg);
+    uc_set(x + 19 + nlen, y, ' ', UC_WHITE, bg);
+    uc_set(x + 20 + nlen, y, 'p', UC_WHITE, bg);
+    uc_set(x + 21 + nlen, y, 'o', UC_WHITE, bg);
+    uc_set(x + 22 + nlen, y, 'd', UC_WHITE, bg);
+    uc_set(x + 23 + nlen, y, 's', UC_WHITE, bg);
+    return 0;
+}
+
+# ============ v1.654 K8s CronJob 行 ============
+
+# uc_cronjob_row：绘制 K8s CronJob 行 [C]  backup-cron  */30 * * * *  Active
+# name 为作业名，schedule 为调度，state 0=暂停 1=启用。
+# 用于 Kubernetes CronJob 管理。
+fn uc_cronjob_row(x: i64, y: i64, name: ptr, schedule: ptr, state: i64, fg: i64, bg: i64) -> i64 {
+    let nlen: i64 = 0;
+    let slen: i64 = 0;
+    let i: i64 = 0;
+    nlen = strlen(name);
+    slen = strlen(schedule);
+    uc_set(x, y, '[', UC_MAGENTA, bg);
+    uc_set(x + 1, y, 'C', UC_MAGENTA, bg);
+    uc_set(x + 2, y, ']', UC_MAGENTA, bg);
+    uc_set(x + 5, y, ' ', fg, bg);
+    i = 0;
+    while i < nlen {
+        uc_set(x + 6 + i, y, name[i], UC_YELLOW, bg);
+        i = i + 1;
+    }
+    uc_set(x + 8 + nlen, y, ' ', fg, bg);
+    i = 0;
+    while i < slen {
+        uc_set(x + 9 + nlen + i, y, schedule[i], UC_WHITE, bg);
+        i = i + 1;
+    }
+    uc_set(x + 11 + nlen + slen, y, ' ', fg, bg);
+    if state != 0 {
+        uc_set(x + 12 + nlen + slen, y, 'A', UC_GREEN, bg);
+        uc_set(x + 13 + nlen + slen, y, 'c', UC_GREEN, bg);
+        uc_set(x + 14 + nlen + slen, y, 't', UC_GREEN, bg);
+        uc_set(x + 15 + nlen + slen, y, 'i', UC_GREEN, bg);
+        uc_set(x + 16 + nlen + slen, y, 'v', UC_GREEN, bg);
+        uc_set(x + 17 + nlen + slen, y, 'e', UC_GREEN, bg);
+    } else {
+        uc_set(x + 12 + nlen + slen, y, 'P', fg, bg);
+        uc_set(x + 13 + nlen + slen, y, 'a', fg, bg);
+        uc_set(x + 14 + nlen + slen, y, 'u', fg, bg);
+        uc_set(x + 15 + nlen + slen, y, 's', fg, bg);
+        uc_set(x + 16 + nlen + slen, y, 'e', fg, bg);
+        uc_set(x + 17 + nlen + slen, y, 'd', fg, bg);
+    }
+    return 0;
+}
+
+# ============ v1.655 K8s HPA 行 ============
+
+# uc_hpa_row：绘制 K8s HPA 行 [H]  web-hpa  cpu 80%  2/10 replicas
+# name 为 HPA 名，metric 为指标，state 0=异常 1=正常。
+# 用于 Kubernetes HPA 管理。
+fn uc_hpa_row(x: i64, y: i64, name: ptr, metric: ptr, state: i64, fg: i64, bg: i64) -> i64 {
+    let nlen: i64 = 0;
+    let mlen: i64 = 0;
+    let i: i64 = 0;
+    nlen = strlen(name);
+    mlen = strlen(metric);
+    uc_set(x, y, '[', UC_YELLOW, bg);
+    uc_set(x + 1, y, 'H', UC_YELLOW, bg);
+    uc_set(x + 2, y, ']', UC_YELLOW, bg);
+    uc_set(x + 5, y, ' ', fg, bg);
+    i = 0;
+    while i < nlen {
+        uc_set(x + 6 + i, y, name[i], UC_YELLOW, bg);
+        i = i + 1;
+    }
+    uc_set(x + 8 + nlen, y, ' ', fg, bg);
+    i = 0;
+    while i < mlen {
+        uc_set(x + 9 + nlen + i, y, metric[i], UC_WHITE, bg);
+        i = i + 1;
+    }
+    uc_set(x + 11 + nlen + mlen, y, ' ', fg, bg);
+    if state != 0 {
+        uc_set(x + 12 + nlen + mlen, y, '2', UC_GREEN, bg);
+        uc_set(x + 13 + nlen + mlen, y, '/', UC_GREEN, bg);
+        uc_set(x + 14 + nlen + mlen, y, '1', UC_GREEN, bg);
+        uc_set(x + 15 + nlen + mlen, y, '0', UC_GREEN, bg);
+        uc_set(x + 16 + nlen + mlen, y, ' ', UC_GREEN, bg);
+        uc_set(x + 17 + nlen + mlen, y, 'r', UC_GREEN, bg);
+        uc_set(x + 18 + nlen + mlen, y, 'e', UC_GREEN, bg);
+        uc_set(x + 19 + nlen + mlen, y, 'p', UC_GREEN, bg);
+        uc_set(x + 20 + nlen + mlen, y, 'l', UC_GREEN, bg);
+        uc_set(x + 21 + nlen + mlen, y, 'i', UC_GREEN, bg);
+        uc_set(x + 22 + nlen + mlen, y, 'c', UC_GREEN, bg);
+        uc_set(x + 23 + nlen + mlen, y, 'a', UC_GREEN, bg);
+        uc_set(x + 24 + nlen + mlen, y, 's', UC_GREEN, bg);
+    } else {
+        uc_set(x + 12 + nlen + mlen, y, '0', UC_RED, bg);
+        uc_set(x + 13 + nlen + mlen, y, '/', UC_RED, bg);
+        uc_set(x + 14 + nlen + mlen, y, '1', UC_RED, bg);
+        uc_set(x + 15 + nlen + mlen, y, '0', UC_RED, bg);
+        uc_set(x + 16 + nlen + mlen, y, ' ', UC_RED, bg);
+        uc_set(x + 17 + nlen + mlen, y, 'r', UC_RED, bg);
+        uc_set(x + 18 + nlen + mlen, y, 'e', UC_RED, bg);
+        uc_set(x + 19 + nlen + mlen, y, 'p', UC_RED, bg);
+        uc_set(x + 20 + nlen + mlen, y, 'l', UC_RED, bg);
+        uc_set(x + 21 + nlen + mlen, y, 'i', UC_RED, bg);
+        uc_set(x + 22 + nlen + mlen, y, 'c', UC_RED, bg);
+        uc_set(x + 23 + nlen + mlen, y, 'a', UC_RED, bg);
+        uc_set(x + 24 + nlen + mlen, y, 's', UC_RED, bg);
+    }
+    return 0;
+}
+
+# ============ v1.656 K8s ServiceAccount 详情行 ============
+
+# uc_sa_detail_row：绘制 K8s ServiceAccount 详情行 [A]  deploy-bot  default-ns  Active
+# name 为账户名，namespace 为命名空间，state 0=停用 1=启用。
+# 用于 Kubernetes ServiceAccount 管理。
+fn uc_sa_detail_row(x: i64, y: i64, name: ptr, namespace: ptr, state: i64, fg: i64, bg: i64) -> i64 {
+    let nlen: i64 = 0;
+    let nslen: i64 = 0;
+    let i: i64 = 0;
+    nlen = strlen(name);
+    nslen = strlen(namespace);
+    uc_set(x, y, '[', UC_CYAN, bg);
+    uc_set(x + 1, y, 'A', UC_CYAN, bg);
+    uc_set(x + 2, y, ']', UC_CYAN, bg);
+    uc_set(x + 5, y, ' ', fg, bg);
+    i = 0;
+    while i < nlen {
+        uc_set(x + 6 + i, y, name[i], UC_YELLOW, bg);
+        i = i + 1;
+    }
+    uc_set(x + 8 + nlen, y, ' ', fg, bg);
+    i = 0;
+    while i < nslen {
+        uc_set(x + 9 + nlen + i, y, namespace[i], UC_WHITE, bg);
+        i = i + 1;
+    }
+    uc_set(x + 11 + nlen + nslen, y, ' ', fg, bg);
+    if state != 0 {
+        uc_set(x + 12 + nlen + nslen, y, 'A', UC_GREEN, bg);
+        uc_set(x + 13 + nlen + nslen, y, 'c', UC_GREEN, bg);
+        uc_set(x + 14 + nlen + nslen, y, 't', UC_GREEN, bg);
+        uc_set(x + 15 + nlen + nslen, y, 'i', UC_GREEN, bg);
+        uc_set(x + 16 + nlen + nslen, y, 'v', UC_GREEN, bg);
+        uc_set(x + 17 + nlen + nslen, y, 'e', UC_GREEN, bg);
+    } else {
+        uc_set(x + 12 + nlen + nslen, y, 'I', fg, bg);
+        uc_set(x + 13 + nlen + nslen, y, 'n', fg, bg);
+        uc_set(x + 14 + nlen + nslen, y, 'a', fg, bg);
+        uc_set(x + 15 + nlen + nslen, y, 'c', fg, bg);
+        uc_set(x + 16 + nlen + nslen, y, 't', fg, bg);
+        uc_set(x + 17 + nlen + nslen, y, 'i', fg, bg);
+        uc_set(x + 18 + nlen + nslen, y, 'v', fg, bg);
+        uc_set(x + 19 + nlen + nslen, y, 'e', fg, bg);
+    }
+    return 0;
+}
+
+# ============ v1.657 K8s Role 行 ============
+
+# uc_k8s_role_row：绘制 K8s Role 行 [R]  pod-reader  read  default-ns
+# name 为角色名，permission 为权限，namespace 为命名空间。
+# 用于 Kubernetes Role 管理。
+fn uc_k8s_role_row(x: i64, y: i64, name: ptr, permission: ptr, namespace: ptr, fg: i64, bg: i64) -> i64 {
+    let nlen: i64 = 0;
+    let plen: i64 = 0;
+    let nslen: i64 = 0;
+    let i: i64 = 0;
+    nlen = strlen(name);
+    plen = strlen(permission);
+    nslen = strlen(namespace);
+    uc_set(x, y, '[', UC_GREEN, bg);
+    uc_set(x + 1, y, 'R', UC_GREEN, bg);
+    uc_set(x + 2, y, ']', UC_GREEN, bg);
+    uc_set(x + 5, y, ' ', fg, bg);
+    i = 0;
+    while i < nlen {
+        uc_set(x + 6 + i, y, name[i], UC_YELLOW, bg);
+        i = i + 1;
+    }
+    uc_set(x + 8 + nlen, y, ' ', fg, bg);
+    i = 0;
+    while i < plen {
+        uc_set(x + 9 + nlen + i, y, permission[i], UC_WHITE, bg);
+        i = i + 1;
+    }
+    uc_set(x + 11 + nlen + plen, y, ' ', fg, bg);
+    i = 0;
+    while i < nslen {
+        uc_set(x + 12 + nlen + plen + i, y, namespace[i], UC_MAGENTA, bg);
+        i = i + 1;
+    }
+    return 0;
+}
+
+# ============ v1.658 K8s 网络策略行 ============
+
+# uc_netpol_row：绘制 K8s 网络策略行 [P]  allow-api  ingress  Active
+# name 为策略名，direction 为方向，state 0=停用 1=启用。
+# 用于 Kubernetes 网络策略管理。
+fn uc_netpol_row(x: i64, y: i64, name: ptr, direction: ptr, state: i64, fg: i64, bg: i64) -> i64 {
+    let nlen: i64 = 0;
+    let dlen: i64 = 0;
+    let i: i64 = 0;
+    nlen = strlen(name);
+    dlen = strlen(direction);
+    uc_set(x, y, '[', UC_MAGENTA, bg);
+    uc_set(x + 1, y, 'P', UC_MAGENTA, bg);
+    uc_set(x + 2, y, ']', UC_MAGENTA, bg);
+    uc_set(x + 5, y, ' ', fg, bg);
+    i = 0;
+    while i < nlen {
+        uc_set(x + 6 + i, y, name[i], UC_YELLOW, bg);
+        i = i + 1;
+    }
+    uc_set(x + 8 + nlen, y, ' ', fg, bg);
+    i = 0;
+    while i < dlen {
+        uc_set(x + 9 + nlen + i, y, direction[i], UC_WHITE, bg);
+        i = i + 1;
+    }
+    uc_set(x + 11 + nlen + dlen, y, ' ', fg, bg);
+    if state != 0 {
+        uc_set(x + 12 + nlen + dlen, y, 'A', UC_GREEN, bg);
+        uc_set(x + 13 + nlen + dlen, y, 'c', UC_GREEN, bg);
+        uc_set(x + 14 + nlen + dlen, y, 't', UC_GREEN, bg);
+        uc_set(x + 15 + nlen + dlen, y, 'i', UC_GREEN, bg);
+        uc_set(x + 16 + nlen + dlen, y, 'v', UC_GREEN, bg);
+        uc_set(x + 17 + nlen + dlen, y, 'e', UC_GREEN, bg);
+    } else {
+        uc_set(x + 12 + nlen + dlen, y, 'I', fg, bg);
+        uc_set(x + 13 + nlen + dlen, y, 'n', fg, bg);
+        uc_set(x + 14 + nlen + dlen, y, 'a', fg, bg);
+        uc_set(x + 15 + nlen + dlen, y, 'c', fg, bg);
+        uc_set(x + 16 + nlen + dlen, y, 't', fg, bg);
+        uc_set(x + 17 + nlen + dlen, y, 'i', fg, bg);
+        uc_set(x + 18 + nlen + dlen, y, 'v', fg, bg);
+        uc_set(x + 19 + nlen + dlen, y, 'e', fg, bg);
+    }
+    return 0;
+}
+
+# ============ v1.659 K8s Pod 行 ============
+
+# uc_pod_row：绘制 K8s Pod 行 [P]  web-6b4d  Running  node-01  2/2
+# name 为 Pod 名，node 为节点，state 0=异常 1=运行。
+# 用于 Kubernetes Pod 管理。
+fn uc_pod_row(x: i64, y: i64, name: ptr, node: ptr, state: i64, fg: i64, bg: i64) -> i64 {
+    let nlen: i64 = 0;
+    let nodlen: i64 = 0;
+    let i: i64 = 0;
+    nlen = strlen(name);
+    nodlen = strlen(node);
+    uc_set(x, y, '[', UC_CYAN, bg);
+    uc_set(x + 1, y, 'P', UC_CYAN, bg);
+    uc_set(x + 2, y, ']', UC_CYAN, bg);
+    uc_set(x + 5, y, ' ', fg, bg);
+    i = 0;
+    while i < nlen {
+        uc_set(x + 6 + i, y, name[i], UC_YELLOW, bg);
+        i = i + 1;
+    }
+    uc_set(x + 8 + nlen, y, ' ', fg, bg);
+    if state != 0 {
+        uc_set(x + 9 + nlen, y, 'R', UC_GREEN, bg);
+        uc_set(x + 10 + nlen, y, 'u', UC_GREEN, bg);
+        uc_set(x + 11 + nlen, y, 'n', UC_GREEN, bg);
+        uc_set(x + 12 + nlen, y, 'n', UC_GREEN, bg);
+        uc_set(x + 13 + nlen, y, 'i', UC_GREEN, bg);
+        uc_set(x + 14 + nlen, y, 'n', UC_GREEN, bg);
+        uc_set(x + 15 + nlen, y, 'g', UC_GREEN, bg);
+    } else {
+        uc_set(x + 9 + nlen, y, 'E', UC_RED, bg);
+        uc_set(x + 10 + nlen, y, 'r', UC_RED, bg);
+        uc_set(x + 11 + nlen, y, 'r', UC_RED, bg);
+        uc_set(x + 12 + nlen, y, 'o', UC_RED, bg);
+        uc_set(x + 13 + nlen, y, 'r', UC_RED, bg);
+        uc_set(x + 14 + nlen, y, '!', UC_RED, bg);
+    }
+    uc_set(x + 16 + nlen, y, ' ', fg, bg);
+    i = 0;
+    while i < nodlen {
+        uc_set(x + 17 + nlen + i, y, node[i], UC_MAGENTA, bg);
+        i = i + 1;
+    }
+    uc_set(x + 19 + nlen + nodlen, y, ' ', fg, bg);
+    uc_set(x + 20 + nlen + nodlen, y, '2', UC_WHITE, bg);
+    uc_set(x + 21 + nlen + nodlen, y, '/', UC_WHITE, bg);
+    uc_set(x + 22 + nlen + nodlen, y, '2', UC_WHITE, bg);
+    return 0;
+}
+
+# ============ v1.660 K8s 节点行 ============
+
+# uc_k8s_node_row：绘制 K8s 节点行 [N]  node-01  Ready  linux-amd64
+# name 为节点名，state 0=未就绪 1=就绪，arch 为架构。
+# 用于 Kubernetes 节点管理。
+fn uc_k8s_node_row(x: i64, y: i64, name: ptr, state: i64, arch: ptr, fg: i64, bg: i64) -> i64 {
+    let nlen: i64 = 0;
+    let alen: i64 = 0;
+    let i: i64 = 0;
+    nlen = strlen(name);
+    alen = strlen(arch);
+    uc_set(x, y, '[', UC_GREEN, bg);
+    uc_set(x + 1, y, 'N', UC_GREEN, bg);
+    uc_set(x + 2, y, ']', UC_GREEN, bg);
+    uc_set(x + 5, y, ' ', fg, bg);
+    i = 0;
+    while i < nlen {
+        uc_set(x + 6 + i, y, name[i], UC_YELLOW, bg);
+        i = i + 1;
+    }
+    uc_set(x + 8 + nlen, y, ' ', fg, bg);
+    if state != 0 {
+        uc_set(x + 9 + nlen, y, 'R', UC_GREEN, bg);
+        uc_set(x + 10 + nlen, y, 'e', UC_GREEN, bg);
+        uc_set(x + 11 + nlen, y, 'a', UC_GREEN, bg);
+        uc_set(x + 12 + nlen, y, 'd', UC_GREEN, bg);
+        uc_set(x + 13 + nlen, y, 'y', UC_GREEN, bg);
+    } else {
+        uc_set(x + 9 + nlen, y, 'N', UC_RED, bg);
+        uc_set(x + 10 + nlen, y, 'o', UC_RED, bg);
+        uc_set(x + 11 + nlen, y, 't', UC_RED, bg);
+        uc_set(x + 12 + nlen, y, 'R', UC_RED, bg);
+        uc_set(x + 13 + nlen, y, 'e', UC_RED, bg);
+        uc_set(x + 14 + nlen, y, 'a', UC_RED, bg);
+        uc_set(x + 15 + nlen, y, 'd', UC_RED, bg);
+        uc_set(x + 16 + nlen, y, 'y', UC_RED, bg);
+    }
+    uc_set(x + 18 + nlen, y, ' ', fg, bg);
+    i = 0;
+    while i < alen {
+        uc_set(x + 19 + nlen + i, y, arch[i], UC_MAGENTA, bg);
+        i = i + 1;
+    }
+    return 0;
+}

@@ -1,3 +1,19 @@
+## [1.660.0]
+
+- lib/uic.mo 大版本批量新增 10 个画布组件：
+  - uc_helm_release_row：Helm Release 行 [R] my-app deployed v2.1.0
+  - uc_helm_chart_row：Helm Chart 行 [C] nginx-ingress 4.8.0 Published
+  - uc_k8s_job_row：K8s 作业行 [J] migration-1 Succeeded 3 pods
+  - uc_cronjob_row：K8s CronJob 行 [C] backup-cron */30 * * * * Active
+  - uc_hpa_row：K8s HPA 行 [H] web-hpa cpu 80% 2/10 replicas
+  - uc_sa_detail_row：K8s ServiceAccount 详情行 [A] deploy-bot default-ns Active
+  - uc_k8s_role_row：K8s Role 行 [R] pod-reader read default-ns
+  - uc_netpol_row：K8s 网络策略行 [P] allow-api ingress Active
+  - uc_pod_row：K8s Pod 行 [P] web-6b4d Running node-01 2/2
+  - uc_k8s_node_row：K8s 节点行 [N] node-01 Ready linux-amd64
+- tests/101_uic.mo 覆盖全部新增组件。
+- 门禁：tests 249/249、projcheck 11/11、自举三级一致、sweep 全绿。
+
 ## [1.650.0]
 
 - lib/uic.mo 大版本批量新增 10 个画布组件：

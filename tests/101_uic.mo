@@ -345,6 +345,16 @@ fn main() -> i64 {
     uc_pv_row(12, 2, "pvc-data", "10Gi", 1, UC_WHITE, UC_BLUE);
     uc_storage_class_row2(1, 2, "standard", "gp2", 1, UC_WHITE, UC_BLUE);
     uc_ingress_row(12, 2, "web-ingress", "nginx", 1, UC_WHITE, UC_BLUE);
+    uc_helm_release_row(1, 2, "my-app", "deployed", "v2.1", UC_WHITE, UC_BLUE);
+    uc_helm_chart_row(12, 2, "nginx-ingress", "4.8.0", 1, UC_WHITE, UC_BLUE);
+    uc_k8s_job_row(1, 2, "migration-1", 3, 1, UC_WHITE, UC_BLUE);
+    uc_cronjob_row(12, 2, "backup-cron", "*/30", 1, UC_WHITE, UC_BLUE);
+    uc_hpa_row(1, 2, "web-hpa", "cpu", 1, UC_WHITE, UC_BLUE);
+    uc_sa_detail_row(12, 2, "deploy-bot", "default", 1, UC_WHITE, UC_BLUE);
+    uc_k8s_role_row(1, 2, "pod-reader", "read", "default", UC_WHITE, UC_BLUE);
+    uc_netpol_row(12, 2, "allow-api", "ingress", 1, UC_WHITE, UC_BLUE);
+    uc_pod_row(1, 2, "web-6b4d", "node-01", 1, UC_WHITE, UC_BLUE);
+    uc_k8s_node_row(12, 2, "node-01", 1, "linux", UC_WHITE, UC_BLUE);
     uc_dump_svg("/tmp/uic_dump_test.svg");
     uc_render();
     return 0;
