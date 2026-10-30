@@ -556,6 +556,16 @@ fn main() -> i64 {
     uc_edge_log_index_row(12, 2, "log-index-01", 5, "Indexed", UC_WHITE, UC_BLUE);
     uc_edge_log_search_row(1, 2, "search-01", 50, "Active", UC_WHITE, UC_BLUE);
     uc_edge_log_retention_row(12, 2, "retention-01", 30, 1, UC_WHITE, UC_BLUE);
+    uc_edge_workflow_orch_row(1, 2, "orch-01", "Running", 5, UC_WHITE, UC_BLUE);
+    uc_edge_workflow_instance_row(12, 2, "inst-001", "Running", 2, UC_WHITE, UC_BLUE);
+    uc_edge_workflow_def_row(1, 2, "order-flow", 5, "Published", UC_WHITE, UC_BLUE);
+    uc_edge_manual_approval_row(12, 2, "appr-001", "Pending", "owner", UC_WHITE, UC_BLUE);
+    uc_edge_auto_approval_row(1, 2, "auto-appr-01", "Approved", 100, UC_WHITE, UC_BLUE);
+    uc_edge_workflow_notify_row(12, 2, "notify-01", 5, "Active", UC_WHITE, UC_BLUE);
+    uc_edge_workflow_sla_row(1, 2, "sla-001", "24h", "Met", UC_WHITE, UC_BLUE);
+    uc_edge_workflow_audit_row(12, 2, "audit-001", 500, "Clean", UC_WHITE, UC_BLUE);
+    uc_edge_workflow_version_row(1, 2, "order-flow", "v2", 1, UC_WHITE, UC_BLUE);
+    uc_edge_workflow_metric_row(12, 2, "order-flow", 95, 100, UC_WHITE, UC_BLUE);
     uc_dump_svg("/tmp/uic_dump_test.svg");
     uc_render();
     return 0;

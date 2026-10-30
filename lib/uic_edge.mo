@@ -7820,3 +7820,389 @@ fn uc_edge_log_retention_row(x: i64, y: i64, name: ptr, days: i64, state: i64, f
     }
     return 0;
 }
+
+# ============ v1.861 边缘流程编排行 ============
+
+# uc_edge_workflow_orch_row：绘制边缘流程编排行 [O]  orch-01  Running  5 flows
+# name 为编排器名，state 为状态，flows 为流程数。
+# 用于边缘流程编排管理。
+fn uc_edge_workflow_orch_row(x: i64, y: i64, name: ptr, state: ptr, flows: i64, fg: i64, bg: i64) -> i64 {
+    let nlen: i64 = 0;
+    let slen: i64 = 0;
+    let i: i64 = 0;
+    nlen = strlen(name);
+    slen = strlen(state);
+    uc_set(x, y, '[', UC_CYAN, bg);
+    uc_set(x + 1, y, 'O', UC_CYAN, bg);
+    uc_set(x + 2, y, ']', UC_CYAN, bg);
+    uc_set(x + 5, y, ' ', fg, bg);
+    i = 0;
+    while i < nlen {
+        uc_set(x + 6 + i, y, name[i], UC_YELLOW, bg);
+        i = i + 1;
+    }
+    uc_set(x + 8 + nlen, y, ' ', fg, bg);
+    i = 0;
+    while i < slen {
+        uc_set(x + 9 + nlen + i, y, state[i], UC_WHITE, bg);
+        i = i + 1;
+    }
+    uc_set(x + 11 + nlen + slen, y, ' ', fg, bg);
+    uc_set(x + 12 + nlen + slen, y, '0' + flows, UC_MAGENTA, bg);
+    uc_set(x + 13 + nlen + slen, y, ' ', UC_MAGENTA, bg);
+    uc_set(x + 14 + nlen + slen, y, 'f', UC_MAGENTA, bg);
+    uc_set(x + 15 + nlen + slen, y, 'l', UC_MAGENTA, bg);
+    uc_set(x + 16 + nlen + slen, y, 'o', UC_MAGENTA, bg);
+    uc_set(x + 17 + nlen + slen, y, 'w', UC_MAGENTA, bg);
+    uc_set(x + 18 + nlen + slen, y, 's', UC_MAGENTA, bg);
+    return 0;
+}
+
+# ============ v1.862 边缘流程实例行 ============
+
+# uc_edge_workflow_instance_row：绘制边缘流程实例行 [I]  inst-001  Running  2 steps
+# name 为实例名，state 为状态，steps 为步骤数。
+# 用于边缘流程实例管理。
+fn uc_edge_workflow_instance_row(x: i64, y: i64, name: ptr, state: ptr, steps: i64, fg: i64, bg: i64) -> i64 {
+    let nlen: i64 = 0;
+    let slen: i64 = 0;
+    let i: i64 = 0;
+    nlen = strlen(name);
+    slen = strlen(state);
+    uc_set(x, y, '[', UC_MAGENTA, bg);
+    uc_set(x + 1, y, 'I', UC_MAGENTA, bg);
+    uc_set(x + 2, y, ']', UC_MAGENTA, bg);
+    uc_set(x + 5, y, ' ', fg, bg);
+    i = 0;
+    while i < nlen {
+        uc_set(x + 6 + i, y, name[i], UC_YELLOW, bg);
+        i = i + 1;
+    }
+    uc_set(x + 8 + nlen, y, ' ', fg, bg);
+    i = 0;
+    while i < slen {
+        uc_set(x + 9 + nlen + i, y, state[i], UC_WHITE, bg);
+        i = i + 1;
+    }
+    uc_set(x + 11 + nlen + slen, y, ' ', fg, bg);
+    uc_set(x + 12 + nlen + slen, y, '0' + steps, UC_CYAN, bg);
+    uc_set(x + 13 + nlen + slen, y, ' ', UC_CYAN, bg);
+    uc_set(x + 14 + nlen + slen, y, 's', UC_CYAN, bg);
+    uc_set(x + 15 + nlen + slen, y, 't', UC_CYAN, bg);
+    uc_set(x + 16 + nlen + slen, y, 'e', UC_CYAN, bg);
+    uc_set(x + 17 + nlen + slen, y, 'p', UC_CYAN, bg);
+    uc_set(x + 18 + nlen + slen, y, 's', UC_CYAN, bg);
+    return 0;
+}
+
+# ============ v1.863 边缘流程定义行 ============
+
+# uc_edge_workflow_def_row：绘制边缘流程定义行 [D]  order-flow  5 steps  Published
+# name 为定义名，steps 为步骤数，state 为状态。
+# 用于边缘流程定义管理。
+fn uc_edge_workflow_def_row(x: i64, y: i64, name: ptr, steps: i64, state: ptr, fg: i64, bg: i64) -> i64 {
+    let nlen: i64 = 0;
+    let slen: i64 = 0;
+    let i: i64 = 0;
+    nlen = strlen(name);
+    slen = strlen(state);
+    uc_set(x, y, '[', UC_GREEN, bg);
+    uc_set(x + 1, y, 'D', UC_GREEN, bg);
+    uc_set(x + 2, y, ']', UC_GREEN, bg);
+    uc_set(x + 5, y, ' ', fg, bg);
+    i = 0;
+    while i < nlen {
+        uc_set(x + 6 + i, y, name[i], UC_YELLOW, bg);
+        i = i + 1;
+    }
+    uc_set(x + 8 + nlen, y, ' ', fg, bg);
+    uc_set(x + 9 + nlen, y, '0' + steps, UC_WHITE, bg);
+    uc_set(x + 10 + nlen, y, ' ', UC_WHITE, bg);
+    uc_set(x + 11 + nlen, y, 's', UC_WHITE, bg);
+    uc_set(x + 12 + nlen, y, 't', UC_WHITE, bg);
+    uc_set(x + 13 + nlen, y, 'e', UC_WHITE, bg);
+    uc_set(x + 14 + nlen, y, 'p', UC_WHITE, bg);
+    uc_set(x + 15 + nlen, y, 's', UC_WHITE, bg);
+    uc_set(x + 17 + nlen, y, ' ', fg, bg);
+    i = 0;
+    while i < slen {
+        uc_set(x + 18 + nlen + i, y, state[i], UC_CYAN, bg);
+        i = i + 1;
+    }
+    return 0;
+}
+
+# ============ v1.864 边缘人工审批行 ============
+
+# uc_edge_manual_approval_row：绘制边缘人工审批行 [M]  appr-001  Pending  owner
+# name 为审批名，state 为状态，assignee 为审批人。
+# 用于边缘人工审批管理。
+fn uc_edge_manual_approval_row(x: i64, y: i64, name: ptr, state: ptr, assignee: ptr, fg: i64, bg: i64) -> i64 {
+    let nlen: i64 = 0;
+    let slen: i64 = 0;
+    let alen: i64 = 0;
+    let i: i64 = 0;
+    nlen = strlen(name);
+    slen = strlen(state);
+    alen = strlen(assignee);
+    uc_set(x, y, '[', UC_YELLOW, bg);
+    uc_set(x + 1, y, 'M', UC_YELLOW, bg);
+    uc_set(x + 2, y, ']', UC_YELLOW, bg);
+    uc_set(x + 5, y, ' ', fg, bg);
+    i = 0;
+    while i < nlen {
+        uc_set(x + 6 + i, y, name[i], UC_YELLOW, bg);
+        i = i + 1;
+    }
+    uc_set(x + 8 + nlen, y, ' ', fg, bg);
+    i = 0;
+    while i < slen {
+        uc_set(x + 9 + nlen + i, y, state[i], UC_WHITE, bg);
+        i = i + 1;
+    }
+    uc_set(x + 11 + nlen + slen, y, ' ', fg, bg);
+    i = 0;
+    while i < alen {
+        uc_set(x + 12 + nlen + slen + i, y, assignee[i], UC_CYAN, bg);
+        i = i + 1;
+    }
+    return 0;
+}
+
+# ============ v1.865 边缘自动审批行 ============
+
+# uc_edge_auto_approval_row：绘制边缘自动审批行 [A]  auto-appr-01  Approved  100 rules
+# name 为审批名，state 为状态，rules 为规则数。
+# 用于边缘自动审批管理。
+fn uc_edge_auto_approval_row(x: i64, y: i64, name: ptr, state: ptr, rules: i64, fg: i64, bg: i64) -> i64 {
+    let nlen: i64 = 0;
+    let slen: i64 = 0;
+    let i: i64 = 0;
+    nlen = strlen(name);
+    slen = strlen(state);
+    uc_set(x, y, '[', UC_GREEN, bg);
+    uc_set(x + 1, y, 'A', UC_GREEN, bg);
+    uc_set(x + 2, y, ']', UC_GREEN, bg);
+    uc_set(x + 5, y, ' ', fg, bg);
+    i = 0;
+    while i < nlen {
+        uc_set(x + 6 + i, y, name[i], UC_YELLOW, bg);
+        i = i + 1;
+    }
+    uc_set(x + 8 + nlen, y, ' ', fg, bg);
+    i = 0;
+    while i < slen {
+        uc_set(x + 9 + nlen + i, y, state[i], UC_WHITE, bg);
+        i = i + 1;
+    }
+    uc_set(x + 11 + nlen + slen, y, ' ', fg, bg);
+    uc_set(x + 12 + nlen + slen, y, '0' + rules, UC_CYAN, bg);
+    uc_set(x + 13 + nlen + slen, y, ' ', UC_CYAN, bg);
+    uc_set(x + 14 + nlen + slen, y, 'r', UC_CYAN, bg);
+    uc_set(x + 15 + nlen + slen, y, 'u', UC_CYAN, bg);
+    uc_set(x + 16 + nlen + slen, y, 'l', UC_CYAN, bg);
+    uc_set(x + 17 + nlen + slen, y, 'e', UC_CYAN, bg);
+    uc_set(x + 18 + nlen + slen, y, 's', UC_CYAN, bg);
+    return 0;
+}
+
+# ============ v1.866 边缘流程通知行 ============
+
+# uc_edge_workflow_notify_row：绘制边缘流程通知行 [N]  notify-01  5 subscribers  Active
+# name 为通知名，subscribers 为订阅者数，state 为状态。
+# 用于边缘流程通知管理。
+fn uc_edge_workflow_notify_row(x: i64, y: i64, name: ptr, subscribers: i64, state: ptr, fg: i64, bg: i64) -> i64 {
+    let nlen: i64 = 0;
+    let slen: i64 = 0;
+    let i: i64 = 0;
+    nlen = strlen(name);
+    slen = strlen(state);
+    uc_set(x, y, '[', UC_MAGENTA, bg);
+    uc_set(x + 1, y, 'N', UC_MAGENTA, bg);
+    uc_set(x + 2, y, ']', UC_MAGENTA, bg);
+    uc_set(x + 5, y, ' ', fg, bg);
+    i = 0;
+    while i < nlen {
+        uc_set(x + 6 + i, y, name[i], UC_YELLOW, bg);
+        i = i + 1;
+    }
+    uc_set(x + 8 + nlen, y, ' ', fg, bg);
+    uc_set(x + 9 + nlen, y, '0' + subscribers, UC_WHITE, bg);
+    uc_set(x + 10 + nlen, y, ' ', UC_WHITE, bg);
+    uc_set(x + 11 + nlen, y, 's', UC_WHITE, bg);
+    uc_set(x + 12 + nlen, y, 'u', UC_WHITE, bg);
+    uc_set(x + 13 + nlen, y, 'b', UC_WHITE, bg);
+    uc_set(x + 14 + nlen, y, 's', UC_WHITE, bg);
+    uc_set(x + 15 + nlen, y, 'c', UC_WHITE, bg);
+    uc_set(x + 16 + nlen, y, 'r', UC_WHITE, bg);
+    uc_set(x + 17 + nlen, y, 'i', UC_WHITE, bg);
+    uc_set(x + 18 + nlen, y, 'b', UC_WHITE, bg);
+    uc_set(x + 19 + nlen, y, 'e', UC_WHITE, bg);
+    uc_set(x + 20 + nlen, y, 'r', UC_WHITE, bg);
+    uc_set(x + 21 + nlen, y, 's', UC_WHITE, bg);
+    uc_set(x + 23 + nlen, y, ' ', fg, bg);
+    i = 0;
+    while i < slen {
+        uc_set(x + 24 + nlen + i, y, state[i], UC_GREEN, bg);
+        i = i + 1;
+    }
+    return 0;
+}
+
+# ============ v1.867 边缘流程 SLA 行 ============
+
+# uc_edge_workflow_sla_row：绘制边缘流程 SLA 行 [S]  sla-001  24h target  Met
+# name 为 SLA 名，target 为目标，state 为状态。
+# 用于边缘流程 SLA 管理。
+fn uc_edge_workflow_sla_row(x: i64, y: i64, name: ptr, target: ptr, state: ptr, fg: i64, bg: i64) -> i64 {
+    let nlen: i64 = 0;
+    let tlen: i64 = 0;
+    let slen: i64 = 0;
+    let i: i64 = 0;
+    nlen = strlen(name);
+    tlen = strlen(target);
+    slen = strlen(state);
+    uc_set(x, y, '[', UC_CYAN, bg);
+    uc_set(x + 1, y, 'S', UC_CYAN, bg);
+    uc_set(x + 2, y, ']', UC_CYAN, bg);
+    uc_set(x + 5, y, ' ', fg, bg);
+    i = 0;
+    while i < nlen {
+        uc_set(x + 6 + i, y, name[i], UC_YELLOW, bg);
+        i = i + 1;
+    }
+    uc_set(x + 8 + nlen, y, ' ', fg, bg);
+    i = 0;
+    while i < tlen {
+        uc_set(x + 9 + nlen + i, y, target[i], UC_WHITE, bg);
+        i = i + 1;
+    }
+    uc_set(x + 11 + nlen + tlen, y, ' ', fg, bg);
+    i = 0;
+    while i < slen {
+        uc_set(x + 12 + nlen + tlen + i, y, state[i], UC_GREEN, bg);
+        i = i + 1;
+    }
+    return 0;
+}
+
+# ============ v1.868 边缘流程审计行 ============
+
+# uc_edge_workflow_audit_row：绘制边缘流程审计行 [A]  audit-001  500 logs  Clean
+# name 为审计名，logs 为日志数，state 为状态。
+# 用于边缘流程审计管理。
+fn uc_edge_workflow_audit_row(x: i64, y: i64, name: ptr, logs: i64, state: ptr, fg: i64, bg: i64) -> i64 {
+    let nlen: i64 = 0;
+    let slen: i64 = 0;
+    let i: i64 = 0;
+    nlen = strlen(name);
+    slen = strlen(state);
+    uc_set(x, y, '[', UC_YELLOW, bg);
+    uc_set(x + 1, y, 'A', UC_YELLOW, bg);
+    uc_set(x + 2, y, ']', UC_YELLOW, bg);
+    uc_set(x + 5, y, ' ', fg, bg);
+    i = 0;
+    while i < nlen {
+        uc_set(x + 6 + i, y, name[i], UC_YELLOW, bg);
+        i = i + 1;
+    }
+    uc_set(x + 8 + nlen, y, ' ', fg, bg);
+    uc_set(x + 9 + nlen, y, '0' + logs / 100, UC_WHITE, bg);
+    uc_set(x + 10 + nlen, y, '0' + (logs / 10) % 10, UC_WHITE, bg);
+    uc_set(x + 11 + nlen, y, '0' + logs % 10, UC_WHITE, bg);
+    uc_set(x + 12 + nlen, y, ' ', UC_WHITE, bg);
+    uc_set(x + 13 + nlen, y, 'l', UC_WHITE, bg);
+    uc_set(x + 14 + nlen, y, 'o', UC_WHITE, bg);
+    uc_set(x + 15 + nlen, y, 'g', UC_WHITE, bg);
+    uc_set(x + 16 + nlen, y, 's', UC_WHITE, bg);
+    uc_set(x + 18 + nlen, y, ' ', fg, bg);
+    i = 0;
+    while i < slen {
+        uc_set(x + 19 + nlen + i, y, state[i], UC_CYAN, bg);
+        i = i + 1;
+    }
+    return 0;
+}
+
+# ============ v1.869 边缘流程版本行 ============
+
+# uc_edge_workflow_version_row：绘制边缘流程版本行 [V]  order-flow  v2  Active
+# name 为流程名，version 为版本，state 0=弃用 1=活动。
+# 用于边缘流程版本管理。
+fn uc_edge_workflow_version_row(x: i64, y: i64, name: ptr, version: ptr, state: i64, fg: i64, bg: i64) -> i64 {
+    let nlen: i64 = 0;
+    let vlen: i64 = 0;
+    let i: i64 = 0;
+    nlen = strlen(name);
+    vlen = strlen(version);
+    uc_set(x, y, '[', UC_GREEN, bg);
+    uc_set(x + 1, y, 'V', UC_GREEN, bg);
+    uc_set(x + 2, y, ']', UC_GREEN, bg);
+    uc_set(x + 5, y, ' ', fg, bg);
+    i = 0;
+    while i < nlen {
+        uc_set(x + 6 + i, y, name[i], UC_YELLOW, bg);
+        i = i + 1;
+    }
+    uc_set(x + 8 + nlen, y, ' ', fg, bg);
+    i = 0;
+    while i < vlen {
+        uc_set(x + 9 + nlen + i, y, version[i], UC_WHITE, bg);
+        i = i + 1;
+    }
+    uc_set(x + 11 + nlen + vlen, y, ' ', fg, bg);
+    if state != 0 {
+        uc_set(x + 12 + nlen + vlen, y, 'A', UC_GREEN, bg);
+        uc_set(x + 13 + nlen + vlen, y, 'c', UC_GREEN, bg);
+        uc_set(x + 14 + nlen + vlen, y, 't', UC_GREEN, bg);
+        uc_set(x + 15 + nlen + vlen, y, 'i', UC_GREEN, bg);
+        uc_set(x + 16 + nlen + vlen, y, 'v', UC_GREEN, bg);
+        uc_set(x + 17 + nlen + vlen, y, 'e', UC_GREEN, bg);
+    } else {
+        uc_set(x + 12 + nlen + vlen, y, 'D', UC_RED, bg);
+        uc_set(x + 13 + nlen + vlen, y, 'e', UC_RED, bg);
+        uc_set(x + 14 + nlen + vlen, y, 'p', UC_RED, bg);
+        uc_set(x + 15 + nlen + vlen, y, 'r', UC_RED, bg);
+        uc_set(x + 16 + nlen + vlen, y, 'e', UC_RED, bg);
+        uc_set(x + 17 + nlen + vlen, y, 'c', UC_RED, bg);
+        uc_set(x + 18 + nlen + vlen, y, 'a', UC_RED, bg);
+        uc_set(x + 19 + nlen + vlen, y, 't', UC_RED, bg);
+        uc_set(x + 20 + nlen + vlen, y, 'e', UC_RED, bg);
+        uc_set(x + 21 + nlen + vlen, y, 'd', UC_RED, bg);
+    }
+    return 0;
+}
+
+# ============ v1.870 边缘流程指标行 ============
+
+# uc_edge_workflow_metric_row：绘制边缘流程指标行 [M]  order-flow  95% success  100 runs
+# name 为流程名，success 为成功率，runs 为运行数。
+# 用于边缘流程指标管理。
+fn uc_edge_workflow_metric_row(x: i64, y: i64, name: ptr, success: i64, runs: i64, fg: i64, bg: i64) -> i64 {
+    let nlen: i64 = 0;
+    let i: i64 = 0;
+    nlen = strlen(name);
+    uc_set(x, y, '[', UC_MAGENTA, bg);
+    uc_set(x + 1, y, 'M', UC_MAGENTA, bg);
+    uc_set(x + 2, y, ']', UC_MAGENTA, bg);
+    uc_set(x + 5, y, ' ', fg, bg);
+    i = 0;
+    while i < nlen {
+        uc_set(x + 6 + i, y, name[i], UC_YELLOW, bg);
+        i = i + 1;
+    }
+    uc_set(x + 8 + nlen, y, ' ', fg, bg);
+    uc_set(x + 9 + nlen, y, '0' + success / 10, UC_GREEN, bg);
+    uc_set(x + 10 + nlen, y, '0' + success % 10, UC_GREEN, bg);
+    uc_set(x + 11 + nlen, y, '%', UC_GREEN, bg);
+    uc_set(x + 13 + nlen, y, ' ', fg, bg);
+    uc_set(x + 14 + nlen, y, '0' + runs / 100, UC_CYAN, bg);
+    uc_set(x + 15 + nlen, y, '0' + (runs / 10) % 10, UC_CYAN, bg);
+    uc_set(x + 16 + nlen, y, '0' + runs % 10, UC_CYAN, bg);
+    uc_set(x + 17 + nlen, y, ' ', UC_CYAN, bg);
+    uc_set(x + 18 + nlen, y, 'r', UC_CYAN, bg);
+    uc_set(x + 19 + nlen, y, 'u', UC_CYAN, bg);
+    uc_set(x + 20 + nlen, y, 'n', UC_CYAN, bg);
+    uc_set(x + 21 + nlen, y, 's', UC_CYAN, bg);
+    return 0;
+}

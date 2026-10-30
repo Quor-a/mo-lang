@@ -1,3 +1,19 @@
+## [1.870.0]
+
+- lib/uic_edge.mo 继续新增边缘流程编排画布组件（v1.861~v1.870，10 个）：
+  - uc_edge_workflow_orch_row：边缘流程编排行 [O] orch-01 Running 5 flows
+  - uc_edge_workflow_instance_row：边缘流程实例行 [I] inst-001 Running 2 steps
+  - uc_edge_workflow_def_row：边缘流程定义行 [D] order-flow 5 steps Published
+  - uc_edge_manual_approval_row：边缘人工审批行 [M] appr-001 Pending owner
+  - uc_edge_auto_approval_row：边缘自动审批行 [A] auto-appr-01 Approved 100 rules
+  - uc_edge_workflow_notify_row：边缘流程通知行 [N] notify-01 5 subscribers Active
+  - uc_edge_workflow_sla_row：边缘流程 SLA 行 [S] sla-001 24h target Met
+  - uc_edge_workflow_audit_row：边缘流程审计行 [A] audit-001 500 logs Clean
+  - uc_edge_workflow_version_row：边缘流程版本行 [V] order-flow v2 Active
+  - uc_edge_workflow_metric_row：边缘流程指标行 [M] order-flow 95% success 100 runs
+- tests/101_uic.mo 覆盖全部新增组件。
+- 门禁：tests 249/249、projcheck 11/11、自举三级一致、sweep 全绿。
+
 ## [1.860.0]
 
 - lib/uic_edge.mo 继续新增边缘指标与日志画布组件（v1.851~v1.860，10 个）：
