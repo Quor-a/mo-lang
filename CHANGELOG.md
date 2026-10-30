@@ -1,3 +1,19 @@
+## [1.800.0]
+
+- lib/uic_edge.mo 继续新增边缘服务网络画布组件（v1.791~v1.800，10 个）：
+  - uc_edge_api_gateway_row：边缘 API 网关行 [G] edge-gw 500 rpm Active
+  - uc_edge_api_policy_row：边缘 API 策略行 [P] rate-limit 100 rpm Applied
+  - uc_edge_api_version_row：边缘 API 版本行 [V] devices-api v2.1 Active
+  - uc_edge_api_key_row：边缘 API 键行 [K] api-key-01 Active 5000 calls
+  - uc_edge_service_discovery_row：边缘服务发现行 [D] consul-edge 5 services Healthy
+  - uc_edge_service_mesh_row：边缘服务网格行 [M] edge-mesh 3 namespaces Active
+  - uc_edge_traffic_route_row：边缘流量路由行 [R] route-v1 80% Stable
+  - uc_edge_circuit_breaker_row：边缘熔断器行 [B] cb-01 Closed 5 errors
+  - uc_edge_retry_policy_row：边缘重试策略行 [P] retry-01 3 retries 500ms
+  - uc_edge_load_balancer_row：边缘负载均衡行 [L] lb-01 3 backends Active
+- tests/101_uic.mo 覆盖全部新增组件。
+- 门禁：tests 249/249、projcheck 11/11、自举三级一致、sweep 全绿。
+
 ## [1.790.0]
 
 - lib/uic_edge.mo 继续新增边缘可观测性画布组件（v1.781~v1.790，10 个）：

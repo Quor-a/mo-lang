@@ -486,6 +486,16 @@ fn main() -> i64 {
     uc_edge_health_check_row(12, 2, "hc-01", "Healthy", 5, UC_WHITE, UC_BLUE);
     uc_edge_perf_benchmark_row(1, 2, "bench-01", 1200, 1, UC_WHITE, UC_BLUE);
     uc_edge_telemetry_stream_row(12, 2, "telemetry-01", "Streaming", 500, UC_WHITE, UC_BLUE);
+    uc_edge_api_gateway_row(1, 2, "edge-gw", 500, 1, UC_WHITE, UC_BLUE);
+    uc_edge_api_policy_row(12, 2, "rate-limit", "100rpm", "Applied", UC_WHITE, UC_BLUE);
+    uc_edge_api_version_row(1, 2, "devices-api", "v2.1", 1, UC_WHITE, UC_BLUE);
+    uc_edge_api_key_row(12, 2, "api-key-01", "Active", 5000, UC_WHITE, UC_BLUE);
+    uc_edge_service_discovery_row(1, 2, "consul-edge", 5, "Healthy", UC_WHITE, UC_BLUE);
+    uc_edge_service_mesh_row(12, 2, "edge-mesh", 3, 1, UC_WHITE, UC_BLUE);
+    uc_edge_traffic_route_row(1, 2, "route-v1", 80, "Stable", UC_WHITE, UC_BLUE);
+    uc_edge_circuit_breaker_row(12, 2, "cb-01", "Closed", 5, UC_WHITE, UC_BLUE);
+    uc_edge_retry_policy_row(1, 2, "retry-01", 3, "500ms", UC_WHITE, UC_BLUE);
+    uc_edge_load_balancer_row(12, 2, "lb-01", 3, 1, UC_WHITE, UC_BLUE);
     uc_dump_svg("/tmp/uic_dump_test.svg");
     uc_render();
     return 0;
