@@ -1,3 +1,19 @@
+## [1.600.0]
+
+- lib/uic.mo 大版本批量新增 10 个画布组件：
+  - uc_datasource_conn_row：数据源连接行 [C] prod-mysql MySQL Connected
+  - uc_model_field_row：数据模型字段行 [F] user_id BIGINT NOT NULL
+  - uc_lineage_row：数据血缘行 [L] orders → dim_users Active
+  - uc_quality_rule_row：数据质量规则行 [R] not-null users.email Active
+  - uc_data_mask_row：数据掩码行 [M] email regex Active
+  - uc_lake_table_row：数据湖表行 [T] raw_orders Parquet 10GB
+  - uc_catalog_row：数据目录行 [C] sales /data/sales Active
+  - uc_metric_row：指标定义行 [M] revenue SUM(amount) Active
+  - uc_dashboard_row：仪表盘行 [D] ops-overview 8 widgets Published
+  - uc_series_row：图表序列行 [S] cpu-0 host-01 Line Active
+- tests/101_uic.mo 覆盖全部新增组件。
+- 门禁：tests 249/249、projcheck 11/11、自举三级一致、sweep 全绿。
+
 ## [1.590.0]
 
 - lib/uic.mo 大版本批量新增 10 个画布组件：

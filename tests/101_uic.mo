@@ -285,6 +285,16 @@ fn main() -> i64 {
     uc_branch_detail_row(12, 2, "feature/login", 1, 2, UC_WHITE, UC_BLUE);
     uc_code_scan_row(1, 2, "gosec", 3, 12, UC_WHITE, UC_BLUE);
     uc_vuln_row(12, 2, "lodash", "4.17", 1, UC_WHITE, UC_BLUE);
+    uc_datasource_conn_row(1, 2, "prod-mysql", "MySQL", 1, UC_WHITE, UC_BLUE);
+    uc_model_field_row(12, 2, "user_id", "BIGINT", 1, UC_WHITE, UC_BLUE);
+    uc_lineage_row(1, 2, "orders", "dim_users", 1, UC_WHITE, UC_BLUE);
+    uc_quality_rule_row(12, 2, "not-null", "users.email", 1, UC_WHITE, UC_BLUE);
+    uc_data_mask_row(1, 2, "email", "regex", 1, UC_WHITE, UC_BLUE);
+    uc_lake_table_row(12, 2, "raw_orders", "Parquet", 10, UC_WHITE, UC_BLUE);
+    uc_catalog_row(1, 2, "sales", "/data/sales", 1, UC_WHITE, UC_BLUE);
+    uc_metric_row(12, 2, "revenue", "SUM(amount)", 1, UC_WHITE, UC_BLUE);
+    uc_dashboard_row(1, 2, "ops-overview", 8, 1, UC_WHITE, UC_BLUE);
+    uc_series_row(12, 2, "cpu-0", "host-01", "Line", 1, UC_WHITE, UC_BLUE);
     uc_dump_svg("/tmp/uic_dump_test.svg");
     uc_render();
     return 0;
