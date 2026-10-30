@@ -10127,3 +10127,391 @@ fn uc_edge_api_doc_row(x: i64, y: i64, name: ptr, version: ptr, pages: i64, stat
     }
     return 0;
 }
+
+# ============ v1.921 边缘服务发现行 ============
+
+# uc_edge_service_discovery_row：绘制边缘服务发现行 [D]  svc-01  Healthy  3 instances
+# name 为服务名，state 为状态，instances 为实例数。
+# 用于边缘服务发现管理。
+fn uc_edge_service_discovery_row2(x: i64, y: i64, name: ptr, state: ptr, instances: i64, fg: i64, bg: i64) -> i64 {
+    let nlen: i64 = 0;
+    let slen: i64 = 0;
+    let i: i64 = 0;
+    nlen = strlen(name);
+    slen = strlen(state);
+    uc_set(x, y, '[', UC_CYAN, bg);
+    uc_set(x + 1, y, 'D', UC_CYAN, bg);
+    uc_set(x + 2, y, ']', UC_CYAN, bg);
+    uc_set(x + 5, y, ' ', fg, bg);
+    i = 0;
+    while i < nlen {
+        uc_set(x + 6 + i, y, name[i], UC_YELLOW, bg);
+        i = i + 1;
+    }
+    uc_set(x + 8 + nlen, y, ' ', fg, bg);
+    i = 0;
+    while i < slen {
+        uc_set(x + 9 + nlen + i, y, state[i], UC_WHITE, bg);
+        i = i + 1;
+    }
+    uc_set(x + 11 + nlen + slen, y, ' ', fg, bg);
+    uc_set(x + 12 + nlen + slen, y, '0' + instances, UC_MAGENTA, bg);
+    uc_set(x + 13 + nlen + slen, y, ' ', UC_MAGENTA, bg);
+    uc_set(x + 14 + nlen + slen, y, 'i', UC_MAGENTA, bg);
+    uc_set(x + 15 + nlen + slen, y, 'n', UC_MAGENTA, bg);
+    uc_set(x + 16 + nlen + slen, y, 's', UC_MAGENTA, bg);
+    uc_set(x + 17 + nlen + slen, y, 't', UC_MAGENTA, bg);
+    uc_set(x + 18 + nlen + slen, y, 'a', UC_MAGENTA, bg);
+    uc_set(x + 19 + nlen + slen, y, 'n', UC_MAGENTA, bg);
+    uc_set(x + 20 + nlen + slen, y, 'c', UC_MAGENTA, bg);
+    uc_set(x + 21 + nlen + slen, y, 'e', UC_MAGENTA, bg);
+    uc_set(x + 22 + nlen + slen, y, 's', UC_MAGENTA, bg);
+    return 0;
+}
+
+# ============ v1.922 边缘负载均衡器行 ============
+
+# uc_edge_load_balancer_row：绘制边缘负载均衡器行 [L]  lb-01  Healthy  5 backends
+# name 为均衡器名，state 为状态，backends 为后端数。
+# 用于边缘负载均衡器管理。
+fn uc_edge_load_balancer_row2(x: i64, y: i64, name: ptr, state: ptr, backends: i64, fg: i64, bg: i64) -> i64 {
+    let nlen: i64 = 0;
+    let slen: i64 = 0;
+    let i: i64 = 0;
+    nlen = strlen(name);
+    slen = strlen(state);
+    uc_set(x, y, '[', UC_MAGENTA, bg);
+    uc_set(x + 1, y, 'L', UC_MAGENTA, bg);
+    uc_set(x + 2, y, ']', UC_MAGENTA, bg);
+    uc_set(x + 5, y, ' ', fg, bg);
+    i = 0;
+    while i < nlen {
+        uc_set(x + 6 + i, y, name[i], UC_YELLOW, bg);
+        i = i + 1;
+    }
+    uc_set(x + 8 + nlen, y, ' ', fg, bg);
+    i = 0;
+    while i < slen {
+        uc_set(x + 9 + nlen + i, y, state[i], UC_WHITE, bg);
+        i = i + 1;
+    }
+    uc_set(x + 11 + nlen + slen, y, ' ', fg, bg);
+    uc_set(x + 12 + nlen + slen, y, '0' + backends, UC_GREEN, bg);
+    uc_set(x + 13 + nlen + slen, y, ' ', UC_GREEN, bg);
+    uc_set(x + 14 + nlen + slen, y, 'b', UC_GREEN, bg);
+    uc_set(x + 15 + nlen + slen, y, 'a', UC_GREEN, bg);
+    uc_set(x + 16 + nlen + slen, y, 'c', UC_GREEN, bg);
+    uc_set(x + 17 + nlen + slen, y, 'k', UC_GREEN, bg);
+    uc_set(x + 18 + nlen + slen, y, 'e', UC_GREEN, bg);
+    uc_set(x + 19 + nlen + slen, y, 'n', UC_GREEN, bg);
+    uc_set(x + 20 + nlen + slen, y, 'd', UC_GREEN, bg);
+    uc_set(x + 21 + nlen + slen, y, 's', UC_GREEN, bg);
+    return 0;
+}
+
+# ============ v1.923 边缘反向代理行 ============
+
+# uc_edge_reverse_proxy_row：绘制边缘反向代理行 [P]  proxy-01  Healthy  10 routes
+# name 为代理名，state 为状态，routes 为路由数。
+# 用于边缘反向代理管理。
+fn uc_edge_reverse_proxy_row(x: i64, y: i64, name: ptr, state: ptr, routes: i64, fg: i64, bg: i64) -> i64 {
+    let nlen: i64 = 0;
+    let slen: i64 = 0;
+    let i: i64 = 0;
+    nlen = strlen(name);
+    slen = strlen(state);
+    uc_set(x, y, '[', UC_GREEN, bg);
+    uc_set(x + 1, y, 'P', UC_GREEN, bg);
+    uc_set(x + 2, y, ']', UC_GREEN, bg);
+    uc_set(x + 5, y, ' ', fg, bg);
+    i = 0;
+    while i < nlen {
+        uc_set(x + 6 + i, y, name[i], UC_YELLOW, bg);
+        i = i + 1;
+    }
+    uc_set(x + 8 + nlen, y, ' ', fg, bg);
+    i = 0;
+    while i < slen {
+        uc_set(x + 9 + nlen + i, y, state[i], UC_WHITE, bg);
+        i = i + 1;
+    }
+    uc_set(x + 11 + nlen + slen, y, ' ', fg, bg);
+    uc_set(x + 12 + nlen + slen, y, '0' + routes / 10, UC_MAGENTA, bg);
+    uc_set(x + 13 + nlen + slen, y, '0' + routes % 10, UC_MAGENTA, bg);
+    uc_set(x + 14 + nlen + slen, y, ' ', UC_MAGENTA, bg);
+    uc_set(x + 15 + nlen + slen, y, 'r', UC_MAGENTA, bg);
+    uc_set(x + 16 + nlen + slen, y, 'o', UC_MAGENTA, bg);
+    uc_set(x + 17 + nlen + slen, y, 'u', UC_MAGENTA, bg);
+    uc_set(x + 18 + nlen + slen, y, 't', UC_MAGENTA, bg);
+    uc_set(x + 19 + nlen + slen, y, 'e', UC_MAGENTA, bg);
+    uc_set(x + 20 + nlen + slen, y, 's', UC_MAGENTA, bg);
+    return 0;
+}
+
+# ============ v1.924 边缘消息队列行 ============
+
+# uc_edge_message_queue_row：绘制边缘消息队列行 [Q]  queue-01  100 pending  500 processed
+# name 为队列名，pending 为待处理数，processed 为已处理数。
+# 用于边缘消息队列管理。
+fn uc_edge_message_queue_row(x: i64, y: i64, name: ptr, pending: i64, processed: i64, fg: i64, bg: i64) -> i64 {
+    let nlen: i64 = 0;
+    let i: i64 = 0;
+    nlen = strlen(name);
+    uc_set(x, y, '[', UC_CYAN, bg);
+    uc_set(x + 1, y, 'Q', UC_CYAN, bg);
+    uc_set(x + 2, y, ']', UC_CYAN, bg);
+    uc_set(x + 5, y, ' ', fg, bg);
+    i = 0;
+    while i < nlen {
+        uc_set(x + 6 + i, y, name[i], UC_YELLOW, bg);
+        i = i + 1;
+    }
+    uc_set(x + 8 + nlen, y, ' ', fg, bg);
+    uc_set(x + 9 + nlen, y, '0' + pending / 100, UC_MAGENTA, bg);
+    uc_set(x + 10 + nlen, y, '0' + (pending / 10) % 10, UC_MAGENTA, bg);
+    uc_set(x + 11 + nlen, y, '0' + pending % 10, UC_MAGENTA, bg);
+    uc_set(x + 12 + nlen, y, ' ', UC_MAGENTA, bg);
+    uc_set(x + 13 + nlen, y, 'p', UC_MAGENTA, bg);
+    uc_set(x + 14 + nlen, y, 'e', UC_MAGENTA, bg);
+    uc_set(x + 15 + nlen, y, 'n', UC_MAGENTA, bg);
+    uc_set(x + 16 + nlen, y, 'd', UC_MAGENTA, bg);
+    uc_set(x + 17 + nlen, y, 'i', UC_MAGENTA, bg);
+    uc_set(x + 18 + nlen, y, 'n', UC_MAGENTA, bg);
+    uc_set(x + 19 + nlen, y, 'g', UC_MAGENTA, bg);
+    uc_set(x + 21 + nlen, y, ' ', fg, bg);
+    uc_set(x + 22 + nlen, y, '0' + processed / 100, UC_GREEN, bg);
+    uc_set(x + 23 + nlen, y, '0' + (processed / 10) % 10, UC_GREEN, bg);
+    uc_set(x + 24 + nlen, y, '0' + processed % 10, UC_GREEN, bg);
+    uc_set(x + 25 + nlen, y, ' ', UC_GREEN, bg);
+    uc_set(x + 26 + nlen, y, 'p', UC_GREEN, bg);
+    uc_set(x + 27 + nlen, y, 'r', UC_GREEN, bg);
+    uc_set(x + 28 + nlen, y, 'o', UC_GREEN, bg);
+    uc_set(x + 29 + nlen, y, 'c', UC_GREEN, bg);
+    uc_set(x + 30 + nlen, y, 'e', UC_GREEN, bg);
+    uc_set(x + 31 + nlen, y, 's', UC_GREEN, bg);
+    uc_set(x + 32 + nlen, y, 's', UC_GREEN, bg);
+    uc_set(x + 33 + nlen, y, 'e', UC_GREEN, bg);
+    uc_set(x + 34 + nlen, y, 'd', UC_GREEN, bg);
+    return 0;
+}
+
+# ============ v1.925 边缘服务网格行 ============
+
+# uc_edge_service_mesh_row：绘制边缘服务网格行 [M]  mesh-01  Healthy  20 sidecars
+# name 为网格名，state 为状态，sidecars 为边车数。
+# 用于边缘服务网格管理。
+fn uc_edge_service_mesh_row2(x: i64, y: i64, name: ptr, state: ptr, sidecars: i64, fg: i64, bg: i64) -> i64 {
+    let nlen: i64 = 0;
+    let slen: i64 = 0;
+    let i: i64 = 0;
+    nlen = strlen(name);
+    slen = strlen(state);
+    uc_set(x, y, '[', UC_MAGENTA, bg);
+    uc_set(x + 1, y, 'M', UC_MAGENTA, bg);
+    uc_set(x + 2, y, ']', UC_MAGENTA, bg);
+    uc_set(x + 5, y, ' ', fg, bg);
+    i = 0;
+    while i < nlen {
+        uc_set(x + 6 + i, y, name[i], UC_YELLOW, bg);
+        i = i + 1;
+    }
+    uc_set(x + 8 + nlen, y, ' ', fg, bg);
+    i = 0;
+    while i < slen {
+        uc_set(x + 9 + nlen + i, y, state[i], UC_WHITE, bg);
+        i = i + 1;
+    }
+    uc_set(x + 11 + nlen + slen, y, ' ', fg, bg);
+    uc_set(x + 12 + nlen + slen, y, '0' + sidecars / 10, UC_GREEN, bg);
+    uc_set(x + 13 + nlen + slen, y, '0' + sidecars % 10, UC_GREEN, bg);
+    uc_set(x + 14 + nlen + slen, y, ' ', UC_GREEN, bg);
+    uc_set(x + 15 + nlen + slen, y, 's', UC_GREEN, bg);
+    uc_set(x + 16 + nlen + slen, y, 'i', UC_GREEN, bg);
+    uc_set(x + 17 + nlen + slen, y, 'd', UC_GREEN, bg);
+    uc_set(x + 18 + nlen + slen, y, 'e', UC_GREEN, bg);
+    uc_set(x + 19 + nlen + slen, y, 'c', UC_GREEN, bg);
+    uc_set(x + 20 + nlen + slen, y, 'a', UC_GREEN, bg);
+    uc_set(x + 21 + nlen + slen, y, 'r', UC_GREEN, bg);
+    uc_set(x + 22 + nlen + slen, y, 's', UC_GREEN, bg);
+    return 0;
+}
+
+# ============ v1.926 边缘服务端点行 ============
+
+# uc_edge_service_endpoint_row：绘制边缘服务端点行 [E]  endpoint-01  10.0.0.1:8080  Active
+# name 为端点名，address 为地址，state 为状态。
+# 用于边缘服务端点管理。
+fn uc_edge_service_endpoint_row(x: i64, y: i64, name: ptr, address: ptr, state: ptr, fg: i64, bg: i64) -> i64 {
+    let nlen: i64 = 0;
+    let alen: i64 = 0;
+    let slen: i64 = 0;
+    let i: i64 = 0;
+    nlen = strlen(name);
+    alen = strlen(address);
+    slen = strlen(state);
+    uc_set(x, y, '[', UC_CYAN, bg);
+    uc_set(x + 1, y, 'E', UC_CYAN, bg);
+    uc_set(x + 2, y, ']', UC_CYAN, bg);
+    uc_set(x + 5, y, ' ', fg, bg);
+    i = 0;
+    while i < nlen {
+        uc_set(x + 6 + i, y, name[i], UC_YELLOW, bg);
+        i = i + 1;
+    }
+    uc_set(x + 8 + nlen, y, ' ', fg, bg);
+    i = 0;
+    while i < alen {
+        uc_set(x + 9 + nlen + i, y, address[i], UC_WHITE, bg);
+        i = i + 1;
+    }
+    uc_set(x + 11 + nlen + alen, y, ' ', fg, bg);
+    i = 0;
+    while i < slen {
+        uc_set(x + 12 + nlen + alen + i, y, state[i], UC_GREEN, bg);
+        i = i + 1;
+    }
+    return 0;
+}
+
+# ============ v1.927 边缘健康检查行 ============
+
+# uc_edge_health_check_row：绘制边缘健康检查行 [H]  hc-01  Healthy  99.9% uptime
+# name 为检查名，state 为状态，uptime 为可用率。
+# 用于边缘健康检查管理。
+fn uc_edge_health_check_row2(x: i64, y: i64, name: ptr, state: ptr, uptime: i64, fg: i64, bg: i64) -> i64 {
+    let nlen: i64 = 0;
+    let slen: i64 = 0;
+    let i: i64 = 0;
+    nlen = strlen(name);
+    slen = strlen(state);
+    uc_set(x, y, '[', UC_GREEN, bg);
+    uc_set(x + 1, y, 'H', UC_GREEN, bg);
+    uc_set(x + 2, y, ']', UC_GREEN, bg);
+    uc_set(x + 5, y, ' ', fg, bg);
+    i = 0;
+    while i < nlen {
+        uc_set(x + 6 + i, y, name[i], UC_YELLOW, bg);
+        i = i + 1;
+    }
+    uc_set(x + 8 + nlen, y, ' ', fg, bg);
+    i = 0;
+    while i < slen {
+        uc_set(x + 9 + nlen + i, y, state[i], UC_WHITE, bg);
+        i = i + 1;
+    }
+    uc_set(x + 11 + nlen + slen, y, ' ', fg, bg);
+    uc_set(x + 12 + nlen + slen, y, '0' + uptime / 10, UC_CYAN, bg);
+    uc_set(x + 13 + nlen + slen, y, '0' + uptime % 10, UC_CYAN, bg);
+    uc_set(x + 14 + nlen + slen, y, '%', UC_CYAN, bg);
+    uc_set(x + 15 + nlen + slen, y, ' ', UC_CYAN, bg);
+    uc_set(x + 16 + nlen + slen, y, 'u', UC_CYAN, bg);
+    uc_set(x + 17 + nlen + slen, y, 'p', UC_CYAN, bg);
+    uc_set(x + 18 + nlen + slen, y, 't', UC_CYAN, bg);
+    uc_set(x + 19 + nlen + slen, y, 'i', UC_CYAN, bg);
+    uc_set(x + 20 + nlen + slen, y, 'm', UC_CYAN, bg);
+    uc_set(x + 21 + nlen + slen, y, 'e', UC_CYAN, bg);
+    return 0;
+}
+
+# ============ v1.928 边缘流量路由行 ============
+
+# uc_edge_traffic_route_row：绘制边缘流量路由行 [R]  route-01  /v1 → svc-a  50%
+# name 为路由名，target 为目标，weight 为权重。
+# 用于边缘流量路由管理。
+fn uc_edge_traffic_route_row2(x: i64, y: i64, name: ptr, target: ptr, weight: i64, fg: i64, bg: i64) -> i64 {
+    let nlen: i64 = 0;
+    let tlen: i64 = 0;
+    let i: i64 = 0;
+    nlen = strlen(name);
+    tlen = strlen(target);
+    uc_set(x, y, '[', UC_MAGENTA, bg);
+    uc_set(x + 1, y, 'R', UC_MAGENTA, bg);
+    uc_set(x + 2, y, ']', UC_MAGENTA, bg);
+    uc_set(x + 5, y, ' ', fg, bg);
+    i = 0;
+    while i < nlen {
+        uc_set(x + 6 + i, y, name[i], UC_YELLOW, bg);
+        i = i + 1;
+    }
+    uc_set(x + 8 + nlen, y, ' ', fg, bg);
+    i = 0;
+    while i < tlen {
+        uc_set(x + 9 + nlen + i, y, target[i], UC_WHITE, bg);
+        i = i + 1;
+    }
+    uc_set(x + 11 + nlen + tlen, y, ' ', fg, bg);
+    uc_set(x + 12 + nlen + tlen, y, '0' + weight / 10, UC_CYAN, bg);
+    uc_set(x + 13 + nlen + tlen, y, '0' + weight % 10, UC_CYAN, bg);
+    uc_set(x + 14 + nlen + tlen, y, '%', UC_CYAN, bg);
+    return 0;
+}
+
+# ============ v1.929 边缘流量镜像行 ============
+
+# uc_edge_traffic_mirror_row：绘制边缘流量镜像行 [M]  mirror-01  src → dst  10%
+# name 为镜像名，target 为目标，percent 为比例。
+# 用于边缘流量镜像管理。
+fn uc_edge_traffic_mirror_row(x: i64, y: i64, name: ptr, target: ptr, percent: i64, fg: i64, bg: i64) -> i64 {
+    let nlen: i64 = 0;
+    let tlen: i64 = 0;
+    let i: i64 = 0;
+    nlen = strlen(name);
+    tlen = strlen(target);
+    uc_set(x, y, '[', UC_GREEN, bg);
+    uc_set(x + 1, y, 'M', UC_GREEN, bg);
+    uc_set(x + 2, y, ']', UC_GREEN, bg);
+    uc_set(x + 5, y, ' ', fg, bg);
+    i = 0;
+    while i < nlen {
+        uc_set(x + 6 + i, y, name[i], UC_YELLOW, bg);
+        i = i + 1;
+    }
+    uc_set(x + 8 + nlen, y, ' ', fg, bg);
+    i = 0;
+    while i < tlen {
+        uc_set(x + 9 + nlen + i, y, target[i], UC_WHITE, bg);
+        i = i + 1;
+    }
+    uc_set(x + 11 + nlen + tlen, y, ' ', fg, bg);
+    uc_set(x + 12 + nlen + tlen, y, '0' + percent / 10, UC_CYAN, bg);
+    uc_set(x + 13 + nlen + tlen, y, '0' + percent % 10, UC_CYAN, bg);
+    uc_set(x + 14 + nlen + tlen, y, '%', UC_CYAN, bg);
+    return 0;
+}
+
+# ============ v1.930 边缘流量治理策略行 ============
+
+# uc_edge_traffic_policy_row：绘制边缘流量治理策略行 [P]  policy-01  Canary  10 rules
+# name 为策略名，mode 为模式，rules 为规则数。
+# 用于边缘流量治理策略管理。
+fn uc_edge_traffic_policy_row(x: i64, y: i64, name: ptr, mode: ptr, rules: i64, fg: i64, bg: i64) -> i64 {
+    let nlen: i64 = 0;
+    let mlen: i64 = 0;
+    let i: i64 = 0;
+    nlen = strlen(name);
+    mlen = strlen(mode);
+    uc_set(x, y, '[', UC_CYAN, bg);
+    uc_set(x + 1, y, 'P', UC_CYAN, bg);
+    uc_set(x + 2, y, ']', UC_CYAN, bg);
+    uc_set(x + 5, y, ' ', fg, bg);
+    i = 0;
+    while i < nlen {
+        uc_set(x + 6 + i, y, name[i], UC_YELLOW, bg);
+        i = i + 1;
+    }
+    uc_set(x + 8 + nlen, y, ' ', fg, bg);
+    i = 0;
+    while i < mlen {
+        uc_set(x + 9 + nlen + i, y, mode[i], UC_WHITE, bg);
+        i = i + 1;
+    }
+    uc_set(x + 11 + nlen + mlen, y, ' ', fg, bg);
+    uc_set(x + 12 + nlen + mlen, y, '0' + rules, UC_MAGENTA, bg);
+    uc_set(x + 13 + nlen + mlen, y, ' ', UC_MAGENTA, bg);
+    uc_set(x + 14 + nlen + mlen, y, 'r', UC_MAGENTA, bg);
+    uc_set(x + 15 + nlen + mlen, y, 'u', UC_MAGENTA, bg);
+    uc_set(x + 16 + nlen + mlen, y, 'l', UC_MAGENTA, bg);
+    uc_set(x + 17 + nlen + mlen, y, 'e', UC_MAGENTA, bg);
+    uc_set(x + 18 + nlen + mlen, y, 's', UC_MAGENTA, bg);
+    return 0;
+}

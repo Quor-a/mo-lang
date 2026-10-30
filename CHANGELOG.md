@@ -1,3 +1,19 @@
+## [1.930.0]
+
+- lib/uic_edge.mo 继续新增边缘服务与流量画布组件（v1.921~v1.930，10 个）：
+  - uc_edge_service_discovery_row2：边缘服务发现行 [D] svc-01 Healthy 3 instances
+  - uc_edge_load_balancer_row2：边缘负载均衡器行 [L] lb-01 Healthy 5 backends
+  - uc_edge_reverse_proxy_row：边缘反向代理行 [P] proxy-01 Healthy 10 routes
+  - uc_edge_message_queue_row：边缘消息队列行 [Q] queue-01 100 pending 500 processed
+  - uc_edge_service_mesh_row2：边缘服务网格行 [M] mesh-01 Healthy 20 sidecars
+  - uc_edge_service_endpoint_row：边缘服务端点行 [E] endpoint-01 10.0.0.1:8080 Active
+  - uc_edge_health_check_row2：边缘健康检查行 [H] hc-01 Healthy 99.9% uptime
+  - uc_edge_traffic_route_row2：边缘流量路由行 [R] route-01 /v1→svc-a 50%
+  - uc_edge_traffic_mirror_row：边缘流量镜像行 [M] mirror-01 src→dst 10%
+  - uc_edge_traffic_policy_row：边缘流量治理策略行 [P] policy-01 Canary 10 rules
+- tests/101_uic.mo 覆盖全部新增组件。
+- 门禁：tests 249/249、projcheck 11/11、自举三级一致、sweep 全绿。
+
 ## [1.920.0]
 
 - lib/uic_edge.mo 继续新增边缘 API 管理画布组件（v1.911~v1.920，10 个）：

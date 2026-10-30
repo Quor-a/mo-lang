@@ -616,6 +616,16 @@ fn main() -> i64 {
     uc_edge_api_gateway_row2(12, 2, "gateway-01", "Healthy", 500, UC_WHITE, UC_BLUE);
     uc_edge_api_subscription_row(1, 2, "sub-01", "Basic", 100, UC_WHITE, UC_BLUE);
     uc_edge_api_doc_row(12, 2, "api-doc", "v2", 100, "Published", UC_WHITE, UC_BLUE);
+    uc_edge_service_discovery_row2(1, 2, "svc-01", "Healthy", 3, UC_WHITE, UC_BLUE);
+    uc_edge_load_balancer_row2(12, 2, "lb-01", "Healthy", 5, UC_WHITE, UC_BLUE);
+    uc_edge_reverse_proxy_row(1, 2, "proxy-01", "Healthy", 10, UC_WHITE, UC_BLUE);
+    uc_edge_message_queue_row(12, 2, "queue-01", 100, 500, UC_WHITE, UC_BLUE);
+    uc_edge_service_mesh_row2(1, 2, "mesh-01", "Healthy", 20, UC_WHITE, UC_BLUE);
+    uc_edge_service_endpoint_row(12, 2, "endpoint-01", "10.0.0.1:8080", "Active", UC_WHITE, UC_BLUE);
+    uc_edge_health_check_row2(1, 2, "hc-01", "Healthy", 99, UC_WHITE, UC_BLUE);
+    uc_edge_traffic_route_row2(12, 2, "route-01", "svc-a", 50, UC_WHITE, UC_BLUE);
+    uc_edge_traffic_mirror_row(1, 2, "mirror-01", "dst", 10, UC_WHITE, UC_BLUE);
+    uc_edge_traffic_policy_row(12, 2, "policy-01", "Canary", 10, UC_WHITE, UC_BLUE);
     uc_dump_svg("/tmp/uic_dump_test.svg");
     uc_render();
     return 0;
