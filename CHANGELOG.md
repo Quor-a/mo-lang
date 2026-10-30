@@ -1,3 +1,19 @@
+## [1.760.0]
+
+- lib/uic_edge.mo 继续新增边缘计算画布组件（v1.751~v1.760，10 个）：
+  - uc_edge_digital_twin_row：边缘数字孪生行 [T] turbine-01 3D Model Synced
+  - uc_edge_device_twin_row：边缘设备孪生行 [D] sensor-01-twin temperature Synced
+  - uc_edge_digital_thread_row：边缘数字线程行 [T] product-xyz 5 stages Active
+  - uc_edge_asset_hierarchy_row：边缘资产层次行 [H] factory plant-a 12 assets
+  - uc_edge_asset_health_row：边缘资产健康行 [H] turbine-01 92% Healthy
+  - uc_edge_predictive_maintenance_row：边缘预测性维护行 [P] bearing-wear 85% Risk Low
+  - uc_edge_maintenance_order_row：边缘维护工单行 [O] WO-1001 In Progress turbine-01
+  - uc_edge_spare_part_row：边缘备件库存行 [P] bearing-6205 50 units Low Stock
+  - uc_edge_maintenance_plan_row：边缘维护计划行 [P] PM-001 Monthly Scheduled
+  - uc_edge_downtime_event_row：边缘停机事件行 [D] DT-001 Resolved 45 min
+- tests/101_uic.mo 覆盖全部新增组件。
+- 门禁：tests 249/249、projcheck 11/11、自举三级一致、sweep 全绿。
+
 ## [1.750.0]
 
 - lib/uic_edge.mo 继续新增边缘计算画布组件（v1.741~v1.750，10 个）：

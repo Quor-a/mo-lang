@@ -3274,3 +3274,462 @@ fn uc_edge_model_alert_row(x: i64, y: i64, name: ptr, type: ptr, state: i64, fg:
     }
     return 0;
 }
+
+# ============ v1.751 边缘数字孪生行 ============
+
+# uc_edge_digital_twin_row：绘制边缘数字孪生行 [T]  turbine-01  3D Model  Synced
+# name 为孪生名，type 为类型，state 0=不同步 1=已同步。
+# 用于边缘数字孪生管理。
+fn uc_edge_digital_twin_row(x: i64, y: i64, name: ptr, type: ptr, state: i64, fg: i64, bg: i64) -> i64 {
+    let nlen: i64 = 0;
+    let tlen: i64 = 0;
+    let i: i64 = 0;
+    nlen = strlen(name);
+    tlen = strlen(type);
+    uc_set(x, y, '[', UC_CYAN, bg);
+    uc_set(x + 1, y, 'T', UC_CYAN, bg);
+    uc_set(x + 2, y, ']', UC_CYAN, bg);
+    uc_set(x + 5, y, ' ', fg, bg);
+    i = 0;
+    while i < nlen {
+        uc_set(x + 6 + i, y, name[i], UC_YELLOW, bg);
+        i = i + 1;
+    }
+    uc_set(x + 8 + nlen, y, ' ', fg, bg);
+    i = 0;
+    while i < tlen {
+        uc_set(x + 9 + nlen + i, y, type[i], UC_WHITE, bg);
+        i = i + 1;
+    }
+    uc_set(x + 11 + nlen + tlen, y, ' ', fg, bg);
+    if state != 0 {
+        uc_set(x + 12 + nlen + tlen, y, 'S', UC_GREEN, bg);
+        uc_set(x + 13 + nlen + tlen, y, 'y', UC_GREEN, bg);
+        uc_set(x + 14 + nlen + tlen, y, 'n', UC_GREEN, bg);
+        uc_set(x + 15 + nlen + tlen, y, 'c', UC_GREEN, bg);
+        uc_set(x + 16 + nlen + tlen, y, 'e', UC_GREEN, bg);
+        uc_set(x + 17 + nlen + tlen, y, 'd', UC_GREEN, bg);
+    } else {
+        uc_set(x + 12 + nlen + tlen, y, 'D', UC_RED, bg);
+        uc_set(x + 13 + nlen + tlen, y, 'e', UC_RED, bg);
+        uc_set(x + 14 + nlen + tlen, y, 's', UC_RED, bg);
+        uc_set(x + 15 + nlen + tlen, y, 'y', UC_RED, bg);
+        uc_set(x + 16 + nlen + tlen, y, 'n', UC_RED, bg);
+        uc_set(x + 17 + nlen + tlen, y, 'c', UC_RED, bg);
+        uc_set(x + 18 + nlen + tlen, y, 'e', UC_RED, bg);
+        uc_set(x + 19 + nlen + tlen, y, 'd', UC_RED, bg);
+    }
+    return 0;
+}
+
+# ============ v1.752 边缘设备孪生行 ============
+
+# uc_edge_device_twin_row：绘制边缘设备孪生行 [D]  sensor-01-twin  temperature  Synced
+# name 为孪生名，property 为属性，state 0=不同步 1=已同步。
+# 用于边缘设备孪生管理。
+fn uc_edge_device_twin_row(x: i64, y: i64, name: ptr, property: ptr, state: i64, fg: i64, bg: i64) -> i64 {
+    let nlen: i64 = 0;
+    let plen: i64 = 0;
+    let i: i64 = 0;
+    nlen = strlen(name);
+    plen = strlen(property);
+    uc_set(x, y, '[', UC_MAGENTA, bg);
+    uc_set(x + 1, y, 'D', UC_MAGENTA, bg);
+    uc_set(x + 2, y, ']', UC_MAGENTA, bg);
+    uc_set(x + 5, y, ' ', fg, bg);
+    i = 0;
+    while i < nlen {
+        uc_set(x + 6 + i, y, name[i], UC_YELLOW, bg);
+        i = i + 1;
+    }
+    uc_set(x + 8 + nlen, y, ' ', fg, bg);
+    i = 0;
+    while i < plen {
+        uc_set(x + 9 + nlen + i, y, property[i], UC_WHITE, bg);
+        i = i + 1;
+    }
+    uc_set(x + 11 + nlen + plen, y, ' ', fg, bg);
+    if state != 0 {
+        uc_set(x + 12 + nlen + plen, y, 'S', UC_GREEN, bg);
+        uc_set(x + 13 + nlen + plen, y, 'y', UC_GREEN, bg);
+        uc_set(x + 14 + nlen + plen, y, 'n', UC_GREEN, bg);
+        uc_set(x + 15 + nlen + plen, y, 'c', UC_GREEN, bg);
+        uc_set(x + 16 + nlen + plen, y, 'e', UC_GREEN, bg);
+        uc_set(x + 17 + nlen + plen, y, 'd', UC_GREEN, bg);
+    } else {
+        uc_set(x + 12 + nlen + plen, y, 'D', UC_RED, bg);
+        uc_set(x + 13 + nlen + plen, y, 'e', UC_RED, bg);
+        uc_set(x + 14 + nlen + plen, y, 's', UC_RED, bg);
+        uc_set(x + 15 + nlen + plen, y, 'y', UC_RED, bg);
+        uc_set(x + 16 + nlen + plen, y, 'n', UC_RED, bg);
+        uc_set(x + 17 + nlen + plen, y, 'c', UC_RED, bg);
+        uc_set(x + 18 + nlen + plen, y, 'e', UC_RED, bg);
+        uc_set(x + 19 + nlen + plen, y, 'd', UC_RED, bg);
+    }
+    return 0;
+}
+
+# ============ v1.753 边缘数字线程行 ============
+
+# uc_edge_digital_thread_row：绘制边缘数字线程行 [T]  product-xyz  5 stages  Active
+# name 为线程名，stages 为阶段数，state 0=停用 1=启用。
+# 用于边缘数字线程管理。
+fn uc_edge_digital_thread_row(x: i64, y: i64, name: ptr, stages: i64, state: i64, fg: i64, bg: i64) -> i64 {
+    let nlen: i64 = 0;
+    let i: i64 = 0;
+    nlen = strlen(name);
+    uc_set(x, y, '[', UC_GREEN, bg);
+    uc_set(x + 1, y, 'T', UC_GREEN, bg);
+    uc_set(x + 2, y, ']', UC_GREEN, bg);
+    uc_set(x + 5, y, ' ', fg, bg);
+    i = 0;
+    while i < nlen {
+        uc_set(x + 6 + i, y, name[i], UC_YELLOW, bg);
+        i = i + 1;
+    }
+    uc_set(x + 8 + nlen, y, ' ', fg, bg);
+    uc_set(x + 9 + nlen, y, '0' + stages, UC_WHITE, bg);
+    uc_set(x + 10 + nlen, y, ' ', UC_WHITE, bg);
+    uc_set(x + 11 + nlen, y, 's', UC_WHITE, bg);
+    uc_set(x + 12 + nlen, y, 't', UC_WHITE, bg);
+    uc_set(x + 13 + nlen, y, 'a', UC_WHITE, bg);
+    uc_set(x + 14 + nlen, y, 'g', UC_WHITE, bg);
+    uc_set(x + 15 + nlen, y, 'e', UC_WHITE, bg);
+    uc_set(x + 16 + nlen, y, 's', UC_WHITE, bg);
+    uc_set(x + 18 + nlen, y, ' ', fg, bg);
+    if state != 0 {
+        uc_set(x + 19 + nlen, y, 'A', UC_GREEN, bg);
+        uc_set(x + 20 + nlen, y, 'c', UC_GREEN, bg);
+        uc_set(x + 21 + nlen, y, 't', UC_GREEN, bg);
+        uc_set(x + 22 + nlen, y, 'i', UC_GREEN, bg);
+        uc_set(x + 23 + nlen, y, 'v', UC_GREEN, bg);
+        uc_set(x + 24 + nlen, y, 'e', UC_GREEN, bg);
+    } else {
+        uc_set(x + 19 + nlen, y, 'I', UC_RED, bg);
+        uc_set(x + 20 + nlen, y, 'n', UC_RED, bg);
+        uc_set(x + 21 + nlen, y, 'a', UC_RED, bg);
+        uc_set(x + 22 + nlen, y, 'c', UC_RED, bg);
+        uc_set(x + 23 + nlen, y, 't', UC_RED, bg);
+        uc_set(x + 24 + nlen, y, 'i', UC_RED, bg);
+        uc_set(x + 25 + nlen, y, 'v', UC_RED, bg);
+        uc_set(x + 26 + nlen, y, 'e', UC_RED, bg);
+    }
+    return 0;
+}
+
+# ============ v1.754 边缘资产层次行 ============
+
+# uc_edge_asset_hierarchy_row：绘制边缘资产层次行 [H]  factory  plant-a  12 assets
+# name 为层次名，parent 为父级，assets 为资产数。
+# 用于边缘资产层次管理。
+fn uc_edge_asset_hierarchy_row(x: i64, y: i64, name: ptr, parent: ptr, assets: i64, fg: i64, bg: i64) -> i64 {
+    let nlen: i64 = 0;
+    let plen: i64 = 0;
+    let i: i64 = 0;
+    nlen = strlen(name);
+    plen = strlen(parent);
+    uc_set(x, y, '[', UC_CYAN, bg);
+    uc_set(x + 1, y, 'H', UC_CYAN, bg);
+    uc_set(x + 2, y, ']', UC_CYAN, bg);
+    uc_set(x + 5, y, ' ', fg, bg);
+    i = 0;
+    while i < nlen {
+        uc_set(x + 6 + i, y, name[i], UC_YELLOW, bg);
+        i = i + 1;
+    }
+    uc_set(x + 8 + nlen, y, ' ', fg, bg);
+    i = 0;
+    while i < plen {
+        uc_set(x + 9 + nlen + i, y, parent[i], UC_WHITE, bg);
+        i = i + 1;
+    }
+    uc_set(x + 11 + nlen + plen, y, ' ', fg, bg);
+    uc_set(x + 12 + nlen + plen, y, '0' + assets / 10, UC_CYAN, bg);
+    uc_set(x + 13 + nlen + plen, y, '0' + assets % 10, UC_CYAN, bg);
+    uc_set(x + 14 + nlen + plen, y, ' ', UC_CYAN, bg);
+    uc_set(x + 15 + nlen + plen, y, 'a', UC_CYAN, bg);
+    uc_set(x + 16 + nlen + plen, y, 's', UC_CYAN, bg);
+    uc_set(x + 17 + nlen + plen, y, 's', UC_CYAN, bg);
+    uc_set(x + 18 + nlen + plen, y, 'e', UC_CYAN, bg);
+    uc_set(x + 19 + nlen + plen, y, 't', UC_CYAN, bg);
+    uc_set(x + 20 + nlen + plen, y, 's', UC_CYAN, bg);
+    return 0;
+}
+
+# ============ v1.755 边缘资产健康行 ============
+
+# uc_edge_asset_health_row：绘制边缘资产健康行 [H]  turbine-01  92%  Healthy
+# name 为资产名，score 为健康分，state 0=异常 1=健康。
+# 用于边缘资产健康管理。
+fn uc_edge_asset_health_row(x: i64, y: i64, name: ptr, score: i64, state: i64, fg: i64, bg: i64) -> i64 {
+    let nlen: i64 = 0;
+    let i: i64 = 0;
+    nlen = strlen(name);
+    uc_set(x, y, '[', UC_GREEN, bg);
+    uc_set(x + 1, y, 'H', UC_GREEN, bg);
+    uc_set(x + 2, y, ']', UC_GREEN, bg);
+    uc_set(x + 5, y, ' ', fg, bg);
+    i = 0;
+    while i < nlen {
+        uc_set(x + 6 + i, y, name[i], UC_YELLOW, bg);
+        i = i + 1;
+    }
+    uc_set(x + 8 + nlen, y, ' ', fg, bg);
+    uc_set(x + 9 + nlen, y, '0' + score / 10, UC_WHITE, bg);
+    uc_set(x + 10 + nlen, y, '0' + score % 10, UC_WHITE, bg);
+    uc_set(x + 11 + nlen, y, '%', UC_WHITE, bg);
+    uc_set(x + 13 + nlen, y, ' ', fg, bg);
+    if state != 0 {
+        uc_set(x + 14 + nlen, y, 'H', UC_GREEN, bg);
+        uc_set(x + 15 + nlen, y, 'e', UC_GREEN, bg);
+        uc_set(x + 16 + nlen, y, 'a', UC_GREEN, bg);
+        uc_set(x + 17 + nlen, y, 'l', UC_GREEN, bg);
+        uc_set(x + 18 + nlen, y, 't', UC_GREEN, bg);
+        uc_set(x + 19 + nlen, y, 'h', UC_GREEN, bg);
+        uc_set(x + 20 + nlen, y, 'y', UC_GREEN, bg);
+    } else {
+        uc_set(x + 14 + nlen, y, 'D', UC_RED, bg);
+        uc_set(x + 15 + nlen, y, 'e', UC_RED, bg);
+        uc_set(x + 16 + nlen, y, 'g', UC_RED, bg);
+        uc_set(x + 17 + nlen, y, 'r', UC_RED, bg);
+        uc_set(x + 18 + nlen, y, 'a', UC_RED, bg);
+        uc_set(x + 19 + nlen, y, 'd', UC_RED, bg);
+        uc_set(x + 20 + nlen, y, 'e', UC_RED, bg);
+        uc_set(x + 21 + nlen, y, 'd', UC_RED, bg);
+    }
+    return 0;
+}
+
+# ============ v1.756 边缘预测性维护行 ============
+
+# uc_edge_predictive_maintenance_row：绘制边缘预测性维护行 [P]  bearing-wear  85%  Risk Low
+# name 为预测项，probability 为概率，state 0=高风险 1=低风险。
+# 用于边缘预测性维护管理。
+fn uc_edge_predictive_maintenance_row(x: i64, y: i64, name: ptr, probability: i64, state: i64, fg: i64, bg: i64) -> i64 {
+    let nlen: i64 = 0;
+    let i: i64 = 0;
+    nlen = strlen(name);
+    uc_set(x, y, '[', UC_CYAN, bg);
+    uc_set(x + 1, y, 'P', UC_CYAN, bg);
+    uc_set(x + 2, y, ']', UC_CYAN, bg);
+    uc_set(x + 5, y, ' ', fg, bg);
+    i = 0;
+    while i < nlen {
+        uc_set(x + 6 + i, y, name[i], UC_YELLOW, bg);
+        i = i + 1;
+    }
+    uc_set(x + 8 + nlen, y, ' ', fg, bg);
+    uc_set(x + 9 + nlen, y, '0' + probability / 10, UC_WHITE, bg);
+    uc_set(x + 10 + nlen, y, '0' + probability % 10, UC_WHITE, bg);
+    uc_set(x + 11 + nlen, y, '%', UC_WHITE, bg);
+    uc_set(x + 13 + nlen, y, ' ', fg, bg);
+    if state != 0 {
+        uc_set(x + 14 + nlen, y, 'L', UC_GREEN, bg);
+        uc_set(x + 15 + nlen, y, 'o', UC_GREEN, bg);
+        uc_set(x + 16 + nlen, y, 'w', UC_GREEN, bg);
+        uc_set(x + 17 + nlen, y, ' ', UC_GREEN, bg);
+        uc_set(x + 18 + nlen, y, 'R', UC_GREEN, bg);
+        uc_set(x + 19 + nlen, y, 'i', UC_GREEN, bg);
+        uc_set(x + 20 + nlen, y, 's', UC_GREEN, bg);
+        uc_set(x + 21 + nlen, y, 'k', UC_GREEN, bg);
+    } else {
+        uc_set(x + 14 + nlen, y, 'H', UC_RED, bg);
+        uc_set(x + 15 + nlen, y, 'i', UC_RED, bg);
+        uc_set(x + 16 + nlen, y, 'g', UC_RED, bg);
+        uc_set(x + 17 + nlen, y, 'h', UC_RED, bg);
+        uc_set(x + 18 + nlen, y, ' ', UC_RED, bg);
+        uc_set(x + 19 + nlen, y, 'R', UC_RED, bg);
+        uc_set(x + 20 + nlen, y, 'i', UC_RED, bg);
+        uc_set(x + 21 + nlen, y, 's', UC_RED, bg);
+        uc_set(x + 22 + nlen, y, 'k', UC_RED, bg);
+    }
+    return 0;
+}
+
+# ============ v1.757 边缘维护工单行 ============
+
+# uc_edge_maintenance_order_row：绘制边缘维护工单行 [O]  WO-1001  In Progress  turbine-01
+# name 为工单号，state 0=完成 1=进行中，asset 为资产。
+# 用于边缘维护工单管理。
+fn uc_edge_maintenance_order_row(x: i64, y: i64, name: ptr, state: i64, asset: ptr, fg: i64, bg: i64) -> i64 {
+    let nlen: i64 = 0;
+    let alen: i64 = 0;
+    let i: i64 = 0;
+    nlen = strlen(name);
+    alen = strlen(asset);
+    uc_set(x, y, '[', UC_MAGENTA, bg);
+    uc_set(x + 1, y, 'O', UC_MAGENTA, bg);
+    uc_set(x + 2, y, ']', UC_MAGENTA, bg);
+    uc_set(x + 5, y, ' ', fg, bg);
+    i = 0;
+    while i < nlen {
+        uc_set(x + 6 + i, y, name[i], UC_YELLOW, bg);
+        i = i + 1;
+    }
+    uc_set(x + 8 + nlen, y, ' ', fg, bg);
+    if state != 0 {
+        uc_set(x + 9 + nlen, y, 'I', UC_CYAN, bg);
+        uc_set(x + 10 + nlen, y, 'n', UC_CYAN, bg);
+        uc_set(x + 11 + nlen, y, ' ', UC_CYAN, bg);
+        uc_set(x + 12 + nlen, y, 'P', UC_CYAN, bg);
+        uc_set(x + 13 + nlen, y, 'r', UC_CYAN, bg);
+        uc_set(x + 14 + nlen, y, 'o', UC_CYAN, bg);
+        uc_set(x + 15 + nlen, y, 'g', UC_CYAN, bg);
+        uc_set(x + 16 + nlen, y, 'r', UC_CYAN, bg);
+        uc_set(x + 17 + nlen, y, 'e', UC_CYAN, bg);
+        uc_set(x + 18 + nlen, y, 's', UC_CYAN, bg);
+        uc_set(x + 19 + nlen, y, 's', UC_CYAN, bg);
+    } else {
+        uc_set(x + 9 + nlen, y, 'D', UC_GREEN, bg);
+        uc_set(x + 10 + nlen, y, 'o', UC_GREEN, bg);
+        uc_set(x + 11 + nlen, y, 'n', UC_GREEN, bg);
+        uc_set(x + 12 + nlen, y, 'e', UC_GREEN, bg);
+    }
+    uc_set(x + 21 + nlen, y, ' ', fg, bg);
+    i = 0;
+    while i < alen {
+        uc_set(x + 22 + nlen + i, y, asset[i], UC_WHITE, bg);
+        i = i + 1;
+    }
+    return 0;
+}
+
+# ============ v1.758 边缘备件库存行 ============
+
+# uc_edge_spare_part_row：绘制边缘备件库存行 [P]  bearing-6205  50 units  Low Stock
+# name 为备件名，units 为数量，state 0=缺货 1=有货。
+# 用于边缘备件库存管理。
+fn uc_edge_spare_part_row(x: i64, y: i64, name: ptr, units: i64, state: i64, fg: i64, bg: i64) -> i64 {
+    let nlen: i64 = 0;
+    let i: i64 = 0;
+    nlen = strlen(name);
+    uc_set(x, y, '[', UC_GREEN, bg);
+    uc_set(x + 1, y, 'P', UC_GREEN, bg);
+    uc_set(x + 2, y, ']', UC_GREEN, bg);
+    uc_set(x + 5, y, ' ', fg, bg);
+    i = 0;
+    while i < nlen {
+        uc_set(x + 6 + i, y, name[i], UC_YELLOW, bg);
+        i = i + 1;
+    }
+    uc_set(x + 8 + nlen, y, ' ', fg, bg);
+    uc_set(x + 9 + nlen, y, '0' + units / 10, UC_WHITE, bg);
+    uc_set(x + 10 + nlen, y, '0' + units % 10, UC_WHITE, bg);
+    uc_set(x + 11 + nlen, y, ' ', UC_WHITE, bg);
+    uc_set(x + 12 + nlen, y, 'u', UC_WHITE, bg);
+    uc_set(x + 13 + nlen, y, 'n', UC_WHITE, bg);
+    uc_set(x + 14 + nlen, y, 'i', UC_WHITE, bg);
+    uc_set(x + 15 + nlen, y, 't', UC_WHITE, bg);
+    uc_set(x + 16 + nlen, y, 's', UC_WHITE, bg);
+    uc_set(x + 18 + nlen, y, ' ', fg, bg);
+    if state != 0 {
+        uc_set(x + 19 + nlen, y, 'O', UC_GREEN, bg);
+        uc_set(x + 20 + nlen, y, 'K', UC_GREEN, bg);
+    } else {
+        uc_set(x + 19 + nlen, y, 'L', UC_RED, bg);
+        uc_set(x + 20 + nlen, y, 'o', UC_RED, bg);
+        uc_set(x + 21 + nlen, y, 'w', UC_RED, bg);
+        uc_set(x + 22 + nlen, y, ' ', UC_RED, bg);
+        uc_set(x + 23 + nlen, y, 'S', UC_RED, bg);
+        uc_set(x + 24 + nlen, y, 't', UC_RED, bg);
+        uc_set(x + 25 + nlen, y, 'o', UC_RED, bg);
+        uc_set(x + 26 + nlen, y, 'c', UC_RED, bg);
+        uc_set(x + 27 + nlen, y, 'k', UC_RED, bg);
+    }
+    return 0;
+}
+
+# ============ v1.759 边缘维护计划行 ============
+
+# uc_edge_maintenance_plan_row：绘制边缘维护计划行 [P]  PM-001  Monthly  Scheduled
+# name 为计划名，frequency 为频率，state 0=已取消 1=已排期。
+# 用于边缘维护计划管理。
+fn uc_edge_maintenance_plan_row(x: i64, y: i64, name: ptr, frequency: ptr, state: i64, fg: i64, bg: i64) -> i64 {
+    let nlen: i64 = 0;
+    let flen: i64 = 0;
+    let i: i64 = 0;
+    nlen = strlen(name);
+    flen = strlen(frequency);
+    uc_set(x, y, '[', UC_CYAN, bg);
+    uc_set(x + 1, y, 'P', UC_CYAN, bg);
+    uc_set(x + 2, y, ']', UC_CYAN, bg);
+    uc_set(x + 5, y, ' ', fg, bg);
+    i = 0;
+    while i < nlen {
+        uc_set(x + 6 + i, y, name[i], UC_YELLOW, bg);
+        i = i + 1;
+    }
+    uc_set(x + 8 + nlen, y, ' ', fg, bg);
+    i = 0;
+    while i < flen {
+        uc_set(x + 9 + nlen + i, y, frequency[i], UC_WHITE, bg);
+        i = i + 1;
+    }
+    uc_set(x + 11 + nlen + flen, y, ' ', fg, bg);
+    if state != 0 {
+        uc_set(x + 12 + nlen + flen, y, 'S', UC_GREEN, bg);
+        uc_set(x + 13 + nlen + flen, y, 'c', UC_GREEN, bg);
+        uc_set(x + 14 + nlen + flen, y, 'h', UC_GREEN, bg);
+        uc_set(x + 15 + nlen + flen, y, 'e', UC_GREEN, bg);
+        uc_set(x + 16 + nlen + flen, y, 'd', UC_GREEN, bg);
+        uc_set(x + 17 + nlen + flen, y, 'u', UC_GREEN, bg);
+        uc_set(x + 18 + nlen + flen, y, 'l', UC_GREEN, bg);
+        uc_set(x + 19 + nlen + flen, y, 'e', UC_GREEN, bg);
+        uc_set(x + 20 + nlen + flen, y, 'd', UC_GREEN, bg);
+    } else {
+        uc_set(x + 12 + nlen + flen, y, 'C', UC_RED, bg);
+        uc_set(x + 13 + nlen + flen, y, 'a', UC_RED, bg);
+        uc_set(x + 14 + nlen + flen, y, 'n', UC_RED, bg);
+        uc_set(x + 15 + nlen + flen, y, 'c', UC_RED, bg);
+        uc_set(x + 16 + nlen + flen, y, 'e', UC_RED, bg);
+        uc_set(x + 17 + nlen + flen, y, 'l', UC_RED, bg);
+        uc_set(x + 18 + nlen + flen, y, 'e', UC_RED, bg);
+        uc_set(x + 19 + nlen + flen, y, 'd', UC_RED, bg);
+    }
+    return 0;
+}
+
+# ============ v1.760 边缘停机事件行 ============
+
+# uc_edge_downtime_event_row：绘制边缘停机事件行 [D]  DT-001  Resolved  45 min
+# name 为事件号，state 0=未解决 1=已解决，duration 为时长。
+# 用于边缘停机事件管理。
+fn uc_edge_downtime_event_row(x: i64, y: i64, name: ptr, state: i64, duration: ptr, fg: i64, bg: i64) -> i64 {
+    let nlen: i64 = 0;
+    let dlen: i64 = 0;
+    let i: i64 = 0;
+    nlen = strlen(name);
+    dlen = strlen(duration);
+    uc_set(x, y, '[', UC_YELLOW, bg);
+    uc_set(x + 1, y, 'D', UC_YELLOW, bg);
+    uc_set(x + 2, y, ']', UC_YELLOW, bg);
+    uc_set(x + 5, y, ' ', fg, bg);
+    i = 0;
+    while i < nlen {
+        uc_set(x + 6 + i, y, name[i], UC_YELLOW, bg);
+        i = i + 1;
+    }
+    uc_set(x + 8 + nlen, y, ' ', fg, bg);
+    if state != 0 {
+        uc_set(x + 9 + nlen, y, 'R', UC_GREEN, bg);
+        uc_set(x + 10 + nlen, y, 'e', UC_GREEN, bg);
+        uc_set(x + 11 + nlen, y, 's', UC_GREEN, bg);
+        uc_set(x + 12 + nlen, y, 'o', UC_GREEN, bg);
+        uc_set(x + 13 + nlen, y, 'l', UC_GREEN, bg);
+        uc_set(x + 14 + nlen, y, 'v', UC_GREEN, bg);
+        uc_set(x + 15 + nlen, y, 'e', UC_GREEN, bg);
+        uc_set(x + 16 + nlen, y, 'd', UC_GREEN, bg);
+    } else {
+        uc_set(x + 9 + nlen, y, 'O', UC_RED, bg);
+        uc_set(x + 10 + nlen, y, 'p', UC_RED, bg);
+        uc_set(x + 11 + nlen, y, 'e', UC_RED, bg);
+        uc_set(x + 12 + nlen, y, 'n', UC_RED, bg);
+    }
+    uc_set(x + 18 + nlen, y, ' ', fg, bg);
+    i = 0;
+    while i < dlen {
+        uc_set(x + 19 + nlen + i, y, duration[i], UC_WHITE, bg);
+        i = i + 1;
+    }
+    return 0;
+}

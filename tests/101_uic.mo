@@ -446,6 +446,16 @@ fn main() -> i64 {
     uc_edge_eval_job_row(12, 2, "eval-yolo", 1, "acc 0.92", UC_WHITE, UC_BLUE);
     uc_edge_feature_store_row(1, 2, "edge-features", 500, 1, UC_WHITE, UC_BLUE);
     uc_edge_model_alert_row(12, 2, "drift-alert", "Data Drift", 1, UC_WHITE, UC_BLUE);
+    uc_edge_digital_twin_row(1, 2, "turbine-01", "3D Model", 1, UC_WHITE, UC_BLUE);
+    uc_edge_device_twin_row(12, 2, "sensor-01-twin", "temp", 1, UC_WHITE, UC_BLUE);
+    uc_edge_digital_thread_row(1, 2, "product-xyz", 5, 1, UC_WHITE, UC_BLUE);
+    uc_edge_asset_hierarchy_row(12, 2, "factory", "plant-a", 12, UC_WHITE, UC_BLUE);
+    uc_edge_asset_health_row(1, 2, "turbine-01", 92, 1, UC_WHITE, UC_BLUE);
+    uc_edge_predictive_maintenance_row(12, 2, "bearing-wear", 85, 1, UC_WHITE, UC_BLUE);
+    uc_edge_maintenance_order_row(1, 2, "WO-1001", 1, "turbine-01", UC_WHITE, UC_BLUE);
+    uc_edge_spare_part_row(12, 2, "bearing-6205", 50, 1, UC_WHITE, UC_BLUE);
+    uc_edge_maintenance_plan_row(1, 2, "PM-001", "Monthly", 1, UC_WHITE, UC_BLUE);
+    uc_edge_downtime_event_row(12, 2, "DT-001", 1, "45min", UC_WHITE, UC_BLUE);
     uc_dump_svg("/tmp/uic_dump_test.svg");
     uc_render();
     return 0;
