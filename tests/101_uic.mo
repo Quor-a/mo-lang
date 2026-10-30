@@ -606,6 +606,16 @@ fn main() -> i64 {
     uc_edge_vuln_scan_row(12, 2, "vuln-01", 5, 20, UC_WHITE, UC_BLUE);
     uc_edge_patch_manage_row(1, 2, "patch-01", 10, 2, UC_WHITE, UC_BLUE);
     uc_edge_compliance_row(12, 2, "gdpr-01", "GDPR", "Compliant", 100, UC_WHITE, UC_BLUE);
+    uc_edge_api_endpoint_row(1, 2, "/v1/status", "GET", "Active", UC_WHITE, UC_BLUE);
+    uc_edge_api_request_row(12, 2, "req-01", "200", "5ms", UC_WHITE, UC_BLUE);
+    uc_edge_api_error_row(1, 2, "err-001", "500", 10, UC_WHITE, UC_BLUE);
+    uc_edge_api_ver_row(12, 2, "v1.0", "Stable", 5, UC_WHITE, UC_BLUE);
+    uc_edge_api_key_row(1, 2, "key-01", "Active", 100, UC_WHITE, UC_BLUE);
+    uc_edge_api_rate_limit_row(12, 2, "limit-01", "100", "Active", UC_WHITE, UC_BLUE);
+    uc_edge_api_breaker_row(1, 2, "breaker-01", "Closed", 0, UC_WHITE, UC_BLUE);
+    uc_edge_api_gateway_row2(12, 2, "gateway-01", "Healthy", 500, UC_WHITE, UC_BLUE);
+    uc_edge_api_subscription_row(1, 2, "sub-01", "Basic", 100, UC_WHITE, UC_BLUE);
+    uc_edge_api_doc_row(12, 2, "api-doc", "v2", 100, "Published", UC_WHITE, UC_BLUE);
     uc_dump_svg("/tmp/uic_dump_test.svg");
     uc_render();
     return 0;

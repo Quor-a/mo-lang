@@ -9775,3 +9775,355 @@ fn uc_edge_compliance_row(x: i64, y: i64, name: ptr, standard: ptr, state: ptr, 
     uc_set(x + 17 + nlen + stlen + slen, y, '%', UC_GREEN, bg);
     return 0;
 }
+
+# ============ v1.911 边缘 API 端点行 ============
+
+# uc_edge_api_endpoint_row：绘制边缘 API 端点行 [E]  /v1/status  GET  Active
+# name 为端点名，method 为方法，state 为状态。
+# 用于边缘 API 端点管理。
+fn uc_edge_api_endpoint_row(x: i64, y: i64, name: ptr, method: ptr, state: ptr, fg: i64, bg: i64) -> i64 {
+    let nlen: i64 = 0;
+    let mlen: i64 = 0;
+    let slen: i64 = 0;
+    let i: i64 = 0;
+    nlen = strlen(name);
+    mlen = strlen(method);
+    slen = strlen(state);
+    uc_set(x, y, '[', UC_CYAN, bg);
+    uc_set(x + 1, y, 'E', UC_CYAN, bg);
+    uc_set(x + 2, y, ']', UC_CYAN, bg);
+    uc_set(x + 5, y, ' ', fg, bg);
+    i = 0;
+    while i < nlen {
+        uc_set(x + 6 + i, y, name[i], UC_YELLOW, bg);
+        i = i + 1;
+    }
+    uc_set(x + 8 + nlen, y, ' ', fg, bg);
+    i = 0;
+    while i < mlen {
+        uc_set(x + 9 + nlen + i, y, method[i], UC_WHITE, bg);
+        i = i + 1;
+    }
+    uc_set(x + 11 + nlen + mlen, y, ' ', fg, bg);
+    i = 0;
+    while i < slen {
+        uc_set(x + 12 + nlen + mlen + i, y, state[i], UC_GREEN, bg);
+        i = i + 1;
+    }
+    return 0;
+}
+
+# ============ v1.912 边缘 API 请求行 ============
+
+# uc_edge_api_request_row：绘制边缘 API 请求行 [R]  req-01  200 OK  5ms
+# name 为请求名，code 为状态码，latency 为延迟。
+# 用于边缘 API 请求管理。
+fn uc_edge_api_request_row(x: i64, y: i64, name: ptr, code: ptr, latency: ptr, fg: i64, bg: i64) -> i64 {
+    let nlen: i64 = 0;
+    let clen: i64 = 0;
+    let llen: i64 = 0;
+    let i: i64 = 0;
+    nlen = strlen(name);
+    clen = strlen(code);
+    llen = strlen(latency);
+    uc_set(x, y, '[', UC_MAGENTA, bg);
+    uc_set(x + 1, y, 'R', UC_MAGENTA, bg);
+    uc_set(x + 2, y, ']', UC_MAGENTA, bg);
+    uc_set(x + 5, y, ' ', fg, bg);
+    i = 0;
+    while i < nlen {
+        uc_set(x + 6 + i, y, name[i], UC_YELLOW, bg);
+        i = i + 1;
+    }
+    uc_set(x + 8 + nlen, y, ' ', fg, bg);
+    i = 0;
+    while i < clen {
+        uc_set(x + 9 + nlen + i, y, code[i], UC_WHITE, bg);
+        i = i + 1;
+    }
+    uc_set(x + 11 + nlen + clen, y, ' ', fg, bg);
+    i = 0;
+    while i < llen {
+        uc_set(x + 12 + nlen + clen + i, y, latency[i], UC_CYAN, bg);
+        i = i + 1;
+    }
+    return 0;
+}
+
+# ============ v1.913 边缘 API 错误行 ============
+
+# uc_edge_api_error_row：绘制边缘 API 错误行 [X]  err-001  500 Internal  10 times
+# name 为错误名，code 为错误码，count 为次数。
+# 用于边缘 API 错误管理。
+fn uc_edge_api_error_row(x: i64, y: i64, name: ptr, code: ptr, count: i64, fg: i64, bg: i64) -> i64 {
+    let nlen: i64 = 0;
+    let clen: i64 = 0;
+    let i: i64 = 0;
+    nlen = strlen(name);
+    clen = strlen(code);
+    uc_set(x, y, '[', UC_RED, bg);
+    uc_set(x + 1, y, 'X', UC_RED, bg);
+    uc_set(x + 2, y, ']', UC_RED, bg);
+    uc_set(x + 5, y, ' ', fg, bg);
+    i = 0;
+    while i < nlen {
+        uc_set(x + 6 + i, y, name[i], UC_YELLOW, bg);
+        i = i + 1;
+    }
+    uc_set(x + 8 + nlen, y, ' ', fg, bg);
+    i = 0;
+    while i < clen {
+        uc_set(x + 9 + nlen + i, y, code[i], UC_WHITE, bg);
+        i = i + 1;
+    }
+    uc_set(x + 11 + nlen + clen, y, ' ', fg, bg);
+    uc_set(x + 12 + nlen + clen, y, '0' + count / 10, UC_MAGENTA, bg);
+    uc_set(x + 13 + nlen + clen, y, '0' + count % 10, UC_MAGENTA, bg);
+    uc_set(x + 14 + nlen + clen, y, ' ', UC_MAGENTA, bg);
+    uc_set(x + 15 + nlen + clen, y, 't', UC_MAGENTA, bg);
+    uc_set(x + 16 + nlen + clen, y, 'i', UC_MAGENTA, bg);
+    uc_set(x + 17 + nlen + clen, y, 'm', UC_MAGENTA, bg);
+    uc_set(x + 18 + nlen + clen, y, 'e', UC_MAGENTA, bg);
+    uc_set(x + 19 + nlen + clen, y, 's', UC_MAGENTA, bg);
+    return 0;
+}
+
+# ============ v1.914 边缘 API 版本行 ============
+
+# uc_edge_api_version_row：绘制边缘 API 版本行 [V]  v1.0  Stable  5 endpoints
+# name 为版本名，state 为状态，endpoints 为端点数。
+# 用于边缘 API 版本管理。
+fn uc_edge_api_ver_row(x: i64, y: i64, name: ptr, state: ptr, endpoints: i64, fg: i64, bg: i64) -> i64 {
+    let nlen: i64 = 0;
+    let slen: i64 = 0;
+    let i: i64 = 0;
+    nlen = strlen(name);
+    slen = strlen(state);
+    uc_set(x, y, '[', UC_GREEN, bg);
+    uc_set(x + 1, y, 'V', UC_GREEN, bg);
+    uc_set(x + 2, y, ']', UC_GREEN, bg);
+    uc_set(x + 5, y, ' ', fg, bg);
+    i = 0;
+    while i < nlen {
+        uc_set(x + 6 + i, y, name[i], UC_YELLOW, bg);
+        i = i + 1;
+    }
+    uc_set(x + 8 + nlen, y, ' ', fg, bg);
+    i = 0;
+    while i < slen {
+        uc_set(x + 9 + nlen + i, y, state[i], UC_WHITE, bg);
+        i = i + 1;
+    }
+    uc_set(x + 11 + nlen + slen, y, ' ', fg, bg);
+    uc_set(x + 12 + nlen + slen, y, '0' + endpoints, UC_CYAN, bg);
+    uc_set(x + 13 + nlen + slen, y, ' ', UC_CYAN, bg);
+    uc_set(x + 14 + nlen + slen, y, 'e', UC_CYAN, bg);
+    uc_set(x + 15 + nlen + slen, y, 'n', UC_CYAN, bg);
+    uc_set(x + 16 + nlen + slen, y, 'd', UC_CYAN, bg);
+    uc_set(x + 17 + nlen + slen, y, 'p', UC_CYAN, bg);
+    uc_set(x + 18 + nlen + slen, y, 't', UC_CYAN, bg);
+    uc_set(x + 19 + nlen + slen, y, 's', UC_CYAN, bg);
+    return 0;
+}
+
+# ============ v1.915 边缘 API 密钥行 ============
+
+# ============ v1.916 边缘 API 限流行 ============
+
+# uc_edge_api_rate_limit_row：绘制边缘 API 限流行 [L]  limit-01  100 req/s  Active
+# name 为限流名，rate 为速率，state 为状态。
+# 用于边缘 API 限流管理。
+fn uc_edge_api_rate_limit_row(x: i64, y: i64, name: ptr, rate: ptr, state: ptr, fg: i64, bg: i64) -> i64 {
+    let nlen: i64 = 0;
+    let rlen: i64 = 0;
+    let slen: i64 = 0;
+    let i: i64 = 0;
+    nlen = strlen(name);
+    rlen = strlen(rate);
+    slen = strlen(state);
+    uc_set(x, y, '[', UC_CYAN, bg);
+    uc_set(x + 1, y, 'L', UC_CYAN, bg);
+    uc_set(x + 2, y, ']', UC_CYAN, bg);
+    uc_set(x + 5, y, ' ', fg, bg);
+    i = 0;
+    while i < nlen {
+        uc_set(x + 6 + i, y, name[i], UC_YELLOW, bg);
+        i = i + 1;
+    }
+    uc_set(x + 8 + nlen, y, ' ', fg, bg);
+    i = 0;
+    while i < rlen {
+        uc_set(x + 9 + nlen + i, y, rate[i], UC_WHITE, bg);
+        i = i + 1;
+    }
+    uc_set(x + 11 + nlen + rlen, y, ' ', fg, bg);
+    i = 0;
+    while i < slen {
+        uc_set(x + 12 + nlen + rlen + i, y, state[i], UC_GREEN, bg);
+        i = i + 1;
+    }
+    return 0;
+}
+
+# ============ v1.917 边缘 API 熔断行 ============
+
+# uc_edge_api_breaker_row：绘制边缘 API 熔断行 [B]  breaker-01  Closed  0 fails
+# name 为熔断器名，state 为状态，fails 为失败数。
+# 用于边缘 API 熔断管理。
+fn uc_edge_api_breaker_row(x: i64, y: i64, name: ptr, state: ptr, fails: i64, fg: i64, bg: i64) -> i64 {
+    let nlen: i64 = 0;
+    let slen: i64 = 0;
+    let i: i64 = 0;
+    nlen = strlen(name);
+    slen = strlen(state);
+    uc_set(x, y, '[', UC_MAGENTA, bg);
+    uc_set(x + 1, y, 'B', UC_MAGENTA, bg);
+    uc_set(x + 2, y, ']', UC_MAGENTA, bg);
+    uc_set(x + 5, y, ' ', fg, bg);
+    i = 0;
+    while i < nlen {
+        uc_set(x + 6 + i, y, name[i], UC_YELLOW, bg);
+        i = i + 1;
+    }
+    uc_set(x + 8 + nlen, y, ' ', fg, bg);
+    i = 0;
+    while i < slen {
+        uc_set(x + 9 + nlen + i, y, state[i], UC_WHITE, bg);
+        i = i + 1;
+    }
+    uc_set(x + 11 + nlen + slen, y, ' ', fg, bg);
+    uc_set(x + 12 + nlen + slen, y, '0' + fails, UC_GREEN, bg);
+    uc_set(x + 13 + nlen + slen, y, ' ', UC_GREEN, bg);
+    uc_set(x + 14 + nlen + slen, y, 'f', UC_GREEN, bg);
+    uc_set(x + 15 + nlen + slen, y, 'a', UC_GREEN, bg);
+    uc_set(x + 16 + nlen + slen, y, 'i', UC_GREEN, bg);
+    uc_set(x + 17 + nlen + slen, y, 'l', UC_GREEN, bg);
+    uc_set(x + 18 + nlen + slen, y, 's', UC_GREEN, bg);
+    return 0;
+}
+
+# ============ v1.918 边缘 API 网关行 ============
+
+# uc_edge_api_gateway_row：绘制边缘 API 网关行 [G]  gateway-01  Healthy  500 routes
+# name 为网关名，state 为状态，routes 为路由数。
+# 用于边缘 API 网关管理。
+fn uc_edge_api_gateway_row2(x: i64, y: i64, name: ptr, state: ptr, routes: i64, fg: i64, bg: i64) -> i64 {
+    let nlen: i64 = 0;
+    let slen: i64 = 0;
+    let i: i64 = 0;
+    nlen = strlen(name);
+    slen = strlen(state);
+    uc_set(x, y, '[', UC_GREEN, bg);
+    uc_set(x + 1, y, 'G', UC_GREEN, bg);
+    uc_set(x + 2, y, ']', UC_GREEN, bg);
+    uc_set(x + 5, y, ' ', fg, bg);
+    i = 0;
+    while i < nlen {
+        uc_set(x + 6 + i, y, name[i], UC_YELLOW, bg);
+        i = i + 1;
+    }
+    uc_set(x + 8 + nlen, y, ' ', fg, bg);
+    i = 0;
+    while i < slen {
+        uc_set(x + 9 + nlen + i, y, state[i], UC_WHITE, bg);
+        i = i + 1;
+    }
+    uc_set(x + 11 + nlen + slen, y, ' ', fg, bg);
+    uc_set(x + 12 + nlen + slen, y, '0' + routes / 100, UC_CYAN, bg);
+    uc_set(x + 13 + nlen + slen, y, '0' + (routes / 10) % 10, UC_CYAN, bg);
+    uc_set(x + 14 + nlen + slen, y, '0' + routes % 10, UC_CYAN, bg);
+    uc_set(x + 15 + nlen + slen, y, ' ', UC_CYAN, bg);
+    uc_set(x + 16 + nlen + slen, y, 'r', UC_CYAN, bg);
+    uc_set(x + 17 + nlen + slen, y, 'o', UC_CYAN, bg);
+    uc_set(x + 18 + nlen + slen, y, 'u', UC_CYAN, bg);
+    uc_set(x + 19 + nlen + slen, y, 't', UC_CYAN, bg);
+    uc_set(x + 20 + nlen + slen, y, 'e', UC_CYAN, bg);
+    uc_set(x + 21 + nlen + slen, y, 's', UC_CYAN, bg);
+    return 0;
+}
+
+# ============ v1.919 边缘 API 订阅行 ============
+
+# uc_edge_api_subscription_row：绘制边缘 API 订阅行 [S]  sub-01  Basic  100 calls
+# name 为订阅名，plan 为套餐，calls 为调用数。
+# 用于边缘 API 订阅管理。
+fn uc_edge_api_subscription_row(x: i64, y: i64, name: ptr, plan: ptr, calls: i64, fg: i64, bg: i64) -> i64 {
+    let nlen: i64 = 0;
+    let plen: i64 = 0;
+    let i: i64 = 0;
+    nlen = strlen(name);
+    plen = strlen(plan);
+    uc_set(x, y, '[', UC_MAGENTA, bg);
+    uc_set(x + 1, y, 'S', UC_MAGENTA, bg);
+    uc_set(x + 2, y, ']', UC_MAGENTA, bg);
+    uc_set(x + 5, y, ' ', fg, bg);
+    i = 0;
+    while i < nlen {
+        uc_set(x + 6 + i, y, name[i], UC_YELLOW, bg);
+        i = i + 1;
+    }
+    uc_set(x + 8 + nlen, y, ' ', fg, bg);
+    i = 0;
+    while i < plen {
+        uc_set(x + 9 + nlen + i, y, plan[i], UC_WHITE, bg);
+        i = i + 1;
+    }
+    uc_set(x + 11 + nlen + plen, y, ' ', fg, bg);
+    uc_set(x + 12 + nlen + plen, y, '0' + calls / 100, UC_CYAN, bg);
+    uc_set(x + 13 + nlen + plen, y, '0' + (calls / 10) % 10, UC_CYAN, bg);
+    uc_set(x + 14 + nlen + plen, y, '0' + calls % 10, UC_CYAN, bg);
+    uc_set(x + 15 + nlen + plen, y, ' ', UC_CYAN, bg);
+    uc_set(x + 16 + nlen + plen, y, 'c', UC_CYAN, bg);
+    uc_set(x + 17 + nlen + plen, y, 'a', UC_CYAN, bg);
+    uc_set(x + 18 + nlen + plen, y, 'l', UC_CYAN, bg);
+    uc_set(x + 19 + nlen + plen, y, 'l', UC_CYAN, bg);
+    uc_set(x + 20 + nlen + plen, y, 's', UC_CYAN, bg);
+    return 0;
+}
+
+# ============ v1.920 边缘 API 文档行 ============
+
+# uc_edge_api_doc_row：绘制边缘 API 文档行 [D]  api-doc  v2  100 pages  Published
+# name 为文档名，version 为版本，pages 为页数，state 为状态。
+# 用于边缘 API 文档管理。
+fn uc_edge_api_doc_row(x: i64, y: i64, name: ptr, version: ptr, pages: i64, state: ptr, fg: i64, bg: i64) -> i64 {
+    let nlen: i64 = 0;
+    let vlen: i64 = 0;
+    let slen: i64 = 0;
+    let i: i64 = 0;
+    nlen = strlen(name);
+    vlen = strlen(version);
+    slen = strlen(state);
+    uc_set(x, y, '[', UC_CYAN, bg);
+    uc_set(x + 1, y, 'D', UC_CYAN, bg);
+    uc_set(x + 2, y, ']', UC_CYAN, bg);
+    uc_set(x + 5, y, ' ', fg, bg);
+    i = 0;
+    while i < nlen {
+        uc_set(x + 6 + i, y, name[i], UC_YELLOW, bg);
+        i = i + 1;
+    }
+    uc_set(x + 8 + nlen, y, ' ', fg, bg);
+    i = 0;
+    while i < vlen {
+        uc_set(x + 9 + nlen + i, y, version[i], UC_WHITE, bg);
+        i = i + 1;
+    }
+    uc_set(x + 11 + nlen + vlen, y, ' ', fg, bg);
+    uc_set(x + 12 + nlen + vlen, y, '0' + pages / 100, UC_MAGENTA, bg);
+    uc_set(x + 13 + nlen + vlen, y, '0' + (pages / 10) % 10, UC_MAGENTA, bg);
+    uc_set(x + 14 + nlen + vlen, y, '0' + pages % 10, UC_MAGENTA, bg);
+    uc_set(x + 15 + nlen + vlen, y, ' ', UC_MAGENTA, bg);
+    uc_set(x + 16 + nlen + vlen, y, 'p', UC_MAGENTA, bg);
+    uc_set(x + 17 + nlen + vlen, y, 'a', UC_MAGENTA, bg);
+    uc_set(x + 18 + nlen + vlen, y, 'g', UC_MAGENTA, bg);
+    uc_set(x + 19 + nlen + vlen, y, 'e', UC_MAGENTA, bg);
+    uc_set(x + 20 + nlen + vlen, y, 's', UC_MAGENTA, bg);
+    uc_set(x + 22 + nlen + vlen, y, ' ', fg, bg);
+    i = 0;
+    while i < slen {
+        uc_set(x + 23 + nlen + vlen + i, y, state[i], UC_GREEN, bg);
+        i = i + 1;
+    }
+    return 0;
+}

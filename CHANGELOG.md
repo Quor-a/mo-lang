@@ -1,3 +1,19 @@
+## [1.920.0]
+
+- lib/uic_edge.mo 继续新增边缘 API 管理画布组件（v1.911~v1.920，10 个）：
+  - uc_edge_api_endpoint_row：边缘 API 端点行 [E] /v1/status GET Active
+  - uc_edge_api_request_row：边缘 API 请求行 [R] req-01 200 OK 5ms
+  - uc_edge_api_error_row：边缘 API 错误行 [X] err-001 500 Internal 10 times
+  - uc_edge_api_ver_row：边缘 API 版本行 [V] v1.0 Stable 5 endpoints
+  - uc_edge_api_key_row：边缘 API 密钥行 [K] key-01 Active 100 calls
+  - uc_edge_api_rate_limit_row：边缘 API 限流行 [L] limit-01 100 req/s Active
+  - uc_edge_api_breaker_row：边缘 API 熔断行 [B] breaker-01 Closed 0 fails
+  - uc_edge_api_gateway_row2：边缘 API 网关行 [G] gateway-01 Healthy 500 routes
+  - uc_edge_api_subscription_row：边缘 API 订阅行 [S] sub-01 Basic 100 calls
+  - uc_edge_api_doc_row：边缘 API 文档行 [D] api-doc v2 100 pages Published
+- tests/101_uic.mo 覆盖全部新增组件。
+- 门禁：tests 249/249、projcheck 11/11、自举三级一致、sweep 全绿。
+
 ## [1.910.0]
 
 - lib/uic_edge.mo 继续新增边缘安全画布组件（v1.901~v1.910，10 个）：
