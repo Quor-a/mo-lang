@@ -365,6 +365,16 @@ fn main() -> i64 {
     uc_taint_row(12, 2, "dedicated", "NoSchedule", "node-01", UC_WHITE, UC_BLUE);
     uc_affinity_row(1, 2, "zone", "preferred", "zone", UC_WHITE, UC_BLUE);
     uc_topology_row(12, 2, "zone-a", "east", 5, UC_WHITE, UC_BLUE);
+    uc_virtual_service_row(1, 2, "reviews-vs", "istio", 1, UC_WHITE, UC_BLUE);
+    uc_destination_rule_row(12, 2, "reviews-dr", "istio", 1, UC_WHITE, UC_BLUE);
+    uc_mesh_gateway_row(1, 2, "bookinfo-gw", "istio", 1, UC_WHITE, UC_BLUE);
+    uc_circuit_breaker_row(12, 2, "reviews-cb", 5, 1, UC_WHITE, UC_BLUE);
+    uc_retry_policy_row(1, 2, "api-retry", 3, "500ms", UC_WHITE, UC_BLUE);
+    uc_service_entry_row(12, 2, "external-api", "DNS", 1, UC_WHITE, UC_BLUE);
+    uc_external_service_row(1, 2, "payments", "external", 1, UC_WHITE, UC_BLUE);
+    uc_fault_injection_row(12, 2, "delay-reviews", "5s", 1, UC_WHITE, UC_BLUE);
+    uc_traffic_shift_row(1, 2, "reviews-v1", 50, 1, UC_WHITE, UC_BLUE);
+    uc_tracing_row(12, 2, "jaeger", "sampling", 1, UC_WHITE, UC_BLUE);
     uc_dump_svg("/tmp/uic_dump_test.svg");
     uc_render();
     return 0;

@@ -1,3 +1,19 @@
+## [1.680.0]
+
+- lib/uic.mo 大版本批量新增 10 个画布组件：
+  - uc_virtual_service_row：服务网格虚拟服务行 [V] reviews-vs istio Active
+  - uc_destination_rule_row：目标规则行 [R] reviews-dr istio Active
+  - uc_mesh_gateway_row：网关路由行 [G] bookinfo-gw istio-gateway Active
+  - uc_circuit_breaker_row：熔断器行 [B] reviews-cb 5 retries HalfOpen
+  - uc_retry_policy_row：重试策略行 [P] api-retry 3 attempts 500ms
+  - uc_service_entry_row：服务条目行 [E] external-api DNS Active
+  - uc_external_service_row：外部服务行 [S] payments external Healthy
+  - uc_fault_injection_row：故障注入行 [F] delay-reviews 5s Active
+  - uc_traffic_shift_row：流量迁移行 [T] reviews-v1 50% Active
+  - uc_tracing_row：链路追踪行 [T] jaeger sampling 0.1 Active
+- tests/101_uic.mo 覆盖全部新增组件。
+- 门禁：tests 249/249、projcheck 11/11、自举三级一致、sweep 全绿。
+
 ## [1.670.0]
 
 - lib/uic.mo 大版本批量新增 10 个画布组件：

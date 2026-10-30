@@ -14499,3 +14499,466 @@ fn uc_topology_row(x: i64, y: i64, name: ptr, region: ptr, nodes: i64, fg: i64, 
     uc_set(x + 18 + nlen + rlen, y, 's', UC_CYAN, bg);
     return 0;
 }
+
+# ============ v1.671 服务网格虚拟服务行 ============
+
+# uc_virtual_service_row：绘制服务网格虚拟服务行 [V]  reviews-vs  istio  Active
+# name 为虚拟服务名，mesh 为网格，state 0=停用 1=启用。
+# 用于服务网格虚拟服务管理。
+fn uc_virtual_service_row(x: i64, y: i64, name: ptr, mesh: ptr, state: i64, fg: i64, bg: i64) -> i64 {
+    let nlen: i64 = 0;
+    let mlen: i64 = 0;
+    let i: i64 = 0;
+    nlen = strlen(name);
+    mlen = strlen(mesh);
+    uc_set(x, y, '[', UC_MAGENTA, bg);
+    uc_set(x + 1, y, 'V', UC_MAGENTA, bg);
+    uc_set(x + 2, y, ']', UC_MAGENTA, bg);
+    uc_set(x + 5, y, ' ', fg, bg);
+    i = 0;
+    while i < nlen {
+        uc_set(x + 6 + i, y, name[i], UC_YELLOW, bg);
+        i = i + 1;
+    }
+    uc_set(x + 8 + nlen, y, ' ', fg, bg);
+    i = 0;
+    while i < mlen {
+        uc_set(x + 9 + nlen + i, y, mesh[i], UC_WHITE, bg);
+        i = i + 1;
+    }
+    uc_set(x + 11 + nlen + mlen, y, ' ', fg, bg);
+    if state != 0 {
+        uc_set(x + 12 + nlen + mlen, y, 'A', UC_GREEN, bg);
+        uc_set(x + 13 + nlen + mlen, y, 'c', UC_GREEN, bg);
+        uc_set(x + 14 + nlen + mlen, y, 't', UC_GREEN, bg);
+        uc_set(x + 15 + nlen + mlen, y, 'i', UC_GREEN, bg);
+        uc_set(x + 16 + nlen + mlen, y, 'v', UC_GREEN, bg);
+        uc_set(x + 17 + nlen + mlen, y, 'e', UC_GREEN, bg);
+    } else {
+        uc_set(x + 12 + nlen + mlen, y, 'I', fg, bg);
+        uc_set(x + 13 + nlen + mlen, y, 'n', fg, bg);
+        uc_set(x + 14 + nlen + mlen, y, 'a', fg, bg);
+        uc_set(x + 15 + nlen + mlen, y, 'c', fg, bg);
+        uc_set(x + 16 + nlen + mlen, y, 't', fg, bg);
+        uc_set(x + 17 + nlen + mlen, y, 'i', fg, bg);
+        uc_set(x + 18 + nlen + mlen, y, 'v', fg, bg);
+        uc_set(x + 19 + nlen + mlen, y, 'e', fg, bg);
+    }
+    return 0;
+}
+
+# ============ v1.672 目标规则行 ============
+
+# uc_destination_rule_row：绘制目标规则行 [R]  reviews-dr  istio  Active
+# name 为目标规则名，mesh 为网格，state 0=停用 1=启用。
+# 用于服务网格目标规则管理。
+fn uc_destination_rule_row(x: i64, y: i64, name: ptr, mesh: ptr, state: i64, fg: i64, bg: i64) -> i64 {
+    let nlen: i64 = 0;
+    let mlen: i64 = 0;
+    let i: i64 = 0;
+    nlen = strlen(name);
+    mlen = strlen(mesh);
+    uc_set(x, y, '[', UC_GREEN, bg);
+    uc_set(x + 1, y, 'R', UC_GREEN, bg);
+    uc_set(x + 2, y, ']', UC_GREEN, bg);
+    uc_set(x + 5, y, ' ', fg, bg);
+    i = 0;
+    while i < nlen {
+        uc_set(x + 6 + i, y, name[i], UC_YELLOW, bg);
+        i = i + 1;
+    }
+    uc_set(x + 8 + nlen, y, ' ', fg, bg);
+    i = 0;
+    while i < mlen {
+        uc_set(x + 9 + nlen + i, y, mesh[i], UC_WHITE, bg);
+        i = i + 1;
+    }
+    uc_set(x + 11 + nlen + mlen, y, ' ', fg, bg);
+    if state != 0 {
+        uc_set(x + 12 + nlen + mlen, y, 'A', UC_GREEN, bg);
+        uc_set(x + 13 + nlen + mlen, y, 'c', UC_GREEN, bg);
+        uc_set(x + 14 + nlen + mlen, y, 't', UC_GREEN, bg);
+        uc_set(x + 15 + nlen + mlen, y, 'i', UC_GREEN, bg);
+        uc_set(x + 16 + nlen + mlen, y, 'v', UC_GREEN, bg);
+        uc_set(x + 17 + nlen + mlen, y, 'e', UC_GREEN, bg);
+    } else {
+        uc_set(x + 12 + nlen + mlen, y, 'I', fg, bg);
+        uc_set(x + 13 + nlen + mlen, y, 'n', fg, bg);
+        uc_set(x + 14 + nlen + mlen, y, 'a', fg, bg);
+        uc_set(x + 15 + nlen + mlen, y, 'c', fg, bg);
+        uc_set(x + 16 + nlen + mlen, y, 't', fg, bg);
+        uc_set(x + 17 + nlen + mlen, y, 'i', fg, bg);
+        uc_set(x + 18 + nlen + mlen, y, 'v', fg, bg);
+        uc_set(x + 19 + nlen + mlen, y, 'e', fg, bg);
+    }
+    return 0;
+}
+
+# ============ v1.673 网关路由行 ============
+
+# uc_mesh_gateway_row：绘制服务网格网关路由行 [G]  bookinfo-gw  istio-gateway  Active
+# name 为网关名，controller 为控制器，state 0=停用 1=启用。
+# 用于服务网格网关管理。
+fn uc_mesh_gateway_row(x: i64, y: i64, name: ptr, controller: ptr, state: i64, fg: i64, bg: i64) -> i64 {
+    let nlen: i64 = 0;
+    let clen: i64 = 0;
+    let i: i64 = 0;
+    nlen = strlen(name);
+    clen = strlen(controller);
+    uc_set(x, y, '[', UC_MAGENTA, bg);
+    uc_set(x + 1, y, 'G', UC_MAGENTA, bg);
+    uc_set(x + 2, y, ']', UC_MAGENTA, bg);
+    uc_set(x + 5, y, ' ', fg, bg);
+    i = 0;
+    while i < nlen {
+        uc_set(x + 6 + i, y, name[i], UC_YELLOW, bg);
+        i = i + 1;
+    }
+    uc_set(x + 8 + nlen, y, ' ', fg, bg);
+    i = 0;
+    while i < clen {
+        uc_set(x + 9 + nlen + i, y, controller[i], UC_WHITE, bg);
+        i = i + 1;
+    }
+    uc_set(x + 11 + nlen + clen, y, ' ', fg, bg);
+    if state != 0 {
+        uc_set(x + 12 + nlen + clen, y, 'A', UC_GREEN, bg);
+        uc_set(x + 13 + nlen + clen, y, 'c', UC_GREEN, bg);
+        uc_set(x + 14 + nlen + clen, y, 't', UC_GREEN, bg);
+        uc_set(x + 15 + nlen + clen, y, 'i', UC_GREEN, bg);
+        uc_set(x + 16 + nlen + clen, y, 'v', UC_GREEN, bg);
+        uc_set(x + 17 + nlen + clen, y, 'e', UC_GREEN, bg);
+    } else {
+        uc_set(x + 12 + nlen + clen, y, 'I', fg, bg);
+        uc_set(x + 13 + nlen + clen, y, 'n', fg, bg);
+        uc_set(x + 14 + nlen + clen, y, 'a', fg, bg);
+        uc_set(x + 15 + nlen + clen, y, 'c', fg, bg);
+        uc_set(x + 16 + nlen + clen, y, 't', fg, bg);
+        uc_set(x + 17 + nlen + clen, y, 'i', fg, bg);
+        uc_set(x + 18 + nlen + clen, y, 'v', fg, bg);
+        uc_set(x + 19 + nlen + clen, y, 'e', fg, bg);
+    }
+    return 0;
+}
+
+# ============ v1.674 熔断器行 ============
+
+# uc_circuit_breaker_row：绘制熔断器行 [B]  reviews-cb  5 retries  HalfOpen
+# name 为熔断器名，retries 为重试数，state 0=关闭 1=半开。
+# 用于熔断器管理。
+fn uc_circuit_breaker_row(x: i64, y: i64, name: ptr, retries: i64, state: i64, fg: i64, bg: i64) -> i64 {
+    let nlen: i64 = 0;
+    let i: i64 = 0;
+    nlen = strlen(name);
+    uc_set(x, y, '[', UC_YELLOW, bg);
+    uc_set(x + 1, y, 'B', UC_YELLOW, bg);
+    uc_set(x + 2, y, ']', UC_YELLOW, bg);
+    uc_set(x + 5, y, ' ', fg, bg);
+    i = 0;
+    while i < nlen {
+        uc_set(x + 6 + i, y, name[i], UC_YELLOW, bg);
+        i = i + 1;
+    }
+    uc_set(x + 8 + nlen, y, ' ', fg, bg);
+    uc_set(x + 9 + nlen, y, '0' + retries, UC_CYAN, bg);
+    uc_set(x + 10 + nlen, y, ' ', UC_CYAN, bg);
+    uc_set(x + 11 + nlen, y, 'r', UC_CYAN, bg);
+    uc_set(x + 12 + nlen, y, 'e', UC_CYAN, bg);
+    uc_set(x + 13 + nlen, y, 't', UC_CYAN, bg);
+    uc_set(x + 14 + nlen, y, 'r', UC_CYAN, bg);
+    uc_set(x + 15 + nlen, y, 'i', UC_CYAN, bg);
+    uc_set(x + 16 + nlen, y, 'e', UC_CYAN, bg);
+    uc_set(x + 17 + nlen, y, 's', UC_CYAN, bg);
+    uc_set(x + 19 + nlen, y, ' ', fg, bg);
+    if state != 0 {
+        uc_set(x + 20 + nlen, y, 'H', UC_CYAN, bg);
+        uc_set(x + 21 + nlen, y, 'a', UC_CYAN, bg);
+        uc_set(x + 22 + nlen, y, 'l', UC_CYAN, bg);
+        uc_set(x + 23 + nlen, y, 'f', UC_CYAN, bg);
+        uc_set(x + 24 + nlen, y, 'O', UC_CYAN, bg);
+        uc_set(x + 25 + nlen, y, 'p', UC_CYAN, bg);
+        uc_set(x + 26 + nlen, y, 'e', UC_CYAN, bg);
+        uc_set(x + 27 + nlen, y, 'n', UC_CYAN, bg);
+    } else {
+        uc_set(x + 20 + nlen, y, 'C', UC_GREEN, bg);
+        uc_set(x + 21 + nlen, y, 'l', UC_GREEN, bg);
+        uc_set(x + 22 + nlen, y, 'o', UC_GREEN, bg);
+        uc_set(x + 23 + nlen, y, 's', UC_GREEN, bg);
+        uc_set(x + 24 + nlen, y, 'e', UC_GREEN, bg);
+        uc_set(x + 25 + nlen, y, 'd', UC_GREEN, bg);
+    }
+    return 0;
+}
+
+# ============ v1.675 重试策略行 ============
+
+# uc_retry_policy_row：绘制重试策略行 [P]  api-retry  3 attempts  500ms
+# name 为策略名，attempts 为重试次数，interval 为间隔。
+# 用于重试策略管理。
+fn uc_retry_policy_row(x: i64, y: i64, name: ptr, attempts: i64, interval: ptr, fg: i64, bg: i64) -> i64 {
+    let nlen: i64 = 0;
+    let ilen: i64 = 0;
+    let i: i64 = 0;
+    nlen = strlen(name);
+    ilen = strlen(interval);
+    uc_set(x, y, '[', UC_CYAN, bg);
+    uc_set(x + 1, y, 'P', UC_CYAN, bg);
+    uc_set(x + 2, y, ']', UC_CYAN, bg);
+    uc_set(x + 5, y, ' ', fg, bg);
+    i = 0;
+    while i < nlen {
+        uc_set(x + 6 + i, y, name[i], UC_YELLOW, bg);
+        i = i + 1;
+    }
+    uc_set(x + 8 + nlen, y, ' ', fg, bg);
+    uc_set(x + 9 + nlen, y, '0' + attempts, UC_WHITE, bg);
+    uc_set(x + 10 + nlen, y, ' ', UC_WHITE, bg);
+    uc_set(x + 11 + nlen, y, 'a', UC_WHITE, bg);
+    uc_set(x + 12 + nlen, y, 't', UC_WHITE, bg);
+    uc_set(x + 13 + nlen, y, 't', UC_WHITE, bg);
+    uc_set(x + 14 + nlen, y, 'e', UC_WHITE, bg);
+    uc_set(x + 15 + nlen, y, 'm', UC_WHITE, bg);
+    uc_set(x + 16 + nlen, y, 'p', UC_WHITE, bg);
+    uc_set(x + 17 + nlen, y, 't', UC_WHITE, bg);
+    uc_set(x + 18 + nlen, y, 's', UC_WHITE, bg);
+    uc_set(x + 20 + nlen, y, ' ', fg, bg);
+    i = 0;
+    while i < ilen {
+        uc_set(x + 21 + nlen + i, y, interval[i], UC_MAGENTA, bg);
+        i = i + 1;
+    }
+    return 0;
+}
+
+# ============ v1.676 服务条目行 ============
+
+# uc_service_entry_row：绘制服务条目行 [E]  external-api  DNS  Active
+# name 为服务条目名，resolution 为解析方式，state 0=停用 1=启用。
+# 用于服务网格服务条目管理。
+fn uc_service_entry_row(x: i64, y: i64, name: ptr, resolution: ptr, state: i64, fg: i64, bg: i64) -> i64 {
+    let nlen: i64 = 0;
+    let rlen: i64 = 0;
+    let i: i64 = 0;
+    nlen = strlen(name);
+    rlen = strlen(resolution);
+    uc_set(x, y, '[', UC_MAGENTA, bg);
+    uc_set(x + 1, y, 'E', UC_MAGENTA, bg);
+    uc_set(x + 2, y, ']', UC_MAGENTA, bg);
+    uc_set(x + 5, y, ' ', fg, bg);
+    i = 0;
+    while i < nlen {
+        uc_set(x + 6 + i, y, name[i], UC_YELLOW, bg);
+        i = i + 1;
+    }
+    uc_set(x + 8 + nlen, y, ' ', fg, bg);
+    i = 0;
+    while i < rlen {
+        uc_set(x + 9 + nlen + i, y, resolution[i], UC_WHITE, bg);
+        i = i + 1;
+    }
+    uc_set(x + 11 + nlen + rlen, y, ' ', fg, bg);
+    if state != 0 {
+        uc_set(x + 12 + nlen + rlen, y, 'A', UC_GREEN, bg);
+        uc_set(x + 13 + nlen + rlen, y, 'c', UC_GREEN, bg);
+        uc_set(x + 14 + nlen + rlen, y, 't', UC_GREEN, bg);
+        uc_set(x + 15 + nlen + rlen, y, 'i', UC_GREEN, bg);
+        uc_set(x + 16 + nlen + rlen, y, 'v', UC_GREEN, bg);
+        uc_set(x + 17 + nlen + rlen, y, 'e', UC_GREEN, bg);
+    } else {
+        uc_set(x + 12 + nlen + rlen, y, 'I', fg, bg);
+        uc_set(x + 13 + nlen + rlen, y, 'n', fg, bg);
+        uc_set(x + 14 + nlen + rlen, y, 'a', fg, bg);
+        uc_set(x + 15 + nlen + rlen, y, 'c', fg, bg);
+        uc_set(x + 16 + nlen + rlen, y, 't', fg, bg);
+        uc_set(x + 17 + nlen + rlen, y, 'i', fg, bg);
+        uc_set(x + 18 + nlen + rlen, y, 'v', fg, bg);
+        uc_set(x + 19 + nlen + rlen, y, 'e', fg, bg);
+    }
+    return 0;
+}
+
+# ============ v1.677 外部服务行 ============
+
+# uc_external_service_row：绘制外部服务行 [S]  payments  external  Healthy
+# name 为服务名，type 为类型，state 0=异常 1=健康。
+# 用于外部服务监控。
+fn uc_external_service_row(x: i64, y: i64, name: ptr, type: ptr, state: i64, fg: i64, bg: i64) -> i64 {
+    let nlen: i64 = 0;
+    let tlen: i64 = 0;
+    let i: i64 = 0;
+    nlen = strlen(name);
+    tlen = strlen(type);
+    uc_set(x, y, '[', UC_GREEN, bg);
+    uc_set(x + 1, y, 'S', UC_GREEN, bg);
+    uc_set(x + 2, y, ']', UC_GREEN, bg);
+    uc_set(x + 5, y, ' ', fg, bg);
+    i = 0;
+    while i < nlen {
+        uc_set(x + 6 + i, y, name[i], UC_YELLOW, bg);
+        i = i + 1;
+    }
+    uc_set(x + 8 + nlen, y, ' ', fg, bg);
+    i = 0;
+    while i < tlen {
+        uc_set(x + 9 + nlen + i, y, type[i], UC_WHITE, bg);
+        i = i + 1;
+    }
+    uc_set(x + 11 + nlen + tlen, y, ' ', fg, bg);
+    if state != 0 {
+        uc_set(x + 12 + nlen + tlen, y, 'H', UC_GREEN, bg);
+        uc_set(x + 13 + nlen + tlen, y, 'e', UC_GREEN, bg);
+        uc_set(x + 14 + nlen + tlen, y, 'a', UC_GREEN, bg);
+        uc_set(x + 15 + nlen + tlen, y, 'l', UC_GREEN, bg);
+        uc_set(x + 16 + nlen + tlen, y, 't', UC_GREEN, bg);
+        uc_set(x + 17 + nlen + tlen, y, 'h', UC_GREEN, bg);
+        uc_set(x + 18 + nlen + tlen, y, 'y', UC_GREEN, bg);
+    } else {
+        uc_set(x + 12 + nlen + tlen, y, 'U', UC_RED, bg);
+        uc_set(x + 13 + nlen + tlen, y, 'n', UC_RED, bg);
+        uc_set(x + 14 + nlen + tlen, y, 'h', UC_RED, bg);
+        uc_set(x + 15 + nlen + tlen, y, 'e', UC_RED, bg);
+        uc_set(x + 16 + nlen + tlen, y, 'a', UC_RED, bg);
+        uc_set(x + 17 + nlen + tlen, y, 'l', UC_RED, bg);
+        uc_set(x + 18 + nlen + tlen, y, 't', UC_RED, bg);
+        uc_set(x + 19 + nlen + tlen, y, 'h', UC_RED, bg);
+        uc_set(x + 20 + nlen + tlen, y, 'y', UC_RED, bg);
+    }
+    return 0;
+}
+
+# ============ v1.678 故障注入行 ============
+
+# uc_fault_injection_row：绘制故障注入行 [F]  delay-reviews  5s  Active
+# name 为注入名，delay 为延迟，state 0=停用 1=启用。
+# 用于服务网格故障注入管理。
+fn uc_fault_injection_row(x: i64, y: i64, name: ptr, delay: ptr, state: i64, fg: i64, bg: i64) -> i64 {
+    let nlen: i64 = 0;
+    let dlen: i64 = 0;
+    let i: i64 = 0;
+    nlen = strlen(name);
+    dlen = strlen(delay);
+    uc_set(x, y, '[', UC_YELLOW, bg);
+    uc_set(x + 1, y, 'F', UC_YELLOW, bg);
+    uc_set(x + 2, y, ']', UC_YELLOW, bg);
+    uc_set(x + 5, y, ' ', fg, bg);
+    i = 0;
+    while i < nlen {
+        uc_set(x + 6 + i, y, name[i], UC_YELLOW, bg);
+        i = i + 1;
+    }
+    uc_set(x + 8 + nlen, y, ' ', fg, bg);
+    i = 0;
+    while i < dlen {
+        uc_set(x + 9 + nlen + i, y, delay[i], UC_WHITE, bg);
+        i = i + 1;
+    }
+    uc_set(x + 11 + nlen + dlen, y, ' ', fg, bg);
+    if state != 0 {
+        uc_set(x + 12 + nlen + dlen, y, 'A', UC_GREEN, bg);
+        uc_set(x + 13 + nlen + dlen, y, 'c', UC_GREEN, bg);
+        uc_set(x + 14 + nlen + dlen, y, 't', UC_GREEN, bg);
+        uc_set(x + 15 + nlen + dlen, y, 'i', UC_GREEN, bg);
+        uc_set(x + 16 + nlen + dlen, y, 'v', UC_GREEN, bg);
+        uc_set(x + 17 + nlen + dlen, y, 'e', UC_GREEN, bg);
+    } else {
+        uc_set(x + 12 + nlen + dlen, y, 'I', fg, bg);
+        uc_set(x + 13 + nlen + dlen, y, 'n', fg, bg);
+        uc_set(x + 14 + nlen + dlen, y, 'a', fg, bg);
+        uc_set(x + 15 + nlen + dlen, y, 'c', fg, bg);
+        uc_set(x + 16 + nlen + dlen, y, 't', fg, bg);
+        uc_set(x + 17 + nlen + dlen, y, 'i', fg, bg);
+        uc_set(x + 18 + nlen + dlen, y, 'v', fg, bg);
+        uc_set(x + 19 + nlen + dlen, y, 'e', fg, bg);
+    }
+    return 0;
+}
+
+# ============ v1.679 流量迁移行 ============
+
+# uc_traffic_shift_row：绘制流量迁移行 [T]  reviews-v1  50%  Active
+# name 为迁移名，weight 为权重，state 0=停用 1=启用。
+# 用于服务网格流量迁移管理。
+fn uc_traffic_shift_row(x: i64, y: i64, name: ptr, weight: i64, state: i64, fg: i64, bg: i64) -> i64 {
+    let nlen: i64 = 0;
+    let i: i64 = 0;
+    nlen = strlen(name);
+    uc_set(x, y, '[', UC_CYAN, bg);
+    uc_set(x + 1, y, 'T', UC_CYAN, bg);
+    uc_set(x + 2, y, ']', UC_CYAN, bg);
+    uc_set(x + 5, y, ' ', fg, bg);
+    i = 0;
+    while i < nlen {
+        uc_set(x + 6 + i, y, name[i], UC_YELLOW, bg);
+        i = i + 1;
+    }
+    uc_set(x + 8 + nlen, y, ' ', fg, bg);
+    uc_set(x + 9 + nlen, y, '0' + weight / 10, UC_WHITE, bg);
+    uc_set(x + 10 + nlen, y, '0' + weight % 10, UC_WHITE, bg);
+    uc_set(x + 11 + nlen, y, '%', UC_WHITE, bg);
+    uc_set(x + 13 + nlen, y, ' ', fg, bg);
+    if state != 0 {
+        uc_set(x + 14 + nlen, y, 'A', UC_GREEN, bg);
+        uc_set(x + 15 + nlen, y, 'c', UC_GREEN, bg);
+        uc_set(x + 16 + nlen, y, 't', UC_GREEN, bg);
+        uc_set(x + 17 + nlen, y, 'i', UC_GREEN, bg);
+        uc_set(x + 18 + nlen, y, 'v', UC_GREEN, bg);
+        uc_set(x + 19 + nlen, y, 'e', UC_GREEN, bg);
+    } else {
+        uc_set(x + 14 + nlen, y, 'I', fg, bg);
+        uc_set(x + 15 + nlen, y, 'n', fg, bg);
+        uc_set(x + 16 + nlen, y, 'a', fg, bg);
+        uc_set(x + 17 + nlen, y, 'c', fg, bg);
+        uc_set(x + 18 + nlen, y, 't', fg, bg);
+        uc_set(x + 19 + nlen, y, 'i', fg, bg);
+        uc_set(x + 20 + nlen, y, 'v', fg, bg);
+        uc_set(x + 21 + nlen, y, 'e', fg, bg);
+    }
+    return 0;
+}
+
+# ============ v1.680 链路追踪行 ============
+
+# uc_tracing_row：绘制链路追踪行 [T]  jaeger  sampling 0.1  Active
+# name 为追踪名，config 为配置，state 0=停用 1=启用。
+# 用于链路追踪管理。
+fn uc_tracing_row(x: i64, y: i64, name: ptr, config: ptr, state: i64, fg: i64, bg: i64) -> i64 {
+    let nlen: i64 = 0;
+    let clen: i64 = 0;
+    let i: i64 = 0;
+    nlen = strlen(name);
+    clen = strlen(config);
+    uc_set(x, y, '[', UC_MAGENTA, bg);
+    uc_set(x + 1, y, 'T', UC_MAGENTA, bg);
+    uc_set(x + 2, y, ']', UC_MAGENTA, bg);
+    uc_set(x + 5, y, ' ', fg, bg);
+    i = 0;
+    while i < nlen {
+        uc_set(x + 6 + i, y, name[i], UC_YELLOW, bg);
+        i = i + 1;
+    }
+    uc_set(x + 8 + nlen, y, ' ', fg, bg);
+    i = 0;
+    while i < clen {
+        uc_set(x + 9 + nlen + i, y, config[i], UC_WHITE, bg);
+        i = i + 1;
+    }
+    uc_set(x + 11 + nlen + clen, y, ' ', fg, bg);
+    if state != 0 {
+        uc_set(x + 12 + nlen + clen, y, 'A', UC_GREEN, bg);
+        uc_set(x + 13 + nlen + clen, y, 'c', UC_GREEN, bg);
+        uc_set(x + 14 + nlen + clen, y, 't', UC_GREEN, bg);
+        uc_set(x + 15 + nlen + clen, y, 'i', UC_GREEN, bg);
+        uc_set(x + 16 + nlen + clen, y, 'v', UC_GREEN, bg);
+        uc_set(x + 17 + nlen + clen, y, 'e', UC_GREEN, bg);
+    } else {
+        uc_set(x + 12 + nlen + clen, y, 'I', fg, bg);
+        uc_set(x + 13 + nlen + clen, y, 'n', fg, bg);
+        uc_set(x + 14 + nlen + clen, y, 'a', fg, bg);
+        uc_set(x + 15 + nlen + clen, y, 'c', fg, bg);
+        uc_set(x + 16 + nlen + clen, y, 't', fg, bg);
+        uc_set(x + 17 + nlen + clen, y, 'i', fg, bg);
+        uc_set(x + 18 + nlen + clen, y, 'v', fg, bg);
+        uc_set(x + 19 + nlen + clen, y, 'e', fg, bg);
+    }
+    return 0;
+}
