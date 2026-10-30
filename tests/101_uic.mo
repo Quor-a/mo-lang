@@ -466,6 +466,16 @@ fn main() -> i64 {
     uc_edge_microgrid_row(12, 2, "microgrid-1", 5, 1, UC_WHITE, UC_BLUE);
     uc_edge_storage_battery_row(1, 2, "battery-01", 80, "200kWh", UC_WHITE, UC_BLUE);
     uc_edge_charger_row(12, 2, "charger-01", "50kW", 1, UC_WHITE, UC_BLUE);
+    uc_edge_security_row(1, 2, "edge-sec", 5, 1, UC_WHITE, UC_BLUE);
+    uc_edge_vulnerability_row(12, 2, "CVE-2024-1234", "High", 1, UC_WHITE, UC_BLUE);
+    uc_edge_patch_row(1, 2, "patch-20240115", "Applied", 50, UC_WHITE, UC_BLUE);
+    uc_edge_compliance_audit_row(12, 2, "audit-001", "Compliant", 12, UC_WHITE, UC_BLUE);
+    uc_edge_threat_row(1, 2, "threat-01", "Malware", 1, UC_WHITE, UC_BLUE);
+    uc_edge_firewall_rule_row(12, 2, "fw-rule-01", "Allow", "80/tcp", UC_WHITE, UC_BLUE);
+    uc_edge_ids_row(1, 2, "ids-01", "Monitoring", 3, UC_WHITE, UC_BLUE);
+    uc_edge_encryption_row(12, 2, "key-rotator", "AES-256", 1, UC_WHITE, UC_BLUE);
+    uc_edge_cert_mgmt_row(1, 2, "cert-01", "Valid", 30, UC_WHITE, UC_BLUE);
+    uc_edge_identity_row(12, 2, "identity-01", "OAuth2", 1, UC_WHITE, UC_BLUE);
     uc_dump_svg("/tmp/uic_dump_test.svg");
     uc_render();
     return 0;

@@ -1,3 +1,19 @@
+## [1.780.0]
+
+- lib/uic_edge.mo 继续新增边缘安全画布组件（v1.771~v1.780，10 个）：
+  - uc_edge_security_row：边缘安全管理行 [S] edge-sec 5 policies Active
+  - uc_edge_vulnerability_row：边缘漏洞行 [V] CVE-2024-1234 High Open
+  - uc_edge_patch_row：边缘补丁管理行 [P] patch-20240115 Applied 50 devices
+  - uc_edge_compliance_audit_row：边缘合规审计行 [A] audit-001 Compliant 12 checks
+  - uc_edge_threat_row：边缘威胁检测行 [T] threat-01 Malware Blocked
+  - uc_edge_firewall_rule_row：边缘防火墙规则行 [F] fw-rule-01 Allow 80/tcp
+  - uc_edge_ids_row：边缘入侵检测行 [I] ids-01 Monitoring 3 alerts
+  - uc_edge_encryption_row：边缘加密管理行 [E] key-rotator AES-256 Rotating
+  - uc_edge_cert_mgmt_row：边缘证书管理行 [C] cert-01 Valid 30 days
+  - uc_edge_identity_row：边缘身份认证行 [I] identity-01 OAuth2 Active
+- tests/101_uic.mo 覆盖全部新增组件。
+- 门禁：tests 249/249、projcheck 11/11、自举三级一致、sweep 全绿。
+
 ## [1.770.0]
 
 - lib/uic_edge.mo 继续新增边缘能源与电力画布组件（v1.761~v1.770，10 个）：
