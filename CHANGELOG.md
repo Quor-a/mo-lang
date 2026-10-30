@@ -1,3 +1,19 @@
+## [1.650.0]
+
+- lib/uic.mo 大版本批量新增 10 个画布组件：
+  - uc_image_row：容器镜像行 [I] nginx 1.25.3 latest
+  - uc_registry_row：容器注册表行 [R] docker.io Public Active
+  - uc_namespace_row：K8s 命名空间行 [N] prod Active 12 pods
+  - uc_workload_row：K8s 工作负载行 [W] web-deploy Deployment 3/3 ready
+  - uc_k8s_service_row：K8s 服务行 [S] web-svc ClusterIP 80
+  - uc_configmap_row：K8s 配置映射行 [C] app-config 5 keys Active
+  - uc_k8s_secret_row：K8s 密钥行 [S] db-credentials Opaque Active
+  - uc_pv_row：K8s 持久卷行 [V] pvc-data 10Gi Bound
+  - uc_storage_class_row2：K8s 存储类行 [C] standard gp2 Default
+  - uc_ingress_row：K8s Ingress 行 [I] web-ingress nginx Active
+- tests/101_uic.mo 覆盖全部新增组件。
+- 门禁：tests 249/249、projcheck 11/11、自举三级一致、sweep 全绿。
+
 ## [1.640.0]
 
 - lib/uic.mo 大版本批量新增 10 个画布组件：

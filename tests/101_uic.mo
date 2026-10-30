@@ -335,6 +335,16 @@ fn main() -> i64 {
     uc_test_run_row(12, 2, 123, "CI", 1, "2m", UC_WHITE, UC_BLUE);
     uc_coverage_row(1, 2, "core/", 85, 1, UC_WHITE, UC_BLUE);
     uc_quality_gate_row(12, 2, "main", 0, 1, UC_WHITE, UC_BLUE);
+    uc_image_row(1, 2, "nginx", "1.25.3", 1, UC_WHITE, UC_BLUE);
+    uc_registry_row(12, 2, "docker.io", 1, UC_WHITE, UC_BLUE);
+    uc_namespace_row(1, 2, "prod", 12, 1, UC_WHITE, UC_BLUE);
+    uc_workload_row(12, 2, "web-deploy", "Deployment", 1, UC_WHITE, UC_BLUE);
+    uc_k8s_service_row(1, 2, "web-svc", "ClusterIP", 80, UC_WHITE, UC_BLUE);
+    uc_configmap_row(12, 2, "app-config", 5, 1, UC_WHITE, UC_BLUE);
+    uc_k8s_secret_row(1, 2, "db-cred", "Opaque", 1, UC_WHITE, UC_BLUE);
+    uc_pv_row(12, 2, "pvc-data", "10Gi", 1, UC_WHITE, UC_BLUE);
+    uc_storage_class_row2(1, 2, "standard", "gp2", 1, UC_WHITE, UC_BLUE);
+    uc_ingress_row(12, 2, "web-ingress", "nginx", 1, UC_WHITE, UC_BLUE);
     uc_dump_svg("/tmp/uic_dump_test.svg");
     uc_render();
     return 0;
