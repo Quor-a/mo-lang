@@ -1,3 +1,19 @@
+## [1.700.0]
+
+- lib/uic_edge.mo 继续新增边缘计算画布组件（v1.691~v1.700，10 个）：
+  - uc_edge_alert_row：边缘告警行 [A] high-temp Critical Active
+  - uc_device_shadow_row：边缘设备影子行 [S] sensor-01 desired-temp 25 reported 24
+  - uc_ota_update_row：边缘 OTA 更新行 [O] fw-1.0.3 5 devices Updating
+  - uc_edge_telemetry_data_row：边缘遥测数据行 [D] temp-01 23.5C normal
+  - uc_edge_model_monitor_row：边缘模型监控行 [M] yolov5 acc 0.95 Healthy
+  - uc_edge_rule_engine_row：边缘规则引擎行 [E] temp-rule active 12 rules
+  - uc_edge_clean_row：边缘数据清洗行 [C] temp-clean input 1000 output 980
+  - uc_federated_row：边缘联邦学习行 [F] fed-round-1 5 clients Aggregated
+  - uc_edge_cache_row：边缘缓存行 [C] img-cache 512MB Hit 89%
+  - uc_edge_lb_row：边缘负载均衡行 [L] edge-lb-1 3 nodes Healthy
+- tests/101_uic.mo 覆盖全部新增组件。
+- 门禁：tests 249/249、projcheck 11/11、自举三级一致、sweep 全绿。
+
 ## [1.690.0]
 
 - lib/uic_edge.mo 新增边缘计算画布组件（v1.681~v1.690，10 个）：

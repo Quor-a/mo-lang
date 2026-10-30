@@ -386,6 +386,16 @@ fn main() -> i64 {
     uc_edge_deployment_row(12, 2, "cam-01-deploy", 1, 5, UC_WHITE, UC_BLUE);
     uc_edge_schedule_row(1, 2, "daily-sync", "Every 1h", 1, UC_WHITE, UC_BLUE);
     uc_edge_telemetry_row(12, 2, "temp-01", "23.5C", "1s", UC_WHITE, UC_BLUE);
+    uc_edge_alert_row(1, 2, "high-temp", "Critical", 1, UC_WHITE, UC_BLUE);
+    uc_device_shadow_row(12, 2, "sensor-01", "temp 25", "temp 24", UC_WHITE, UC_BLUE);
+    uc_ota_update_row(1, 2, "fw-1.0.3", 5, 1, UC_WHITE, UC_BLUE);
+    uc_edge_telemetry_data_row(12, 2, "temp-01", "23.5C", 1, UC_WHITE, UC_BLUE);
+    uc_edge_model_monitor_row(1, 2, "yolov5", "acc 0.95", 1, UC_WHITE, UC_BLUE);
+    uc_edge_rule_engine_row(12, 2, "temp-rule", 12, 1, UC_WHITE, UC_BLUE);
+    uc_edge_clean_row(1, 2, "temp-clean", 1000, 980, UC_WHITE, UC_BLUE);
+    uc_federated_row(12, 2, "fed-round-1", 5, 1, UC_WHITE, UC_BLUE);
+    uc_edge_cache_row(1, 2, "img-cache", "512MB", 1, UC_WHITE, UC_BLUE);
+    uc_edge_lb_row(12, 2, "edge-lb-1", 3, 1, UC_WHITE, UC_BLUE);
     uc_dump_svg("/tmp/uic_dump_test.svg");
     uc_render();
     return 0;
