@@ -1,3 +1,19 @@
+## [1.580.0]
+
+- lib/uic.mo 大版本批量新增 10 个画布组件：
+  - uc_api_key_row：API 密钥行 [K] prod-key Active expires 2025-01
+  - uc_oauth_client_row：OAuth 客户端行 [O] web-app Confidential Active
+  - uc_role_row：角色行 [R] admin Full access Built-in
+  - uc_permission_row：权限行 [P] orders.read READ Granted
+  - uc_policy_row：策略行 [P] require-mfa Security Enforced
+  - uc_audit_log_row：审计日志行 [L] 2024-01-01 user.login admin SUCCESS
+  - uc_login_session_row：登录会话行 [S] web-01 192.168.1.5 Active
+  - uc_sso_row：SSO 提供方行 [S] okta SAML Connected
+  - uc_mfa_row：MFA 设备行 [M] authenticator Mobile Active
+  - uc_password_policy_row：密码策略行 [P] default Min 12 chars Enforced
+- tests/101_uic.mo 覆盖全部新增组件。
+- 门禁：tests 249/249、projcheck 11/11、自举三级一致、sweep 全绿。
+
 ## [1.570.0]
 
 - lib/uic.mo 大版本批量新增 10 个画布组件：

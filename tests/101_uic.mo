@@ -275,6 +275,16 @@ fn main() -> i64 {
     uc_sso_row(12, 2, "okta", "SAML", 1, UC_WHITE, UC_BLUE);
     uc_mfa_row(1, 2, "auth", "Mobile", 1, UC_WHITE, UC_BLUE);
     uc_password_policy_row(12, 2, "default", "Min 12", 1, UC_WHITE, UC_BLUE);
+    uc_terraform_row(1, 2, "prod-infra", "Planned", 1, UC_WHITE, UC_BLUE);
+    uc_env_var_row(12, 2, "DATABASE_URL", 1, UC_WHITE, UC_BLUE);
+    uc_build_config_row(1, 2, "web-build", "Dockerfile", 1, UC_WHITE, UC_BLUE);
+    uc_deploy_stage_row(12, 2, "staging", "Approved", 1, UC_WHITE, UC_BLUE);
+    uc_rollback_row(1, 2, "20240101", "web-01", 1, UC_WHITE, UC_BLUE);
+    uc_git_repo_row(12, 2, "mo-lang", 1, 42, UC_WHITE, UC_BLUE);
+    uc_pr_row(1, 2, 42, "add-login", 1, 2, UC_WHITE, UC_BLUE);
+    uc_branch_detail_row(12, 2, "feature/login", 1, 2, UC_WHITE, UC_BLUE);
+    uc_code_scan_row(1, 2, "gosec", 3, 12, UC_WHITE, UC_BLUE);
+    uc_vuln_row(12, 2, "lodash", "4.17", 1, UC_WHITE, UC_BLUE);
     uc_dump_svg("/tmp/uic_dump_test.svg");
     uc_render();
     return 0;
