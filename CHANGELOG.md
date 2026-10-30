@@ -1,3 +1,19 @@
+## [1.610.0]
+
+- lib/uic.mo 大版本批量新增 10 个画布组件：
+  - uc_alert_inhibit_row：告警抑制行 [I] inhibit-down source:target Active
+  - uc_alert_silence_row：告警静默行 [S] maintenance until 12:00 Active
+  - uc_route_rule_row：路由规则行 [R] /api/v1 weighted → 2 targets
+  - uc_extension_row：扩展行 [X] jaeger-tracing enabled v1.2.0
+  - uc_plugin_status_row：插件状态行 [P] grafana installed v10.2.0
+  - uc_service_account_row：服务账户行 [A] deploy-bot ClusterRole Active
+  - uc_rbac_row：RBAC 绑定行 [B] dev-team editor namespace-dev
+  - uc_quota_limit_row：配额限流行 [L] api-quota 1000 req/min Active
+  - uc_cache_key_row：缓存键行 [K] user:42 hit 12 times Active
+  - uc_queue_depth_row：队列深度行 [Q] order-queue 42 OK
+- tests/101_uic.mo 覆盖全部新增组件。
+- 门禁：tests 249/249、projcheck 11/11、自举三级一致、sweep 全绿。
+
 ## [1.600.0]
 
 - lib/uic.mo 大版本批量新增 10 个画布组件：

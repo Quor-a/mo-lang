@@ -295,6 +295,16 @@ fn main() -> i64 {
     uc_metric_row(12, 2, "revenue", "SUM(amount)", 1, UC_WHITE, UC_BLUE);
     uc_dashboard_row(1, 2, "ops-overview", 8, 1, UC_WHITE, UC_BLUE);
     uc_series_row(12, 2, "cpu-0", "host-01", "Line", 1, UC_WHITE, UC_BLUE);
+    uc_alert_inhibit_row(1, 2, "inhibit-down", "src:tgt", 1, UC_WHITE, UC_BLUE);
+    uc_alert_silence_row(12, 2, "maintenance", "12:00", 1, UC_WHITE, UC_BLUE);
+    uc_route_rule_row(1, 2, "/api/v1", "weighted", 2, UC_WHITE, UC_BLUE);
+    uc_extension_row(12, 2, "jaeger", 1, "v1.2", UC_WHITE, UC_BLUE);
+    uc_plugin_status_row(1, 2, "grafana", 1, "v10.2", UC_WHITE, UC_BLUE);
+    uc_service_account_row(12, 2, "deploy-bot", "ClusterRole", 1, UC_WHITE, UC_BLUE);
+    uc_rbac_row(1, 2, "dev-team", "editor", "ns-dev", UC_WHITE, UC_BLUE);
+    uc_quota_limit_row(12, 2, "api-quota", "1000/min", 1, UC_WHITE, UC_BLUE);
+    uc_cache_key_row(1, 2, "user:42", 12, 1, UC_WHITE, UC_BLUE);
+    uc_queue_depth_row(12, 2, "order-queue", 42, 1, UC_WHITE, UC_BLUE);
     uc_dump_svg("/tmp/uic_dump_test.svg");
     uc_render();
     return 0;
