@@ -6626,3 +6626,386 @@ fn uc_edge_feedback_row(x: i64, y: i64, name: ptr, rating: ptr, state: ptr, fg: 
     }
     return 0;
 }
+
+# ============ v1.831 边缘设备画像行 ============
+
+# uc_edge_device_profile_row：绘制边缘设备画像行 [P]  device-01  industrial  3 tags
+# name 为设备名，type 为类型，tags 为标签数。
+# 用于边缘设备画像管理。
+fn uc_edge_device_profile_row(x: i64, y: i64, name: ptr, type: ptr, tags: i64, fg: i64, bg: i64) -> i64 {
+    let nlen: i64 = 0;
+    let tlen: i64 = 0;
+    let i: i64 = 0;
+    nlen = strlen(name);
+    tlen = strlen(type);
+    uc_set(x, y, '[', UC_CYAN, bg);
+    uc_set(x + 1, y, 'P', UC_CYAN, bg);
+    uc_set(x + 2, y, ']', UC_CYAN, bg);
+    uc_set(x + 5, y, ' ', fg, bg);
+    i = 0;
+    while i < nlen {
+        uc_set(x + 6 + i, y, name[i], UC_YELLOW, bg);
+        i = i + 1;
+    }
+    uc_set(x + 8 + nlen, y, ' ', fg, bg);
+    i = 0;
+    while i < tlen {
+        uc_set(x + 9 + nlen + i, y, type[i], UC_WHITE, bg);
+        i = i + 1;
+    }
+    uc_set(x + 11 + nlen + tlen, y, ' ', fg, bg);
+    uc_set(x + 12 + nlen + tlen, y, '0' + tags, UC_MAGENTA, bg);
+    uc_set(x + 13 + nlen + tlen, y, ' ', UC_MAGENTA, bg);
+    uc_set(x + 14 + nlen + tlen, y, 't', UC_MAGENTA, bg);
+    uc_set(x + 15 + nlen + tlen, y, 'a', UC_MAGENTA, bg);
+    uc_set(x + 16 + nlen + tlen, y, 'g', UC_MAGENTA, bg);
+    uc_set(x + 17 + nlen + tlen, y, 's', UC_MAGENTA, bg);
+    return 0;
+}
+
+# ============ v1.832 边缘设备行为分析行 ============
+
+# uc_edge_device_behavior_row：绘制边缘设备行为分析行 [B]  device-01  Normal  98% conf
+# name 为设备名，state 为状态，confidence 为置信度。
+# 用于边缘设备行为分析管理。
+fn uc_edge_device_behavior_row(x: i64, y: i64, name: ptr, state: ptr, confidence: i64, fg: i64, bg: i64) -> i64 {
+    let nlen: i64 = 0;
+    let slen: i64 = 0;
+    let i: i64 = 0;
+    nlen = strlen(name);
+    slen = strlen(state);
+    uc_set(x, y, '[', UC_MAGENTA, bg);
+    uc_set(x + 1, y, 'B', UC_MAGENTA, bg);
+    uc_set(x + 2, y, ']', UC_MAGENTA, bg);
+    uc_set(x + 5, y, ' ', fg, bg);
+    i = 0;
+    while i < nlen {
+        uc_set(x + 6 + i, y, name[i], UC_YELLOW, bg);
+        i = i + 1;
+    }
+    uc_set(x + 8 + nlen, y, ' ', fg, bg);
+    i = 0;
+    while i < slen {
+        uc_set(x + 9 + nlen + i, y, state[i], UC_WHITE, bg);
+        i = i + 1;
+    }
+    uc_set(x + 11 + nlen + slen, y, ' ', fg, bg);
+    uc_set(x + 12 + nlen + slen, y, '0' + confidence / 10, UC_GREEN, bg);
+    uc_set(x + 13 + nlen + slen, y, '0' + confidence % 10, UC_GREEN, bg);
+    uc_set(x + 14 + nlen + slen, y, '%', UC_GREEN, bg);
+    uc_set(x + 15 + nlen + slen, y, ' ', UC_GREEN, bg);
+    uc_set(x + 16 + nlen + slen, y, 'c', UC_GREEN, bg);
+    uc_set(x + 17 + nlen + slen, y, 'o', UC_GREEN, bg);
+    uc_set(x + 18 + nlen + slen, y, 'n', UC_GREEN, bg);
+    uc_set(x + 19 + nlen + slen, y, 'f', UC_GREEN, bg);
+    return 0;
+}
+
+# ============ v1.833 边缘设备生命周期行 ============
+
+# uc_edge_device_lifecycle_row：绘制边缘设备生命周期行 [L]  device-01  Active  200 days
+# name 为设备名，state 为状态，days 为天数。
+# 用于边缘设备生命周期管理。
+fn uc_edge_device_lifecycle_row(x: i64, y: i64, name: ptr, state: ptr, days: i64, fg: i64, bg: i64) -> i64 {
+    let nlen: i64 = 0;
+    let slen: i64 = 0;
+    let i: i64 = 0;
+    nlen = strlen(name);
+    slen = strlen(state);
+    uc_set(x, y, '[', UC_GREEN, bg);
+    uc_set(x + 1, y, 'L', UC_GREEN, bg);
+    uc_set(x + 2, y, ']', UC_GREEN, bg);
+    uc_set(x + 5, y, ' ', fg, bg);
+    i = 0;
+    while i < nlen {
+        uc_set(x + 6 + i, y, name[i], UC_YELLOW, bg);
+        i = i + 1;
+    }
+    uc_set(x + 8 + nlen, y, ' ', fg, bg);
+    i = 0;
+    while i < slen {
+        uc_set(x + 9 + nlen + i, y, state[i], UC_WHITE, bg);
+        i = i + 1;
+    }
+    uc_set(x + 11 + nlen + slen, y, ' ', fg, bg);
+    uc_set(x + 12 + nlen + slen, y, '0' + days / 100, UC_CYAN, bg);
+    uc_set(x + 13 + nlen + slen, y, '0' + (days / 10) % 10, UC_CYAN, bg);
+    uc_set(x + 14 + nlen + slen, y, '0' + days % 10, UC_CYAN, bg);
+    uc_set(x + 15 + nlen + slen, y, ' ', UC_CYAN, bg);
+    uc_set(x + 16 + nlen + slen, y, 'd', UC_CYAN, bg);
+    uc_set(x + 17 + nlen + slen, y, 'a', UC_CYAN, bg);
+    uc_set(x + 18 + nlen + slen, y, 'y', UC_CYAN, bg);
+    uc_set(x + 19 + nlen + slen, y, 's', UC_CYAN, bg);
+    return 0;
+}
+
+# ============ v1.834 边缘设备维修记录行 ============
+
+# uc_edge_device_repair_row：绘制边缘设备维修记录行 [R]  repair-001  Completed  2 days
+# name 为记录号，state 为状态，days 为天数。
+# 用于边缘设备维修记录管理。
+fn uc_edge_device_repair_row(x: i64, y: i64, name: ptr, state: ptr, days: i64, fg: i64, bg: i64) -> i64 {
+    let nlen: i64 = 0;
+    let slen: i64 = 0;
+    let i: i64 = 0;
+    nlen = strlen(name);
+    slen = strlen(state);
+    uc_set(x, y, '[', UC_YELLOW, bg);
+    uc_set(x + 1, y, 'R', UC_YELLOW, bg);
+    uc_set(x + 2, y, ']', UC_YELLOW, bg);
+    uc_set(x + 5, y, ' ', fg, bg);
+    i = 0;
+    while i < nlen {
+        uc_set(x + 6 + i, y, name[i], UC_YELLOW, bg);
+        i = i + 1;
+    }
+    uc_set(x + 8 + nlen, y, ' ', fg, bg);
+    i = 0;
+    while i < slen {
+        uc_set(x + 9 + nlen + i, y, state[i], UC_WHITE, bg);
+        i = i + 1;
+    }
+    uc_set(x + 11 + nlen + slen, y, ' ', fg, bg);
+    uc_set(x + 12 + nlen + slen, y, '0' + days, UC_CYAN, bg);
+    uc_set(x + 13 + nlen + slen, y, ' ', UC_CYAN, bg);
+    uc_set(x + 14 + nlen + slen, y, 'd', UC_CYAN, bg);
+    uc_set(x + 15 + nlen + slen, y, 'a', UC_CYAN, bg);
+    uc_set(x + 16 + nlen + slen, y, 'y', UC_CYAN, bg);
+    uc_set(x + 17 + nlen + slen, y, 's', UC_CYAN, bg);
+    return 0;
+}
+
+# ============ v1.835 边缘设备保养记录行 ============
+
+# uc_edge_device_service_row：绘制边缘设备保养记录行 [S]  service-001  Scheduled  30 days
+# name 为记录号，state 为状态，days 为天数。
+# 用于边缘设备保养记录管理。
+fn uc_edge_device_service_row(x: i64, y: i64, name: ptr, state: ptr, days: i64, fg: i64, bg: i64) -> i64 {
+    let nlen: i64 = 0;
+    let slen: i64 = 0;
+    let i: i64 = 0;
+    nlen = strlen(name);
+    slen = strlen(state);
+    uc_set(x, y, '[', UC_CYAN, bg);
+    uc_set(x + 1, y, 'S', UC_CYAN, bg);
+    uc_set(x + 2, y, ']', UC_CYAN, bg);
+    uc_set(x + 5, y, ' ', fg, bg);
+    i = 0;
+    while i < nlen {
+        uc_set(x + 6 + i, y, name[i], UC_YELLOW, bg);
+        i = i + 1;
+    }
+    uc_set(x + 8 + nlen, y, ' ', fg, bg);
+    i = 0;
+    while i < slen {
+        uc_set(x + 9 + nlen + i, y, state[i], UC_WHITE, bg);
+        i = i + 1;
+    }
+    uc_set(x + 11 + nlen + slen, y, ' ', fg, bg);
+    uc_set(x + 12 + nlen + slen, y, '0' + days / 10, UC_GREEN, bg);
+    uc_set(x + 13 + nlen + slen, y, '0' + days % 10, UC_GREEN, bg);
+    uc_set(x + 14 + nlen + slen, y, ' ', UC_GREEN, bg);
+    uc_set(x + 15 + nlen + slen, y, 'd', UC_GREEN, bg);
+    uc_set(x + 16 + nlen + slen, y, 'a', UC_GREEN, bg);
+    uc_set(x + 17 + nlen + slen, y, 'y', UC_GREEN, bg);
+    uc_set(x + 18 + nlen + slen, y, 's', UC_GREEN, bg);
+    return 0;
+}
+
+# ============ v1.836 边缘设备固件版本行 ============
+
+# uc_edge_device_firmware_row：绘制边缘设备固件版本行 [F]  fw-2.1.0  50 devices  Stable
+# name 为固件名，devices 为设备数，state 为状态。
+# 用于边缘设备固件版本管理。
+fn uc_edge_device_firmware_row(x: i64, y: i64, name: ptr, devices: i64, state: ptr, fg: i64, bg: i64) -> i64 {
+    let nlen: i64 = 0;
+    let slen: i64 = 0;
+    let i: i64 = 0;
+    nlen = strlen(name);
+    slen = strlen(state);
+    uc_set(x, y, '[', UC_MAGENTA, bg);
+    uc_set(x + 1, y, 'F', UC_MAGENTA, bg);
+    uc_set(x + 2, y, ']', UC_MAGENTA, bg);
+    uc_set(x + 5, y, ' ', fg, bg);
+    i = 0;
+    while i < nlen {
+        uc_set(x + 6 + i, y, name[i], UC_YELLOW, bg);
+        i = i + 1;
+    }
+    uc_set(x + 8 + nlen, y, ' ', fg, bg);
+    uc_set(x + 9 + nlen, y, '0' + devices / 10, UC_WHITE, bg);
+    uc_set(x + 10 + nlen, y, '0' + devices % 10, UC_WHITE, bg);
+    uc_set(x + 11 + nlen, y, ' ', UC_WHITE, bg);
+    uc_set(x + 12 + nlen, y, 'd', UC_WHITE, bg);
+    uc_set(x + 13 + nlen, y, 'e', UC_WHITE, bg);
+    uc_set(x + 14 + nlen, y, 'v', UC_WHITE, bg);
+    uc_set(x + 15 + nlen, y, 'i', UC_WHITE, bg);
+    uc_set(x + 16 + nlen, y, 'c', UC_WHITE, bg);
+    uc_set(x + 17 + nlen, y, 'e', UC_WHITE, bg);
+    uc_set(x + 18 + nlen, y, 's', UC_WHITE, bg);
+    uc_set(x + 20 + nlen, y, ' ', fg, bg);
+    i = 0;
+    while i < slen {
+        uc_set(x + 21 + nlen + i, y, state[i], UC_GREEN, bg);
+        i = i + 1;
+    }
+    return 0;
+}
+
+# ============ v1.837 边缘设备配置漂移行 ============
+
+# uc_edge_device_drift_row：绘制边缘设备配置漂移行 [D]  device-01  Detected  2 changes
+# name 为设备名，state 为状态，changes 为变更数。
+# 用于边缘设备配置漂移管理。
+fn uc_edge_device_drift_row(x: i64, y: i64, name: ptr, state: ptr, changes: i64, fg: i64, bg: i64) -> i64 {
+    let nlen: i64 = 0;
+    let slen: i64 = 0;
+    let i: i64 = 0;
+    nlen = strlen(name);
+    slen = strlen(state);
+    uc_set(x, y, '[', UC_YELLOW, bg);
+    uc_set(x + 1, y, 'D', UC_YELLOW, bg);
+    uc_set(x + 2, y, ']', UC_YELLOW, bg);
+    uc_set(x + 5, y, ' ', fg, bg);
+    i = 0;
+    while i < nlen {
+        uc_set(x + 6 + i, y, name[i], UC_YELLOW, bg);
+        i = i + 1;
+    }
+    uc_set(x + 8 + nlen, y, ' ', fg, bg);
+    i = 0;
+    while i < slen {
+        uc_set(x + 9 + nlen + i, y, state[i], UC_WHITE, bg);
+        i = i + 1;
+    }
+    uc_set(x + 11 + nlen + slen, y, ' ', fg, bg);
+    uc_set(x + 12 + nlen + slen, y, '0' + changes, UC_MAGENTA, bg);
+    uc_set(x + 13 + nlen + slen, y, ' ', UC_MAGENTA, bg);
+    uc_set(x + 14 + nlen + slen, y, 'c', UC_MAGENTA, bg);
+    uc_set(x + 15 + nlen + slen, y, 'h', UC_MAGENTA, bg);
+    uc_set(x + 16 + nlen + slen, y, 'a', UC_MAGENTA, bg);
+    uc_set(x + 17 + nlen + slen, y, 'n', UC_MAGENTA, bg);
+    uc_set(x + 18 + nlen + slen, y, 'g', UC_MAGENTA, bg);
+    uc_set(x + 19 + nlen + slen, y, 'e', UC_MAGENTA, bg);
+    uc_set(x + 20 + nlen + slen, y, 's', UC_MAGENTA, bg);
+    return 0;
+}
+
+# ============ v1.838 边缘设备升级批次行 ============
+
+# uc_edge_device_upgrade_row：绘制边缘设备升级批次行 [U]  batch-01  10 devices  In Progress
+# name 为批次名，devices 为设备数，state 0=完成 1=进行中。
+# 用于边缘设备升级批次管理。
+fn uc_edge_device_upgrade_row(x: i64, y: i64, name: ptr, devices: i64, state: i64, fg: i64, bg: i64) -> i64 {
+    let nlen: i64 = 0;
+    let i: i64 = 0;
+    nlen = strlen(name);
+    uc_set(x, y, '[', UC_GREEN, bg);
+    uc_set(x + 1, y, 'U', UC_GREEN, bg);
+    uc_set(x + 2, y, ']', UC_GREEN, bg);
+    uc_set(x + 5, y, ' ', fg, bg);
+    i = 0;
+    while i < nlen {
+        uc_set(x + 6 + i, y, name[i], UC_YELLOW, bg);
+        i = i + 1;
+    }
+    uc_set(x + 8 + nlen, y, ' ', fg, bg);
+    uc_set(x + 9 + nlen, y, '0' + devices, UC_WHITE, bg);
+    uc_set(x + 10 + nlen, y, ' ', UC_WHITE, bg);
+    uc_set(x + 11 + nlen, y, 'd', UC_WHITE, bg);
+    uc_set(x + 12 + nlen, y, 'e', UC_WHITE, bg);
+    uc_set(x + 13 + nlen, y, 'v', UC_WHITE, bg);
+    uc_set(x + 14 + nlen, y, 'i', UC_WHITE, bg);
+    uc_set(x + 15 + nlen, y, 'c', UC_WHITE, bg);
+    uc_set(x + 16 + nlen, y, 'e', UC_WHITE, bg);
+    uc_set(x + 17 + nlen, y, 's', UC_WHITE, bg);
+    uc_set(x + 19 + nlen, y, ' ', fg, bg);
+    if state != 0 {
+        uc_set(x + 20 + nlen, y, 'I', UC_CYAN, bg);
+        uc_set(x + 21 + nlen, y, 'n', UC_CYAN, bg);
+        uc_set(x + 22 + nlen, y, ' ', UC_CYAN, bg);
+        uc_set(x + 23 + nlen, y, 'P', UC_CYAN, bg);
+        uc_set(x + 24 + nlen, y, 'r', UC_CYAN, bg);
+        uc_set(x + 25 + nlen, y, 'o', UC_CYAN, bg);
+        uc_set(x + 26 + nlen, y, 'g', UC_CYAN, bg);
+        uc_set(x + 27 + nlen, y, 'r', UC_CYAN, bg);
+        uc_set(x + 28 + nlen, y, 'e', UC_CYAN, bg);
+        uc_set(x + 29 + nlen, y, 's', UC_CYAN, bg);
+        uc_set(x + 30 + nlen, y, 's', UC_CYAN, bg);
+    } else {
+        uc_set(x + 20 + nlen, y, 'D', UC_GREEN, bg);
+        uc_set(x + 21 + nlen, y, 'o', UC_GREEN, bg);
+        uc_set(x + 22 + nlen, y, 'n', UC_GREEN, bg);
+        uc_set(x + 23 + nlen, y, 'e', UC_GREEN, bg);
+    }
+    return 0;
+}
+
+# ============ v1.839 边缘设备运行统计行 ============
+
+# uc_edge_device_stats_row：绘制边缘设备运行统计行 [S]  device-01  98% uptime  30 days
+# name 为设备名，uptime 为可用率，days 为天数。
+# 用于边缘设备运行统计管理。
+fn uc_edge_device_stats_row(x: i64, y: i64, name: ptr, uptime: i64, days: i64, fg: i64, bg: i64) -> i64 {
+    let nlen: i64 = 0;
+    let i: i64 = 0;
+    nlen = strlen(name);
+    uc_set(x, y, '[', UC_CYAN, bg);
+    uc_set(x + 1, y, 'S', UC_CYAN, bg);
+    uc_set(x + 2, y, ']', UC_CYAN, bg);
+    uc_set(x + 5, y, ' ', fg, bg);
+    i = 0;
+    while i < nlen {
+        uc_set(x + 6 + i, y, name[i], UC_YELLOW, bg);
+        i = i + 1;
+    }
+    uc_set(x + 8 + nlen, y, ' ', fg, bg);
+    uc_set(x + 9 + nlen, y, '0' + uptime / 10, UC_GREEN, bg);
+    uc_set(x + 10 + nlen, y, '0' + uptime % 10, UC_GREEN, bg);
+    uc_set(x + 11 + nlen, y, '%', UC_GREEN, bg);
+    uc_set(x + 13 + nlen, y, ' ', fg, bg);
+    uc_set(x + 14 + nlen, y, '0' + days, UC_MAGENTA, bg);
+    uc_set(x + 15 + nlen, y, ' ', UC_MAGENTA, bg);
+    uc_set(x + 16 + nlen, y, 'd', UC_MAGENTA, bg);
+    uc_set(x + 17 + nlen, y, 'a', UC_MAGENTA, bg);
+    uc_set(x + 18 + nlen, y, 'y', UC_MAGENTA, bg);
+    uc_set(x + 19 + nlen, y, 's', UC_MAGENTA, bg);
+    return 0;
+}
+
+# ============ v1.840 边缘设备能耗行 ============
+
+# uc_edge_device_energy_row：绘制边缘设备能耗行 [E]  device-01  5.2 kWh  Today
+# name 为设备名，value 为能耗，period 为周期。
+# 用于边缘设备能耗管理。
+fn uc_edge_device_energy_row(x: i64, y: i64, name: ptr, value: ptr, period: ptr, fg: i64, bg: i64) -> i64 {
+    let nlen: i64 = 0;
+    let vlen: i64 = 0;
+    let plen: i64 = 0;
+    let i: i64 = 0;
+    nlen = strlen(name);
+    vlen = strlen(value);
+    plen = strlen(period);
+    uc_set(x, y, '[', UC_GREEN, bg);
+    uc_set(x + 1, y, 'E', UC_GREEN, bg);
+    uc_set(x + 2, y, ']', UC_GREEN, bg);
+    uc_set(x + 5, y, ' ', fg, bg);
+    i = 0;
+    while i < nlen {
+        uc_set(x + 6 + i, y, name[i], UC_YELLOW, bg);
+        i = i + 1;
+    }
+    uc_set(x + 8 + nlen, y, ' ', fg, bg);
+    i = 0;
+    while i < vlen {
+        uc_set(x + 9 + nlen + i, y, value[i], UC_WHITE, bg);
+        i = i + 1;
+    }
+    uc_set(x + 11 + nlen + vlen, y, ' ', fg, bg);
+    i = 0;
+    while i < plen {
+        uc_set(x + 12 + nlen + vlen + i, y, period[i], UC_MAGENTA, bg);
+        i = i + 1;
+    }
+    return 0;
+}

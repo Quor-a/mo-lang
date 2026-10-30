@@ -526,6 +526,16 @@ fn main() -> i64 {
     uc_edge_kb_row(12, 2, "edge-kb", 50, 1, UC_WHITE, UC_BLUE);
     uc_edge_doc_row(1, 2, "user-guide", 20, "Published", UC_WHITE, UC_BLUE);
     uc_edge_feedback_row(12, 2, "feedback-01", "4.5", "Reviewed", UC_WHITE, UC_BLUE);
+    uc_edge_device_profile_row(1, 2, "device-01", "industrial", 3, UC_WHITE, UC_BLUE);
+    uc_edge_device_behavior_row(12, 2, "device-01", "Normal", 98, UC_WHITE, UC_BLUE);
+    uc_edge_device_lifecycle_row(1, 2, "device-01", "Active", 200, UC_WHITE, UC_BLUE);
+    uc_edge_device_repair_row(12, 2, "repair-001", "Completed", 2, UC_WHITE, UC_BLUE);
+    uc_edge_device_service_row(1, 2, "service-001", "Scheduled", 30, UC_WHITE, UC_BLUE);
+    uc_edge_device_firmware_row(12, 2, "fw-2.1.0", 50, "Stable", UC_WHITE, UC_BLUE);
+    uc_edge_device_drift_row(1, 2, "device-01", "Detected", 2, UC_WHITE, UC_BLUE);
+    uc_edge_device_upgrade_row(12, 2, "batch-01", 10, 1, UC_WHITE, UC_BLUE);
+    uc_edge_device_stats_row(1, 2, "device-01", 98, 30, UC_WHITE, UC_BLUE);
+    uc_edge_device_energy_row(12, 2, "device-01", "5.2kWh", "Today", UC_WHITE, UC_BLUE);
     uc_dump_svg("/tmp/uic_dump_test.svg");
     uc_render();
     return 0;

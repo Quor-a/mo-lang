@@ -1,3 +1,19 @@
+## [1.840.0]
+
+- lib/uic_edge.mo 继续新增边缘设备画像与维护画布组件（v1.831~v1.840，10 个）：
+  - uc_edge_device_profile_row：边缘设备画像行 [P] device-01 industrial 3 tags
+  - uc_edge_device_behavior_row：边缘设备行为分析行 [B] device-01 Normal 98% conf
+  - uc_edge_device_lifecycle_row：边缘设备生命周期行 [L] device-01 Active 200 days
+  - uc_edge_device_repair_row：边缘设备维修记录行 [R] repair-001 Completed 2 days
+  - uc_edge_device_service_row：边缘设备保养记录行 [S] service-001 Scheduled 30 days
+  - uc_edge_device_firmware_row：边缘设备固件版本行 [F] fw-2.1.0 50 devices Stable
+  - uc_edge_device_drift_row：边缘设备配置漂移行 [D] device-01 Detected 2 changes
+  - uc_edge_device_upgrade_row：边缘设备升级批次行 [U] batch-01 10 devices In Progress
+  - uc_edge_device_stats_row：边缘设备运行统计行 [S] device-01 98% uptime 30 days
+  - uc_edge_device_energy_row：边缘设备能耗行 [E] device-01 5.2 kWh Today
+- tests/101_uic.mo 覆盖全部新增组件。
+- 门禁：tests 249/249、projcheck 11/11、自举三级一致、sweep 全绿。
+
 ## [1.830.0]
 
 - lib/uic_edge.mo 继续新增边缘业务运营画布组件（v1.821~v1.830，10 个）：
