@@ -406,6 +406,16 @@ fn main() -> i64 {
     uc_edge_data_sink_row(12, 2, "cloud-upload", "InfluxDB", 1, UC_WHITE, UC_BLUE);
     uc_edge_dashboard_row(1, 2, "factory-dash", 5, 1, UC_WHITE, UC_BLUE);
     uc_edge_report_row(12, 2, "monthly-report", 12, 1, UC_WHITE, UC_BLUE);
+    uc_edge_workload_row(1, 2, "cam-app", 3, 1, UC_WHITE, UC_BLUE);
+    uc_edge_replicaset_row(12, 2, "cam-rs", 1, 3, UC_WHITE, UC_BLUE);
+    uc_edge_service_row(1, 2, "cam-svc", "ClusterIP", 8080, UC_WHITE, UC_BLUE);
+    uc_edge_task_row(12, 2, "image-process", 1, "2m12s", UC_WHITE, UC_BLUE);
+    uc_edge_cron_row(1, 2, "cleanup-cron", "Every 6h", 1, UC_WHITE, UC_BLUE);
+    uc_edge_namespace_row(12, 2, "edge-prod", 12, 1, UC_WHITE, UC_BLUE);
+    uc_edge_configmap_row(1, 2, "app-config", 5, 1, UC_WHITE, UC_BLUE);
+    uc_edge_secret_ref_row(12, 2, "db-secret", "db-pass", 1, UC_WHITE, UC_BLUE);
+    uc_edge_service_account_row(1, 2, "deploy-bot", "read-only", 1, UC_WHITE, UC_BLUE);
+    uc_edge_rbac_row(12, 2, "edge-admin", "cluster", 1, UC_WHITE, UC_BLUE);
     uc_dump_svg("/tmp/uic_dump_test.svg");
     uc_render();
     return 0;

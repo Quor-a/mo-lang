@@ -1,3 +1,19 @@
+## [1.720.0]
+
+- lib/uic_edge.mo 继续新增边缘计算画布组件（v1.711~v1.720，10 个）：
+  - uc_edge_workload_row：边缘工作负载行 [W] cam-app Running 3 replicas
+  - uc_edge_replicaset_row：边缘副本集行 [R] cam-rs 3/3 ready
+  - uc_edge_service_row：边缘服务行 [S] cam-svc ClusterIP 8080
+  - uc_edge_task_row：边缘任务行 [T] image-process Succeeded 2m 12s
+  - uc_edge_cron_row：边缘定时任务行 [C] cleanup-cron Every 6h Active
+  - uc_edge_namespace_row：边缘命名空间行 [N] edge-prod Active 12 workloads
+  - uc_edge_configmap_row：边缘配置映射行 [M] app-config 5 keys Active
+  - uc_edge_secret_ref_row：边缘密钥引用行 [K] db-secret db-password Active
+  - uc_edge_service_account_row：边缘服务账户行 [A] deploy-bot Active read-only
+  - uc_edge_rbac_row：边缘 RBAC 行 [R] edge-admin cluster-admin Active
+- tests/101_uic.mo 覆盖全部新增组件。
+- 门禁：tests 249/249、projcheck 11/11、自举三级一致、sweep 全绿。
+
 ## [1.710.0]
 
 - lib/uic_edge.mo 继续新增边缘计算画布组件（v1.701~v1.710，10 个）：
