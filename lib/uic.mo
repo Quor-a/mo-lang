@@ -11802,3 +11802,409 @@ fn uc_queue_depth_row(x: i64, y: i64, name: ptr, depth: i64, state: i64, fg: i64
     }
     return 0;
 }
+
+# ============ v1.611 成本分配行 ============
+
+# uc_cost_allocation_row：绘制成本分配行 [A]  dev-team  35%  $1,240.00
+# name 为分配对象，percent 为占比，amount 为金额。
+# 用于成本分配展示。
+fn uc_cost_allocation_row(x: i64, y: i64, name: ptr, percent: i64, amount: i64, fg: i64, bg: i64) -> i64 {
+    let nlen: i64 = 0;
+    let i: i64 = 0;
+    nlen = strlen(name);
+    uc_set(x, y, '[', UC_MAGENTA, bg);
+    uc_set(x + 1, y, 'A', UC_MAGENTA, bg);
+    uc_set(x + 2, y, ']', UC_MAGENTA, bg);
+    uc_set(x + 5, y, ' ', fg, bg);
+    i = 0;
+    while i < nlen {
+        uc_set(x + 6 + i, y, name[i], UC_YELLOW, bg);
+        i = i + 1;
+    }
+    uc_set(x + 8 + nlen, y, ' ', fg, bg);
+    uc_set(x + 9 + nlen, y, '0' + percent / 10, UC_CYAN, bg);
+    uc_set(x + 10 + nlen, y, '0' + percent % 10, UC_CYAN, bg);
+    uc_set(x + 11 + nlen, y, '%', UC_CYAN, bg);
+    uc_set(x + 13 + nlen, y, ' ', fg, bg);
+    uc_set(x + 14 + nlen, y, '$', UC_WHITE, bg);
+    uc_set(x + 15 + nlen, y, '0' + amount / 1000, UC_WHITE, bg);
+    uc_set(x + 16 + nlen, y, '0' + (amount / 100) % 10, UC_WHITE, bg);
+    uc_set(x + 17 + nlen, y, '0' + (amount / 10) % 10, UC_WHITE, bg);
+    uc_set(x + 18 + nlen, y, '0' + amount % 10, UC_WHITE, bg);
+    uc_set(x + 19 + nlen, y, '.', UC_WHITE, bg);
+    uc_set(x + 20 + nlen, y, '0' + (amount % 100) / 10, UC_WHITE, bg);
+    uc_set(x + 21 + nlen, y, '0' + amount % 10, UC_WHITE, bg);
+    return 0;
+}
+
+# ============ v1.612 预算行 ============
+
+# uc_budget_row：绘制预算行 [B]  q1-2024  $10,000  used 62%
+# name 为预算名，amount 为总额，used 为已用百分比。
+# 用于预算管理。
+fn uc_budget_row(x: i64, y: i64, name: ptr, amount: i64, used: i64, fg: i64, bg: i64) -> i64 {
+    let nlen: i64 = 0;
+    let i: i64 = 0;
+    nlen = strlen(name);
+    uc_set(x, y, '[', UC_GREEN, bg);
+    uc_set(x + 1, y, 'B', UC_GREEN, bg);
+    uc_set(x + 2, y, ']', UC_GREEN, bg);
+    uc_set(x + 5, y, ' ', fg, bg);
+    i = 0;
+    while i < nlen {
+        uc_set(x + 6 + i, y, name[i], UC_YELLOW, bg);
+        i = i + 1;
+    }
+    uc_set(x + 8 + nlen, y, ' ', fg, bg);
+    uc_set(x + 9 + nlen, y, '$', UC_CYAN, bg);
+    uc_set(x + 10 + nlen, y, '0' + amount / 10000, UC_CYAN, bg);
+    uc_set(x + 11 + nlen, y, '0' + (amount / 1000) % 10, UC_CYAN, bg);
+    uc_set(x + 12 + nlen, y, '0' + (amount / 100) % 10, UC_CYAN, bg);
+    uc_set(x + 13 + nlen, y, '0' + (amount / 10) % 10, UC_CYAN, bg);
+    uc_set(x + 14 + nlen, y, '0' + amount % 10, UC_CYAN, bg);
+    uc_set(x + 16 + nlen, y, ' ', fg, bg);
+    uc_set(x + 17 + nlen, y, 'u', UC_WHITE, bg);
+    uc_set(x + 18 + nlen, y, 's', UC_WHITE, bg);
+    uc_set(x + 19 + nlen, y, 'e', UC_WHITE, bg);
+    uc_set(x + 20 + nlen, y, 'd', UC_WHITE, bg);
+    uc_set(x + 21 + nlen, y, ' ', UC_WHITE, bg);
+    uc_set(x + 22 + nlen, y, '0' + used / 10, UC_WHITE, bg);
+    uc_set(x + 23 + nlen, y, '0' + used % 10, UC_WHITE, bg);
+    uc_set(x + 24 + nlen, y, '%', UC_WHITE, bg);
+    return 0;
+}
+
+# ============ v1.613 支出行 ============
+
+# uc_expense_row：绘制支出行 [E]  ec2-01  2024-01-01  $12.50
+# name 为资源名，date 为日期，amount 为金额。
+# 用于支出明细展示。
+fn uc_expense_row(x: i64, y: i64, name: ptr, date: ptr, amount: i64, fg: i64, bg: i64) -> i64 {
+    let nlen: i64 = 0;
+    let dlen: i64 = 0;
+    let i: i64 = 0;
+    nlen = strlen(name);
+    dlen = strlen(date);
+    uc_set(x, y, '[', UC_MAGENTA, bg);
+    uc_set(x + 1, y, 'E', UC_MAGENTA, bg);
+    uc_set(x + 2, y, ']', UC_MAGENTA, bg);
+    uc_set(x + 5, y, ' ', fg, bg);
+    i = 0;
+    while i < nlen {
+        uc_set(x + 6 + i, y, name[i], UC_YELLOW, bg);
+        i = i + 1;
+    }
+    uc_set(x + 8 + nlen, y, ' ', fg, bg);
+    i = 0;
+    while i < dlen {
+        uc_set(x + 9 + nlen + i, y, date[i], UC_CYAN, bg);
+        i = i + 1;
+    }
+    uc_set(x + 11 + nlen + dlen, y, ' ', fg, bg);
+    uc_set(x + 12 + nlen + dlen, y, '$', UC_WHITE, bg);
+    uc_set(x + 13 + nlen + dlen, y, '0' + amount / 10, UC_WHITE, bg);
+    uc_set(x + 14 + nlen + dlen, y, '0' + amount % 10, UC_WHITE, bg);
+    uc_set(x + 15 + nlen + dlen, y, '.', UC_WHITE, bg);
+    uc_set(x + 16 + nlen + dlen, y, '0' + (amount % 100) / 10, UC_WHITE, bg);
+    uc_set(x + 17 + nlen + dlen, y, '0' + amount % 10, UC_WHITE, bg);
+    return 0;
+}
+
+# ============ v1.614 发票行 ============
+
+# uc_invoice_row：绘制发票行 [I]  INV-2024-001  $1,200.00  Paid
+# number 为发票号，amount 为金额，state 0=未付 1=已付。
+# 用于发票管理。
+fn uc_invoice_row(x: i64, y: i64, number: ptr, amount: i64, state: i64, fg: i64, bg: i64) -> i64 {
+    let nlen: i64 = 0;
+    let i: i64 = 0;
+    nlen = strlen(number);
+    uc_set(x, y, '[', UC_YELLOW, bg);
+    uc_set(x + 1, y, 'I', UC_YELLOW, bg);
+    uc_set(x + 2, y, ']', UC_YELLOW, bg);
+    uc_set(x + 5, y, ' ', fg, bg);
+    i = 0;
+    while i < nlen {
+        uc_set(x + 6 + i, y, number[i], UC_YELLOW, bg);
+        i = i + 1;
+    }
+    uc_set(x + 8 + nlen, y, ' ', fg, bg);
+    uc_set(x + 9 + nlen, y, '$', UC_CYAN, bg);
+    uc_set(x + 10 + nlen, y, '0' + amount / 1000, UC_CYAN, bg);
+    uc_set(x + 11 + nlen, y, '0' + (amount / 100) % 10, UC_CYAN, bg);
+    uc_set(x + 12 + nlen, y, '0' + (amount / 10) % 10, UC_CYAN, bg);
+    uc_set(x + 13 + nlen, y, '0' + amount % 10, UC_CYAN, bg);
+    uc_set(x + 14 + nlen, y, '.', UC_CYAN, bg);
+    uc_set(x + 15 + nlen, y, '0' + (amount % 100) / 10, UC_CYAN, bg);
+    uc_set(x + 16 + nlen, y, '0' + amount % 10, UC_CYAN, bg);
+    uc_set(x + 18 + nlen, y, ' ', fg, bg);
+    if state != 0 {
+        uc_set(x + 19 + nlen, y, 'P', UC_GREEN, bg);
+        uc_set(x + 20 + nlen, y, 'a', UC_GREEN, bg);
+        uc_set(x + 21 + nlen, y, 'i', UC_GREEN, bg);
+        uc_set(x + 22 + nlen, y, 'd', UC_GREEN, bg);
+    } else {
+        uc_set(x + 19 + nlen, y, 'U', UC_RED, bg);
+        uc_set(x + 20 + nlen, y, 'n', UC_RED, bg);
+        uc_set(x + 21 + nlen, y, 'p', UC_RED, bg);
+        uc_set(x + 22 + nlen, y, 'a', UC_RED, bg);
+        uc_set(x + 23 + nlen, y, 'i', UC_RED, bg);
+        uc_set(x + 24 + nlen, y, 'd', UC_RED, bg);
+    }
+    return 0;
+}
+
+# ============ v1.615 账单行 ============
+
+# uc_bill_row：绘制账单行 [B]  2024-01  $500.00  Auto-pay
+# period 为账单周期，amount 为金额，state 0=待付 1=已付。
+# 用于账单管理。
+fn uc_bill_row(x: i64, y: i64, period: ptr, amount: i64, state: i64, fg: i64, bg: i64) -> i64 {
+    let plen: i64 = 0;
+    let i: i64 = 0;
+    plen = strlen(period);
+    uc_set(x, y, '[', UC_CYAN, bg);
+    uc_set(x + 1, y, 'B', UC_CYAN, bg);
+    uc_set(x + 2, y, ']', UC_CYAN, bg);
+    uc_set(x + 5, y, ' ', fg, bg);
+    i = 0;
+    while i < plen {
+        uc_set(x + 6 + i, y, period[i], UC_YELLOW, bg);
+        i = i + 1;
+    }
+    uc_set(x + 8 + plen, y, ' ', fg, bg);
+    uc_set(x + 9 + plen, y, '$', UC_WHITE, bg);
+    uc_set(x + 10 + plen, y, '0' + amount / 100, UC_WHITE, bg);
+    uc_set(x + 11 + plen, y, '0' + (amount / 10) % 10, UC_WHITE, bg);
+    uc_set(x + 12 + plen, y, '0' + amount % 10, UC_WHITE, bg);
+    uc_set(x + 13 + plen, y, '.', UC_WHITE, bg);
+    uc_set(x + 14 + plen, y, '0' + (amount % 100) / 10, UC_WHITE, bg);
+    uc_set(x + 15 + plen, y, '0' + amount % 10, UC_WHITE, bg);
+    uc_set(x + 17 + plen, y, ' ', fg, bg);
+    if state != 0 {
+        uc_set(x + 18 + plen, y, 'A', UC_GREEN, bg);
+        uc_set(x + 19 + plen, y, 'u', UC_GREEN, bg);
+        uc_set(x + 20 + plen, y, 't', UC_GREEN, bg);
+        uc_set(x + 21 + plen, y, 'o', UC_GREEN, bg);
+        uc_set(x + 22 + plen, y, '-', UC_GREEN, bg);
+        uc_set(x + 23 + plen, y, 'p', UC_GREEN, bg);
+        uc_set(x + 24 + plen, y, 'a', UC_GREEN, bg);
+        uc_set(x + 25 + plen, y, 'y', UC_GREEN, bg);
+    } else {
+        uc_set(x + 18 + plen, y, 'P', UC_RED, bg);
+        uc_set(x + 19 + plen, y, 'e', UC_RED, bg);
+        uc_set(x + 20 + plen, y, 'n', UC_RED, bg);
+        uc_set(x + 21 + plen, y, 'd', UC_RED, bg);
+        uc_set(x + 22 + plen, y, 'i', UC_RED, bg);
+        uc_set(x + 23 + plen, y, 'n', UC_RED, bg);
+        uc_set(x + 24 + plen, y, 'g', UC_RED, bg);
+    }
+    return 0;
+}
+
+# ============ v1.616 节省计划行 ============
+
+# uc_savings_plan_row：绘制节省计划行 [S]  compute-1yr  35% saving  Active
+# name 为计划名，saving 为节省率，state 0=停用 1=启用。
+# 用于节省计划管理。
+fn uc_savings_plan_row(x: i64, y: i64, name: ptr, saving: i64, state: i64, fg: i64, bg: i64) -> i64 {
+    let nlen: i64 = 0;
+    let i: i64 = 0;
+    nlen = strlen(name);
+    uc_set(x, y, '[', UC_GREEN, bg);
+    uc_set(x + 1, y, 'S', UC_GREEN, bg);
+    uc_set(x + 2, y, ']', UC_GREEN, bg);
+    uc_set(x + 5, y, ' ', fg, bg);
+    i = 0;
+    while i < nlen {
+        uc_set(x + 6 + i, y, name[i], UC_YELLOW, bg);
+        i = i + 1;
+    }
+    uc_set(x + 8 + nlen, y, ' ', fg, bg);
+    uc_set(x + 9 + nlen, y, '0' + saving / 10, UC_CYAN, bg);
+    uc_set(x + 10 + nlen, y, '0' + saving % 10, UC_CYAN, bg);
+    uc_set(x + 11 + nlen, y, '%', UC_CYAN, bg);
+    uc_set(x + 12 + nlen, y, ' ', UC_CYAN, bg);
+    uc_set(x + 13 + nlen, y, 's', UC_CYAN, bg);
+    uc_set(x + 14 + nlen, y, 'a', UC_CYAN, bg);
+    uc_set(x + 15 + nlen, y, 'v', UC_CYAN, bg);
+    uc_set(x + 16 + nlen, y, 'i', UC_CYAN, bg);
+    uc_set(x + 17 + nlen, y, 'n', UC_CYAN, bg);
+    uc_set(x + 18 + nlen, y, 'g', UC_CYAN, bg);
+    uc_set(x + 20 + nlen, y, ' ', fg, bg);
+    if state != 0 {
+        uc_set(x + 21 + nlen, y, 'A', UC_GREEN, bg);
+        uc_set(x + 22 + nlen, y, 'c', UC_GREEN, bg);
+        uc_set(x + 23 + nlen, y, 't', UC_GREEN, bg);
+        uc_set(x + 24 + nlen, y, 'i', UC_GREEN, bg);
+        uc_set(x + 25 + nlen, y, 'v', UC_GREEN, bg);
+        uc_set(x + 26 + nlen, y, 'e', UC_GREEN, bg);
+    } else {
+        uc_set(x + 21 + nlen, y, 'I', fg, bg);
+        uc_set(x + 22 + nlen, y, 'n', fg, bg);
+        uc_set(x + 23 + nlen, y, 'a', fg, bg);
+        uc_set(x + 24 + nlen, y, 'c', fg, bg);
+        uc_set(x + 25 + nlen, y, 't', fg, bg);
+        uc_set(x + 26 + nlen, y, 'i', fg, bg);
+        uc_set(x + 27 + nlen, y, 'v', fg, bg);
+        uc_set(x + 28 + nlen, y, 'e', fg, bg);
+    }
+    return 0;
+}
+
+# ============ v1.617 成本异常行 ============
+
+# uc_cost_anomaly_row：绘制成本异常行 [A]  ec2-spike  3.2x  High
+# name 为异常名，ratio 为倍数，state 0=中 1=高。
+# 用于成本异常告警。
+fn uc_cost_anomaly_row(x: i64, y: i64, name: ptr, ratio: i64, state: i64, fg: i64, bg: i64) -> i64 {
+    let nlen: i64 = 0;
+    let i: i64 = 0;
+    nlen = strlen(name);
+    uc_set(x, y, '[', UC_MAGENTA, bg);
+    uc_set(x + 1, y, 'A', UC_MAGENTA, bg);
+    uc_set(x + 2, y, ']', UC_MAGENTA, bg);
+    uc_set(x + 5, y, ' ', fg, bg);
+    i = 0;
+    while i < nlen {
+        uc_set(x + 6 + i, y, name[i], UC_YELLOW, bg);
+        i = i + 1;
+    }
+    uc_set(x + 8 + nlen, y, ' ', fg, bg);
+    uc_set(x + 9 + nlen, y, '0' + ratio / 10, UC_WHITE, bg);
+    uc_set(x + 10 + nlen, y, '.', UC_WHITE, bg);
+    uc_set(x + 11 + nlen, y, '0' + ratio % 10, UC_WHITE, bg);
+    uc_set(x + 12 + nlen, y, 'x', UC_WHITE, bg);
+    uc_set(x + 14 + nlen, y, ' ', fg, bg);
+    if state != 0 {
+        uc_set(x + 15 + nlen, y, 'H', UC_RED, bg);
+        uc_set(x + 16 + nlen, y, 'i', UC_RED, bg);
+        uc_set(x + 17 + nlen, y, 'g', UC_RED, bg);
+        uc_set(x + 18 + nlen, y, 'h', UC_RED, bg);
+    } else {
+        uc_set(x + 15 + nlen, y, 'M', UC_YELLOW, bg);
+        uc_set(x + 16 + nlen, y, 'e', UC_YELLOW, bg);
+        uc_set(x + 17 + nlen, y, 'd', UC_YELLOW, bg);
+        uc_set(x + 18 + nlen, y, 'i', UC_YELLOW, bg);
+        uc_set(x + 19 + nlen, y, 'u', UC_YELLOW, bg);
+        uc_set(x + 20 + nlen, y, 'm', UC_YELLOW, bg);
+    }
+    return 0;
+}
+
+# ============ v1.618 定价行 ============
+
+# uc_price_row2：绘制定价行 [P]  standard  per-hour  $0.023
+# name 为定价名，unit 为计费单位，price 为价格。
+# 用于定价展示。
+fn uc_price_row2(x: i64, y: i64, name: ptr, unit: ptr, price: i64, fg: i64, bg: i64) -> i64 {
+    let nlen: i64 = 0;
+    let ulen: i64 = 0;
+    let i: i64 = 0;
+    nlen = strlen(name);
+    ulen = strlen(unit);
+    uc_set(x, y, '[', UC_YELLOW, bg);
+    uc_set(x + 1, y, 'P', UC_YELLOW, bg);
+    uc_set(x + 2, y, ']', UC_YELLOW, bg);
+    uc_set(x + 5, y, ' ', fg, bg);
+    i = 0;
+    while i < nlen {
+        uc_set(x + 6 + i, y, name[i], UC_YELLOW, bg);
+        i = i + 1;
+    }
+    uc_set(x + 8 + nlen, y, ' ', fg, bg);
+    i = 0;
+    while i < ulen {
+        uc_set(x + 9 + nlen + i, y, unit[i], UC_CYAN, bg);
+        i = i + 1;
+    }
+    uc_set(x + 11 + nlen + ulen, y, ' ', fg, bg);
+    uc_set(x + 12 + nlen + ulen, y, '$', UC_WHITE, bg);
+    uc_set(x + 13 + nlen + ulen, y, '0', UC_WHITE, bg);
+    uc_set(x + 14 + nlen + ulen, y, '.', UC_WHITE, bg);
+    uc_set(x + 15 + nlen + ulen, y, '0' + price / 100, UC_WHITE, bg);
+    uc_set(x + 16 + nlen + ulen, y, '0' + (price / 10) % 10, UC_WHITE, bg);
+    uc_set(x + 17 + nlen + ulen, y, '0' + price % 10, UC_WHITE, bg);
+    return 0;
+}
+
+# ============ v1.619 配额调整行 ============
+
+# uc_quota_adjust_row：绘制配额调整行 [Q]  increase-vcpu  +50  Approved
+# name 为调整名，delta 为变化，state 0=待审 1=已批准。
+# 用于配额调整请求。
+fn uc_quota_adjust_row(x: i64, y: i64, name: ptr, delta: i64, state: i64, fg: i64, bg: i64) -> i64 {
+    let nlen: i64 = 0;
+    let i: i64 = 0;
+    nlen = strlen(name);
+    uc_set(x, y, '[', UC_CYAN, bg);
+    uc_set(x + 1, y, 'Q', UC_CYAN, bg);
+    uc_set(x + 2, y, ']', UC_CYAN, bg);
+    uc_set(x + 5, y, ' ', fg, bg);
+    i = 0;
+    while i < nlen {
+        uc_set(x + 6 + i, y, name[i], UC_YELLOW, bg);
+        i = i + 1;
+    }
+    uc_set(x + 8 + nlen, y, ' ', fg, bg);
+    uc_set(x + 9 + nlen, y, '+', UC_WHITE, bg);
+    uc_set(x + 10 + nlen, y, '0' + delta / 10, UC_WHITE, bg);
+    uc_set(x + 11 + nlen, y, '0' + delta % 10, UC_WHITE, bg);
+    uc_set(x + 13 + nlen, y, ' ', fg, bg);
+    if state != 0 {
+        uc_set(x + 14 + nlen, y, 'A', UC_GREEN, bg);
+        uc_set(x + 15 + nlen, y, 'p', UC_GREEN, bg);
+        uc_set(x + 16 + nlen, y, 'p', UC_GREEN, bg);
+        uc_set(x + 17 + nlen, y, 'r', UC_GREEN, bg);
+        uc_set(x + 18 + nlen, y, 'o', UC_GREEN, bg);
+        uc_set(x + 19 + nlen, y, 'v', UC_GREEN, bg);
+        uc_set(x + 20 + nlen, y, 'e', UC_GREEN, bg);
+        uc_set(x + 21 + nlen, y, 'd', UC_GREEN, bg);
+    } else {
+        uc_set(x + 14 + nlen, y, 'P', UC_CYAN, bg);
+        uc_set(x + 15 + nlen, y, 'e', UC_CYAN, bg);
+        uc_set(x + 16 + nlen, y, 'n', UC_CYAN, bg);
+        uc_set(x + 17 + nlen, y, 'd', UC_CYAN, bg);
+        uc_set(x + 18 + nlen, y, 'i', UC_CYAN, bg);
+        uc_set(x + 19 + nlen, y, 'n', UC_CYAN, bg);
+        uc_set(x + 20 + nlen, y, 'g', UC_CYAN, bg);
+    }
+    return 0;
+}
+
+# ============ v1.620 审批行 ============
+
+# uc_approval_row：绘制审批行 [A]  prod-deploy  pending  ops-team
+# name 为审批名，status 为状态，approver 为审批人。
+# 用于审批流程展示。
+fn uc_approval_row(x: i64, y: i64, name: ptr, status: ptr, approver: ptr, fg: i64, bg: i64) -> i64 {
+    let nlen: i64 = 0;
+    let slen: i64 = 0;
+    let alen: i64 = 0;
+    let i: i64 = 0;
+    nlen = strlen(name);
+    slen = strlen(status);
+    alen = strlen(approver);
+    uc_set(x, y, '[', UC_GREEN, bg);
+    uc_set(x + 1, y, 'A', UC_GREEN, bg);
+    uc_set(x + 2, y, ']', UC_GREEN, bg);
+    uc_set(x + 5, y, ' ', fg, bg);
+    i = 0;
+    while i < nlen {
+        uc_set(x + 6 + i, y, name[i], UC_YELLOW, bg);
+        i = i + 1;
+    }
+    uc_set(x + 8 + nlen, y, ' ', fg, bg);
+    i = 0;
+    while i < slen {
+        uc_set(x + 9 + nlen + i, y, status[i], UC_WHITE, bg);
+        i = i + 1;
+    }
+    uc_set(x + 11 + nlen + slen, y, ' ', fg, bg);
+    i = 0;
+    while i < alen {
+        uc_set(x + 12 + nlen + slen + i, y, approver[i], UC_MAGENTA, bg);
+        i = i + 1;
+    }
+    return 0;
+}

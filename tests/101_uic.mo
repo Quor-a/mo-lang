@@ -305,6 +305,16 @@ fn main() -> i64 {
     uc_quota_limit_row(12, 2, "api-quota", "1000/min", 1, UC_WHITE, UC_BLUE);
     uc_cache_key_row(1, 2, "user:42", 12, 1, UC_WHITE, UC_BLUE);
     uc_queue_depth_row(12, 2, "order-queue", 42, 1, UC_WHITE, UC_BLUE);
+    uc_cost_allocation_row(1, 2, "dev-team", 35, 1240, UC_WHITE, UC_BLUE);
+    uc_budget_row(12, 2, "q1-2024", 10000, 62, UC_WHITE, UC_BLUE);
+    uc_expense_row(1, 2, "ec2-01", "2024-01", 125, UC_WHITE, UC_BLUE);
+    uc_invoice_row(12, 2, "INV-001", 1200, 1, UC_WHITE, UC_BLUE);
+    uc_bill_row(1, 2, "2024-01", 500, 1, UC_WHITE, UC_BLUE);
+    uc_savings_plan_row(12, 2, "compute", 35, 1, UC_WHITE, UC_BLUE);
+    uc_cost_anomaly_row(1, 2, "ec2-spike", 32, 1, UC_WHITE, UC_BLUE);
+    uc_price_row2(12, 2, "standard", "per-hour", 23, UC_WHITE, UC_BLUE);
+    uc_quota_adjust_row(1, 2, "increase-vcpu", 50, 1, UC_WHITE, UC_BLUE);
+    uc_approval_row(12, 2, "prod-deploy", "pending", "ops-team", UC_WHITE, UC_BLUE);
     uc_dump_svg("/tmp/uic_dump_test.svg");
     uc_render();
     return 0;

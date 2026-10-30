@@ -1,3 +1,19 @@
+## [1.620.0]
+
+- lib/uic.mo 大版本批量新增 10 个画布组件：
+  - uc_cost_allocation_row：成本分配行 [A] dev-team 35% $1,240.00
+  - uc_budget_row：预算行 [B] q1-2024 $10,000 used 62%
+  - uc_expense_row：支出行 [E] ec2-01 2024-01-01 $12.50
+  - uc_invoice_row：发票行 [I] INV-2024-001 $1,200.00 Paid
+  - uc_bill_row：账单行 [B] 2024-01 $500.00 Auto-pay
+  - uc_savings_plan_row：节省计划行 [S] compute-1yr 35% saving Active
+  - uc_cost_anomaly_row：成本异常行 [A] ec2-spike 3.2x High
+  - uc_price_row2：定价行 [P] standard per-hour $0.023
+  - uc_quota_adjust_row：配额调整行 [Q] increase-vcpu +50 Approved
+  - uc_approval_row：审批行 [A] prod-deploy pending ops-team
+- tests/101_uic.mo 覆盖全部新增组件。
+- 门禁：tests 249/249、projcheck 11/11、自举三级一致、sweep 全绿。
+
 ## [1.610.0]
 
 - lib/uic.mo 大版本批量新增 10 个画布组件：
