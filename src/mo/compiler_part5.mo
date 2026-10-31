@@ -4596,6 +4596,7 @@ fn cmp_row_field(compo: i64, fld: i64, kind: i64, wd: i64, col: i64, fi: i64) ->
             cmp_i(fi);
             cmp_s(" + 1;\n    }\n");
         } else {
+            if kind == 3 {
             cmp_s("    let bf: i64 = &");
             cmp_s(compo);
             cmp_s("_buf;\n    let bz: i64 = 0;\n    while bz < 64 {\n        ");
@@ -4611,6 +4612,23 @@ fn cmp_row_field(compo: i64, fld: i64, kind: i64, wd: i64, col: i64, fi: i64) ->
             cmp_c(95);
             cmp_s(fld);
             cmp_s(" * fill) / 100 {\n            uc_set(cx + 1 + bi, y, '#', UC_GREEN, bg);\n        } else {\n            uc_set(cx + 1 + bi, y, '-', UC_WHITE, bg);\n        }\n        bi = bi + 1;\n    }\n    uc_set(cx + 1 + fill, y, ']', UC_WHITE, bg);\n    uc_text(cx + fill + 3, y, bf, UC_CYAN, bg);\n");
+        } else {
+            cmp_s("    let gf: i64 = &");
+            cmp_s(compo);
+            cmp_s("_buf;\n    let gz: i64 = 0;\n    while gz < 64 {\n        ");
+            cmp_s(compo);
+            cmp_s("_buf[gz] = 0;\n        gz = gz + 1;\n    }\n    str_itoa_base(gf, ");
+            cmp_s(compo);
+            cmp_c(95);
+            cmp_s(fld);
+            cmp_s(", 10);\n    let gl: i64 = strlen(gf);\n    let gw: i64 = ");
+            cmp_i(wd);
+            cmp_s(" - gl - 1;\n    let gq: i64 = (");
+            cmp_s(compo);
+            cmp_c(95);
+            cmp_s(fld);
+            cmp_s(" * 8) / 100;\n    let gi: i64 = 0;\n    while gi < gw {\n        uc_set(cx + gi, y, 9608, UC_CYAN, bg);\n        gi = gi + 1;\n    }\n    let gj: i64 = 0;\n    while gj < gq {\n        if gj < gw {\n            uc_set(cx + gj, y, 9619, UC_YELLOW, bg);\n        }\n        gj = gj + 1;\n    }\n    uc_text(cx + gw + 1, y, gf, UC_WHITE, bg);\n");
+        }
         }
         }
     }
@@ -4676,7 +4694,11 @@ fn parse_component() -> i64 {
                     if tok_is("bar") == 1 {
                         kind = 3;
                     } else {
-                        return syntax_error();
+                        if tok_is("gauge") == 1 {
+                            kind = 4;
+                        } else {
+                            return syntax_error();
+                        }
                     }
                 }
             }
@@ -4696,7 +4718,7 @@ fn parse_component() -> i64 {
         CMP_TY[nf] = kind;
         CMP_WD[nf] = width;
         if kind == 0 { CMP_CC[nf] = 3; }
-        else { if kind == 1 { CMP_CC[nf] = 6; } else { if kind == 2 { CMP_CC[nf] = 2; } else { CMP_CC[nf] = 9; } } }
+        else { if kind == 1 { CMP_CC[nf] = 6; } else { if kind == 2 { CMP_CC[nf] = 2; } else { if kind == 3 { CMP_CC[nf] = 9; } else { CMP_CC[nf] = 11; } } } }
         CMP_FN[nf] = fname;
         CMP_NF = nf + 1;
     }
