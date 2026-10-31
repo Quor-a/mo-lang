@@ -2827,6 +2827,9 @@ fn parse_program() -> i64 {
                                 if tok_is("generic") == 1 {
                                     parse_generic();
                                 } else {
+                                    if tok_is("component") == 1 {
+                                        parse_component();
+                                    } else {
                                     if tok_is("instantiate") == 1 {
                                         parse_instantiate();
                                     } else {
@@ -2844,6 +2847,7 @@ fn parse_program() -> i64 {
                                             }
                                         }
                                     }
+                                }
                                 }
                             }
                         }
@@ -4366,5 +4370,390 @@ fn g_struct_copy(dst: i64, n: i64) -> i64 {
         emit4(o);
         i = i + 1;
     }
+    return 0;
+}
+# ==========================================================================
+#  组件（component）原生支持 —— 自举组件（追加部分）
+#  见 parse_component：把 component 声明展开成 Mo 源码并解析。
+# ==========================================================================
+var CMP_P: i64 = 0;          # 展开缓冲（O_GENBUF）写指针
+var CMP_TY: [64] i64 = 0;    # 字段类型：0=text 1=num 2=state
+var CMP_WD: [64] i64 = 0;    # 字段宽度
+var CMP_CC: [64] i64 = 0;    # 字段颜色（text/num 用）
+var CMP_FN: [64] i64 = 0;    # 字段名在 O_NAMES 里的偏移
+var CMP_NF: i64 = 0;         # 字段数
+
+fn cmp_c(c: i64) -> i64 {
+    store8(heap + O_GENBUF + CMP_P, c);
+    CMP_P = CMP_P + 1;
+    return 0;
+}
+
+fn cmp_s(s: i64) -> i64 {
+    let i: i64 = 0;
+    while load8(s + i) != 0 {
+        cmp_c(load8(s + i));
+        i = i + 1;
+    }
+    return 0;
+}
+
+fn cmp_i(v: i64) -> i64 {
+    let p: i64 = heap + O_SCAL + 1400;
+    let i: i64 = 0;
+    if v == 0 {
+        cmp_c(48);
+        return 0;
+    }
+    let vv: i64 = v;
+    while vv > 0 {
+        store8(p + i, 48 + (vv % 10));
+        vv = vv / 10;
+        i = i + 1;
+    }
+    let j: i64 = 0;
+    while j < i / 2 {
+        let t: i64 = load8(p + j);
+        store8(p + j, load8(p + i - 1 - j));
+        store8(p + i - 1 - j, t);
+        j = j + 1;
+    }
+    let k: i64 = 0;
+    while k < i {
+        cmp_c(load8(p + k));
+        k = k + 1;
+    }
+    return 0;
+}
+
+# 生成一个字段的全局变量声明
+fn cmp_field_var(compo: i64, fld: i64, kind: i64) -> i64 {
+    cmp_s("var ");
+    cmp_s(compo);
+    cmp_c(95);
+    cmp_s(fld);
+    if kind == 0 {
+        cmp_s(": [32] byte = 0;\n");
+    } else {
+        cmp_s(": i64 = 0;\n");
+    }
+    return 0;
+}
+
+# 生成一个字段的 setter 函数
+fn cmp_setter(compo: i64, fld: i64, kind: i64) -> i64 {
+    cmp_s("fn ");
+    cmp_s(compo);
+    cmp_c(95);
+    cmp_s("set_");
+    cmp_s(fld);
+    if kind == 0 {
+        cmp_s("(v: ptr) -> i64 {\n    let n: i64 = strlen(v);\n    let i: i64 = 0;\n    while i < n {\n        ");
+        cmp_s(compo);
+        cmp_c(95);
+        cmp_s(fld);
+        cmp_s("[i] = load8(v + i);\n        i = i + 1;\n    }\n    ");
+        cmp_s(compo);
+        cmp_c(95);
+        cmp_s(fld);
+        cmp_s("[n] = 0;\n    return 0;\n}\n");
+    } else {
+        cmp_s("(v: i64) -> i64 {\n    ");
+        cmp_s(compo);
+        cmp_c(95);
+        cmp_s(fld);
+        cmp_s(" = v;\n    return 0;\n}\n");
+    }
+    return 0;
+}
+
+# 生成 row 函数里一个字段的绘制代码。fi 是字段序号。
+fn cmp_row_field(compo: i64, fld: i64, kind: i64, wd: i64, col: i64, fi: i64) -> i64 {
+    cmp_s("    uc_text(cx, y, \"");
+    cmp_s(fld);
+    cmp_s("\", UC_WHITE, bg);\n");
+    cmp_s("    let l");
+    cmp_i(fi);
+    cmp_s(": i64 = strlen(\"");
+    cmp_s(fld);
+    cmp_s("\");\n    cx = cx + l");
+    cmp_i(fi);
+    cmp_s(" + 1;\n");
+    if kind == 0 {
+        cmp_s("    uc_text(cx, y, &");
+        cmp_s(compo);
+        cmp_c(95);
+        cmp_s(fld);
+        cmp_s(", UC_YELLOW, bg);\n    let v");
+        cmp_i(fi);
+        cmp_s(": i64 = strlen(&");
+        cmp_s(compo);
+        cmp_c(95);
+        cmp_s(fld);
+        cmp_s(");\n    let p");
+        cmp_i(fi);
+        cmp_s(": i64 = ");
+        cmp_i(wd);
+        cmp_s(" - v");
+        cmp_i(fi);
+        cmp_s(";\n    let j");
+        cmp_i(fi);
+        cmp_s(": i64 = 0;\n    while j");
+        cmp_i(fi);
+        cmp_s(" < p");
+        cmp_i(fi);
+        cmp_s(" {\n        uc_set(cx + v");
+        cmp_i(fi);
+        cmp_s(" + j");
+        cmp_i(fi);
+        cmp_s(", y, ' ', fg, bg);\n        j");
+        cmp_i(fi);
+        cmp_s(" = j");
+        cmp_i(fi);
+        cmp_s(" + 1;\n    }\n");
+    } else {
+        if kind == 1 {
+            cmp_s("    let b");
+            cmp_i(fi);
+            cmp_s(": i64 = &");
+            cmp_s(compo);
+            cmp_s("_buf;\n    let z");
+            cmp_i(fi);
+            cmp_s(": i64 = 0;\n    while z");
+            cmp_i(fi);
+            cmp_s(" < 64 {\n        ");
+            cmp_s(compo);
+            cmp_s("_buf[z");
+            cmp_i(fi);
+            cmp_s("] = 0;\n        z");
+            cmp_i(fi);
+            cmp_s(" = z");
+            cmp_i(fi);
+            cmp_s(" + 1;\n    }\n    str_itoa_base(b");
+            cmp_i(fi);
+            cmp_s(", ");
+            cmp_s(compo);
+            cmp_c(95);
+            cmp_s(fld);
+            cmp_s(", 10);\n    uc_text(cx, y, b");
+            cmp_i(fi);
+            cmp_s(", UC_CYAN, bg);\n    let v");
+            cmp_i(fi);
+            cmp_s(": i64 = strlen(b");
+            cmp_i(fi);
+            cmp_s(");\n    let p");
+            cmp_i(fi);
+            cmp_s(": i64 = ");
+            cmp_i(wd);
+            cmp_s(" - v");
+            cmp_i(fi);
+            cmp_s(";\n    let j");
+            cmp_i(fi);
+            cmp_s(": i64 = 0;\n    while j");
+            cmp_i(fi);
+            cmp_s(" < p");
+            cmp_i(fi);
+            cmp_s(" {\n        uc_set(cx + v");
+            cmp_i(fi);
+            cmp_s(" + j");
+            cmp_i(fi);
+            cmp_s(", y, ' ', fg, bg);\n        j");
+            cmp_i(fi);
+            cmp_s(" = j");
+            cmp_i(fi);
+            cmp_s(" + 1;\n    }\n");
+        } else {
+            cmp_s("    let st");
+            cmp_i(fi);
+            cmp_s(": i64 = ");
+            cmp_s(compo);
+            cmp_c(95);
+            cmp_s(fld);
+            cmp_s(";\n    if st");
+            cmp_i(fi);
+            cmp_s(" == 0 {\n        uc_text(cx, y, \"OFF\", UC_WHITE, bg);\n    } else {\n        if st");
+            cmp_i(fi);
+            cmp_s(" == 1 {\n            uc_text(cx, y, \"RUN\", UC_GREEN, bg);\n        } else {\n            if st");
+            cmp_i(fi);
+            cmp_s(" == 2 {\n                uc_text(cx, y, \"OK\", UC_CYAN, bg);\n            } else {\n                uc_text(cx, y, \"ERR\", UC_RED, bg);\n            }\n        }\n    }\n    let v");
+            cmp_i(fi);
+            cmp_s(": i64 = 4;\n    let p");
+            cmp_i(fi);
+            cmp_s(": i64 = ");
+            cmp_i(wd);
+            cmp_s(" - 4;\n    let j");
+            cmp_i(fi);
+            cmp_s(": i64 = 0;\n    while j");
+            cmp_i(fi);
+            cmp_s(" < p");
+            cmp_i(fi);
+            cmp_s(" {\n        uc_set(cx + 4 + j");
+            cmp_i(fi);
+            cmp_s(", y, ' ', fg, bg);\n        j");
+            cmp_i(fi);
+            cmp_s(" = j");
+            cmp_i(fi);
+            cmp_s(" + 1;\n    }\n");
+        }
+    }
+    cmp_s("    cx = cx + ");
+    cmp_i(wd);
+    cmp_s(" + 2;\n");
+    return 0;
+}
+
+# 生成 head 函数里一个字段的表头代码
+fn cmp_head_field(fld: i64, fi: i64) -> i64 {
+    cmp_s("    uc_text(cx, y, \"");
+    cmp_s(fld);
+    cmp_s("\", UC_WHITE, bg);\n    let l");
+    cmp_i(fi);
+    cmp_s(": i64 = strlen(\"");
+    cmp_s(fld);
+    cmp_s("\");\n    let j");
+    cmp_i(fi);
+    cmp_s(": i64 = 0;\n    while j");
+    cmp_i(fi);
+    cmp_s(" < 2 {\n        uc_set(cx + l");
+    cmp_i(fi);
+    cmp_s(" + j");
+    cmp_i(fi);
+    cmp_s(", y, '-', UC_WHITE, bg);\n        j");
+    cmp_i(fi);
+    cmp_s(" = j");
+    cmp_i(fi);
+    cmp_s(" + 1;\n    }\n    cx = cx + l");
+    cmp_i(fi);
+    cmp_s(" + 4;\n");
+    return 0;
+}
+
+# 解析 component 声明并展开
+fn parse_component() -> i64 {
+    next_token();
+    if gv(K_TKIND) != 1 { return syntax_error(); }
+    let cname: i64 = intern(tokbuf());
+    let compo: i64 = heap + O_NAMES + cname;
+    next_token();
+    if tok_is("{") == 0 { return syntax_error(); }
+    next_token();
+    CMP_NF = 0;
+    while tok_is("}") == 0 {
+        if gv(K_TKIND) != 1 { return syntax_error(); }
+        let fname: i64 = intern(tokbuf());
+        let fld: i64 = heap + O_NAMES + fname;
+        next_token();
+        if tok_is(":") == 0 { return syntax_error(); }
+        next_token();
+        let kind: i64 = 0;
+        if tok_is("text") == 1 {
+            kind = 0;
+        } else {
+            if tok_is("num") == 1 {
+                kind = 1;
+            } else {
+                if tok_is("state") == 1 {
+                    kind = 2;
+                } else {
+                    return syntax_error();
+                }
+            }
+        }
+        next_token();
+        let width: i64 = 10;
+        if tok_is("width") == 1 {
+            next_token();
+            if gv(K_TKIND) != 2 { return syntax_error(); }
+            width = gv(K_TIVAL);
+            next_token();
+        }
+        if tok_is(";") == 0 { return syntax_error(); }
+        next_token();
+        let nf: i64 = CMP_NF;
+        if nf >= 64 { return err_at2("too many component fields (limit 64)", gv(K_LINE), gv(K_COL)); }
+        CMP_TY[nf] = kind;
+        CMP_WD[nf] = width;
+        if kind == 0 { CMP_CC[nf] = 3; }
+        else { if kind == 1 { CMP_CC[nf] = 6; } else { CMP_CC[nf] = 2; } }
+        CMP_FN[nf] = fname;
+        CMP_NF = nf + 1;
+    }
+    if tok_is("}") == 0 { return syntax_error(); }
+    # 生成展开代码到 O_GENBUF
+    CMP_P = 0;
+    let nf2: i64 = CMP_NF;
+    let fi: i64 = 0;
+    while fi < nf2 {
+        cmp_field_var(compo, heap + O_NAMES + CMP_FN[fi], CMP_TY[fi]);
+        fi = fi + 1;
+    }
+    cmp_s("var ");
+    cmp_s(compo);
+    cmp_s("_buf: [64] i64 = 0;\n");
+    fi = 0;
+    while fi < nf2 {
+        cmp_setter(compo, heap + O_NAMES + CMP_FN[fi], CMP_TY[fi]);
+        fi = fi + 1;
+    }
+    cmp_s("fn ");
+    cmp_s(compo);
+    cmp_s("_row(x: i64, y: i64, fg: i64, bg: i64) -> i64 {\n    let cx: i64 = x;\n");
+    fi = 0;
+    while fi < nf2 {
+        cmp_row_field(compo, heap + O_NAMES + CMP_FN[fi], CMP_TY[fi], CMP_WD[fi], CMP_CC[fi], fi);
+        fi = fi + 1;
+    }
+    cmp_s("    return 0;\n}\n");
+    cmp_s("fn ");
+    cmp_s(compo);
+    cmp_s("_head(x: i64, y: i64, fg: i64, bg: i64) -> i64 {\n    let cx: i64 = x;\n");
+    fi = 0;
+    while fi < nf2 {
+        cmp_head_field(heap + O_NAMES + CMP_FN[fi], fi);
+        fi = fi + 1;
+    }
+    cmp_s("    return 0;\n}\n");
+    cmp_c(0);
+    let ob: i64 = gv(K_SRCBASE);
+    let ol: i64 = gv(K_SRCLEN);
+    let op: i64 = gv(K_POS);
+    let oln: i64 = gv(K_LINE);
+    let oc: i64 = gv(K_COL);
+    let opos: i64 = gv(K_CPOS);
+    let len: i64 = CMP_P - 1;
+    let fb:  i64 = gv(K_FNBASE);
+    let of:  i64 = gv(K_CUROFF);
+    let fp:  i64 = gv(K_FPATCH);
+    let hr:  i64 = gv(K_HASRET);
+    let dp:  i64 = gv(K_DEPTH);
+    let lt:  i64 = gv(K_LTOP);
+    let cb:  i64 = gv(K_CRBX);
+    let cf:  i64 = gv(K_CURFN);
+    let nd:  i64 = gv(K_NDF);
+    let el:  i64 = load64(heap + O_ERRLAB);
+    sv(K_SRCBASE, O_GENBUF);
+    sv(K_SRCLEN, len);
+    sv(K_POS, 0);
+    sv(K_CPOS, 0);
+    sv(K_LINE, 1);
+    sv(K_COL, 1);
+    parse_program();
+    sv(K_SRCBASE, ob);
+    sv(K_SRCLEN, ol);
+    sv(K_POS, op);
+    sv(K_LINE, oln);
+    sv(K_COL, oc);
+    sv(K_CPOS, opos);
+    sv(K_FNBASE, fb);
+    sv(K_CUROFF, of);
+    sv(K_FPATCH, fp);
+    sv(K_HASRET, hr);
+    sv(K_DEPTH, dp);
+    sv(K_LTOP, lt);
+    sv(K_CRBX, cb);
+    sv(K_CURFN, cf);
+    sv(K_NDF, nd);
+    store64(heap + O_ERRLAB, el);
+    next_token();
     return 0;
 }
