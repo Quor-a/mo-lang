@@ -4563,6 +4563,7 @@ fn cmp_row_field(compo: i64, fld: i64, kind: i64, wd: i64, col: i64, fi: i64) ->
             cmp_i(fi);
             cmp_s(" + 1;\n    }\n");
         } else {
+            if kind == 2 {
             cmp_s("    let st");
             cmp_i(fi);
             cmp_s(": i64 = ");
@@ -4594,6 +4595,23 @@ fn cmp_row_field(compo: i64, fld: i64, kind: i64, wd: i64, col: i64, fi: i64) ->
             cmp_s(" = j");
             cmp_i(fi);
             cmp_s(" + 1;\n    }\n");
+        } else {
+            cmp_s("    let bf: i64 = &");
+            cmp_s(compo);
+            cmp_s("_buf;\n    let bz: i64 = 0;\n    while bz < 64 {\n        ");
+            cmp_s(compo);
+            cmp_s("_buf[bz] = 0;\n        bz = bz + 1;\n    }\n    str_itoa_base(bf, ");
+            cmp_s(compo);
+            cmp_c(95);
+            cmp_s(fld);
+            cmp_s(", 10);\n    let bl: i64 = strlen(bf);\n    let fill: i64 = ");
+            cmp_i(wd);
+            cmp_s(" - bl - 2;\n    uc_set(cx, y, '[', UC_WHITE, bg);\n    let bi: i64 = 0;\n    while bi < fill {\n        if bi < (");
+            cmp_s(compo);
+            cmp_c(95);
+            cmp_s(fld);
+            cmp_s(" * fill) / 100 {\n            uc_set(cx + 1 + bi, y, '#', UC_GREEN, bg);\n        } else {\n            uc_set(cx + 1 + bi, y, '-', UC_WHITE, bg);\n        }\n        bi = bi + 1;\n    }\n    uc_set(cx + 1 + fill, y, ']', UC_WHITE, bg);\n    uc_text(cx + fill + 3, y, bf, UC_CYAN, bg);\n");
+        }
         }
     }
     cmp_s("    cx = cx + ");
@@ -4655,7 +4673,11 @@ fn parse_component() -> i64 {
                 if tok_is("state") == 1 {
                     kind = 2;
                 } else {
-                    return syntax_error();
+                    if tok_is("bar") == 1 {
+                        kind = 3;
+                    } else {
+                        return syntax_error();
+                    }
                 }
             }
         }
@@ -4674,7 +4696,7 @@ fn parse_component() -> i64 {
         CMP_TY[nf] = kind;
         CMP_WD[nf] = width;
         if kind == 0 { CMP_CC[nf] = 3; }
-        else { if kind == 1 { CMP_CC[nf] = 6; } else { CMP_CC[nf] = 2; } }
+        else { if kind == 1 { CMP_CC[nf] = 6; } else { if kind == 2 { CMP_CC[nf] = 2; } else { CMP_CC[nf] = 9; } } }
         CMP_FN[nf] = fname;
         CMP_NF = nf + 1;
     }
