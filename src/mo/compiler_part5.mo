@@ -4834,6 +4834,21 @@ fn cmp_row_field(compo: i64, fld: i64, kind: i64, wd: i64, col: i64, fi: i64) ->
         cmp_s(" + 1;\n    }\n");
     } else {
         if kind == 1 {
+        if CMP_HS[fi] > 0 {
+        cmp_s("    let nsum: i64 = 0;\n    let nct: i64 = ");
+        cmp_s(compo);
+        cmp_c(95);
+        cmp_s(fld);
+        cmp_s("_n;\n    let nidx: i64 = 0;\n    while nidx < nct {\n        nsum = nsum + ");
+        cmp_s(compo);
+        cmp_c(95);
+        cmp_s(fld);
+        cmp_s("_hist[nidx];\n        nidx = nidx + 1;\n    }\n    if nct > 0 {\n        ");
+        cmp_s(compo);
+        cmp_c(95);
+        cmp_s(fld);
+        cmp_s(" = nsum / nct;\n    }\n");
+        }
         if CMP_AL[fi] == 1 {
             cmp_s("    let b");
             cmp_i(fi);
