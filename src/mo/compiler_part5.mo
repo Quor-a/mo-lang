@@ -4468,6 +4468,65 @@ fn cmp_setter(compo: i64, fld: i64, kind: i64) -> i64 {
 }
 
 # 生成 row 函数里一个字段的绘制代码。fi 是字段序号。
+
+# kind>=3 的扩展渲染（bar/gauge/kv/hex）—— 独立函数避免深层 else 链
+fn cmp_row_ext(compo: i64, fld: i64, kind: i64, wd: i64, col: i64, fi: i64) -> i64 {
+    if kind == 3 {
+        cmp_s("    let bf: i64 = &");
+        cmp_s(compo);
+        cmp_s("_buf;\n    let bz: i64 = 0;\n    while bz < 64 {\n        ");
+        cmp_s(compo);
+        cmp_s("_buf[bz] = 0;\n        bz = bz + 1;\n    }\n    str_itoa_base(bf, ");
+        cmp_s(compo);
+        cmp_c(95);
+        cmp_s(fld);
+        cmp_s(", 10);\n    let bl: i64 = strlen(bf);\n    let fill: i64 = ");
+        cmp_i(wd);
+        cmp_s(" - bl - 2;\n    uc_set(cx, y, '[', UC_WHITE, bg);\n    let bi: i64 = 0;\n    while bi < fill {\n        if bi < (");
+        cmp_s(compo);
+        cmp_c(95);
+        cmp_s(fld);
+        cmp_s(" * fill) / 100 {\n            uc_set(cx + 1 + bi, y, '#', UC_GREEN, bg);\n        } else {\n            uc_set(cx + 1 + bi, y, '-', UC_WHITE, bg);\n        }\n        bi = bi + 1;\n    }\n    uc_set(cx + 1 + fill, y, ']', UC_WHITE, bg);\n    uc_text(cx + fill + 3, y, bf, UC_CYAN, bg);\n");
+        return 0;
+    }
+    if kind == 4 {
+        cmp_s("    let gf: i64 = &");
+        cmp_s(compo);
+        cmp_s("_buf;\n    let gz: i64 = 0;\n    while gz < 64 {\n        ");
+        cmp_s(compo);
+        cmp_s("_buf[gz] = 0;\n        gz = gz + 1;\n    }\n    str_itoa_base(gf, ");
+        cmp_s(compo);
+        cmp_c(95);
+        cmp_s(fld);
+        cmp_s(", 10);\n    let gl: i64 = strlen(gf);\n    let gw: i64 = ");
+        cmp_i(wd);
+        cmp_s(" - gl - 1;\n    let gq: i64 = (");
+        cmp_s(compo);
+        cmp_c(95);
+        cmp_s(fld);
+        cmp_s(" * 8) / 100;\n    let gi: i64 = 0;\n    while gi < gw {\n        uc_set(cx + gi, y, 9608, UC_CYAN, bg);\n        gi = gi + 1;\n    }\n    let gj: i64 = 0;\n    while gj < gq {\n        if gj < gw {\n            uc_set(cx + gj, y, 9619, UC_YELLOW, bg);\n        }\n        gj = gj + 1;\n    }\n    uc_text(cx + gw + 1, y, gf, UC_WHITE, bg);\n");
+        return 0;
+    }
+    if kind == 5 {
+        cmp_s("    uc_text(cx, y, &");
+        cmp_s(compo);
+        cmp_c(95);
+        cmp_s(fld);
+        cmp_s(", UC_MAGENTA, bg);\n");
+        return 0;
+    }
+    cmp_s("    let hf: i64 = &");
+    cmp_s(compo);
+    cmp_s("_buf;\n    let hz: i64 = 0;\n    while hz < 64 {\n        ");
+    cmp_s(compo);
+    cmp_s("_buf[hz] = 0;\n        hz = hz + 1;\n    }\n    str_itoa_base(hf, ");
+    cmp_s(compo);
+    cmp_c(95);
+    cmp_s(fld);
+    cmp_s(", 16);\n    uc_text(cx, y, hf, UC_CYAN, bg);\n");
+    return 0;
+}
+
 fn cmp_row_field(compo: i64, fld: i64, kind: i64, wd: i64, col: i64, fi: i64) -> i64 {
     cmp_s("    uc_text(cx, y, \"");
     cmp_s(fld);
@@ -4596,59 +4655,7 @@ fn cmp_row_field(compo: i64, fld: i64, kind: i64, wd: i64, col: i64, fi: i64) ->
             cmp_i(fi);
             cmp_s(" + 1;\n    }\n");
         } else {
-            if kind == 3 {
-            cmp_s("    let bf: i64 = &");
-            cmp_s(compo);
-            cmp_s("_buf;\n    let bz: i64 = 0;\n    while bz < 64 {\n        ");
-            cmp_s(compo);
-            cmp_s("_buf[bz] = 0;\n        bz = bz + 1;\n    }\n    str_itoa_base(bf, ");
-            cmp_s(compo);
-            cmp_c(95);
-            cmp_s(fld);
-            cmp_s(", 10);\n    let bl: i64 = strlen(bf);\n    let fill: i64 = ");
-            cmp_i(wd);
-            cmp_s(" - bl - 2;\n    uc_set(cx, y, '[', UC_WHITE, bg);\n    let bi: i64 = 0;\n    while bi < fill {\n        if bi < (");
-            cmp_s(compo);
-            cmp_c(95);
-            cmp_s(fld);
-            cmp_s(" * fill) / 100 {\n            uc_set(cx + 1 + bi, y, '#', UC_GREEN, bg);\n        } else {\n            uc_set(cx + 1 + bi, y, '-', UC_WHITE, bg);\n        }\n        bi = bi + 1;\n    }\n    uc_set(cx + 1 + fill, y, ']', UC_WHITE, bg);\n    uc_text(cx + fill + 3, y, bf, UC_CYAN, bg);\n");
-        } else {
-            if kind == 4 {
-            cmp_s("    let gf: i64 = &");
-            cmp_s(compo);
-            cmp_s("_buf;\n    let gz: i64 = 0;\n    while gz < 64 {\n        ");
-            cmp_s(compo);
-            cmp_s("_buf[gz] = 0;\n        gz = gz + 1;\n    }\n    str_itoa_base(gf, ");
-            cmp_s(compo);
-            cmp_c(95);
-            cmp_s(fld);
-            cmp_s(", 10);\n    let gl: i64 = strlen(gf);\n    let gw: i64 = ");
-            cmp_i(wd);
-            cmp_s(" - gl - 1;\n    let gq: i64 = (");
-            cmp_s(compo);
-            cmp_c(95);
-            cmp_s(fld);
-            cmp_s(" * 8) / 100;\n    let gi: i64 = 0;\n    while gi < gw {\n        uc_set(cx + gi, y, 9608, UC_CYAN, bg);\n        gi = gi + 1;\n    }\n    let gj: i64 = 0;\n    while gj < gq {\n        if gj < gw {\n            uc_set(cx + gj, y, 9619, UC_YELLOW, bg);\n        }\n        gj = gj + 1;\n    }\n    uc_text(cx + gw + 1, y, gf, UC_WHITE, bg);\n");
-        } else {
-            if kind == 5 {
-            cmp_s("    uc_text(cx, y, &");
-            cmp_s(compo);
-            cmp_c(95);
-            cmp_s(fld);
-            cmp_s(", UC_MAGENTA, bg);\n");
-            } else {
-            cmp_s("    let hf: i64 = &");
-            cmp_s(compo);
-            cmp_s("_buf;\n    let hz: i64 = 0;\n    while hz < 64 {\n        ");
-            cmp_s(compo);
-            cmp_s("_buf[hz] = 0;\n        hz = hz + 1;\n    }\n    str_itoa_base(hf, ");
-            cmp_s(compo);
-            cmp_c(95);
-            cmp_s(fld);
-            cmp_s(", 16);\n    uc_text(cx, y, hf, UC_CYAN, bg);\n");
-            }
-        }
-        }
+            cmp_row_ext(compo, fld, kind, wd, col, fi);
         }
         }
     }
