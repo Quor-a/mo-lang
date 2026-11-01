@@ -1700,6 +1700,13 @@ fn parse_const() -> i64 {
     expect("=");
     let v: i64 = const_expr();
     expect(";");
+    # 软恢复（v1.1006）：const 表达式出错后消费到 ';'，让后续定义继续
+    if ERR_N > 0 {
+        while gv(K_TKIND) != 0 {
+            if tok_is(";") == 1 { next_token(); break; }
+            next_token();
+        }
+    }
     if const_dup_check() >= 0 { return 0; }
     let id: i64 = sym_add(scratch2(), 4, v, 0);
     store64(heap + O_SCV + id * 8, v);
