@@ -6746,6 +6746,23 @@ fn const_atom() -> i64 {
         return v;
     }
     if gv(K_TKIND) == 1 {
+        # enum 类型点访问 E.A（v1.992）：E 是 enum 类型名 → 吃 '.' 查成员
+        let savep: i64 = gv(K_TOKPOS);
+        memcpy(scratch3(), tokbuf());
+        let tn: i64 = scratch3();
+        next_token();
+        if tok_is(".") == 1 {
+            next_token();
+            let me: i64 = enum_lookup(tn, tokbuf());
+            if me >= 0 {
+                let mv: i64 = load64(heap + O_EVAL + me * 8);
+                next_token();
+                return mv;
+            }
+            set_pos(savep);
+        } else {
+            set_pos(savep);
+        }
         # enum 值也可作 const 原子（v1.981）
         let ev: i64 = enum_value(tokbuf());
         if ev >= 0 {
