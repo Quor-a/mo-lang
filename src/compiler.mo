@@ -9563,7 +9563,7 @@ fn main() -> i64 {
         }
         while wi < gv(K_NSYM) {
             if load64(heap + O_SWN + wi * 8) == 0 {
-            if load64(heap + O_SK + wi * 8) == 0 || load64(heap + O_SK + wi * 8) == 2 {
+            if load64(heap + O_SK + wi * 8) == 0 || load64(heap + O_SK + wi * 8) == 2 || load64(heap + O_SK + wi * 8) == 4 {
                 if load64(heap + O_SU + wi * 8) == 0 {
                     let wn: i64 = name_at(wi);
                     if streq(wn, "main") == 0 {
@@ -9571,7 +9571,11 @@ fn main() -> i64 {
                         if load64(heap + O_SK + wi * 8) == 0 {
                             syscall(1, 2, ": warning: unused function '", 28, 0, 0, 0);
                         } else {
-                            syscall(1, 2, ": warning: unused global '", 26, 0, 0, 0);
+                            if load64(heap + O_SK + wi * 8) == 4 {
+                                syscall(1, 2, ": warning: unused const '", 25, 0, 0, 0);
+                            } else {
+                                syscall(1, 2, ": warning: unused global '", 26, 0, 0, 0);
+                            }
                         }
                         syscall(1, 2, wn, strlen(wn), 0, 0, 0);
                         syscall(1, 2, "'\n", 2, 0, 0, 0);
