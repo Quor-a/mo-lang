@@ -4381,6 +4381,7 @@ var CMP_TY: [64] i64 = 0;    # 字段类型：0=text 1=num 2=state
 var CMP_WD: [64] i64 = 0;    # 字段宽度
 var CMP_CC: [64] i64 = 0;    # 字段颜色（text/num 用）
 var CMP_FN: [64] i64 = 0;    # 字段名在 O_NAMES 里的偏移
+var CMP_AL: [64] i64 = 0;    # 字段对齐：0=左 1=右
 var CMP_NF: i64 = 0;         # 字段数
 
 fn cmp_c(c: i64) -> i64 {
@@ -4577,6 +4578,42 @@ fn cmp_row_field(compo: i64, fld: i64, kind: i64, wd: i64, col: i64, fi: i64) ->
     cmp_i(fi);
     cmp_s(" + 1;\n");
     if kind == 0 {
+        if CMP_AL[fi] == 1 {
+        cmp_s("    let v");
+        cmp_i(fi);
+        cmp_s(": i64 = strlen(&");
+        cmp_s(compo);
+        cmp_c(95);
+        cmp_s(fld);
+        cmp_s(");\n    let p");
+        cmp_i(fi);
+        cmp_s(": i64 = ");
+        cmp_i(wd);
+        cmp_s(" - v");
+        cmp_i(fi);
+        cmp_s(";\n    let q");
+        cmp_i(fi);
+        cmp_s(": i64 = 0;\n    while q");
+        cmp_i(fi);
+        cmp_s(" < p");
+        cmp_i(fi);
+        cmp_s(" {\n        uc_set(cx + q");
+        cmp_i(fi);
+        cmp_s(", y, ' ', fg, bg);\n        q");
+        cmp_i(fi);
+        cmp_s(" = q");
+        cmp_i(fi);
+        cmp_s(" + 1;\n    }\n    uc_text(cx + p");
+        cmp_i(fi);
+        cmp_s(", y, &");
+        cmp_s(compo);
+        cmp_c(95);
+        cmp_s(fld);
+        cmp_s(", UC_YELLOW, bg);\n    cx = cx + ");
+        cmp_i(wd);
+        cmp_s(" + 2;\n");
+        return 0;
+        }
         cmp_s("    uc_text(cx, y, &");
         cmp_s(compo);
         cmp_c(95);
@@ -4796,12 +4833,27 @@ fn parse_component() -> i64 {
             width = gv(K_TIVAL);
             next_token();
         }
+        let align: i64 = 0;
+        if tok_is("align") == 1 {
+            next_token();
+            if tok_is("right") == 1 {
+                align = 1;
+            } else {
+                if tok_is("left") == 1 {
+                    align = 0;
+                } else {
+                    return syntax_error();
+                }
+            }
+            next_token();
+        }
         if tok_is(";") == 0 { return syntax_error(); }
         next_token();
         let nf: i64 = CMP_NF;
         if nf >= 64 { return err_at2("too many component fields (limit 64)", gv(K_LINE), gv(K_COL)); }
         CMP_TY[nf] = kind;
         CMP_WD[nf] = width;
+        CMP_AL[nf] = align;
         if kind == 0 { CMP_CC[nf] = 3; }
         else { if kind == 1 { CMP_CC[nf] = 6; } else { if kind == 2 { CMP_CC[nf] = 2; } else { if kind == 3 { CMP_CC[nf] = 9; } else { if kind == 4 { CMP_CC[nf] = 11; } else { if kind == 5 { CMP_CC[nf] = 5; } else { if kind == 6 { CMP_CC[nf] = 7; } else { if kind == 7 { CMP_CC[nf] = 9; } else { if kind == 8 { CMP_CC[nf] = 6; } else { CMP_CC[nf] = 9; } } } } } } } } }
         CMP_FN[nf] = fname;
