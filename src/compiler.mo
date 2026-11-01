@@ -6006,6 +6006,10 @@ fn parse_while() -> i64 {
     let b: i64 = new_label();
     loop_push(a, b, -1);
     place_label(a);
+    if warn_const_cond() == 1 {
+        syscall(1, 2, INPATH, strlen(INPATH), 0, 0, 0);
+        syscall(1, 2, ": warning: constant condition\n", 30, 0, 0, 0);
+    }
     parse_expr();
     g_cmp_rax_0();
     emit_jcc(0x84, b);
