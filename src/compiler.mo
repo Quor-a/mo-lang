@@ -10125,6 +10125,13 @@ fn parse_component() -> i64 {
     let cname: i64 = intern(tokbuf());
     let compo: i64 = heap + O_NAMES + cname;
     next_token();
+    let nrows: i64 = 0;
+    if tok_is("rows") == 1 {
+        next_token();
+        if gv(K_TKIND) != 2 { return syntax_error(); }
+        nrows = gv(K_TIVAL);
+        next_token();
+    }
     if tok_is("{") == 0 { return syntax_error(); }
     next_token();
     CMP_NF = 0;
@@ -10356,6 +10363,15 @@ fn parse_component() -> i64 {
         fi = fi + 1;
     }
     cmp_s("    return 0;\n}\n");
+    if nrows > 0 {
+    cmp_s("fn ");
+    cmp_s(compo);
+    cmp_s("_grid(x: i64, y: i64, fg: i64, bg: i64) -> i64 {\n    let gi: i64 = 0;\n    while gi < ");
+    cmp_i(nrows);
+    cmp_s(" {\n        ");
+    cmp_s(compo);
+    cmp_s("_row(x, y + gi * 2, fg, bg);\n        gi = gi + 1;\n    }\n    return 0;\n}\n");
+    }
     cmp_s("fn ");
     cmp_s(compo);
     cmp_s("_head(x: i64, y: i64, fg: i64, bg: i64) -> i64 {\n    let cx: i64 = x;\n");
