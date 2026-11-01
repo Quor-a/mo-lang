@@ -10666,9 +10666,27 @@ fn parse_component() -> i64 {
         let hist: i64 = 0;
         if tok_is("hist") == 1 {
             next_token();
-            if gv(K_TKIND) != 2 { return syntax_error(); }
-            hist = gv(K_TIVAL);
-            next_token();
+            if gv(K_TKIND) == 2 {
+                hist = gv(K_TIVAL);
+                next_token();
+            } else {
+                if gv(K_TKIND) == 1 {
+                    # const 名做 hist（v1.997）
+                    let hsi: i64 = sym_lookup(tokbuf());
+                    if hsi >= 0 {
+                        if load64(heap + O_SK + hsi * 8) == 4 {
+                            hist = load64(heap + O_SCV + hsi * 8);
+                            next_token();
+                        } else {
+                            return syntax_error();
+                        }
+                    } else {
+                        return syntax_error();
+                    }
+                } else {
+                    return syntax_error();
+                }
+            }
         }
         let cbname: i64 = -1;
         if tok_is("on_click") == 1 {
@@ -10688,9 +10706,27 @@ fn parse_component() -> i64 {
         let vmax: i64 = 0;
         if tok_is("min") == 1 {
             next_token();
-            if gv(K_TKIND) != 2 { return syntax_error(); }
-            vmin = gv(K_TIVAL);
-            next_token();
+            if gv(K_TKIND) == 2 {
+                vmin = gv(K_TIVAL);
+                next_token();
+            } else {
+                if gv(K_TKIND) == 1 {
+                    # const 名做 min（v1.997）
+                    let nsi: i64 = sym_lookup(tokbuf());
+                    if nsi >= 0 {
+                        if load64(heap + O_SK + nsi * 8) == 4 {
+                            vmin = load64(heap + O_SCV + nsi * 8);
+                            next_token();
+                        } else {
+                            return syntax_error();
+                        }
+                    } else {
+                        return syntax_error();
+                    }
+                } else {
+                    return syntax_error();
+                }
+            }
         }
         if tok_is("max") == 1 {
             next_token();
