@@ -4390,6 +4390,8 @@ var CMP_LO: [64] i64 = 0;    # 数值字段 min 钳制
 var CMP_HI: [64] i64 = 0;    # 数值字段 max 钳制
 var CMP_PX: [64] i64 = 0;    # prefix 字符串 O_STRS 偏移；-1=无
 var CMP_SX: [64] i64 = 0;    # suffix 字符串 O_STRS 偏移；-1=无
+var CMP_DV: [64] i64 = 0;    # default 数值（dflts>=0 时无效）
+var CMP_DS: [64] i64 = 0;    # default 字符串 O_STRS 偏移；-1=无
 var CMP_NF: i64 = 0;         # 字段数
 
 fn cmp_c(c: i64) -> i64 {
@@ -5254,6 +5256,22 @@ fn parse_component() -> i64 {
             sfx = gv(K_STROFF);
             next_token();
         }
+        let dflt: i64 = 0;
+        let dflts: i64 = -1;
+        if tok_is("default") == 1 {
+            next_token();
+            if gv(K_TKIND) == 2 {
+                dflt = gv(K_TIVAL);
+                next_token();
+            } else {
+                if gv(K_TKIND) == 3 {
+                    dflts = gv(K_STROFF);
+                    next_token();
+                } else {
+                    return syntax_error();
+                }
+            }
+        }
         if tok_is(";") == 0 { return syntax_error(); }
         next_token();
         let nf: i64 = CMP_NF;
@@ -5268,6 +5286,8 @@ fn parse_component() -> i64 {
         CMP_LO[nf] = vmin;
         CMP_PX[nf] = pfx;
         CMP_SX[nf] = sfx;
+        CMP_DV[nf] = dflt;
+        CMP_DS[nf] = dflts;
         CMP_HI[nf] = vmax;
         if kind == 0 { CMP_CC[nf] = 3; }
         else { if kind == 1 { CMP_CC[nf] = 6; } else { if kind == 2 { CMP_CC[nf] = 2; } else { if kind == 3 { CMP_CC[nf] = 9; } else { if kind == 4 { CMP_CC[nf] = 11; } else { if kind == 5 { CMP_CC[nf] = 5; } else { if kind == 6 { CMP_CC[nf] = 7; } else { if kind == 7 { CMP_CC[nf] = 9; } else { if kind == 8 { CMP_CC[nf] = 6; } else { CMP_CC[nf] = 9; } } } } } } } } }
@@ -5366,6 +5386,49 @@ fn parse_component() -> i64 {
     cmp_s(compo);
     cmp_s("_row(x, y + gi * 2, fg, bg);\n        gi = gi + 1;\n    }\n    return 0;\n}\n");
     }
+    cmp_s("fn ");
+    cmp_s(compo);
+    cmp_s("_init() -> i64 {\n");
+    fi = 0;
+    while fi < nf2 {
+        if CMP_DS[fi] >= 0 {
+        cmp_s("    ");
+        cmp_s(compo);
+        cmp_s("_set_");
+        cmp_s(heap + O_NAMES + CMP_FN[fi]);
+        cmp_s("(\"");
+        let dk: i64 = 0;
+        let dc: i64 = 0;
+        while load8(heap + O_STRS + CMP_DS[fi] + dk) != 0 {
+            dc = load8(heap + O_STRS + CMP_DS[fi] + dk);
+            if dc == 34 {
+                cmp_c(92);
+                cmp_c(34);
+            } else {
+                if dc == 92 {
+                    cmp_c(92);
+                    cmp_c(92);
+                } else {
+                    cmp_c(dc);
+                }
+            }
+            dk = dk + 1;
+        }
+        cmp_s("\");\n");
+        } else {
+            if CMP_DV[fi] != 0 {
+        cmp_s("    ");
+        cmp_s(compo);
+        cmp_s("_set_");
+        cmp_s(heap + O_NAMES + CMP_FN[fi]);
+        cmp_s("(");
+        cmp_i(CMP_DV[fi]);
+        cmp_s(");\n");
+        }
+        }
+        fi = fi + 1;
+    }
+    cmp_s("    return 0;\n}\n");
     cmp_s("fn ");
     cmp_s(compo);
     cmp_s("_head(x: i64, y: i64, fg: i64, bg: i64) -> i64 {\n    let cx: i64 = x;\n");
