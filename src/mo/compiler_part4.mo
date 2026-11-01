@@ -92,6 +92,7 @@ fn sym_add(name: i64, kind: i64, addr: i64, npar: i64) -> i64 {
     store64(heap + O_SP + i * 8, npar);
     store64(heap + O_SD + i * 8, gv(K_DEPTH));
     store64(heap + O_SU + i * 8, 0);
+    store64(heap + O_SWN + i * 8, gv(K_CURFILE));
     # import "x.mo" as N; —— 只有**本文件定义的函数**(kind 0) 归入该模块。
     # 🔴 extern(kind 3) 不能归：它是 C 的全局符号，归进模块后
     #    name_at(i) 虽然不变，但 sym_lookup_func 在本模块外查不到它，
@@ -2202,6 +2203,9 @@ fn parse_call() -> i64 {
     # 里面是空的 —— 这正是当初报出 `undefined symbol ''` 的根因。
     # 这里反正要 exit，不减也无所谓。
     if R_SYM < 0 { return undef_call(); }
+    # 调用点标记 used（未使用函数警告用；vtable call 不走这里，
+    # 已由解析结束后的虚表扫描兜底）
+    store64(heap + O_SU + R_SYM * 8, 1);
     emit_call_patch(R_SYM);
     if na > 6 { arg_cleanup(na); }
     # 返回值类型：让调用方知道它拿到的是什么。

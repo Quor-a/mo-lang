@@ -17,7 +17,10 @@ var O_DATA: i64 = 95000000;  # 输出数据段缓冲。原先 5242880，与 O_NA
 var O_DCAP: i64 = 10485760;  # 数据段缓冲上限（与 dbyte 的检查保持一致）
 var O_NAMES: i64 = 6291456;
 var O_SYN: i64 = 6815744;
-var K_WARN:   i64 = 464;   # 0=关闭未使用变量警告（有误报，见 docs）
+var K_WARN:   i64 = 648;   # 0=关闭未使用变量警告（有误报，见 docs）
+                          # 🔴 曾与 K_FMODE 同槽 464 → -Wall 打开 f-string
+                          #    模式，import 字符串解析全崩。648 在
+                          #    K_PROFMAIN(640) 与 K_ESCP(688) 之间，空槽。
 var O_SU: i64 = 9000000;   # 符号是否被读过（未使用检查，见 K_WARN）
 var O_SRT: i64 = 9020000;   # 函数返回类型（O_SU 之后 2 万字节处，够 2048 个符号）
 var O_SK: i64 = 6832128;
@@ -310,6 +313,7 @@ var O_MODS: i64 = 91000000;
 var O_MODP: i64 = 91002048;
 var O_NMOD: i64 = 91002560;
 var O_SPFX: i64 = 91002568;
+var O_SWN: i64 = 93000000;   # 符号定义所在文件 idx（未使用函数警告只报主文件）。O_LB=92000000+131072 到 92131072，93000000 无冲突
 # MOD.fn( 解析时暂存函数名的一块**专用**区（64 字节）。
 # 🔴 为什么不用 scratch2/scratch3：那两块是 O_SCAL 里的定长槽，与 method 名
 #    缓冲共用，在 parse_primary 这个位置已被占用。本项目反复栽在

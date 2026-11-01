@@ -4205,21 +4205,25 @@ fn main() -> i64 {
         if streq(a, "-g") == 1 {
             sv(K_DBG, 1);
         } else {
-            if streq(a, "-p") == 1 {
-                sv(K_PROF, 1);
+            if streq(a, "-Wall") == 1 {
+                sv(K_WARN, 1);
             } else {
-                if streq(a, "-c") == 1 {
-                    sv(K_OBJ, 1);
+                if streq(a, "-p") == 1 {
+                    sv(K_PROF, 1);
                 } else {
-                    if streq(a, "-shared") == 1 {
+                    if streq(a, "-c") == 1 {
                         sv(K_OBJ, 1);
-                        store64(DBG + O_SOF, 1);
                     } else {
-                        if npath == 0 {
-                            inpath = a;
-                            npath = 1;
+                        if streq(a, "-shared") == 1 {
+                            sv(K_OBJ, 1);
+                            store64(DBG + O_SOF, 1);
                         } else {
-                            outpath = a;
+                            if npath == 0 {
+                                inpath = a;
+                                npath = 1;
+                            } else {
+                                outpath = a;
+                            }
                         }
                     }
                 }
@@ -4266,6 +4270,44 @@ fn main() -> i64 {
     #    （import 每个文件都会跑）。那时主文件还没解析，K_NVT 恒为 0，
     #    于是 vtable 永远是 0，call 0 直接段错误，而编译**完全不报错**。
     iface_patch_vtables();
+    # 未使用函数警告（-Wall 同款）：本文件定义（kind 0）、非 main、
+    # 从未被引用（O_SU==0）。必须在全部解析结束后扫 —— impl/vtable
+    # 回填不会引用函数，但虚表 call 不走名字查找，避免误报只在
+    # interface 方法上排除：有 vtable 槽位的函数一律算"可能被调用"。
+    if gv(K_WARN) == 1 {
+        # 先扫虚表：被任何 vtable 槽引用的函数一律算"可能被调用"
+        # （虚表 call 不走名字查找），避免对 interface 方法误报。
+        let wi: i64 = 0;
+        let wv: i64 = 0;
+        while wv < gv(K_NVT) {
+            let wn2: i64 = load64(heap + O_VTN + wv * 8);
+            let wk: i64 = 0;
+            while wk < wn2 {
+                let fs: i64 = load64(heap + O_VTS + wv * 128 + wk * 8);
+                if fs >= 0 && fs < 2048 {
+                    store64(heap + O_SU + fs * 8, 1);
+                }
+                wk = wk + 1;
+            }
+            wv = wv + 1;
+        }
+        while wi < gv(K_NSYM) {
+            if load64(heap + O_SWN + wi * 8) == 0 {
+            if load64(heap + O_SK + wi * 8) == 0 {
+                if load64(heap + O_SU + wi * 8) == 0 {
+                    let wn: i64 = name_at(wi);
+                    if streq(wn, "main") == 0 {
+                        syscall(1, 2, INPATH, strlen(INPATH), 0, 0, 0);
+                        syscall(1, 2, ": warning: unused function '", 28, 0, 0, 0);
+                        syscall(1, 2, wn, strlen(wn), 0, 0, 0);
+                        syscall(1, 2, "'\n", 2, 0, 0, 0);
+                    }
+                }
+            }
+            }
+            wi = wi + 1;
+        }
+    }
 
     # trait bound 检查同样必须在**全部解析结束**后：impl 可能出现在
     # instantiate 之后，此刻 K_NVT 才是完整的。
