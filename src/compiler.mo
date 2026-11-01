@@ -9575,7 +9575,13 @@ fn cmp_row_ext(compo: i64, fld: i64, kind: i64, wd: i64, col: i64, fi: i64) -> i
         cmp_s(compo);
         cmp_c(95);
         cmp_s(fld);
-        cmp_s(", 10);\n    uc_text(cx, y, pb, UC_CYAN, bg);\n    let pl: i64 = strlen(pb);\n    uc_set(cx + pl, y, '%', UC_GREEN, bg);\n");
+        cmp_s(", 10);\n    if strlen(pb) > ");
+        cmp_i(wd);
+        cmp_s(" { ");
+        cmp_s(compo);
+        cmp_s("_buf[");
+        cmp_i(wd);
+        cmp_s("] = 0;\n    }\n    uc_text(cx, y, pb, UC_CYAN, bg);\n    let pl: i64 = strlen(pb);\n    uc_set(cx + pl, y, '%', UC_GREEN, bg);\n");
         return 0;
     }
     if kind == 7 {
@@ -9801,7 +9807,15 @@ fn cmp_row_field(compo: i64, fld: i64, kind: i64, wd: i64, col: i64, fi: i64) ->
             cmp_s(compo);
             cmp_c(95);
             cmp_s(fld);
-            cmp_s(", 10);\n    uc_text(cx, y, b");
+            cmp_s(", 10);\n    if strlen(b");
+            cmp_i(fi);
+            cmp_s(") > ");
+            cmp_i(wd);
+            cmp_s(" { ");
+            cmp_s(compo);
+            cmp_s("_buf[");
+            cmp_i(wd);
+            cmp_s("] = 0;\n    }\n    uc_text(cx, y, b");
             cmp_i(fi);
             cmp_s(", UC_CYAN, bg);\n    let v");
             cmp_i(fi);
