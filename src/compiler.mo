@@ -9521,6 +9521,20 @@ fn cmp_row_ext(compo: i64, fld: i64, kind: i64, wd: i64, col: i64, fi: i64) -> i
         cmp_s(", UC_MAGENTA, bg);\n");
         return 0;
     }
+    if kind == 7 {
+        cmp_s("    let sv: i64 = ");
+        cmp_s(compo);
+        cmp_c(95);
+        cmp_s(fld);
+        cmp_s(";\n    let sl: i64 = ");
+        cmp_i(wd);
+        cmp_s(" - 4;\n    let sq: i64 = (sv * sl) / 100;\n    let sj: i64 = 0;\n    while sj < sl {\n        if sj < sq {\n            uc_set(cx + sj, y, 9608, UC_YELLOW, bg);\n        } else {\n            uc_set(cx + sj, y, 9617, UC_WHITE, bg);\n        }\n        sj = sj + 1;\n    }\n    let sb: i64 = &");
+        cmp_s(compo);
+        cmp_s("_buf;\n    let sz: i64 = 0;\n    while sz < 64 {\n        ");
+        cmp_s(compo);
+        cmp_s("_buf[sz] = 0;\n        sz = sz + 1;\n    }\n    str_itoa_base(sb, sv, 10);\n    uc_text(cx + sl + 1, y, sb, UC_CYAN, bg);\n");
+        return 0;
+    }
     cmp_s("    let hf: i64 = &");
     cmp_s(compo);
     cmp_s("_buf;\n    let hz: i64 = 0;\n    while hz < 64 {\n        ");
@@ -9736,7 +9750,11 @@ fn parse_component() -> i64 {
                                 if tok_is("hex") == 1 {
                                     kind = 6;
                                 } else {
-                                    return syntax_error();
+                                    if tok_is("spark") == 1 {
+                                        kind = 7;
+                                    } else {
+                                        return syntax_error();
+                                    }
                                 }
                             }
                         }
@@ -9759,7 +9777,7 @@ fn parse_component() -> i64 {
         CMP_TY[nf] = kind;
         CMP_WD[nf] = width;
         if kind == 0 { CMP_CC[nf] = 3; }
-        else { if kind == 1 { CMP_CC[nf] = 6; } else { if kind == 2 { CMP_CC[nf] = 2; } else { if kind == 3 { CMP_CC[nf] = 9; } else { if kind == 4 { CMP_CC[nf] = 11; } else { if kind == 5 { CMP_CC[nf] = 5; } else { CMP_CC[nf] = 7; } } } } } }
+        else { if kind == 1 { CMP_CC[nf] = 6; } else { if kind == 2 { CMP_CC[nf] = 2; } else { if kind == 3 { CMP_CC[nf] = 9; } else { if kind == 4 { CMP_CC[nf] = 11; } else { if kind == 5 { CMP_CC[nf] = 5; } else { if kind == 6 { CMP_CC[nf] = 7; } else { CMP_CC[nf] = 9; } } } } } } }
         CMP_FN[nf] = fname;
         CMP_NF = nf + 1;
     }
