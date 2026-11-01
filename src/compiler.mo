@@ -6740,6 +6740,17 @@ fn const_atom() -> i64 {
         expect(")");
         return v;
     }
+    if tok_is("sizeof") == 1 {
+        # 编译期 sizeof（v1.993）：复用 part4 的 try_parse_type
+        next_token();
+        expect("(");
+        let st: i64 = try_parse_type();
+        if st < 0 {
+            return err_at2("sizeof requires a type in parentheses", gv(K_LINE), gv(K_COL));
+        }
+        expect(")");
+        return ty_size(st);
+    }
     if gv(K_TKIND) == 2 {
         let v: i64 = gv(K_TIVAL);
         next_token();
