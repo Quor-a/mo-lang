@@ -4386,6 +4386,8 @@ var CMP_HD: [64] i64 = 0;    # 字段隐藏：1=hidden（row 不渲染，生成 
 var CMP_HS: [64] i64 = 0;    # spark 历史长度：0=单值模式，>N=hist M 环形走势
 var CMP_CB: [64] i64 = 0;    # on_click 回调函数名 O_NAMES 偏移；-1=无
 var CMP_HB: [64] i64 = 0;    # on_hover 回调函数名 O_NAMES 偏移；-1=无
+var CMP_LO: [64] i64 = 0;    # 数值字段 min 钳制
+var CMP_HI: [64] i64 = 0;    # 数值字段 max 钳制
 var CMP_NF: i64 = 0;         # 字段数
 
 fn cmp_c(c: i64) -> i64 {
@@ -4446,7 +4448,7 @@ fn cmp_field_var(compo: i64, fld: i64, kind: i64) -> i64 {
 }
 
 # 生成一个字段的 setter 函数
-fn cmp_setter(compo: i64, fld: i64, kind: i64, hs: i64) -> i64 {
+fn cmp_setter(compo: i64, fld: i64, kind: i64, hs: i64, lo: i64, hi: i64) -> i64 {
     cmp_s("fn ");
     cmp_s(compo);
     cmp_c(95);
@@ -4499,7 +4501,19 @@ fn cmp_setter(compo: i64, fld: i64, kind: i64, hs: i64) -> i64 {
         cmp_s("_n - 1] = v;\n    return 0;\n}\n");
         return 0;
         }
-        cmp_s("(v: i64) -> i64 {\n    ");
+        cmp_s("(v: i64) -> i64 {\n");
+        if lo != 0 || hi != 0 {
+        cmp_s("    if v < ");
+        cmp_i(lo);
+        cmp_s(" {\n        v = ");
+        cmp_i(lo);
+        cmp_s(";\n    }\n    if v > ");
+        cmp_i(hi);
+        cmp_s(" {\n        v = ");
+        cmp_i(hi);
+        cmp_s(";\n    }\n");
+        }
+        cmp_s("    ");
         cmp_s(compo);
         cmp_c(95);
         cmp_s(fld);
@@ -5139,6 +5153,20 @@ fn parse_component() -> i64 {
             hovname = intern(tokbuf());
             next_token();
         }
+        let vmin: i64 = 0;
+        let vmax: i64 = 0;
+        if tok_is("min") == 1 {
+            next_token();
+            if gv(K_TKIND) != 2 { return syntax_error(); }
+            vmin = gv(K_TIVAL);
+            next_token();
+        }
+        if tok_is("max") == 1 {
+            next_token();
+            if gv(K_TKIND) != 2 { return syntax_error(); }
+            vmax = gv(K_TIVAL);
+            next_token();
+        }
         if tok_is(";") == 0 { return syntax_error(); }
         next_token();
         let nf: i64 = CMP_NF;
@@ -5150,6 +5178,8 @@ fn parse_component() -> i64 {
         CMP_HS[nf] = hist;
         CMP_CB[nf] = cbname;
         CMP_HB[nf] = hovname;
+        CMP_LO[nf] = vmin;
+        CMP_HI[nf] = vmax;
         if kind == 0 { CMP_CC[nf] = 3; }
         else { if kind == 1 { CMP_CC[nf] = 6; } else { if kind == 2 { CMP_CC[nf] = 2; } else { if kind == 3 { CMP_CC[nf] = 9; } else { if kind == 4 { CMP_CC[nf] = 11; } else { if kind == 5 { CMP_CC[nf] = 5; } else { if kind == 6 { CMP_CC[nf] = 7; } else { if kind == 7 { CMP_CC[nf] = 9; } else { if kind == 8 { CMP_CC[nf] = 6; } else { CMP_CC[nf] = 9; } } } } } } } } }
         CMP_FN[nf] = fname;
@@ -5183,7 +5213,7 @@ fn parse_component() -> i64 {
         cmp_s(heap + O_NAMES + CMP_FN[fi]);
         cmp_s("_n: i64 = 0;\n");
         }
-        cmp_setter(compo, heap + O_NAMES + CMP_FN[fi], CMP_TY[fi], CMP_HS[fi]);
+        cmp_setter(compo, heap + O_NAMES + CMP_FN[fi], CMP_TY[fi], CMP_HS[fi], CMP_LO[fi], CMP_HI[fi]);
         if CMP_CB[fi] >= 0 {
         cmp_s("fn ");
         cmp_s(compo);
