@@ -4385,6 +4385,7 @@ var CMP_AL: [64] i64 = 0;    # 字段对齐：0=左 1=右
 var CMP_HD: [64] i64 = 0;    # 字段隐藏：1=hidden（row 不渲染，生成 X_hdN 变量可切换）
 var CMP_HS: [64] i64 = 0;    # spark 历史长度：0=单值模式，>N=hist M 环形走势
 var CMP_CB: [64] i64 = 0;    # on_click 回调函数名 O_NAMES 偏移；-1=无
+var CMP_HB: [64] i64 = 0;    # on_hover 回调函数名 O_NAMES 偏移；-1=无
 var CMP_NF: i64 = 0;         # 字段数
 
 fn cmp_c(c: i64) -> i64 {
@@ -5131,6 +5132,13 @@ fn parse_component() -> i64 {
             cbname = intern(tokbuf());
             next_token();
         }
+        let hovname: i64 = -1;
+        if tok_is("on_hover") == 1 {
+            next_token();
+            if gv(K_TKIND) != 1 { return syntax_error(); }
+            hovname = intern(tokbuf());
+            next_token();
+        }
         if tok_is(";") == 0 { return syntax_error(); }
         next_token();
         let nf: i64 = CMP_NF;
@@ -5141,6 +5149,7 @@ fn parse_component() -> i64 {
         CMP_HD[nf] = hidden;
         CMP_HS[nf] = hist;
         CMP_CB[nf] = cbname;
+        CMP_HB[nf] = hovname;
         if kind == 0 { CMP_CC[nf] = 3; }
         else { if kind == 1 { CMP_CC[nf] = 6; } else { if kind == 2 { CMP_CC[nf] = 2; } else { if kind == 3 { CMP_CC[nf] = 9; } else { if kind == 4 { CMP_CC[nf] = 11; } else { if kind == 5 { CMP_CC[nf] = 5; } else { if kind == 6 { CMP_CC[nf] = 7; } else { if kind == 7 { CMP_CC[nf] = 9; } else { if kind == 8 { CMP_CC[nf] = 6; } else { CMP_CC[nf] = 9; } } } } } } } } }
         CMP_FN[nf] = fname;
@@ -5185,6 +5194,26 @@ fn parse_component() -> i64 {
         cmp_s(", ");
         if CMP_TY[fi] == 0 {
         cmp_c(38);   # &
+        cmp_s(compo);
+        cmp_c(95);
+        cmp_s(heap + O_NAMES + CMP_FN[fi]);
+        } else {
+        cmp_s(compo);
+        cmp_c(95);
+        cmp_s(heap + O_NAMES + CMP_FN[fi]);
+        }
+        cmp_s(");\n    return 0;\n}\n");
+        }
+        if CMP_HB[fi] >= 0 {
+        cmp_s("fn ");
+        cmp_s(compo);
+        cmp_s("_hover_");
+        cmp_s(heap + O_NAMES + CMP_FN[fi]);
+        cmp_s("() -> i64 {\n    call1(&");
+        cmp_s(heap + O_NAMES + CMP_HB[fi]);
+        cmp_s(", ");
+        if CMP_TY[fi] == 0 {
+        cmp_c(38);
         cmp_s(compo);
         cmp_c(95);
         cmp_s(heap + O_NAMES + CMP_FN[fi]);
