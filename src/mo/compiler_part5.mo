@@ -2208,13 +2208,18 @@ fn compile_file(path: i64) -> i64 {
     sv(K_COL, 1);
     INPATH = path;
 
+    let en0: i64 = ERR_N;
     parse_program();
+    let en1: i64 = ERR_N;
 
     sv(K_SRCBASE, s_base);
     sv(K_SRCLEN, s_srclen);
     sv(K_CURFILE, s_cf);
     INPATH = s_in;
     set_pos(s_tok);
+    if en1 > en0 {
+        return -1;
+    }
     return 0;
 }
 
@@ -2806,6 +2811,7 @@ fn parse_program() -> i64 {
     predeclare();
     next_token();
     while gv(K_TKIND) != 0 {
+        if ERR_DUP > 3 { break; }   # 恢复卡死：停止解析，走完编译流程报错退出
         if tok_is("import") == 1 {
             parse_import();
         } else {
@@ -2842,7 +2848,13 @@ fn parse_program() -> i64 {
                                             if tok_is("fn") == 1 {
                                                 parse_func();
                                             } else {
-                                                return syntax_error();
+                                                syntax_error();
+                                                while gv(K_TKIND) != 0 {
+                                                    if tok_is("fn") == 1 || tok_is("var") == 1 || tok_is("import") == 1 || tok_is("struct") == 1 || tok_is("enum") == 1 || tok_is("class") == 1 || tok_is("component") == 1 || tok_is("generic") == 1 || tok_is("impl") == 1 || tok_is("interface") == 1 || tok_is("extern") == 1 || tok_is("instantiate") == 1 {
+                                                        break;
+                                                    }
+                                                    next_token();
+                                                }
                                             }
                                             }
                                         }
@@ -4259,7 +4271,10 @@ fn main() -> i64 {
     # instantiate 之后，此刻 K_NVT 才是完整的。
     gen_check_bounds();
     if gv(K_NBER) > 0 { return 1; }
+    let had_err: i64 = ERR_N;
 
+    # 有语法错误（软恢复后）仍生成 elf，让错误行之后的正确代码照常运行；
+    # 退出码由调用方按 ERR_N 判 1。
     emit_panic();
     resolve_all();
 
@@ -4349,6 +4364,8 @@ fn main() -> i64 {
         write_all(ofd, DBG + O_SHDR, 512);
     }
     syscall(3, ofd, 0, 0, 0, 0, 0);
+    # 有语法错误（elf 已生成）：退出码 1
+    if had_err > 0 { return 1; }
     return 0;
 }
 

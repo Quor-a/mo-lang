@@ -496,8 +496,8 @@ fn err_at2(msg: i64, ln: i64, cl: i64) -> i64 {
     syscall(1, 2, ": error: ", 9, 0, 0, 0);
     syscall(1, 2, msg, strlen(msg), 0, 0, 0);
     syscall(1, 2, "\n", 1, 0, 0, 0);
-    syscall(60, 1, 0, 0, 0, 0, 0);
-    return 0;
+    sv(K_NBER, gv(K_NBER) + 1);
+    return -1;
 }
 
 fn err_at(msg: i64) -> i64 {
@@ -557,8 +557,11 @@ fn err_atp(msg: i64, ln: i64, cl: i64, p: i64) -> i64 {
     syscall(1, 2, msg, strlen(msg), 0, 0, 0);
     syscall(1, 2, "\n", 1, 0, 0, 0);
     err_src(p, cl);
-    syscall(60, 1, 0, 0, 0, 0, 0);
-    return 0;
+    # 软恢复：不再 exit(60)，记录后返回 -1 让上层恢复机制接管；
+    # 计入 NBER 让编译最终判失败（rc=1）。同一位置反复报错由
+    # syntax_error 的 ERR_DUP 守卫硬退出兜底。
+    sv(K_NBER, gv(K_NBER) + 1);
+    return -1;
 }
 
 fn die(msg: i64) -> i64 {
@@ -567,8 +570,36 @@ fn die(msg: i64) -> i64 {
     return 0;
 }
 
+var ERR_N: i64 = 0;
+var ERR_LN: [16] i64 = 0;
+var ERR_CL: [16] i64 = 0;
+var ERR_P: [16] i64 = 0;    # 出错源码位置
+var ERR_DUP: i64 = 0;       # 同一位置重复报错计数（防死循环）
+
 fn syntax_error() -> i64 {
-    return err_at("syntax error");
+    if ERR_N > 0 && ERR_P[ERR_N - 1] == gv(K_POS) {
+        ERR_DUP = ERR_DUP + 1;
+        if ERR_DUP > 3 {
+            # 同一 token 反复报错：恢复失败，硬退出防死循环（elf 不生成）。
+            syscall(60, 1, 0, 0, 0, 0, 0);
+        }
+    } else {
+        ERR_DUP = 0;
+    }
+    if ERR_N < 16 {
+        ERR_LN[ERR_N] = gv(K_LINE);
+        ERR_CL[ERR_N] = gv(K_COL);
+        ERR_P[ERR_N] = gv(K_POS);
+        ERR_N = ERR_N + 1;
+    }
+    syscall(1, 2, INPATH, strlen(INPATH), 0, 0, 0);
+    syscall(1, 2, ":", 1, 0, 0, 0);
+    emit_dec(gv(K_LINE));
+    syscall(1, 2, ":", 1, 0, 0, 0);
+    emit_dec(gv(K_COL));
+    syscall(1, 2, ": error: syntax error\n", 22, 0, 0, 0);
+    err_src(gv(K_POS), gv(K_COL));
+    return -1;
 }
 
 # ---------------------------- 类型表 ----------------------------

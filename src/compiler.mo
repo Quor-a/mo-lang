@@ -496,8 +496,8 @@ fn err_at2(msg: i64, ln: i64, cl: i64) -> i64 {
     syscall(1, 2, ": error: ", 9, 0, 0, 0);
     syscall(1, 2, msg, strlen(msg), 0, 0, 0);
     syscall(1, 2, "\n", 1, 0, 0, 0);
-    syscall(60, 1, 0, 0, 0, 0, 0);
-    return 0;
+    sv(K_NBER, gv(K_NBER) + 1);
+    return -1;
 }
 
 fn err_at(msg: i64) -> i64 {
@@ -557,8 +557,11 @@ fn err_atp(msg: i64, ln: i64, cl: i64, p: i64) -> i64 {
     syscall(1, 2, msg, strlen(msg), 0, 0, 0);
     syscall(1, 2, "\n", 1, 0, 0, 0);
     err_src(p, cl);
-    syscall(60, 1, 0, 0, 0, 0, 0);
-    return 0;
+    # 软恢复：不再 exit(60)，记录后返回 -1 让上层恢复机制接管；
+    # 计入 NBER 让编译最终判失败（rc=1）。同一位置反复报错由
+    # syntax_error 的 ERR_DUP 守卫硬退出兜底。
+    sv(K_NBER, gv(K_NBER) + 1);
+    return -1;
 }
 
 fn die(msg: i64) -> i64 {
@@ -567,8 +570,36 @@ fn die(msg: i64) -> i64 {
     return 0;
 }
 
+var ERR_N: i64 = 0;
+var ERR_LN: [16] i64 = 0;
+var ERR_CL: [16] i64 = 0;
+var ERR_P: [16] i64 = 0;    # 出错源码位置
+var ERR_DUP: i64 = 0;       # 同一位置重复报错计数（防死循环）
+
 fn syntax_error() -> i64 {
-    return err_at("syntax error");
+    if ERR_N > 0 && ERR_P[ERR_N - 1] == gv(K_POS) {
+        ERR_DUP = ERR_DUP + 1;
+        if ERR_DUP > 3 {
+            # 同一 token 反复报错：恢复失败，硬退出防死循环（elf 不生成）。
+            syscall(60, 1, 0, 0, 0, 0, 0);
+        }
+    } else {
+        ERR_DUP = 0;
+    }
+    if ERR_N < 16 {
+        ERR_LN[ERR_N] = gv(K_LINE);
+        ERR_CL[ERR_N] = gv(K_COL);
+        ERR_P[ERR_N] = gv(K_POS);
+        ERR_N = ERR_N + 1;
+    }
+    syscall(1, 2, INPATH, strlen(INPATH), 0, 0, 0);
+    syscall(1, 2, ":", 1, 0, 0, 0);
+    emit_dec(gv(K_LINE));
+    syscall(1, 2, ":", 1, 0, 0, 0);
+    emit_dec(gv(K_COL));
+    syscall(1, 2, ": error: syntax error\n", 22, 0, 0, 0);
+    err_src(gv(K_POS), gv(K_COL));
+    return -1;
 }
 
 # ---------------------------- 类型表 ----------------------------
@@ -7214,13 +7245,18 @@ fn compile_file(path: i64) -> i64 {
     sv(K_COL, 1);
     INPATH = path;
 
+    let en0: i64 = ERR_N;
     parse_program();
+    let en1: i64 = ERR_N;
 
     sv(K_SRCBASE, s_base);
     sv(K_SRCLEN, s_srclen);
     sv(K_CURFILE, s_cf);
     INPATH = s_in;
     set_pos(s_tok);
+    if en1 > en0 {
+        return -1;
+    }
     return 0;
 }
 
@@ -7812,6 +7848,7 @@ fn parse_program() -> i64 {
     predeclare();
     next_token();
     while gv(K_TKIND) != 0 {
+        if ERR_DUP > 3 { break; }   # 恢复卡死：停止解析，走完编译流程报错退出
         if tok_is("import") == 1 {
             parse_import();
         } else {
@@ -7848,7 +7885,13 @@ fn parse_program() -> i64 {
                                             if tok_is("fn") == 1 {
                                                 parse_func();
                                             } else {
-                                                return syntax_error();
+                                                syntax_error();
+                                                while gv(K_TKIND) != 0 {
+                                                    if tok_is("fn") == 1 || tok_is("var") == 1 || tok_is("import") == 1 || tok_is("struct") == 1 || tok_is("enum") == 1 || tok_is("class") == 1 || tok_is("component") == 1 || tok_is("generic") == 1 || tok_is("impl") == 1 || tok_is("interface") == 1 || tok_is("extern") == 1 || tok_is("instantiate") == 1 {
+                                                        break;
+                                                    }
+                                                    next_token();
+                                                }
                                             }
                                             }
                                         }
@@ -9265,7 +9308,10 @@ fn main() -> i64 {
     # instantiate 之后，此刻 K_NVT 才是完整的。
     gen_check_bounds();
     if gv(K_NBER) > 0 { return 1; }
+    let had_err: i64 = ERR_N;
 
+    # 有语法错误（软恢复后）仍生成 elf，让错误行之后的正确代码照常运行；
+    # 退出码由调用方按 ERR_N 判 1。
     emit_panic();
     resolve_all();
 
@@ -9355,6 +9401,8 @@ fn main() -> i64 {
         write_all(ofd, DBG + O_SHDR, 512);
     }
     syscall(3, ofd, 0, 0, 0, 0, 0);
+    # 有语法错误（elf 已生成）：退出码 1
+    if had_err > 0 { return 1; }
     return 0;
 }
 
