@@ -7680,9 +7680,31 @@ fn parse_enum() -> i64 {
         memcpy(cbuf, tokbuf());
         next_token();
         if accept("=") == 1 {
-            if gv(K_TKIND) != 2 { return err_atp("enum value must be an integer literal", gv(K_PLINE), gv(K_PCOL), gv(K_PPOS)); }
-            auto = gv(K_TIVAL);
-            next_token();
+            if gv(K_TKIND) == 2 {
+                auto = gv(K_TIVAL);
+                next_token();
+            } else {
+                if gv(K_TKIND) == 1 {
+                    # const/enum 成员作 enum 显式值（v1.986）
+                    let esi: i64 = sym_lookup(tokbuf());
+                    if esi >= 0 {
+                        if load64(heap + O_SK + esi * 8) == 4 {
+                            auto = const_expr();
+                        } else {
+                            return err_atp("enum value must be an integer literal", gv(K_PLINE), gv(K_PCOL), gv(K_PPOS));
+                        }
+                    } else {
+                        let ee: i64 = enum_value(tokbuf());
+                        if ee >= 0 {
+                            auto = const_expr();
+                        } else {
+                            return err_atp("enum value must be an integer literal", gv(K_PLINE), gv(K_PCOL), gv(K_PPOS));
+                        }
+                    }
+                } else {
+                    return err_atp("enum value must be an integer literal", gv(K_PLINE), gv(K_PCOL), gv(K_PPOS));
+                }
+            }
         }
         enum_add_const(ebuf, cbuf, auto);
         auto = auto + 1;
