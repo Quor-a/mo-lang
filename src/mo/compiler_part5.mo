@@ -4392,6 +4392,7 @@ var CMP_PX: [64] i64 = 0;    # prefix 字符串 O_STRS 偏移；-1=无
 var CMP_SX: [64] i64 = 0;    # suffix 字符串 O_STRS 偏移；-1=无
 var CMP_DV: [64] i64 = 0;    # default 数值（dflts>=0 时无效）
 var CMP_DS: [64] i64 = 0;    # default 字符串 O_STRS 偏移；-1=无
+var CMP_FM: [64] i64 = 0;    # num 渲染进制：10 默认 / 16 hex / 2 bin / 8 oct
 var CMP_NF: i64 = 0;         # 字段数
 
 fn cmp_c(c: i64) -> i64 {
@@ -4945,7 +4946,9 @@ fn cmp_row_field(compo: i64, fld: i64, kind: i64, wd: i64, col: i64, fi: i64) ->
             cmp_s(compo);
             cmp_c(95);
             cmp_s(fld);
-            cmp_s(", 10);\n");
+            cmp_s(", ");
+            cmp_i(CMP_FM[fi]);
+            cmp_s(");\n");
         if CMP_PX[fi] >= 0 {
         cmp_s("    uc_text(cx, y, \"");
         let pk: i64 = 0;
@@ -5272,6 +5275,24 @@ fn parse_component() -> i64 {
                 }
             }
         }
+        let fmtd: i64 = 10;
+        if tok_is("fmt") == 1 {
+            next_token();
+            if tok_is("hex") == 1 {
+                fmtd = 16;
+            } else {
+                if tok_is("bin") == 1 {
+                    fmtd = 2;
+                } else {
+                    if tok_is("oct") == 1 {
+                        fmtd = 8;
+                    } else {
+                        return syntax_error();
+                    }
+                }
+            }
+            next_token();
+        }
         if tok_is(";") == 0 { return syntax_error(); }
         next_token();
         let nf: i64 = CMP_NF;
@@ -5288,6 +5309,7 @@ fn parse_component() -> i64 {
         CMP_SX[nf] = sfx;
         CMP_DV[nf] = dflt;
         CMP_DS[nf] = dflts;
+        CMP_FM[nf] = fmtd;
         CMP_HI[nf] = vmax;
         if kind == 0 { CMP_CC[nf] = 3; }
         else { if kind == 1 { CMP_CC[nf] = 6; } else { if kind == 2 { CMP_CC[nf] = 2; } else { if kind == 3 { CMP_CC[nf] = 9; } else { if kind == 4 { CMP_CC[nf] = 11; } else { if kind == 5 { CMP_CC[nf] = 5; } else { if kind == 6 { CMP_CC[nf] = 7; } else { if kind == 7 { CMP_CC[nf] = 9; } else { if kind == 8 { CMP_CC[nf] = 6; } else { CMP_CC[nf] = 9; } } } } } } } } }
