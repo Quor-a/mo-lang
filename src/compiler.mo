@@ -9395,6 +9395,7 @@ var CMP_HB: [64] i64 = 0;    # on_hover 回调函数名 O_NAMES 偏移；-1=无
 var CMP_LO: [64] i64 = 0;    # 数值字段 min 钳制
 var CMP_HI: [64] i64 = 0;    # 数值字段 max 钳制
 var CMP_PX: [64] i64 = 0;    # prefix 字符串 O_STRS 偏移；-1=无
+var CMP_SX: [64] i64 = 0;    # suffix 字符串 O_STRS 偏移；-1=无
 var CMP_NF: i64 = 0;         # 字段数
 
 fn cmp_c(c: i64) -> i64 {
@@ -9998,7 +9999,8 @@ fn cmp_row_field(compo: i64, fld: i64, kind: i64, wd: i64, col: i64, fi: i64) ->
             cmp_i(wd);
             cmp_s("] = 0;\n    }\n    uc_text(cx, y, b");
             cmp_i(fi);
-            cmp_s(", UC_CYAN, bg);\n    let v");
+            cmp_s(", UC_CYAN, bg);\n");
+        cmp_s("    let v");
             cmp_i(fi);
             cmp_s(": i64 = strlen(b");
             cmp_i(fi);
@@ -10059,6 +10061,29 @@ fn cmp_row_field(compo: i64, fld: i64, kind: i64, wd: i64, col: i64, fi: i64) ->
         } else {
             cmp_row_ext(compo, fld, kind, wd, col, fi);
         }
+        }
+        if CMP_SX[fi] >= 0 && CMP_TY[fi] == 1 {
+        cmp_s("    uc_text(cx + strlen(&");
+        cmp_s(compo);
+        cmp_s("_buf), y, \"");
+        let sk: i64 = 0;
+        let sc: i64 = 0;
+        while load8(heap + O_STRS + CMP_SX[fi] + sk) != 0 {
+            sc = load8(heap + O_STRS + CMP_SX[fi] + sk);
+            if sc == 34 {
+                cmp_c(92);
+                cmp_c(34);
+            } else {
+                if sc == 92 {
+                    cmp_c(92);
+                    cmp_c(92);
+                } else {
+                    cmp_c(sc);
+                }
+            }
+            sk = sk + 1;
+        }
+        cmp_s("\", UC_WHITE, bg);\n");
         }
     }
     cmp_s("    cx = cx + ");
@@ -10221,6 +10246,13 @@ fn parse_component() -> i64 {
             pfx = gv(K_STROFF);
             next_token();
         }
+        let sfx: i64 = -1;
+        if tok_is("suffix") == 1 {
+            next_token();
+            if gv(K_TKIND) != 3 { return syntax_error(); }
+            sfx = gv(K_STROFF);
+            next_token();
+        }
         if tok_is(";") == 0 { return syntax_error(); }
         next_token();
         let nf: i64 = CMP_NF;
@@ -10234,6 +10266,7 @@ fn parse_component() -> i64 {
         CMP_HB[nf] = hovname;
         CMP_LO[nf] = vmin;
         CMP_PX[nf] = pfx;
+        CMP_SX[nf] = sfx;
         CMP_HI[nf] = vmax;
         if kind == 0 { CMP_CC[nf] = 3; }
         else { if kind == 1 { CMP_CC[nf] = 6; } else { if kind == 2 { CMP_CC[nf] = 2; } else { if kind == 3 { CMP_CC[nf] = 9; } else { if kind == 4 { CMP_CC[nf] = 11; } else { if kind == 5 { CMP_CC[nf] = 5; } else { if kind == 6 { CMP_CC[nf] = 7; } else { if kind == 7 { CMP_CC[nf] = 9; } else { if kind == 8 { CMP_CC[nf] = 6; } else { CMP_CC[nf] = 9; } } } } } } } } }
