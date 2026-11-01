@@ -5131,6 +5131,11 @@ fn parse_component() -> i64 {
         nrows = gv(K_TIVAL);
         next_token();
     }
+    let sep: i64 = 0;
+    if tok_is("sep") == 1 {
+        next_token();
+        sep = 1;
+    }
     if tok_is("{") == 0 { return syntax_error(); }
     next_token();
     CMP_NF = 0;
@@ -5406,7 +5411,13 @@ fn parse_component() -> i64 {
     cmp_i(nrows);
     cmp_s(" {\n        ");
     cmp_s(compo);
-    cmp_s("_row(x, y + gi * 2, fg, bg);\n        gi = gi + 1;\n    }\n    return 0;\n}\n");
+    cmp_s("_row(x, y + gi * 2, fg, bg);\n");
+    if sep == 1 {
+    cmp_s("        if gi < ");
+    cmp_i(nrows - 1);
+    cmp_s(" {\n            let sj: i64 = 0;\n            while sj < 40 {\n                uc_set(x + sj, y + gi * 2 + 1, 45, UC_WHITE, bg);\n                sj = sj + 1;\n            }\n        }\n");
+    }
+    cmp_s("        gi = gi + 1;\n    }\n    return 0;\n}\n");
     }
     cmp_s("fn ");
     cmp_s(compo);
