@@ -1129,6 +1129,22 @@ fn sw_const(out: i64) -> i64 {
         return 1;
     }
     if neg == 0 {
+        # 括号 case 表达式（v1.998）：`(N * 2) - 1` —— 整个交给 const_expr
+        if tok_is("(") == 1 {
+            next_token();
+            let v: i64 = const_expr();
+            if tok_is(")") == 0 { return 0; }
+            next_token();
+            # 括号后的 +/- 后缀折叠（v1.998）：case (N * 2) - 1
+            while tok_is("-") == 1 || tok_is("+") == 1 {
+                let po: i64 = tok_is("-");
+                next_token();
+                let pa: i64 = const_atom();
+                if po == 1 { v = v - pa; } else { v = v + pa; }
+            }
+            store64(out, v);
+            return 1;
+        }
         if gv(K_TKIND) == 1 {
             memcpy(nb, tokbuf());
             next_token();
