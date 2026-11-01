@@ -1569,6 +1569,73 @@ fn parse_i64_list() -> i64 {
     return cnt;
 }
 
+# const NAME: i64 = 常量表达式;  编译期求值，符号 kind 4（不占数据段）。
+# 只支持 + - * / 与括号的整数常量表达式（字面量与已定义 const）。
+fn parse_const() -> i64 {
+    next_token();
+    memcpy(scratch2(), tokbuf());
+    next_token();
+    expect(":");
+    if tok_is("i64") == 0 { return err_at2("const: only i64 supported", gv(K_LINE), gv(K_COL)); }
+    next_token();
+    expect("=");
+    let v: i64 = const_expr();
+    expect(";");
+    let id: i64 = sym_add(scratch2(), 4, v, 0);
+    store64(heap + O_SCV + id * 8, v);
+    return 0;
+}
+
+# 常量表达式求值：递归下降，一层乘除一层加减一层原子。
+# 原子 = 数字字面量 | ( expr ) | 已定义的 const 名（kind 4，O_SCV 取值）。
+fn const_atom() -> i64 {
+    if tok_is("(") == 1 {
+        next_token();
+        let v: i64 = const_expr();
+        expect(")");
+        return v;
+    }
+    if gv(K_TKIND) == 2 {
+        let v: i64 = gv(K_TIVAL);
+        next_token();
+        return v;
+    }
+    if gv(K_TKIND) == 1 {
+        let si: i64 = sym_lookup(tokbuf());
+        if si >= 0 {
+            if load64(heap + O_SK + si * 8) == 4 {
+                let v: i64 = load64(heap + O_SCV + si * 8);
+                next_token();
+                return v;
+            }
+        }
+        return err_at2("const: unknown identifier", gv(K_LINE), gv(K_COL));
+    }
+    return err_at2("const: expected number", gv(K_LINE), gv(K_COL));
+}
+
+fn const_term() -> i64 {
+    let v: i64 = const_atom();
+    while tok_is("*") == 1 || tok_is("/") == 1 {
+        let op: i64 = tok_is("*") + tok_is("/") * 2;
+        next_token();
+        let r: i64 = const_atom();
+        if op == 1 { v = v * r; } else { v = v / r; }
+    }
+    return v;
+}
+
+fn const_expr() -> i64 {
+    let v: i64 = const_term();
+    while tok_is("+") == 1 || tok_is("-") == 1 {
+        let op: i64 = tok_is("+") + tok_is("-") * 2;
+        next_token();
+        let r: i64 = const_term();
+        if op == 1 { v = v + r; } else { v = v - r; }
+    }
+    return v;
+}
+
 fn parse_global() -> i64 {
     next_token();
     memcpy(scratch2(), tokbuf());
@@ -2845,6 +2912,9 @@ fn parse_program() -> i64 {
                                     if tok_is("var") == 1 {
                                         parse_global();
                                     } else {
+                                    if tok_is("const") == 1 {
+                                        parse_const();
+                                    } else {
                                             if tok_is("fn") == 1 {
                                                 parse_func();
                                             } else {
@@ -2858,6 +2928,7 @@ fn parse_program() -> i64 {
                                             }
                                             }
                                         }
+                                    }
                                     }
                                 }
                                 }

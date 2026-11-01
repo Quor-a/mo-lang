@@ -313,7 +313,8 @@ var O_MODS: i64 = 91000000;
 var O_MODP: i64 = 91002048;
 var O_NMOD: i64 = 91002560;
 var O_SPFX: i64 = 91002568;
-var O_SWN: i64 = 93000000;   # 符号定义所在文件 idx（未使用函数警告只报主文件）。O_LB=92000000+131072 到 92131072，93000000 无冲突
+var O_SWN: i64 = 93000000;
+var O_SCV: i64 = 93500000;   # const 常量值表（kind 4 符号）：sym*8；O_SWN 93000000 之后，O_DATA 95000000 之前   # 符号定义所在文件 idx（未使用函数警告只报主文件）。O_LB=92000000+131072 到 92131072，93000000 无冲突
 # MOD.fn( 解析时暂存函数名的一块**专用**区（64 字节）。
 # 🔴 为什么不用 scratch2/scratch3：那两块是 O_SCAL 里的定长槽，与 method 名
 #    缓冲共用，在 parse_primary 这个位置已被占用。本项目反复栽在
@@ -4056,6 +4057,16 @@ fn parse_primary() -> i64 {
             return rc;
         }
         let sy: i64 = sym_lookup(scratch1());
+        # const（kind 4）：编译期常量，直接发立即数，不生成内存访问。
+        # 进入时名字 token 已被消费（k==1 分支 next_token 过），不要再 next。
+        if sy >= 0 {
+            if load64(heap + O_SK + sy * 8) == 4 {
+                store64(heap + O_SU + sy * 8, 1);
+                let cv: i64 = load64(heap + O_SCV + sy * 8);
+                g_movabs_rax(cv);
+                return ty_int();
+            }
+        }
         # MOD.fn( —— 模块限定调用（import "x.mo" as MOD;）
         #
         # 🔴 只在**普通查找失败**时才试探。这是刻意的：`obj.method()`
@@ -6614,6 +6625,73 @@ fn parse_i64_list() -> i64 {
     return cnt;
 }
 
+# const NAME: i64 = 常量表达式;  编译期求值，符号 kind 4（不占数据段）。
+# 只支持 + - * / 与括号的整数常量表达式（字面量与已定义 const）。
+fn parse_const() -> i64 {
+    next_token();
+    memcpy(scratch2(), tokbuf());
+    next_token();
+    expect(":");
+    if tok_is("i64") == 0 { return err_at2("const: only i64 supported", gv(K_LINE), gv(K_COL)); }
+    next_token();
+    expect("=");
+    let v: i64 = const_expr();
+    expect(";");
+    let id: i64 = sym_add(scratch2(), 4, v, 0);
+    store64(heap + O_SCV + id * 8, v);
+    return 0;
+}
+
+# 常量表达式求值：递归下降，一层乘除一层加减一层原子。
+# 原子 = 数字字面量 | ( expr ) | 已定义的 const 名（kind 4，O_SCV 取值）。
+fn const_atom() -> i64 {
+    if tok_is("(") == 1 {
+        next_token();
+        let v: i64 = const_expr();
+        expect(")");
+        return v;
+    }
+    if gv(K_TKIND) == 2 {
+        let v: i64 = gv(K_TIVAL);
+        next_token();
+        return v;
+    }
+    if gv(K_TKIND) == 1 {
+        let si: i64 = sym_lookup(tokbuf());
+        if si >= 0 {
+            if load64(heap + O_SK + si * 8) == 4 {
+                let v: i64 = load64(heap + O_SCV + si * 8);
+                next_token();
+                return v;
+            }
+        }
+        return err_at2("const: unknown identifier", gv(K_LINE), gv(K_COL));
+    }
+    return err_at2("const: expected number", gv(K_LINE), gv(K_COL));
+}
+
+fn const_term() -> i64 {
+    let v: i64 = const_atom();
+    while tok_is("*") == 1 || tok_is("/") == 1 {
+        let op: i64 = tok_is("*") + tok_is("/") * 2;
+        next_token();
+        let r: i64 = const_atom();
+        if op == 1 { v = v * r; } else { v = v / r; }
+    }
+    return v;
+}
+
+fn const_expr() -> i64 {
+    let v: i64 = const_term();
+    while tok_is("+") == 1 || tok_is("-") == 1 {
+        let op: i64 = tok_is("+") + tok_is("-") * 2;
+        next_token();
+        let r: i64 = const_term();
+        if op == 1 { v = v + r; } else { v = v - r; }
+    }
+    return v;
+}
+
 fn parse_global() -> i64 {
     next_token();
     memcpy(scratch2(), tokbuf());
@@ -7890,6 +7968,9 @@ fn parse_program() -> i64 {
                                     if tok_is("var") == 1 {
                                         parse_global();
                                     } else {
+                                    if tok_is("const") == 1 {
+                                        parse_const();
+                                    } else {
                                             if tok_is("fn") == 1 {
                                                 parse_func();
                                             } else {
@@ -7903,6 +7984,7 @@ fn parse_program() -> i64 {
                                             }
                                             }
                                         }
+                                    }
                                     }
                                 }
                                 }

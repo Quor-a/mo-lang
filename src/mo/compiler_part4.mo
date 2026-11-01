@@ -1229,6 +1229,16 @@ fn parse_primary() -> i64 {
             return rc;
         }
         let sy: i64 = sym_lookup(scratch1());
+        # const（kind 4）：编译期常量，直接发立即数，不生成内存访问。
+        # 进入时名字 token 已被消费（k==1 分支 next_token 过），不要再 next。
+        if sy >= 0 {
+            if load64(heap + O_SK + sy * 8) == 4 {
+                store64(heap + O_SU + sy * 8, 1);
+                let cv: i64 = load64(heap + O_SCV + sy * 8);
+                g_movabs_rax(cv);
+                return ty_int();
+            }
+        }
         # MOD.fn( —— 模块限定调用（import "x.mo" as MOD;）
         #
         # 🔴 只在**普通查找失败**时才试探。这是刻意的：`obj.method()`
