@@ -1632,7 +1632,8 @@ fn parse_i64_list() -> i64 {
             }
         }
         if neg == 1 { v = 0 - v; }
-        if cnt < 512 { store64(heap + O_LSTV + cnt * 8, v); }
+        if cnt >= 512 { return err_at2("array literal exceeds 512 elements", gv(K_LINE), gv(K_COL)); }
+        store64(heap + O_LSTV + cnt * 8, v);
         cnt = cnt + 1;
         if accept(",") == 0 { break; }
     }
