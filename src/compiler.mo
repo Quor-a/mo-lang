@@ -6868,6 +6868,13 @@ fn const_expr() -> i64 {
             if op == 2 { v = v | r; } else { v = v ^ r; }
         }
     }
+    # 逻辑 && ||（v1.1002）：编译期短路（无副作用，仅取真值）
+    while tok_is("&&") == 1 || tok_is("||") == 1 {
+        let lo: i64 = tok_is("||");
+        next_token();
+        let r: i64 = const_expr();
+        if lo == 1 { v = v | r; } else { v = v & r; }
+    }
     return v;
 }
 
