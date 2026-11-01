@@ -1847,7 +1847,31 @@ fn parse_global() -> i64 {
     }
     expect("=");
     let v: i64 = gv(K_TIVAL);
-    next_token();
+    if gv(K_TKIND) == 2 {
+        next_token();
+    } else {
+        if gv(K_TKIND) == 1 {
+            # const 表达式（v1.984）：const_atom 已消费名字，
+            # const_expr 继续折叠 +/-/*///
+            let gcsi: i64 = sym_lookup(tokbuf());
+            if gcsi >= 0 {
+                if load64(heap + O_SK + gcsi * 8) == 4 {
+                    v = const_expr();
+                } else {
+                    return syntax_error();
+                }
+            } else {
+                let ge: i64 = enum_value(tokbuf());
+                if ge >= 0 {
+                    v = const_expr();
+                } else {
+                    return syntax_error();
+                }
+            }
+        } else {
+            next_token();
+        }
+    }
     expect(";");
     data_align(16);
     let addr: i64 = 268435456 + gv(K_DLEN);
