@@ -1134,6 +1134,14 @@ fn sw_const(out: i64) -> i64 {
                 store64(out, load64(heap + O_EVAL + e * 8));
                 return 1;
             }
+            # const（kind 4）做 case 标签（v1.977）
+            let csi: i64 = sym_lookup(nb);
+            if csi >= 0 {
+                if load64(heap + O_SK + csi * 8) == 4 {
+                    store64(out, load64(heap + O_SCV + csi * 8));
+                    return 1;
+                }
+            }
         }
     }
     return 0;
@@ -1151,6 +1159,7 @@ fn sw_scan(vals: i64) -> i64 {
     let d: i64 = 1;
     next_token();                       # 越过 '('
     while d > 0 {                       # 跳过整个表达式（里面可能有 {1,2}）
+        if gv(K_TKIND) == 0 { return 0 - 2; }   # EOF：不停下就会死循环
         if tok_is("(") == 1 { d = d + 1; }
         if tok_is(")") == 1 { d = d - 1; }
         next_token();
@@ -1215,6 +1224,29 @@ fn sw_scan(vals: i64) -> i64 {
     return n;
 }
 
+# switch 报错统一出口：跳过与 switch 配对的 {...} 再报错。
+# 🔴 err_atp 软化（v1.971）后返回 -1，若不消费 switch 的 {...} token，
+#    上层语句循环重读同一 token → 死循环（v1.976 及以前即触发）。
+fn sw_fail(msg: i64, base: i64) -> i64 {
+    store64(heap + O_SWTOP, base);
+    let sd: i64 = 0;
+    while tok_is("{") == 0 {
+        if gv(K_TKIND) == 0 { break; }
+        next_token();
+    }
+    if tok_is("{") == 1 {
+        next_token();
+        sd = 1;
+        while sd > 0 {
+            if gv(K_TKIND) == 0 { break; }
+            if tok_is("{") == 1 { sd = sd + 1; }
+            if tok_is("}") == 1 { sd = sd - 1; }
+            next_token();
+        }
+    }
+    return err_atp(msg, gv(K_PLINE), gv(K_PCOL), gv(K_PPOS));
+}
+
 fn parse_switch() -> i64 {
     let base: i64 = load64(heap + O_SWTOP);
     if base + 128 > 1024 {
@@ -1226,9 +1258,7 @@ fn parse_switch() -> i64 {
     let save: i64 = gv(K_TOKPOS);
     let n: i64 = sw_scan(vals);
     if n < 0 {
-        store64(heap + O_SWTOP, base);
-        return err_atp("switch: case 必须是编译期常量（整数或 enum）",
-                       gv(K_PLINE), gv(K_PCOL), gv(K_PPOS));
+        return sw_fail("switch: case 必须是编译期常量（整数或 enum）", base);
     }
     set_pos(save);
 
@@ -1244,9 +1274,7 @@ fn parse_switch() -> i64 {
         let j: i64 = 0;
         while j < i {
             if load64(vals + j * 8) == v {
-                store64(heap + O_SWTOP, base);
-                return err_atp("switch: duplicate case value",
-                               gv(K_PLINE), gv(K_PCOL), gv(K_PPOS));
+                return sw_fail("switch: duplicate case value", base);
             }
             j = j + 1;
         }
@@ -1255,8 +1283,8 @@ fn parse_switch() -> i64 {
     # cmp rax, imm32 / sub rax, imm32 都只接受 imm32，超出会**静默截断**。
     i = 0;
     while i < n {
-        if load64(vals + i * 8) > 2147483647 { store64(heap + O_SWTOP, base); return err_atp("switch: case 值超出 32 位", gv(K_PLINE), gv(K_PCOL), gv(K_PPOS)); }
-        if load64(vals + i * 8) < 0 - 2147483648 { store64(heap + O_SWTOP, base); return err_atp("switch: case 值超出 32 位", gv(K_PLINE), gv(K_PCOL), gv(K_PPOS)); }
+        if load64(vals + i * 8) > 2147483647 { return sw_fail("switch: case 值超出 32 位", base); }
+        if load64(vals + i * 8) < 0 - 2147483648 { return sw_fail("switch: case 值超出 32 位", base); }
         i = i + 1;
     }
 
@@ -1315,15 +1343,13 @@ fn parse_switch() -> i64 {
     let fell: i64 = 0;                  # 上一个 case 要求穿透到下一个
     while tok_is("}") == 0 {
         if accept("case") == 1 {
-            if i >= n { store64(heap + O_SWTOP, base); return err_atp("switch: case 与扫描结果不一致", gv(K_PLINE), gv(K_PCOL), gv(K_PPOS)); }
+            if i >= n { return sw_fail("switch: case 与扫描结果不一致", base); }
             # 即使上一个 case 写了 fallthrough 也要放标签：顺序流正好落在这里，
             # 而跳转表里这一项也仍然要指向它。
             place_label(load64(lbls + i * 8));
             fell = 0;
             if sw_const(heap + O_SWC) == 0 {
-                store64(heap + O_SWTOP, base);
-                return err_atp("switch: case 必须是编译期常量",
-                               gv(K_PLINE), gv(K_PCOL), gv(K_PPOS));
+                return sw_fail("switch: case 必须是编译期常量", base);
             }
             expect(":");
             let cd: i64 = d + 1;
@@ -1362,9 +1388,7 @@ fn parse_switch() -> i64 {
                 sv(K_DEPTH, d);
                 emit_jmp(end);
             } else {
-                store64(heap + O_SWTOP, base);
-                return err_atp("switch: expected 'case' or 'default'",
-                               gv(K_PLINE), gv(K_PCOL), gv(K_PPOS));
+                return sw_fail("switch: expected 'case' or 'default'", base);
             }
         }
     }
