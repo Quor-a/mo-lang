@@ -6191,14 +6191,20 @@ fn sw_const(out: i64) -> i64 {
                 return 1;
             }
             # const（kind 4）做 case 标签（v1.977）。
-            # 🔴 这里**不能**消费 token：sw_scan（词法扫描）与 parse 两处
-            #    都调用本函数，原版"只读不推进"是幂等的；一旦在这里
-            #    next_token()，两遍调用的 token 流就不对称。
-            # v1.979 若要 case A + 1，需走 const_expr 并由调用方 set_pos 回退。
+            # 🔴 进入此分支时名字 token 已被消费（上面 next_token）。
+            #    v1.979：支持 case A + 1 后缀折叠——消费 +/- 与数字/const 原子，
+            #    与数字路径的折叠对称。
             let csi: i64 = sym_lookup(nb);
             if csi >= 0 {
                 if load64(heap + O_SK + csi * 8) == 4 {
-                    store64(out, load64(heap + O_SCV + csi * 8));
+                    let v: i64 = load64(heap + O_SCV + csi * 8);
+                    while tok_is("-") == 1 || tok_is("+") == 1 {
+                        let op: i64 = tok_is("-");
+                        next_token();
+                        let a: i64 = const_atom();
+                        if op == 1 { v = v - a; } else { v = v + a; }
+                    }
+                    store64(out, v);
                     return 1;
                 }
             }
