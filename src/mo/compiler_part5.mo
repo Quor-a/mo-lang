@@ -1113,17 +1113,18 @@ fn sw_const(out: i64) -> i64 {
         # 🔴 不折叠的话 `case 0 - 3:` 会被取成 **0**，而 `case 0 - 2:` 也
         #    是 0 —— 于是只报一句 duplicate case，看不出真正的原因。
         #    折不动就返回 0（由调用方报"必须是编译期常量"），绝不静默。
-        while tok_is("-") == 1 {
+        # v1.999：后缀接受 const/enum 原子（case 0 - N）
+        while tok_is("-") == 1 || tok_is("+") == 1 {
+            let do_: i64 = tok_is("-");
             next_token();
-            if gv(K_TKIND) != 2 { return 0; }
-            v = v - gv(K_TIVAL);
-            next_token();
-        }
-        while tok_is("+") == 1 {
-            next_token();
-            if gv(K_TKIND) != 2 { return 0; }
-            v = v + gv(K_TIVAL);
-            next_token();
+            if gv(K_TKIND) != 2 {
+                let sa: i64 = const_atom();
+                if sa == 0 && gv(K_TKIND) != 2 { return 0; }
+                if do_ == 1 { v = v - sa; } else { v = v + sa; }
+            } else {
+                if do_ == 1 { v = v - gv(K_TIVAL); } else { v = v + gv(K_TIVAL); }
+                next_token();
+            }
         }
         store64(out, v);
         return 1;
