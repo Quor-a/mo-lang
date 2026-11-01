@@ -6710,6 +6710,13 @@ fn const_atom() -> i64 {
         return v;
     }
     if gv(K_TKIND) == 1 {
+        # enum 值也可作 const 原子（v1.981）
+        let ev: i64 = enum_value(tokbuf());
+        if ev >= 0 {
+            let evv: i64 = load64(heap + O_EVAL + ev * 8);
+            next_token();
+            return evv;
+        }
         let si: i64 = sym_lookup(tokbuf());
         if si >= 0 {
             if load64(heap + O_SK + si * 8) == 4 {
