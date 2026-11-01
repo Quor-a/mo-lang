@@ -5383,6 +5383,9 @@ fn parse_stmt() -> i64 {
     if accept("break") == 1 { return parse_break(); }
     if accept("continue") == 1 { return parse_continue(); }
     if accept("let") == 1 { return parse_let(); }
+    # 局部 const 声明（v1.989）：parse_const 自己消费首 token，
+    # 这里只判断不消费
+    if tok_is("const") == 1 { return parse_const(); }
     if accept("if") == 1 { return parse_if(); }
     if accept("while") == 1 { return parse_while(); }
     if accept("for") == 1 { return parse_for(); }
