@@ -888,11 +888,35 @@ fn parse_let() -> i64 {
 # if / else if / else 链。
 # 用迭代而非递归：整条链共用一个出口标签 end，每一轮各有一个「下一分支」标签。
 # 这样 else if 不会层层嵌套、也不会为每层多生成一对 jmp/label。
+fn warn_const_cond() -> i64 {
+    # 条件为纯 0/1 字面量时告警（v1.1004，仅 -Wall）。
+    # 条件语法 if (expr)，跳过 '(' 探测首个 token。
+    if gv(K_WARN) == 1 {
+        if tok_is("(") == 1 {
+            let sp: i64 = gv(K_TOKPOS);
+            next_token();
+            let hit: i64 = 0;
+            if gv(K_TKIND) == 2 {
+                if gv(K_TIVAL) == 0 || gv(K_TIVAL) == 1 {
+                    hit = 1;
+                }
+            }
+            set_pos(sp);
+            return hit;
+        }
+    }
+    return 0;
+}
+
 fn parse_if() -> i64 {
     let d: i64 = gv(K_DEPTH) + 1;
     let end: i64 = new_label();
     let more: i64 = 1;
     while more == 1 {
+        if warn_const_cond() == 1 {
+            syscall(1, 2, INPATH, strlen(INPATH), 0, 0, 0);
+            syscall(1, 2, ": warning: constant condition\n", 30, 0, 0, 0);
+        }
         parse_expr();
         g_cmp_rax_0();
         let els: i64 = new_label();
