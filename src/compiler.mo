@@ -6756,13 +6756,13 @@ fn const_atom() -> i64 {
 
 fn const_term() -> i64 {
     let v: i64 = const_atom();
-    while tok_is("*") == 1 || tok_is("/") == 1 {
-        let op: i64 = tok_is("*") + tok_is("/") * 2;
+    while tok_is("*") == 1 || tok_is("/") == 1 || tok_is("%") == 1 {
+        let op: i64 = tok_is("*") + tok_is("/") * 2 + tok_is("%") * 3;
         next_token();
         let r: i64 = const_atom();
         if op == 1 { v = v * r; } else {
             if r == 0 { return err_at2("const: division by zero", gv(K_LINE), gv(K_COL)); }
-            v = v / r;
+            if op == 2 { v = v / r; } else { v = v % r; }
         }
     }
     return v;
@@ -6775,6 +6775,13 @@ fn const_expr() -> i64 {
         next_token();
         let r: i64 = const_term();
         if op == 1 { v = v + r; } else { v = v - r; }
+    }
+    # 移位（v1.988）：与 parse_shift 对应，<< 为 3、>> 为 2
+    while tok_is("<<") == 1 || tok_is(">>") == 1 {
+        let op: i64 = tok_is(">>") * 2 + tok_is("<<") * 3;
+        next_token();
+        let r: i64 = const_term();
+        if op == 3 { v = v << r; } else { v = v >> r; }
     }
     return v;
 }
