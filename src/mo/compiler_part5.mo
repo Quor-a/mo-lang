@@ -5136,6 +5136,13 @@ fn parse_component() -> i64 {
         next_token();
         sep = 1;
     }
+    let ttl: i64 = -1;
+    if tok_is("title") == 1 {
+        next_token();
+        if gv(K_TKIND) != 3 { return syntax_error(); }
+        ttl = gv(K_STROFF);
+        next_token();
+    }
     if tok_is("{") == 0 { return syntax_error(); }
     next_token();
     CMP_NF = 0;
@@ -5405,6 +5412,40 @@ fn parse_component() -> i64 {
     }
     cmp_s("    return 0;\n}\n");
     if nrows > 0 {
+    if ttl >= 0 {
+    cmp_s("fn ");
+    cmp_s(compo);
+    cmp_s("_grid(x: i64, y: i64, fg: i64, bg: i64) -> i64 {\n    uc_text(x, y, \"");
+    let tk: i64 = 0;
+    let tc: i64 = 0;
+    while load8(heap + O_STRS + ttl + tk) != 0 {
+        tc = load8(heap + O_STRS + ttl + tk);
+        if tc == 34 {
+            cmp_c(92);
+            cmp_c(34);
+        } else {
+            if tc == 92 {
+                cmp_c(92);
+                cmp_c(92);
+            } else {
+                cmp_c(tc);
+            }
+        }
+        tk = tk + 1;
+    }
+    cmp_s("\", UC_WHITE, bg);\n");
+    cmp_s("    let gi: i64 = 0;\n    while gi < ");
+    cmp_i(nrows);
+    cmp_s(" {\n        ");
+    cmp_s(compo);
+    cmp_s("_row(x, y + gi * 2 + 2, fg, bg);\n");
+    if sep == 1 {
+    cmp_s("        if gi < ");
+    cmp_i(nrows - 1);
+    cmp_s(" {\n            let sj: i64 = 0;\n            while sj < 40 {\n                uc_set(x + sj, y + gi * 2 + 3, 45, UC_WHITE, bg);\n                sj = sj + 1;\n            }\n        }\n");
+    }
+    cmp_s("        gi = gi + 1;\n    }\n    return 0;\n}\n");
+    } else {
     cmp_s("fn ");
     cmp_s(compo);
     cmp_s("_grid(x: i64, y: i64, fg: i64, bg: i64) -> i64 {\n    let gi: i64 = 0;\n    while gi < ");
@@ -5418,6 +5459,7 @@ fn parse_component() -> i64 {
     cmp_s(" {\n            let sj: i64 = 0;\n            while sj < 40 {\n                uc_set(x + sj, y + gi * 2 + 1, 45, UC_WHITE, bg);\n                sj = sj + 1;\n            }\n        }\n");
     }
     cmp_s("        gi = gi + 1;\n    }\n    return 0;\n}\n");
+    }
     }
     cmp_s("fn ");
     cmp_s(compo);
