@@ -6655,6 +6655,15 @@ fn parse_const() -> i64 {
 # 常量表达式求值：递归下降，一层乘除一层加减一层原子。
 # 原子 = 数字字面量 | ( expr ) | 已定义的 const 名（kind 4，O_SCV 取值）。
 fn const_atom() -> i64 {
+    # 一元负号/正号（v1.976）
+    if tok_is("-") == 1 {
+        next_token();
+        return 0 - const_atom();
+    }
+    if tok_is("+") == 1 {
+        next_token();
+        return const_atom();
+    }
     if tok_is("(") == 1 {
         next_token();
         let v: i64 = const_expr();
