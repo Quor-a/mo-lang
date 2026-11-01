@@ -10480,9 +10480,27 @@ fn parse_component() -> i64 {
         let width: i64 = 10;
         if tok_is("width") == 1 {
             next_token();
-            if gv(K_TKIND) != 2 { return syntax_error(); }
-            width = gv(K_TIVAL);
-            next_token();
+            if gv(K_TKIND) == 2 {
+                width = gv(K_TIVAL);
+                next_token();
+            } else {
+                if gv(K_TKIND) == 1 {
+                    # const 名做 width（v1.983）
+                    let wsi: i64 = sym_lookup(tokbuf());
+                    if wsi >= 0 {
+                        if load64(heap + O_SK + wsi * 8) == 4 {
+                            width = load64(heap + O_SCV + wsi * 8);
+                            next_token();
+                        } else {
+                            return syntax_error();
+                        }
+                    } else {
+                        return syntax_error();
+                    }
+                } else {
+                    return syntax_error();
+                }
+            }
         }
         let align: i64 = 0;
         if tok_is("align") == 1 {
