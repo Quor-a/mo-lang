@@ -1696,6 +1696,17 @@ fn const_atom() -> i64 {
         expect(")");
         return ty_size(st);
     }
+    if tok_is("alignof") == 1 {
+        # 编译期 alignof（v1.995）：与 sizeof 对称
+        next_token();
+        expect("(");
+        let at: i64 = try_parse_type();
+        if at < 0 {
+            return err_at2("alignof requires a type in parentheses", gv(K_LINE), gv(K_COL));
+        }
+        expect(")");
+        return ty_align(at);
+    }
     if gv(K_TKIND) == 2 {
         let v: i64 = gv(K_TIVAL);
         next_token();
