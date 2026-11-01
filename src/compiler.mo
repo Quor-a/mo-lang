@@ -9523,6 +9523,22 @@ fn cmp_row_ext(compo: i64, fld: i64, kind: i64, wd: i64, col: i64, fi: i64) -> i
         return 0;
     }
     if kind == 9 {
+        if CMP_AL[fi] == 1 {
+        cmp_s("    let dv: i64 = ");
+        cmp_s(compo);
+        cmp_c(95);
+        cmp_s(fld);
+        cmp_s(";\n    let db: i64 = &");
+        cmp_s(compo);
+        cmp_s("_buf;\n    let dz: i64 = 0;\n    while dz < 64 {\n        ");
+        cmp_s(compo);
+        cmp_s("_buf[dz] = 0;\n        dz = dz + 1;\n    }\n    if dv < 0 {\n        str_itoa_base(db, 0 - dv, 10);\n    } else {\n        str_itoa_base(db, dv, 10);\n    }\n    let dl: i64 = strlen(db);\n    let dp: i64 = ");
+        cmp_i(wd);
+        cmp_s(" - dl - 1;\n    let dq: i64 = 0;\n    while dq < dp {\n        uc_set(cx + dq, y, ' ', fg, bg);\n        dq = dq + 1;\n    }\n    if dv < 0 {\n        uc_set(cx + dp, y, 9660, UC_RED, bg);\n    } else {\n        uc_set(cx + dp, y, 9650, UC_GREEN, bg);\n    }\n    uc_text(cx + dp + 1, y, db, UC_CYAN, bg);\n    cx = cx + ");
+        cmp_i(wd);
+        cmp_s(" + 2;\n");
+        return 0;
+        }
         cmp_s("    let dv: i64 = ");
         cmp_s(compo);
         cmp_c(95);
@@ -9535,6 +9551,22 @@ fn cmp_row_ext(compo: i64, fld: i64, kind: i64, wd: i64, col: i64, fi: i64) -> i
         return 0;
     }
     if kind == 8 {
+        if CMP_AL[fi] == 1 {
+        cmp_s("    let pb: i64 = &");
+        cmp_s(compo);
+        cmp_s("_buf;\n    let pz: i64 = 0;\n    while pz < 64 {\n        ");
+        cmp_s(compo);
+        cmp_s("_buf[pz] = 0;\n        pz = pz + 1;\n    }\n    str_itoa_base(pb, ");
+        cmp_s(compo);
+        cmp_c(95);
+        cmp_s(fld);
+        cmp_s(", 10);\n    let pl: i64 = strlen(pb);\n    let pp: i64 = ");
+        cmp_i(wd);
+        cmp_s(" - pl - 1;\n    let pq: i64 = 0;\n    while pq < pp {\n        uc_set(cx + pq, y, ' ', fg, bg);\n        pq = pq + 1;\n    }\n    uc_text(cx + pp, y, pb, UC_CYAN, bg);\n    uc_set(cx + pp + pl, y, '%', UC_GREEN, bg);\n    cx = cx + ");
+        cmp_i(wd);
+        cmp_s(" + 2;\n");
+        return 0;
+        }
         cmp_s("    let pb: i64 = &");
         cmp_s(compo);
         cmp_s("_buf;\n    let pz: i64 = 0;\n    while pz < 64 {\n        ");
