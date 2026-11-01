@@ -1673,7 +1673,10 @@ fn const_term() -> i64 {
         let op: i64 = tok_is("*") + tok_is("/") * 2;
         next_token();
         let r: i64 = const_atom();
-        if op == 1 { v = v * r; } else { v = v / r; }
+        if op == 1 { v = v * r; } else {
+            if r == 0 { return err_at2("const: division by zero", gv(K_LINE), gv(K_COL)); }
+            v = v / r;
+        }
     }
     return v;
 }
