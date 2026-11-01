@@ -1730,6 +1730,15 @@ fn const_expr() -> i64 {
         let r: i64 = const_term();
         if op == 3 { v = v << r; } else { v = v >> r; }
     }
+    # 位运算 & | ^（v1.990）：在移位之后求值（优先级最低近似）
+    while tok_is("&") == 1 || tok_is("|") == 1 || tok_is("^") == 1 {
+        let op: i64 = tok_is("&") + tok_is("|") * 2 + tok_is("^") * 3;
+        next_token();
+        let r: i64 = const_term();
+        if op == 1 { v = v & r; } else {
+            if op == 2 { v = v | r; } else { v = v ^ r; }
+        }
+    }
     return v;
 }
 
