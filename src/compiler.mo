@@ -2956,7 +2956,12 @@ fn sym_lookup_in(name: i64, pf: i64, wantfn: i64) -> i64 {
         }
         if ok == 1 {
             if load64(heap + O_SPFX + i * 8) == pf {
-                if streq(name_at(i), name) == 1 { return i; }
+                # 🔴 首字符+长度预过滤（v1.1001）：streq 全串比较是自举热点，
+                #    先比首字节与长度，多数不匹配在此短路。
+                let sn: i64 = name_at(i);
+                if load8(sn) == load8(name) {
+                    if streq(sn, name) == 1 { return i; }
+                }
             }
         }
     }
