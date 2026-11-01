@@ -9394,6 +9394,7 @@ var CMP_CB: [64] i64 = 0;    # on_click 回调函数名 O_NAMES 偏移；-1=无
 var CMP_HB: [64] i64 = 0;    # on_hover 回调函数名 O_NAMES 偏移；-1=无
 var CMP_LO: [64] i64 = 0;    # 数值字段 min 钳制
 var CMP_HI: [64] i64 = 0;    # 数值字段 max 钳制
+var CMP_PX: [64] i64 = 0;    # prefix 字符串 O_STRS 偏移；-1=无
 var CMP_NF: i64 = 0;         # 字段数
 
 fn cmp_c(c: i64) -> i64 {
@@ -9947,7 +9948,47 @@ fn cmp_row_field(compo: i64, fld: i64, kind: i64, wd: i64, col: i64, fi: i64) ->
             cmp_s(compo);
             cmp_c(95);
             cmp_s(fld);
-            cmp_s(", 10);\n    if strlen(b");
+            cmp_s(", 10);\n");
+        if CMP_PX[fi] >= 0 {
+        cmp_s("    uc_text(cx, y, \"");
+        let pk: i64 = 0;
+        let pc: i64 = 0;
+        while load8(heap + O_STRS + CMP_PX[fi] + pk) != 0 {
+            pc = load8(heap + O_STRS + CMP_PX[fi] + pk);
+            if pc == 34 {
+                cmp_c(92);
+                cmp_c(34);
+            } else {
+                if pc == 92 {
+                    cmp_c(92);
+                    cmp_c(92);
+                } else {
+                    cmp_c(pc);
+                }
+            }
+            pk = pk + 1;
+        }
+        cmp_s("\", UC_CYAN, bg);\n    cx = cx + strlen(\"");
+        let qk: i64 = 0;
+        let qc: i64 = 0;
+        while load8(heap + O_STRS + CMP_PX[fi] + qk) != 0 {
+            qc = load8(heap + O_STRS + CMP_PX[fi] + qk);
+            if qc == 34 {
+                cmp_c(92);
+                cmp_c(34);
+            } else {
+                if qc == 92 {
+                    cmp_c(92);
+                    cmp_c(92);
+                } else {
+                    cmp_c(qc);
+                }
+            }
+            qk = qk + 1;
+        }
+        cmp_s("\");\n    ");
+        }
+        cmp_s("    if strlen(b");
             cmp_i(fi);
             cmp_s(") > ");
             cmp_i(wd);
@@ -10173,6 +10214,13 @@ fn parse_component() -> i64 {
             vmax = gv(K_TIVAL);
             next_token();
         }
+        let pfx: i64 = -1;
+        if tok_is("prefix") == 1 {
+            next_token();
+            if gv(K_TKIND) != 3 { return syntax_error(); }
+            pfx = gv(K_STROFF);
+            next_token();
+        }
         if tok_is(";") == 0 { return syntax_error(); }
         next_token();
         let nf: i64 = CMP_NF;
@@ -10185,6 +10233,7 @@ fn parse_component() -> i64 {
         CMP_CB[nf] = cbname;
         CMP_HB[nf] = hovname;
         CMP_LO[nf] = vmin;
+        CMP_PX[nf] = pfx;
         CMP_HI[nf] = vmax;
         if kind == 0 { CMP_CC[nf] = 3; }
         else { if kind == 1 { CMP_CC[nf] = 6; } else { if kind == 2 { CMP_CC[nf] = 2; } else { if kind == 3 { CMP_CC[nf] = 9; } else { if kind == 4 { CMP_CC[nf] = 11; } else { if kind == 5 { CMP_CC[nf] = 5; } else { if kind == 6 { CMP_CC[nf] = 7; } else { if kind == 7 { CMP_CC[nf] = 9; } else { if kind == 8 { CMP_CC[nf] = 6; } else { CMP_CC[nf] = 9; } } } } } } } } }
