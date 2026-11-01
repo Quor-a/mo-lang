@@ -4541,7 +4541,13 @@ fn cmp_row_ext(compo: i64, fld: i64, kind: i64, wd: i64, col: i64, fi: i64) -> i
         cmp_s(compo);
         cmp_s("_buf;\n    let dz: i64 = 0;\n    while dz < 64 {\n        ");
         cmp_s(compo);
-        cmp_s("_buf[dz] = 0;\n        dz = dz + 1;\n    }\n    if dv < 0 {\n        uc_set(cx, y, 9660, UC_RED, bg);\n        str_itoa_base(db, 0 - dv, 10);\n    } else {\n        uc_set(cx, y, 9650, UC_GREEN, bg);\n        str_itoa_base(db, dv, 10);\n    }\n    uc_text(cx + 1, y, db, UC_CYAN, bg);\n");
+        cmp_s("_buf[dz] = 0;\n        dz = dz + 1;\n    }\n    if dv < 0 {\n        uc_set(cx, y, 9660, UC_RED, bg);\n        str_itoa_base(db, 0 - dv, 10);\n    } else {\n        uc_set(cx, y, 9650, UC_GREEN, bg);\n        str_itoa_base(db, dv, 10);\n    }\n    if strlen(db) > ");
+        cmp_i(wd);
+        cmp_s(" { ");
+        cmp_s(compo);
+        cmp_s("_buf[");
+        cmp_i(wd);
+        cmp_s("] = 0;\n    }\n    uc_text(cx + 1, y, db, UC_CYAN, bg);\n");
         return 0;
     }
     if kind == 8 {
