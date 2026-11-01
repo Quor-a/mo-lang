@@ -6708,9 +6708,18 @@ fn parse_const() -> i64 {
     expect("=");
     let v: i64 = const_expr();
     expect(";");
+    if const_dup_check() >= 0 { return 0; }
     let id: i64 = sym_add(scratch2(), 4, v, 0);
     store64(heap + O_SCV + id * 8, v);
     return 0;
+}
+
+# 重复 const 检查封装（v1.991）：sym_add 前查 sym_dup
+fn const_dup_check() -> i64 {
+    if sym_dup(scratch2()) >= 0 {
+        return err_atp("duplicate definition", gv(K_PLINE), gv(K_PCOL), gv(K_PPOS));
+    }
+    return 0 - 1;
 }
 
 # 常量表达式求值：递归下降，一层乘除一层加减一层原子。
