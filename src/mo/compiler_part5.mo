@@ -1814,6 +1814,25 @@ fn const_expr() -> i64 {
         let r: i64 = const_expr();
         if lo == 1 { v = v | r; } else { v = v & r; }
     }
+    # 比较（v1.1003）：== != < <= > >=，返回 0/1
+    while tok_is("==") == 1 || tok_is("!=") == 1 || tok_is("<") == 1 || tok_is("<=") == 1 || tok_is(">") == 1 || tok_is(">=") == 1 {
+        let cop: i64 = tok_is("==") + tok_is("!=") * 2 + tok_is("<") * 3 + tok_is("<=") * 4 + tok_is(">") * 5 + tok_is(">=") * 6;
+        next_token();
+        let r: i64 = const_expr();
+        let b: i64 = 0;
+        if cop == 1 { if v == r { b = 1; } } else {
+            if cop == 2 { if v != r { b = 1; } } else {
+                if cop == 3 { if v < r { b = 1; } } else {
+                    if cop == 4 { if v <= r { b = 1; } } else {
+                        if cop == 5 { if v > r { b = 1; } } else {
+                            if v >= r { b = 1; }
+                        }
+                    }
+                }
+            }
+        }
+        v = b;
+    }
     return v;
 }
 
