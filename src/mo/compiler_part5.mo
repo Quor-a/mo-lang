@@ -4511,6 +4511,21 @@ fn cmp_setter(compo: i64, fld: i64, kind: i64, hs: i64) -> i64 {
 # kind>=3 的扩展渲染（bar/gauge/kv/hex）—— 独立函数避免深层 else 链
 fn cmp_row_ext(compo: i64, fld: i64, kind: i64, wd: i64, col: i64, fi: i64) -> i64 {
     if kind == 3 {
+        if CMP_HS[fi] > 0 {
+        cmp_s("    let bsum: i64 = 0;\n    let bct: i64 = ");
+        cmp_s(compo);
+        cmp_c(95);
+        cmp_s(fld);
+        cmp_s("_n;\n    let bidx: i64 = 0;\n    while bidx < bct {\n        bsum = bsum + ");
+        cmp_s(compo);
+        cmp_c(95);
+        cmp_s(fld);
+        cmp_s("_hist[bidx];\n        bidx = bidx + 1;\n    }\n    if bct > 0 {\n        ");
+        cmp_s(compo);
+        cmp_c(95);
+        cmp_s(fld);
+        cmp_s(" = bsum / bct;\n    }\n");
+        }
         cmp_s("    let bf: i64 = &");
         cmp_s(compo);
         cmp_s("_buf;\n    let bz: i64 = 0;\n    while bz < 64 {\n        ");
