@@ -5334,9 +5334,27 @@ fn parse_component() -> i64 {
     let nrows: i64 = 0;
     if tok_is("rows") == 1 {
         next_token();
-        if gv(K_TKIND) != 2 { return syntax_error(); }
-        nrows = gv(K_TIVAL);
-        next_token();
+        if gv(K_TKIND) == 2 {
+            nrows = gv(K_TIVAL);
+            next_token();
+        } else {
+            if gv(K_TKIND) == 1 {
+                # const 名做 rows（v1.982）
+                let rsi: i64 = sym_lookup(tokbuf());
+                if rsi >= 0 {
+                    if load64(heap + O_SK + rsi * 8) == 4 {
+                        nrows = load64(heap + O_SCV + rsi * 8);
+                        next_token();
+                    } else {
+                        return syntax_error();
+                    }
+                } else {
+                    return syntax_error();
+                }
+            } else {
+                return syntax_error();
+            }
+        }
     }
     let sep: i64 = 0;
     if tok_is("sep") == 1 {
