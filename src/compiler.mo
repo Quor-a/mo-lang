@@ -6657,12 +6657,36 @@ fn parse_i64_list() -> i64 {
     while tok_is("]") == 0 {
         let neg: i64 = 0;
         if accept("-") == 1 { neg = 1; }
-        if gv(K_TKIND) != 2 { return err_at2("array literal elements must be integer constants", gv(K_LINE), gv(K_COL)); }
-        let v: i64 = gv(K_TIVAL);
+        let v: i64 = 0;
+        if gv(K_TKIND) == 2 {
+            v = gv(K_TIVAL);
+            next_token();
+        } else {
+            if gv(K_TKIND) == 1 {
+                # const/enum 成员（v1.985）：const_atom 消费名字，
+                # const_expr 继续折叠后缀算术
+                let lsi: i64 = sym_lookup(tokbuf());
+                if lsi >= 0 {
+                    if load64(heap + O_SK + lsi * 8) == 4 {
+                        v = const_expr();
+                    } else {
+                        return err_at2("array literal elements must be integer constants", gv(K_LINE), gv(K_COL));
+                    }
+                } else {
+                    let le: i64 = enum_value(tokbuf());
+                    if le >= 0 {
+                        v = const_expr();
+                    } else {
+                        return err_at2("array literal elements must be integer constants", gv(K_LINE), gv(K_COL));
+                    }
+                }
+            } else {
+                return err_at2("array literal elements must be integer constants", gv(K_LINE), gv(K_COL));
+            }
+        }
         if neg == 1 { v = 0 - v; }
         if cnt < 512 { store64(heap + O_LSTV + cnt * 8, v); }
         cnt = cnt + 1;
-        next_token();
         if accept(",") == 0 { break; }
     }
     expect("]");
