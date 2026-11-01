@@ -10694,9 +10694,27 @@ fn parse_component() -> i64 {
         }
         if tok_is("max") == 1 {
             next_token();
-            if gv(K_TKIND) != 2 { return syntax_error(); }
-            vmax = gv(K_TIVAL);
-            next_token();
+            if gv(K_TKIND) == 2 {
+                vmax = gv(K_TIVAL);
+                next_token();
+            } else {
+                if gv(K_TKIND) == 1 {
+                    # const 名做 max（v1.996）
+                    let msi: i64 = sym_lookup(tokbuf());
+                    if msi >= 0 {
+                        if load64(heap + O_SK + msi * 8) == 4 {
+                            vmax = load64(heap + O_SCV + msi * 8);
+                            next_token();
+                        } else {
+                            return syntax_error();
+                        }
+                    } else {
+                        return syntax_error();
+                    }
+                } else {
+                    return syntax_error();
+                }
+            }
         }
         let pfx: i64 = -1;
         if tok_is("prefix") == 1 {
