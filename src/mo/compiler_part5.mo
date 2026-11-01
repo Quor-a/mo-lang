@@ -749,6 +749,16 @@ fn parse_let() -> i64 {
         next_token();
         if gv(K_TKIND) == 2 {
             n = gv(K_TIVAL);
+        } else {
+            if gv(K_TKIND) == 1 {
+                # const 名做数组长度（v1.975）
+                let csi: i64 = sym_lookup(tokbuf());
+                if csi >= 0 {
+                    if load64(heap + O_SK + csi * 8) == 4 {
+                        n = load64(heap + O_SCV + csi * 8);
+                    }
+                }
+            }
         }
         next_token();
         expect("]");
@@ -1667,6 +1677,16 @@ fn parse_global() -> i64 {
         next_token();
         if gv(K_TKIND) == 2 {
             n = gv(K_TIVAL);
+        } else {
+            if gv(K_TKIND) == 1 {
+                # const 名做数组长度（v1.975）
+                let csi: i64 = sym_lookup(tokbuf());
+                if csi >= 0 {
+                    if load64(heap + O_SK + csi * 8) == 4 {
+                        n = load64(heap + O_SCV + csi * 8);
+                    }
+                }
+            }
         }
         next_token();
         expect("]");
