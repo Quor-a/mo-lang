@@ -9576,6 +9576,21 @@ fn cmp_row_ext(compo: i64, fld: i64, kind: i64, wd: i64, col: i64, fi: i64) -> i
         return 0;
     }
     if kind == 9 {
+        if CMP_HS[fi] > 0 {
+        cmp_s("    let dsum: i64 = 0;\n    let dct: i64 = ");
+        cmp_s(compo);
+        cmp_c(95);
+        cmp_s(fld);
+        cmp_s("_n;\n    let didx: i64 = 0;\n    while didx < dct {\n        dsum = dsum + ");
+        cmp_s(compo);
+        cmp_c(95);
+        cmp_s(fld);
+        cmp_s("_hist[didx];\n        didx = didx + 1;\n    }\n    if dct > 0 {\n        ");
+        cmp_s(compo);
+        cmp_c(95);
+        cmp_s(fld);
+        cmp_s(" = dsum / dct;\n    }\n");
+        }
         if CMP_AL[fi] == 1 {
         cmp_s("    let dv: i64 = ");
         cmp_s(compo);
@@ -9610,6 +9625,21 @@ fn cmp_row_ext(compo: i64, fld: i64, kind: i64, wd: i64, col: i64, fi: i64) -> i
         return 0;
     }
     if kind == 8 {
+        if CMP_HS[fi] > 0 {
+        cmp_s("    let psum: i64 = 0;\n    let pct_n: i64 = ");
+        cmp_s(compo);
+        cmp_c(95);
+        cmp_s(fld);
+        cmp_s("_n;\n    let pidx: i64 = 0;\n    while pidx < pct_n {\n        psum = psum + ");
+        cmp_s(compo);
+        cmp_c(95);
+        cmp_s(fld);
+        cmp_s("_hist[pidx];\n        pidx = pidx + 1;\n    }\n    if pct_n > 0 {\n        ");
+        cmp_s(compo);
+        cmp_c(95);
+        cmp_s(fld);
+        cmp_s(" = psum / pct_n;\n    }\n");
+        }
         if CMP_AL[fi] == 1 {
         cmp_s("    let pb: i64 = &");
         cmp_s(compo);
