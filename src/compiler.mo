@@ -5810,11 +5810,12 @@ fn parse_let() -> i64 {
             n = gv(K_TIVAL);
         } else {
             if gv(K_TKIND) == 1 {
-                # const 名做数组长度（v1.975）
+                # const 名做数组长度（v1.975）；O_SU 标记（v1.1000）
                 let csi: i64 = sym_lookup(tokbuf());
                 if csi >= 0 {
                     if load64(heap + O_SK + csi * 8) == 4 {
                         n = load64(heap + O_SCV + csi * 8);
+                        store64(heap + O_SU + csi * 8, 1);
                     }
                 }
             }
@@ -6217,6 +6218,7 @@ fn sw_const(out: i64) -> i64 {
             let csi: i64 = sym_lookup(nb);
             if csi >= 0 {
                 if load64(heap + O_SK + csi * 8) == 4 {
+                    store64(heap + O_SU + csi * 8, 1);
                     let v: i64 = load64(heap + O_SCV + csi * 8);
                     while tok_is("-") == 1 || tok_is("+") == 1 {
                         let op: i64 = tok_is("-");
@@ -6897,11 +6899,12 @@ fn parse_global() -> i64 {
             n = gv(K_TIVAL);
         } else {
             if gv(K_TKIND) == 1 {
-                # const 名做数组长度（v1.975）
+                # const 名做数组长度（v1.975）；O_SU 标记（v1.1000）
                 let csi: i64 = sym_lookup(tokbuf());
                 if csi >= 0 {
                     if load64(heap + O_SK + csi * 8) == 4 {
                         n = load64(heap + O_SCV + csi * 8);
+                        store64(heap + O_SU + csi * 8, 1);
                     }
                 }
             }
