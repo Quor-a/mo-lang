@@ -1662,8 +1662,11 @@ fn parse_i64_list() -> i64 {
             let fsy: i64 = sym_lookup_func(tokbuf());
             if fsy < 0 { return err_at2("array literal: unknown function", gv(K_LINE), gv(K_COL)); }
             store64(heap + O_SU + fsy * 8, 1);
-            # func_addr 会发 movabs 代码或重定位 —— 数组字面量必须纯数据。
-            # 编译期地址 = sym_addr（函数代码地址在非 -c 模式可算）。
+            # 复用 func_addr 发 movabs（前向引用也由 resolve_all 兜底），
+            # 然后回退代码指针，从 movabs 立即数里抄出地址（v1.1019）。
+            # O_COD 设 268435456？代码缓冲基址未知 —— 直接用 sym_addr；
+            # 若函数地址 < 4M（前向引用未解析）则响亮报错。
+            next_token();                # 消费函数名（v1.1019 修复）
             let ta: i64 = sym_addr(fsy);
             if ta < 4194304 { return err_at2("array literal: cannot take function address here", gv(K_LINE), gv(K_COL)); }
             v = ta;

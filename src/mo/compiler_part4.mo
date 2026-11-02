@@ -1306,6 +1306,38 @@ fn parse_primary() -> i64 {
             # 否则 s[i] 会一次读进 8 个字节。
             if ty_kind(e2) == 5 { g_load_at_b(); } else { g_load_at(); }
             R_ETY = e2;
+            # v1.1020: 数组元素函数指针调用 t[0](args)
+            # rax 已是函数地址；push 保存，解析实参 push，逆序弹进寄存器
+            # 后 f 恰好回到栈顶，pop rax → call rax。
+            if tok_is("(") == 1 {
+                if ty_kind(e2) != 4 { return err_atp("calling a non-pointer array element", gv(K_PLINE), gv(K_PCOL), gv(K_PPOS)); }
+                spill_cache();
+                g_push_rax();                # 保存 f
+                let na2: i64 = 0;
+                next_token();                # 吃 '('
+                while tok_is(")") == 0 {
+                    parse_expr();
+                    g_push_rax();
+                    na2 = na2 + 1;
+                    if accept(",") == 0 {
+                        if tok_is(")") == 0 { return syntax_error(); }
+                    }
+                }
+                expect(")");
+                if na2 > 32 { return err_atp("too many arguments", gv(K_PLINE), gv(K_PCOL), gv(K_PPOS)); }
+                if na2 > 6 { arg_spill(na2); }
+                if na2 >= 6 { g_pop_r9(); }
+                if na2 >= 5 { g_pop_r8(); }
+                if na2 >= 4 { g_pop_rcx(); }
+                if na2 >= 3 { g_pop_rdx(); }
+                if na2 >= 2 { g_pop_rsi(); }
+                if na2 >= 1 { g_pop_rdi(); }
+                if na2 > 6 { arg_restack(na2); }
+                g_pop_rax();                 # f
+                ops2(0xff, 0xd0);            # call rax
+                if na2 > 6 { arg_cleanup(na2); }
+                R_ETY = ty_int();
+            }
             return 0;
         }
         # 方法调用（表达式位置）：let a = r.area();

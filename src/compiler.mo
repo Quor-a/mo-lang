@@ -4134,6 +4134,38 @@ fn parse_primary() -> i64 {
             # 否则 s[i] 会一次读进 8 个字节。
             if ty_kind(e2) == 5 { g_load_at_b(); } else { g_load_at(); }
             R_ETY = e2;
+            # v1.1020: 数组元素函数指针调用 t[0](args)
+            # rax 已是函数地址；push 保存，解析实参 push，逆序弹进寄存器
+            # 后 f 恰好回到栈顶，pop rax → call rax。
+            if tok_is("(") == 1 {
+                if ty_kind(e2) != 4 { return err_atp("calling a non-pointer array element", gv(K_PLINE), gv(K_PCOL), gv(K_PPOS)); }
+                spill_cache();
+                g_push_rax();                # 保存 f
+                let na2: i64 = 0;
+                next_token();                # 吃 '('
+                while tok_is(")") == 0 {
+                    parse_expr();
+                    g_push_rax();
+                    na2 = na2 + 1;
+                    if accept(",") == 0 {
+                        if tok_is(")") == 0 { return syntax_error(); }
+                    }
+                }
+                expect(")");
+                if na2 > 32 { return err_atp("too many arguments", gv(K_PLINE), gv(K_PCOL), gv(K_PPOS)); }
+                if na2 > 6 { arg_spill(na2); }
+                if na2 >= 6 { g_pop_r9(); }
+                if na2 >= 5 { g_pop_r8(); }
+                if na2 >= 4 { g_pop_rcx(); }
+                if na2 >= 3 { g_pop_rdx(); }
+                if na2 >= 2 { g_pop_rsi(); }
+                if na2 >= 1 { g_pop_rdi(); }
+                if na2 > 6 { arg_restack(na2); }
+                g_pop_rax();                 # f
+                ops2(0xff, 0xd0);            # call rax
+                if na2 > 6 { arg_cleanup(na2); }
+                R_ETY = ty_int();
+            }
             return 0;
         }
         # 方法调用（表达式位置）：let a = r.area();
@@ -6742,8 +6774,11 @@ fn parse_i64_list() -> i64 {
             let fsy: i64 = sym_lookup_func(tokbuf());
             if fsy < 0 { return err_at2("array literal: unknown function", gv(K_LINE), gv(K_COL)); }
             store64(heap + O_SU + fsy * 8, 1);
-            # func_addr 会发 movabs 代码或重定位 —— 数组字面量必须纯数据。
-            # 编译期地址 = sym_addr（函数代码地址在非 -c 模式可算）。
+            # 复用 func_addr 发 movabs（前向引用也由 resolve_all 兜底），
+            # 然后回退代码指针，从 movabs 立即数里抄出地址（v1.1019）。
+            # O_COD 设 268435456？代码缓冲基址未知 —— 直接用 sym_addr；
+            # 若函数地址 < 4M（前向引用未解析）则响亮报错。
+            next_token();                # 消费函数名（v1.1019 修复）
             let ta: i64 = sym_addr(fsy);
             if ta < 4194304 { return err_at2("array literal: cannot take function address here", gv(K_LINE), gv(K_COL)); }
             v = ta;
