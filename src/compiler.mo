@@ -6950,7 +6950,15 @@ fn sw_const(out: i64) -> i64 {
             next_token();
             let e: i64 = enum_value(nb);
             if e >= 0 {
-                store64(out, load64(heap + O_EVAL + e * 8));
+                let v: i64 = load64(heap + O_EVAL + e * 8);
+                # v1.1051: enum case 的 +/- 后缀折叠（与 const 分支对称）
+                while tok_is("-") == 1 || tok_is("+") == 1 {
+                    let op2: i64 = tok_is("-");
+                    next_token();
+                    let a2: i64 = const_atom();
+                    if op2 == 1 { v = v - a2; } else { v = v + a2; }
+                }
+                store64(out, v);
                 return 1;
             }
             # const（kind 4）做 case 标签（v1.977）。
