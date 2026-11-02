@@ -2574,9 +2574,7 @@ fn emit_lit_array() -> i64 {
 # 编译期发射到数据段常量区（data_align(16)+逐字段 store），
 # 实参值 = 该区地址。字段名匹配 st_field_name，右值为完整表达式。
 fn emit_lit_struct(si: i64) -> i64 {
-    syscall(1, 2, "ELS\n", 4, 0, 0, 0);
     expect("{");                        # 探测已消费 struct 名，tok 停在 '{'
-    syscall(1, 2, "ELS2\n", 5, 0, 0, 0);
 
     data_align(16);
     let addr: i64 = 268435456 + gv(K_DLEN);
@@ -2606,6 +2604,7 @@ fn emit_lit_struct(si: i64) -> i64 {
     next_token();                       # 吃 '}'
     g_movabs_rax(addr);
     R_ETY = ty_struct(si);
+    R_SADDR = 1;    # v1.1064: 返回的是数据段常量区地址 → 需整块拷贝（修复前置比较后 R_SADDR 残留导致的地址存储 bug）
     return 0;
 }
 

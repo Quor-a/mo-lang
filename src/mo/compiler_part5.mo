@@ -982,11 +982,12 @@ fn parse_let() -> i64 {
                             # v1.1059: 字段值为 struct（嵌套字面量）—— rax 是
                             # 数据段常量区地址，需整块拷贝（g_struct_copy）。
                             if ty_kind(R_ETY) == 2 {
-                                if R_SADDR == 0 {
-                                    g_struct_copy(fo2, st_words(ty_si(R_ETY)));
-                                    accept(",");
-                                    continue;
-                                }
+                                # v1.1064: 嵌套字面量/变量一律按地址整块拷贝
+                                #（emit_lit_struct 返回常量区地址; 变量表达式
+                                #  返回变量地址 — R_SADDR 残留不再参与判定）
+                                g_struct_copy(fo2, st_words(ty_si(R_ETY)));
+                                accept(",");
+                                continue;
                             }
                             g_movabs_rsi(fo2);
                             ops3(0x48, 0x89, 0x06);   # mov [rsi], rax
