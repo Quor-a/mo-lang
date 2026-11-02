@@ -12021,9 +12021,20 @@ fn parse_component() -> i64 {
         }
         fi = fi + 1;
     }
+    # v1.1052: _row 自动初始化 —— 首次调用 _row 时自动跑一次 _init（default 生效）
+    cmp_s("var ");
+    cmp_s(compo);
+    cmp_s("_auto: i64 = 0;\n");
     cmp_s("fn ");
     cmp_s(compo);
     cmp_s("_row(x: i64, y: i64, fg: i64, bg: i64) -> i64 {\n    let cx: i64 = x;\n");
+    cmp_s("    if ");
+    cmp_s(compo);
+    cmp_s("_auto == 0 { ");
+    cmp_s(compo);
+    cmp_s("_init(); ");
+    cmp_s(compo);
+    cmp_s("_auto = 1; }\n");
     fi = 0;
     while fi < nf2 {
         if CMP_HD[fi] == 1 {
