@@ -1766,6 +1766,38 @@ fn index_addr(s: i64) -> i64 {
     }
     g_pop_rcx();
     g_add();
+    # v1.1050: 二维（及以上）下标 a[i][j] —— elem 仍是数组时继续消化 '['
+    let ct: i64 = elem_type(st);
+    while ty_kind(ct) == 3 {
+        if tok_is("[") == 0 { break; }
+        next_token();
+        spill_cache();
+        g_push_rax();                       # 保存行址（第二维表达式会毁 rax）
+        # 常量下标越界检查（与第一维同约定）
+        if gv(K_TKIND) == 2 {
+            let iv2: i64 = gv(K_TIVAL);
+            let back2: i64 = gv(K_TOKPOS);
+            next_token();
+            if tok_is("]") == 1 {
+                if iv2 < 0 { return err_atp("index out of bounds: negative constant index", gv(K_PLINE), gv(K_PCOL), gv(K_PPOS)); }
+                if iv2 >= ty_b(ct) { return err_atp("index out of bounds: constant index >= array length", gv(K_PLINE), gv(K_PCOL), gv(K_PPOS)); }
+            }
+            set_pos(back2);
+        }
+        parse_expr();
+        expect("]");
+        if ty_b(ct) <= 2147483647 {
+            let ne2: i64 = ty_b(ct);
+            ops2(0x48, 0x3d); emit4(ne2);
+            emit_jcc(0x83, panic_label());
+        }
+        g_mul_imm(ty_size(elem_type(ct)));  # 内层元素尺寸（行址 + 元素偏移）
+        g_push_rax();
+        g_pop_rcx();                        # 元素偏移
+        g_pop_rax();                        # 行址
+        g_add();
+        ct = elem_type(ct);
+    }
     return 0;
 }
 
