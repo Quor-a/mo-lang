@@ -2841,7 +2841,79 @@ var R_AFTER: i64 = 0;
 
 # v1.1037: 默认参数表。DFV[fid*8 + pidx] = 编译期默认值（-1 = 无默认）。
 # 约定：默认参数必须全部位于形参列表**尾部**。
-var DFV: [20480] i64 = 0;   # fsi*80+pidx：8 形参槽 + 槽 9 存 ndf（v1.1038：槽 7 曾与形参 7 冲突）
+var DFV: [20480] i64 = 0;
+# v1.1039: 形参名表 PNMT[fid*256 + pidx*8] = 名字（tokbuf 可比较的字符串指针）
+# 容量 512 函数 × 64 形参。索引统一 fid*256（与 part5 parse_func 登记处一致）。
+var PNMT: [131072] i64 = 0;
+
+fn param_index(fid: i64, name: i64) -> i64 {
+    let npv: i64 = sym_npar(fid);
+    let i: i64 = 0;
+    while i < npv {
+        let pn: i64 = load64(PNMT + fid * 256 + i * 8);
+        if pn > 0 {
+            if streq(pn, name) == 1 { return i; }
+        }
+        i = i + 1;
+    }
+    return 0 - 1;
+}
+
+# v1.1039: 命名实参探测（纯源码 peek，绝不碰 lexer 状态 —— tokbuf/next_token
+# 探测会破坏外层解析状态，曾致大文件假 syntax error）。
+# 当前 token 为标识符时，扫 [A-Za-z0-9_] 名字结束处，再跳空白看是否 ':'。
+# 是 → 返回名字结束偏移；否 → 0。
+fn peek_named_colon() -> i64 {
+    if gv(K_TKIND) != 1 { return 0; }
+    let p: i64 = gv(K_TOKPOS);
+    let n: i64 = gv(K_SRCLEN);
+    let q: i64 = p;
+    let done: i64 = 0;
+    while q < n {
+        if done == 1 { q = n; }
+        else {
+            let c: i64 = sbyte(q);
+            let isid: i64 = 0;
+            if c == 95 { isid = 1; }
+            if c >= 97 { if c <= 122 { isid = 1; } }
+            if c >= 65 { if c <= 90 { isid = 1; } }
+            if c >= 48 { if c <= 57 { isid = 1; } }
+            if isid == 1 { q = q + 1; }
+            else {
+                # 名字结束：跳空白（含 # 注释）
+                let r: i64 = q;
+                let stop: i64 = 0;
+                while r < n {
+                    if stop == 1 { r = n; }
+                    else {
+                        let d: i64 = sbyte(r);
+                        if d == 35 { r = skip_comment(r); }
+                        else {
+                            if d == 32 { r = r + 1; }
+                            else {
+                                if d == 9 { r = r + 1; }
+                                else {
+                                    if d == 10 { r = r + 1; }
+                                    else {
+                                        if d == 13 { r = r + 1; }
+                                        else {
+                                            stop = 1;
+                                            if d == 58 { done = 1; return q; }
+                                            return 0;
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+                return 0;
+            }
+        }
+    }
+    return 0;
+}
+   # fsi*80+pidx：8 形参槽 + 槽 9 存 ndf（v1.1038：槽 7 曾与形参 7 冲突）
 
 fn scratch1() -> i64 { return heap + O_SCAL + 720; }  # 🔴 400 与 K_TFLT 槽撞车（v1.1035）
 fn scratch2() -> i64 { return heap + O_SCAL + 700; }
@@ -5005,12 +5077,53 @@ fn parse_call() -> i64 {
         return r;
     }
     let na: i64 = 0;
+    # v1.1039: 命名实参 f(b: 2, c: 3)。限制：按形参顺序，跳过的中间形参须有默认值。
+    let npre: i64 = 0;   # 已覆盖的形参个数（显式 + 补默认）
     while tok_is(")") == 0 {
-        parse_expr();
-        g_push_rax();
-        na = na + 1;
-        if accept(",") == 0 {
-            if tok_is(")") == 0 { CALLD = CALLD - 1; return syntax_error(); }
+        let nend: i64 = peek_named_colon();
+        if nend == 0 {
+            parse_expr();
+            g_push_rax();
+            na = na + 1;
+            if accept(",") == 0 {
+                if tok_is(")") == 0 { CALLD = CALLD - 1; return syntax_error(); }
+            }
+        } else {
+            # 命名实参：取名字（[K_TOKPOS, nend)），查形参编号
+            let len2: i64 = nend - gv(K_TOKPOS);
+            memcpy(scratch3(), tokbuf());
+            # 名字已在 tokbuf（当前 token 就是该标识符），直接用 tokbuf 查
+            let pnm: i64 = sym_lookup_func(cscratch());
+            if pnm < 0 { CALLD = CALLD - 1; return undef_call(); }
+            let pidx: i64 = param_index(pnm, tokbuf());
+            if pidx < 0 { return err_atp("no such parameter name", gv(K_PLINE), gv(K_PCOL), gv(K_PPOS)); }
+            if pidx < npre {
+                CALLD = CALLD - 1;
+                return err_atp("named arguments must be in parameter order", gv(K_PLINE), gv(K_PCOL), gv(K_PPOS));
+            }
+            # 补齐跳过的形参（默认值；无默认则报错）
+            let qi: i64 = npre;
+            while qi < pidx {
+                let qv: i64 = load64(DFV + pnm * 80 + qi * 8);
+                if qv < 0 {
+                    CALLD = CALLD - 1;
+                    return err_atp("skipped parameter has no default value", gv(K_PLINE), gv(K_PCOL), gv(K_PPOS));
+                }
+                spill_cache();
+                g_movabs_rax(qv);
+                g_push_rax();
+                qi = qi + 1;
+            }
+            na = na + (pidx - npre);
+            next_token();               # 吃 ':'（当前 token 本来就是 ident，next 后应为 ':'）
+            expect(":");
+            parse_expr();
+            g_push_rax();
+            na = na + 1;
+            npre = pidx + 1;
+            if accept(",") == 0 {
+                if tok_is(")") == 0 { CALLD = CALLD - 1; return syntax_error(); }
+            }
         }
     }
     expect(")");
@@ -7556,6 +7669,8 @@ fn parse_func() -> i64 {
         if sym_dup(scratch1()) >= 0 { return err_atp("duplicate definition", gv(K_PLINE), gv(K_PCOL), gv(K_PPOS)); }
         let pid: i64 = sym_add(scratch1(), 1, off, 0);
         store64(heap + O_STY + pid * 8, pt);
+        # v1.1039: 形参名登记（命名实参用）：PNMT[fid*256 + pidx*8] = 名字地址
+        store64(PNMT + fsi * 256 + nb * 8, heap + O_NAMES + intern(scratch1()));
         # -g：形参也要登记成变量，否则调试器在被调用函数里 p <参数名>
         #     什么都看不到（1.100：只有 let 声明的局部变量有 DIE）。
         #     偏移用的是**本帧**的槽 —— 参数被复制进自己的栈帧，

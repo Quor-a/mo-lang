@@ -2344,6 +2344,8 @@ fn parse_func() -> i64 {
         if sym_dup(scratch1()) >= 0 { return err_atp("duplicate definition", gv(K_PLINE), gv(K_PCOL), gv(K_PPOS)); }
         let pid: i64 = sym_add(scratch1(), 1, off, 0);
         store64(heap + O_STY + pid * 8, pt);
+        # v1.1039: 形参名登记（命名实参用）：PNMT[fid*256 + pidx*8] = 名字地址
+        store64(PNMT + fsi * 256 + nb * 8, heap + O_NAMES + intern(scratch1()));
         # -g：形参也要登记成变量，否则调试器在被调用函数里 p <参数名>
         #     什么都看不到（1.100：只有 let 声明的局部变量有 DIE）。
         #     偏移用的是**本帧**的槽 —— 参数被复制进自己的栈帧，
