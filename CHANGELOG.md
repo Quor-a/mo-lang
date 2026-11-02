@@ -1,3 +1,7 @@
+## [1.1077.0]
+
+- 解构 RHS 支持常量行索引 `let [a, b, c] = m[1];`：aoff += idx*行stride，索引后 at 下降一层（元素=内层元素）。tests/259(200)。
+
 ## [1.1076.0]
 
 - 多维数组行绑定解构：parse_destructure 放宽元素类型 —— 数组/struct 元素按 ty_size 整块拷贝（lea 源 + lea 栈槽 + 逐 8 字节），变量声明为元素类型（行）。tests/258(7) + examples/destruct_row.mo。

@@ -6999,13 +6999,26 @@ fn parse_destructure(dcln: i64) -> i64 {
     if asym < 0 { return undef_err(tokbuf()); }
     let at: i64 = sym_type(asym);
     if ty_kind(at) != 3 { return err_at2("destructure: right side must be an array", gv(K_LINE), gv(K_COL)); }
-    next_token();
+    # v1.1077: RHS 支持常量行索引 m[1] —— aoff += idx * 行stride
+    let aoff_extra: i64 = 0;
+    let rowidx: i64 = 0;
+    next_token();               # 吃掉数组名，现在可能是 '['
+    if tok_is("[") == 1 {
+        next_token();
+        if gv(K_TKIND) != 2 { return err_at2("destructure: row index must be a constant", gv(K_LINE), gv(K_COL)); }
+        rowidx = gv(K_TIVAL);
+        next_token();
+        expect("]");
+        # 行 stride = ty_size(elem)
+        aoff_extra = rowidx * ty_size(ty_a(at));
+        at = ty_a(at);            # 🔴 索引下降一层：m[1] 的元素 = 内层元素
+    }
     expect(";");
     let et: i64 = ty_a(at);
     let stride: i64 = ty_size(et);
     # 数组变量在栈上（local）还是数据段？与 parse_addr 同判据：sym_kind==1
     let is_local: i64 = sym_kind(asym);
-    let aoff: i64 = sym_addr(asym);
+    let aoff: i64 = sym_addr(asym) + aoff_extra;
     let i: i64 = 0;
     let src: i64 = 0;   # 当前元素字节偏移
     while i < cnt {
