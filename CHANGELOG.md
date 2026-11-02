@@ -1,3 +1,7 @@
+## [1.1078.0]
+
+- 数组整体赋值 `q = p;`：同型一维数组、纯 ident RHS，块拷贝 g_copy_words（与 struct 赋值同款）。tests/260(79)。
+
 ## [1.1077.0]
 
 - 解构 RHS 支持常量行索引 `let [a, b, c] = m[1];`：aoff += idx*行stride，索引后 at 下降一层（元素=内层元素）。tests/259(200)。

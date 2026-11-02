@@ -6569,7 +6569,16 @@ fn parse_stmt() -> i64 {
             R_SYM = sym_lookup(scratch2());
             if R_SYM < 0 { return undef_err(scratch2()); }
             let lt: i64 = sym_type(R_SYM);
-            if ty_kind(lt) == 3 { return err_atp("cannot assign to an array", gv(K_PLINE), gv(K_PCOL), gv(K_PPOS)); }
+            if ty_kind(lt) == 3 {
+                # v1.1078: 数组整体赋值 q = p; —— 仅支持纯 ident RHS（同型数组）
+                if rhs < 0 { return err_atp("array assignment requires an array variable on the right", gv(K_PLINE), gv(K_PCOL), gv(K_PPOS)); }
+                if ty_kind(sym_type(rhs)) != 3 { return err_atp("array assignment type mismatch", gv(K_PLINE), gv(K_PCOL), gv(K_PPOS)); }
+                if ty_size(sym_type(rhs)) != ty_size(lt) { return err_atp("array assignment size mismatch", gv(K_PLINE), gv(K_PCOL), gv(K_PPOS)); }
+                g_addr_sym_rax(R_SYM);            # rdi = 目的（q 基址）
+                g_addr_sym_rsi(rhs);              # rsi = 源（p 基址）
+                g_copy_words(ty_size(lt) / 8);    # 与 struct 整体赋值同款块拷贝
+                return 0;
+            }
             if ty_kind(lt) == 2 {
                 if rhs >= 0 {
                     if ty_kind(sym_type(rhs)) == 2 {
