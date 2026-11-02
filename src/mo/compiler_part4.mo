@@ -2217,7 +2217,23 @@ fn parse_call() -> i64 {
     # heap + O_SCR + CALLD*256，CALLD 一减就指向**上一层调用**的槽，
     # 里面是空的 —— 这正是当初报出 `undefined symbol ''` 的根因。
     # 这里反正要 exit，不减也无所谓。
-    if R_SYM < 0 { return undef_call(); }
+    if R_SYM < 0 {
+        # v1.1016：函数指针调用 —— 名字是 ptr 局部变量时 call rax
+        let psy: i64 = sym_lookup(cscratch());
+        if psy >= 0 {
+            if sym_kind(psy) == 1 || sym_kind(psy) == 2 {
+                spill_cache();
+                load_sym(psy);              # rax = 函数地址
+                ops2(0xff, 0xd0);           # call rax
+                CALLD = CALLD - 1;
+                R_ETY = ty_int();
+                R_SADDR = 0;
+                if na > 6 { arg_cleanup(na); }
+                return 0;
+            }
+        }
+        return undef_call();
+    }
     # 调用点标记 used（未使用函数警告用；vtable call 不走这里，
     # 已由解析结束后的虚表扫描兜底）
     store64(heap + O_SU + R_SYM * 8, 1);
