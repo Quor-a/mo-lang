@@ -723,7 +723,42 @@ fn parse_stmt() -> i64 {
                             set_pos(fsvp);
                         }
                     }
+                    # v1.1062: r.f = q2; —— 字段整体赋值（struct 变量）。
+                    # '=' 后 parse_expr 给出源地址（kind2 变量）→ g_struct_copy。
                     set_pos(fsq);
+                    syscall(1, 2, tokbuf(), 2, 0, 0, 0);
+                    if tok_is("=") == 1 {
+                        next_token();
+                        if gv(K_TKIND) == 1 {
+                            let vsi: i64 = sym_lookup(tokbuf());
+
+                            if vsi >= 0 && ty_kind(sym_type(vsi)) == 2 {
+                                if ty_si(ft) != ty_si(sym_type(vsi)) { return err_at2("struct assignment requires the same type", gv(K_LINE), gv(K_COL)); }
+                                next_token();   # 吃变量名
+                                expect(";");
+                                spill_cache();
+                                emit1(0x50);        # 真 push rax = 字段基地址（dst）
+                                sv(K_LAST, 0);
+                                g_movabs_rax(sym_addr(vsi));   # rax = 源地址
+                                ops3(0x48, 0x89, 0xc7);        # mov rdi, rax（源）
+                                emit1(0x5e);                   # pop rsi（dst = 字段基地址）
+                                sv(K_LAST, 0);
+                                # 内联 word 拷贝（不能走 g_struct_copy：dst 是运行时地址）
+                                let wi: i64 = 0;
+                                while wi < st_words(ty_si(sym_type(vsi))) {
+                                    ops3(0x48, 0x8b, 0x8f);    # mov rcx, [rdi+disp32]
+                                    emit4(wi * 8);
+                                    ops3(0x48, 0x89, 0x8e);    # mov [rsi+disp32], rcx
+                                    emit4(wi * 8);
+                                    wi = wi + 1;
+                                }
+                                sv(K_LAST, 0);
+                                R_ETY = ft;
+                                return 0;
+                            }
+                        }
+                        set_pos(fsq);
+                    }
                 }
                 return err_at2("cannot assign a struct value", gv(K_LINE), gv(K_COL));
             }
