@@ -5647,7 +5647,37 @@ fn parse_len() -> i64 {
     let lsy: i64 = sym_lookup(tokbuf());
     if lsy < 0 { return err_at2("len: undefined variable", gv(K_LINE), gv(K_COL)); }
     let lt2: i64 = sym_type(lsy);
-    if ty_kind(lt2) != 3 { return err_at2("len: argument must be an array", gv(K_LINE), gv(K_COL)); }
+    # v1.1080: len(str) —— 运行时 strlen（lib/str.mo）
+    if ty_kind(lt2) == 10 {
+        next_token();
+        expect(")");
+        # rax = 字符串指针（str 变量槽里存的就是指针）
+        if sym_kind(lsy) == 1 {
+            g_lea_local(sym_addr(lsy));
+            ops3(0x48, 0x8b, 0x00);          # mov rax, [rax]
+        } else {
+            g_movabs_rax(sym_addr(lsy));     # 全局 str：槽里也是指针
+            ops3(0x48, 0x8b, 0x00);
+        }
+        spill_cache();
+        ops3(0x48, 0x89, 0xc7);          # mov rdi, rax（strlen 约定 rdi=字符串）
+        let slsym: i64 = sym_lookup_func("strlen");
+        if slsym < 0 { return err_at2("len(str): import \"str.mo\" first", gv(K_LINE), gv(K_COL)); }
+        emit_call_patch(slsym);
+        R_ETY = ty_int();
+        R_SADDR = 0;
+        CALLD = CALLD - 1;
+        return 0;
+    }
+    if ty_kind(lt2) != 3 { return err_at2("len: argument must be an array or str", gv(K_LINE), gv(K_COL)); }
+    # v1.1080: 多维数组 —— len(m) = 最外维元素个数
+    if ty_kind(ty_a(lt2)) == 3 {
+        next_token();
+        expect(")");
+        R_ETY = ty_int(); R_SADDR = 0; CALLD = CALLD - 1;
+        g_movabs_rax(ty_b(lt2));
+        return 0;
+    }
     next_token();
     expect(")");
     g_movabs_rax(ty_b(lt2));
