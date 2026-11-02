@@ -1794,6 +1794,44 @@ fn parse_const() -> i64 {
     memcpy(scratch2(), tokbuf());
     next_token();
     expect(":");
+    # v1.1046: const 数组 const A: [N] i64 = [...] —— 数据段常量区发射
+    if tok_is("[") == 1 {
+        next_token();
+        if gv(K_TKIND) != 2 { return err_at2("const array: expected element count", gv(K_LINE), gv(K_COL)); }
+        let n2: i64 = gv(K_TIVAL);
+        next_token();
+        if tok_is("]") == 0 { return syntax_error(); }
+        next_token();
+        # 元素类型（i64 或 byte）
+        let isb: i64 = 0;
+        if tok_is("byte") == 1 { isb = 1; next_token(); }
+        else { if tok_is("i64") == 0 { return err_at2("const array: only i64/byte supported", gv(K_LINE), gv(K_COL)); } else { next_token(); } }
+        expect("=");
+        let lcnt: i64 = parse_i64_list();
+        expect(";");
+        if lcnt < 0 { return syntax_error(); }
+        if lcnt > n2 { return err_at2("const array: too many initializers", gv(K_LINE), gv(K_COL)); }
+        if const_dup_check() >= 0 { return 0; }
+        data_align(16);
+        let addr2: i64 = 268435456 + gv(K_DLEN);
+        let i2: i64 = 0;
+        while i2 < n2 {
+            if isb == 1 {
+                if i2 < lcnt { dbyte(load64(heap + O_LSTV + i2 * 8) & 255); } else { dbyte(0); }
+            } else {
+                if i2 < lcnt { dquad(load64(heap + O_LSTV + i2 * 8)); } else { dquad(0); }
+            }
+            i2 = i2 + 1;
+        }
+        if isb == 0 { data_align(16); }
+        let ca_id: i64 = sym_add(scratch2(), 2, addr2, 0);   # 顶层 = kind 2（同全局 var 数组）
+        if isb == 1 {
+            store64(heap + O_STY + ca_id * 8, ty_array(ty_byte(), n2));
+        } else {
+            store64(heap + O_STY + ca_id * 8, ty_array(ty_int(), n2));
+        }
+        return 0;
+    }
     if tok_is("i64") == 0 { return err_at2("const: only i64 supported", gv(K_LINE), gv(K_COL)); }
     next_token();
     expect("=");
@@ -1896,6 +1934,26 @@ fn const_atom() -> i64 {
                 let v: i64 = load64(heap + O_SCV + si * 8);
                 next_token();
                 return v;
+            }
+            # v1.1046: const 数组编译期下标 A[0] —— O_DATA 镜像直接取值
+            if load64(heap + O_SK + si * 8) == 2 {
+                let cst: i64 = sym_type(si);
+                if ty_kind(cst) == 3 {
+                    next_token();
+                    if tok_is("[") == 1 {
+                        next_token();
+                        let iv: i64 = const_expr();
+                        expect("]");
+                        if iv < 0 { return err_at2("const array index: negative", gv(K_LINE), gv(K_COL)); }
+                        if iv >= ty_b(cst) { return err_at2("const array index out of bounds", gv(K_LINE), gv(K_COL)); }
+                        let da: i64 = sym_addr(si) - 268435456;
+                        if ty_kind(ty_a(cst)) == 5 {
+                            return load8(heap + O_DATA + da + iv);
+                        }
+                        return load64(heap + O_DATA + da + iv * 8);
+                    }
+                    return err_at2("const: array requires subscript", gv(K_LINE), gv(K_COL));
+                }
             }
         }
         return err_at2("const: unknown identifier", gv(K_LINE), gv(K_COL));
