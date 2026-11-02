@@ -1984,6 +1984,34 @@ fn parse_expr_method(osym: i64) -> i64 {
         }
     }
     expect(")");
+
+    # v1.1041: 方法调用缺省尾部实参补默认值（同 parse_call；前向占位回填同法）
+    let mnpv: i64 = 0 - 1;
+    if ifk >= 0 { mnpv = 0 - 1; }
+    else { mnpv = sym_npar(fsym); }
+    if mnpv > 0 {
+        if na < mnpv {
+            let mdi: i64 = na;
+            while mdi < mnpv {
+                if load8(DFVHAS + fsym * 8 + mdi) != 1 {
+                    return err_atp("skipped parameter has no default value", gv(K_PLINE), gv(K_PCOL), gv(K_PPOS));
+                }
+                let mdv: i64 = load64(DFV + fsym * 80 + mdi * 8);
+                spill_cache();
+                if load64(DFVDONE + fsym * 8) == 0 {
+                    emit1(0xb8);
+                    defp_add(gv(K_CLEN), fsym, mdi);
+                    emit4(0);
+                    sv(K_LAST, 0);
+                } else {
+                    g_movabs_rax(mdv);
+                }
+                g_push_rax();
+                mdi = mdi + 1;
+            }
+            na = mnpv;
+        }
+    }
     if na > NARGS_MAX { return err_atp("too many arguments", gv(K_PLINE), gv(K_PCOL), gv(K_PPOS)); }
     if na > 6 { arg_spill(na); }
     if na >= 6 { g_pop_r9(); }
