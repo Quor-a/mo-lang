@@ -596,7 +596,28 @@ fn sym_pop_scope(d: i64) -> i64 {
 # ==========================================================================
 #  表达式
 # ==========================================================================
-fn parse_expr() -> i64 { return parse_or(); }
+fn parse_expr() -> i64 {
+    parse_or();
+    if accept("?") == 1 { return parse_ternary(); }
+    return 0;
+}
+
+# v1.1069: 三元 `cond ? a : b`。进入时 cond 已求值在 rax。
+# 两分支各求值不落栈，跳转汇合处 rax 即选中值（a 分支 jmp 越过 b）。
+fn parse_ternary() -> i64 {
+    let lelse: i64 = new_label();
+    let lend: i64 = new_label();
+    g_cmp_rax_0();
+    emit_jcc(0x84, lelse);   # je: cond==0 → else
+    parse_expr();            # a 分支（rax=选中值）
+    emit_jmp(lend);
+    place_label(lelse);
+    accept(":");
+    parse_expr();            # b 分支（rax=选中值）
+    place_label(lend);
+    sv(K_LAST, 0);           # 🔴 防折叠回退吃掉跨分支字节（v1.1044 同款陷阱）
+    return 0;
+}
 
 fn parse_or() -> i64 {
     parse_and();

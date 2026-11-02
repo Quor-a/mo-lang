@@ -1,3 +1,7 @@
+## [1.1069.0]
+
+- 三元运算符 `cond ? a : b`：parse_expr 尾部拦截 + 独立 parse_ternary（两分支各求值不落栈，跳转汇合处 rax 即选中值）；🔴 汇合后 sv(K_LAST,0) 防折叠回退吃跨分支字节；支持嵌套、函数调用分支、括号后接运算。tests/250; 另修复 v1.1066 嵌套字面量叶子区与 dims 表冲突（随 1.1068 发布）。
+
 ## [1.1068.0]
 
 - len(arr) 内建：编译期返回数组外层元素个数（二维取最外维）；非数组实参报错 "len: argument must be an array"。parse_call 开头拦截、独立 parse_len()（不占 parse_call 局部槽）；嵌套字面量叶子铺平区迁至 O_LSTV[64..]（修复与 dims 表的区冲突）。tests/249 + errors/e28；门禁见 Release。
