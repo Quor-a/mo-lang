@@ -10,6 +10,10 @@ var R_L2:    i64 = 0;
 var R_BASE:  i64 = 0;
 var R_AFTER: i64 = 0;
 
+# v1.1037: 默认参数表。DFV[fid*8 + pidx] = 编译期默认值（-1 = 无默认）。
+# 约定：默认参数必须全部位于形参列表**尾部**。
+var DFV: [16384] i64 = 0;   # fsi*64+pidx：大库 fsi 可超 512，4096 槽曾越界
+
 fn scratch1() -> i64 { return heap + O_SCAL + 720; }  # 🔴 400 与 K_TFLT 槽撞车（v1.1035）
 fn scratch2() -> i64 { return heap + O_SCAL + 700; }
 fn scratch3() -> i64 { return heap + O_SCAL + 1000; }
@@ -2285,7 +2289,27 @@ fn parse_call() -> i64 {
                             let npv: i64 = sym_npar(R_SYM);
                             if npv >= 0 {
                                 if npv != na {
-                                    return err_atp("wrong number of arguments", gv(K_PLINE), gv(K_PCOL), gv(K_PPOS));
+                                    # v1.1037: 默认参数 —— 缺的尾部实参用编译期默认值补
+                                    let ndf: i64 = load64(DFV + R_SYM * 64 + 7 * 8);
+                                    if ndf <= 0 {
+                                        return err_atp("wrong number of arguments", gv(K_PLINE), gv(K_PCOL), gv(K_PPOS));
+                                    }
+                                    if na < npv - ndf {
+                                        return err_atp("too few arguments (required params missing)", gv(K_PLINE), gv(K_PCOL), gv(K_PPOS));
+                                    }
+                                    if npv > 6 {
+                                        return err_atp("default-arg call limited to 6 params", gv(K_PLINE), gv(K_PCOL), gv(K_PPOS));
+                                    }
+                                    # 按编号升序 push 默认值（arg_{na+1} 先 → 栈顶是 arg_npv）
+                                    let mi: i64 = na;
+                                    while mi < npv {
+                                        let mval: i64 = load64(DFV + R_SYM * 64 + mi * 8);
+                                        spill_cache();
+                                        g_movabs_rax(mval);
+                                        g_push_rax();
+                                        mi = mi + 1;
+                                    }
+                                    na = npv;
                                 }
                             } else {
                                 # 变参（extern ...）：只查下界

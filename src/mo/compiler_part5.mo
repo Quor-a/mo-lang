@@ -2279,6 +2279,13 @@ fn parse_func() -> i64 {
     # 原先的 method_reg 会让编译器段错误（intern 传入的偏移在拼接后失效）。
     let ra: i64 = gv(K_NSYM);
     sv(K_FNBASE, ra);
+    # v1.1037: 本函数默认参数表清 -1；ndf = 有默认值的形参个数（尾部连续）
+    let dvi: i64 = 0;
+    while dvi < 8 {
+        store64(DFV + fsi * 64 + dvi * 8, 0 - 1);
+        dvi = dvi + 1;
+    }
+    let ndf: i64 = 0;
     # 各层函数的符号表基线入栈：EBS[K_NEST] = 本层第一个局部符号下标。
     # cap_depth 靠它算出符号属于往上第几层（K_ENCBASE 只记了一层，深层不够用）。
     store64(heap + O_EBS + load64(heap + O_NEST) * 8, ra);
@@ -2342,6 +2349,16 @@ fn parse_func() -> i64 {
         #     偏移用的是**本帧**的槽 —— 参数被复制进自己的栈帧，
         #     与局部变量同一套负数偏移（-8, -16, ...）。
         dbg_var(scratch1(), off, gv(K_PLINE), pt);
+        # v1.1037: 形参默认值（const 表达式，必须尾部连续）
+        if accept("=") == 1 {
+            let dv: i64 = const_expr();
+            store64(DFV + fsi * 64 + nb * 8, dv);
+            ndf = nb + 1;
+        } else {
+            if ndf > 0 {
+                return err_atp("default parameters must be trailing", gv(K_PLINE), gv(K_PCOL), gv(K_PPOS));
+            }
+        }
         nb = nb + 1;
         if accept(",") == 0 {
             if tok_is(")") == 0 { return syntax_error(); }
@@ -2417,6 +2434,7 @@ fn parse_func() -> i64 {
         return err_atp("too many parameters (limit 32)", fnln, fncol, fnpos);
     }
     store64(heap + O_SP + fsi * 8, nb);
+    store64(DFV + fsi * 64 + 7 * 8, ndf);   # v1.1037: 槽 7 存默认参数个数
     g_prologue();
     let i: i64 = 0;
     while i < nb {
