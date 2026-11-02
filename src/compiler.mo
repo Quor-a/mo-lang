@@ -6376,6 +6376,45 @@ fn parse_stmt() -> i64 {
             }
             g_push_rax();
             expect("=");
+            # v1.1065: a[i] = P { ... }; —— 数组元素 struct 字面量整体赋值
+            #（kind2 元素）：表达式求到常量区地址后整块拷贝。
+            if ty_kind(at) == 2 && gv(K_TKIND) == 1 {
+                let alsi: i64 = st_lookup(tokbuf());
+                if alsi == ty_si(at) {
+                    let alvp: i64 = gv(K_TOKPOS);
+                    next_token();
+                    if tok_is("{") == 1 {
+                        next_token();   # 吃 '{'（探测已消费 struct 名）
+                        while tok_is("}") == 0 {
+                            if gv(K_TKIND) != 1 { return syntax_error(); }
+                            let afni: i64 = 0 - 1;
+                            let afi: i64 = 0;
+                            while afi < st_nfields(alsi) {
+                                if streq(tokbuf(), st_field_name(alsi, afi)) == 1 { afni = afi; }
+                                afi = afi + 1;
+                            }
+                            if afni < 0 { return err_at2("struct literal: no such field", gv(K_LINE), gv(K_COL)); }
+                            next_token();
+                            expect(":");
+                            sv(K_LAST, 0);
+                            parse_expr();
+                            expect(";");
+                            spill_cache();
+                            ops4(0x48, 0x8b, 0x34, 0x24);  # mov rsi,[rsp] = 元素基地址
+                            if st_field_off(alsi, afni) != 0 {
+                                ops2(0x48, 0x81); emit1(0xc6); emit4(st_field_off(alsi, afni));  # add rsi, off
+                            }
+                            ops3(0x48, 0x89, 0x06);  # mov [rsi], rax
+                            accept(",");
+                        }
+                        emit1(0x58);        # pop rax（平衡真栈）
+                        next_token();   # 吃 '}'
+                        expect(";");
+                        return 0;
+                    }
+                    set_pos(alvp);
+                }
+            }
             parse_expr();
             expect(";");
             g_pop_rcx();
