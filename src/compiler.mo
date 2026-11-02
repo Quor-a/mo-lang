@@ -3326,7 +3326,12 @@ fn ty_compat(a: i64, b: i64) -> i64 {
 
 # 解析 .field 链：进入时当前 token 为 '.'，rax 已持有基址，ty 为基址类型
 # 返回最终字段类型（0=i64，>=1 结构体索引+1）；rax 中留下该字段的地址
-fn field_chain(ty: i64) -> i64 {
+fn field_chain(ty0: i64) -> i64 {
+    let ty: i64 = ty0;
+    # v1.1058: 数组元素继续字段访问 a[i][j].x —— 解包到元素类型
+    while ty_kind(ty) == 3 {
+        ty = elem_type(ty);
+    }
     while tok_is(".") == 1 {
         next_token();
         if gv(K_TKIND) != 1 { return syntax_error(); }
@@ -6655,24 +6660,28 @@ fn parse_let() -> i64 {
         next_token();
         expect("]");
         if n <= 0 { return err_atp("array length must be a positive constant", gv(K_PLINE), gv(K_PCOL), gv(K_PPOS)); }
-        # v1.1050: 二维 [N][M] —— 外维解析完后紧跟 '[' 时收内维 dim2
-        let dim2: i64 = 0 - 1;
-        if tok_is("[") == 1 {
+        # v1.1050 二维 / v1.1058 任意维 —— et 声明前收全部内维到 O_LSTV
+        # （[2][3][4] 存 3,4 内维在前），元素类型出来后倒序逐层包装。
+        let ndims: i64 = 0;
+        while tok_is("[") == 1 {
+            let dimx: i64 = 0 - 1;
             next_token();
-            if gv(K_TKIND) == 2 { dim2 = gv(K_TIVAL); next_token(); }
+            if gv(K_TKIND) == 2 { dimx = gv(K_TIVAL); next_token(); }
             else {
                 if gv(K_TKIND) == 1 {
                     let csi2: i64 = sym_lookup(tokbuf());
                     if csi2 >= 0 {
                         if load64(heap + O_SK + csi2 * 8) == 4 {
-                            dim2 = load64(heap + O_SCV + csi2 * 8);
+                            dimx = load64(heap + O_SCV + csi2 * 8);
                             next_token();
                         }
                     }
                 }
             }
             expect("]");
-            if dim2 <= 0 { return err_atp("array length must be a positive constant", gv(K_PLINE), gv(K_PCOL), gv(K_PPOS)); }
+            if dimx <= 0 { return err_atp("array length must be a positive constant", gv(K_PLINE), gv(K_PCOL), gv(K_PPOS)); }
+            store64(heap + O_LSTV + ndims * 8, dimx);
+            ndims = ndims + 1;
         }
         let et: i64 = ty_int();
         if tok_is("i64") == 1 {
@@ -6705,7 +6714,12 @@ fn parse_let() -> i64 {
                 }
             }
         }
-        if dim2 > 0 { et = ty_array(et, dim2); }
+        # v1.1058: 内维倒序包装（[2][3] et=ty_array(ty_array(elem,3),2)）
+        let wi: i64 = ndims - 1;
+        while wi >= 0 {
+            et = ty_array(et, load64(heap + O_LSTV + wi * 8));
+            wi = wi - 1;
+        }
         let esz: i64 = ty_size(et);
         let p: i64 = gv(K_CUROFF);
         # 🔴 栈槽约定：变量 off 是它的**最低字节**，占 [off, off+size-1]（向上）。
@@ -8020,24 +8034,28 @@ fn parse_global() -> i64 {
         next_token();
         expect("]");
         if n <= 0 { return err_atp("array length must be a positive constant", gv(K_PLINE), gv(K_PCOL), gv(K_PPOS)); }
-        # v1.1050: 二维 [N][M] —— 外维解析完后紧跟 '[' 时收内维 dim2
-        let dim2: i64 = 0 - 1;
-        if tok_is("[") == 1 {
+        # v1.1050 二维 / v1.1058 任意维 —— et 声明前收全部内维到 O_LSTV
+        # （[2][3][4] 存 3,4 内维在前），元素类型出来后倒序逐层包装。
+        let ndims: i64 = 0;
+        while tok_is("[") == 1 {
+            let dimx: i64 = 0 - 1;
             next_token();
-            if gv(K_TKIND) == 2 { dim2 = gv(K_TIVAL); next_token(); }
+            if gv(K_TKIND) == 2 { dimx = gv(K_TIVAL); next_token(); }
             else {
                 if gv(K_TKIND) == 1 {
                     let csi2: i64 = sym_lookup(tokbuf());
                     if csi2 >= 0 {
                         if load64(heap + O_SK + csi2 * 8) == 4 {
-                            dim2 = load64(heap + O_SCV + csi2 * 8);
+                            dimx = load64(heap + O_SCV + csi2 * 8);
                             next_token();
                         }
                     }
                 }
             }
             expect("]");
-            if dim2 <= 0 { return err_atp("array length must be a positive constant", gv(K_PLINE), gv(K_PCOL), gv(K_PPOS)); }
+            if dimx <= 0 { return err_atp("array length must be a positive constant", gv(K_PLINE), gv(K_PCOL), gv(K_PPOS)); }
+            store64(heap + O_LSTV + ndims * 8, dimx);
+            ndims = ndims + 1;
         }
         let et: i64 = ty_int();
         if tok_is("i64") == 1 {
@@ -8070,7 +8088,12 @@ fn parse_global() -> i64 {
                 }
             }
         }
-        if dim2 > 0 { et = ty_array(et, dim2); }
+        # v1.1058: 内维倒序包装（[2][3] et=ty_array(ty_array(elem,3),2)）
+        let wi: i64 = ndims - 1;
+        while wi >= 0 {
+            et = ty_array(et, load64(heap + O_LSTV + wi * 8));
+            wi = wi - 1;
+        }
         # v1.1030: 全局数组可省略初始化（var G: [N] T;）—— 默认 0 填充
         let lcnt: i64 = 0 - 1;
         let sinit: i64 = 0 - 1;

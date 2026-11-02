@@ -490,7 +490,12 @@ fn ty_compat(a: i64, b: i64) -> i64 {
 
 # 解析 .field 链：进入时当前 token 为 '.'，rax 已持有基址，ty 为基址类型
 # 返回最终字段类型（0=i64，>=1 结构体索引+1）；rax 中留下该字段的地址
-fn field_chain(ty: i64) -> i64 {
+fn field_chain(ty0: i64) -> i64 {
+    let ty: i64 = ty0;
+    # v1.1058: 数组元素继续字段访问 a[i][j].x —— 解包到元素类型
+    while ty_kind(ty) == 3 {
+        ty = elem_type(ty);
+    }
     while tok_is(".") == 1 {
         next_token();
         if gv(K_TKIND) != 1 { return syntax_error(); }
