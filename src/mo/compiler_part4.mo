@@ -823,6 +823,12 @@ fn parse_add() -> i64 {
                 if ty_kind(rt) == 10 {
                     return err_at2("'+': str 只能与 str 相加", gv(K_LINE), gv(K_COL));
                 }
+                # v1.1044: ptr + int —— 按指向类型步长缩放（ptr i64 +1 = +8 字节）
+                if ty_kind(lt) == 4 {
+                    # v1.1044: ptr 算术字节步（库生态 &arr + i*8 依赖），类型保留不退化
+                    g_add();
+                    if ty_kind(rt) == 4 { R_ETY = ty_int(); } else { R_ETY = lt; }
+                } else {
                 if ty_kind(lt) == 6 {
                     if ty_kind(rt) != 6 { g_i2f_rax(); }
                     g_add_f64();
@@ -833,9 +839,15 @@ fn parse_add() -> i64 {
                         g_add_f64();
                         R_ETY = ty_float();
                     } else {
-                        g_add();
-                        R_ETY = ty_int();
+                        if ty_kind(rt) == 4 {
+                            g_add();
+                            R_ETY = rt;
+                        } else {
+                            g_add();
+                            R_ETY = ty_int();
+                        }
                     }
+                }
                 }
             }
             lt = R_ETY;
@@ -853,6 +865,11 @@ fn parse_add() -> i64 {
                 if ty_kind(rt2) == 10 {
                     return err_at2("'-': str 不支持减法", gv(K_LINE), gv(K_COL));
                 }
+                if ty_kind(lt) == 4 {
+                    # v1.1044: ptr - int 字节步；ptr - ptr = 地址差(int)
+                    g_sub();
+                    if ty_kind(rt2) == 4 { R_ETY = ty_int(); } else { R_ETY = lt; }
+                } else {
                 if ty_kind(lt) == 6 {
                     if ty_kind(rt2) != 6 { g_i2f_rax(); }
                     g_sub_f64();
@@ -866,6 +883,7 @@ fn parse_add() -> i64 {
                         g_sub();
                         R_ETY = ty_int();
                     }
+                }
                 }
                 lt = R_ETY;
             } else {
@@ -2499,12 +2517,14 @@ fn parse_call() -> i64 {
         g_pop_rax();
         ops3(0x0f, 0xb6, 0x00);
         CALLD = CALLD - 1;
+        R_ETY = ty_int();   # v1.1044: 防实参 R_ETY 泄漏
         return 0;
     }
     if streq(cscratch(), "load64") == 1 {
         g_pop_rax();
         ops3(0x48, 0x8b, 0x00);
         CALLD = CALLD - 1;
+        R_ETY = ty_int();   # v1.1044: 防实参 R_ETY(ptr) 泄漏为返回类型
         return 0;
     }
     if streq(cscratch(), "store8") == 1 {
@@ -2547,6 +2567,7 @@ fn parse_call() -> i64 {
         emit1(0x58);                      # pop rax = f
         ops2(0xff, 0xd0);
         CALLD = CALLD - 1;
+        R_ETY = ty_int();   # v1.1044: 防实参 R_ETY 泄漏
         return 0;
     }
     if streq(cscratch(), "call1") == 1 {
@@ -2554,6 +2575,7 @@ fn parse_call() -> i64 {
         emit1(0x58);
         ops2(0xff, 0xd0);
         CALLD = CALLD - 1;
+        R_ETY = ty_int();   # v1.1044: 防实参 R_ETY 泄漏
         return 0;
     }
     if streq(cscratch(), "call3") == 1 {
@@ -2563,6 +2585,7 @@ fn parse_call() -> i64 {
         emit1(0x58);
         ops2(0xff, 0xd0);
         CALLD = CALLD - 1;
+        R_ETY = ty_int();   # v1.1044: 防实参 R_ETY 泄漏
         return 0;
     }
     if streq(cscratch(), "atomic_cas") == 1 {
@@ -2575,6 +2598,7 @@ fn parse_call() -> i64 {
         ops3(0x0f, 0x94, 0xc0);           # sete al
         ops4(0x48, 0x0f, 0xb6, 0xc0);     # movzx rax, al
         CALLD = CALLD - 1;
+        R_ETY = ty_int();   # v1.1044: 防实参 R_ETY 泄漏
         return 0;
     }
     if streq(cscratch(), "syscall") == 1 {
@@ -2587,6 +2611,7 @@ fn parse_call() -> i64 {
         g_pop_rax();
         g_syscall();
         CALLD = CALLD - 1;
+        R_ETY = ty_int();   # v1.1044: 防实参 R_ETY 泄漏
         return 0;
     }
     if streq(cscratch(), "syscall") == 0 {
