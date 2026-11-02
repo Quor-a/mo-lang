@@ -2203,7 +2203,14 @@ fn parse_func() -> i64 {
                 pt = ty_byte();
             } else {
                 if accept("ptr") == 1 {
-                    pt = ty_ptr(ty_byte());
+                    # v1.1026: 形参 ptr P —— 指向结构体的指针形参
+                    if gv(K_TKIND) == 1 {
+                        let qsi: i64 = st_lookup(tokbuf());
+                        if qsi >= 0 { next_token(); pt = ty_ptr(ty_struct(qsi)); }
+                        else { pt = ty_ptr(ty_byte()); }
+                    } else {
+                        pt = ty_ptr(ty_byte());
+                    }
                 } else {
                     # 形参声明成**类名** = this 指针（对标 C++ 的 Rect& self）。
                     # 实现为 ptr(该类)：于是方法体里 self.w 能直接写 ——
