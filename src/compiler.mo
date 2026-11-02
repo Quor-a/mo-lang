@@ -3660,6 +3660,13 @@ fn parse_addr() -> i64 {
         R_ETY = ty_ptr(elem_type(sym_type(sv)));
         return 0;
     }
+    # &structvar（不带字段后缀时）：元素类型是整个 struct（v1.1025）
+    if ty_kind(sym_type(sv)) == 2 {
+        if tok_is(".") == 0 {
+            R_ETY = ty_ptr(sym_type(sv));
+            return 0;
+        }
+    }
     if tok_is(".") == 1 {
         let ft: i64 = field_chain(sym_type(sv));
         R_ETY = ty_ptr(ft);
@@ -3728,7 +3735,14 @@ fn try_parse_type() -> i64 {
         } else {
             if tok_is("ptr") == 1 {
                 next_token();
-                t = ty_ptr(ty_byte());
+                # v1.1025: ptr P —— 指向结构体的指针类型（let p: ptr P = &r;）
+                if gv(K_TKIND) == 1 {
+                    let psi: i64 = st_lookup(tokbuf());
+                    if psi >= 0 { next_token(); t = ty_ptr(ty_struct(psi)); }
+                    else { t = ty_ptr(ty_byte()); }
+                } else {
+                    t = ty_ptr(ty_byte());
+                }
             } else {
                 if gv(K_TKIND) == 1 {
                     let si: i64 = st_lookup(tokbuf());
@@ -5990,7 +6004,14 @@ fn parse_let() -> i64 {
                 vt = ty_byte();
             } else {
                 if accept("ptr") == 1 {
-                    vt = ty_ptr(ty_byte());
+                    # v1.1025: ptr P —— 指向结构体的指针
+                    if gv(K_TKIND) == 1 {
+                        let psi: i64 = st_lookup(tokbuf());
+                        if psi >= 0 { next_token(); vt = ty_ptr(ty_struct(psi)); }
+                        else { vt = ty_ptr(ty_byte()); }
+                    } else {
+                        vt = ty_ptr(ty_byte());
+                    }
                 } else {
                     return err_atp("expected a type", gv(K_PLINE), gv(K_PCOL), gv(K_PPOS));
                 }

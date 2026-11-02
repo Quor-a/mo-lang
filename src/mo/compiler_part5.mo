@@ -867,7 +867,14 @@ fn parse_let() -> i64 {
                 vt = ty_byte();
             } else {
                 if accept("ptr") == 1 {
-                    vt = ty_ptr(ty_byte());
+                    # v1.1025: ptr P —— 指向结构体的指针
+                    if gv(K_TKIND) == 1 {
+                        let psi: i64 = st_lookup(tokbuf());
+                        if psi >= 0 { next_token(); vt = ty_ptr(ty_struct(psi)); }
+                        else { vt = ty_ptr(ty_byte()); }
+                    } else {
+                        vt = ty_ptr(ty_byte());
+                    }
                 } else {
                     return err_atp("expected a type", gv(K_PLINE), gv(K_PCOL), gv(K_PPOS));
                 }
