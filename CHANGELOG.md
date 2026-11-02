@@ -1,3 +1,11 @@
+## [1.1065.0]
+
+- 数组元素 struct 字面量赋值 a[i] = P { x: ..; y: ..; }（'[' 分支 '=' 后探测，逐字段 store 元素地址+偏移）；未赋值元素保持 0。tests/246; 门禁 397/397。
+
+## [1.1064.0]
+
+- 嵌套字面量 R_SADDR 污染修复：emit_lit_struct 设 R_SADDR=1（返回常量区地址）；litok 拷贝判定去 R_SADDR 依赖（ty_kind(R_ETY)==2 一律 g_struct_copy）；删 emit_lit_struct 残留调试探针。tests/245; 门禁 396/396。
+
 ## [1.1063.0]
 
 - 数组值比较 == / !=（parse_eq 新增 kind3 数组分支，g_struct_eq(ty_size(lt)/8) 逐 word；类型不同报错）；
