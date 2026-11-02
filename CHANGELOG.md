@@ -1,3 +1,7 @@
+## [1.1074.0]
+
+- 字符串方法语法：`s.trim()` / `s.contains(x)` / `s.starts_with(p)` 等库自由函数方法化 —— parse_method_stmt/parse_expr_method 的 ci<0 分支回退 sym_lookup_func（原名→str_ 前缀→contains 特例 strstr），接收者作第一实参。tests/256(11) + examples/str_method.mo。
+
 ## [1.1073.0]
 
 - 数组解构 `let [x, y, z] = arr;`：parse_let 开头探测 '[' → 独立 parse_destructure()，逐元素 lea 基址 + load/store（判据与 parse_addr 一致用 sym_kind==1）；v1 限一维 i64 数组、RHS 数组变量名。tests/255(138) + examples/destructure.mo。

@@ -2190,7 +2190,47 @@ fn parse_expr_method(osym: i64) -> i64 {
             if ty_kind(inner) == 2 { ci = ty_si(inner); }
         }
     }
-    if ci < 0 { return err_atp("not a class value", gv(K_PLINE), gv(K_PCOL), gv(K_PPOS)); }
+    if ci < 0 {
+        # v1.1074: 非结构体接收者回退 —— 库自由函数作方法（s.trim() → str_trim(s)）
+        let ff: i64 = sym_lookup_func(mname);
+        if ff < 0 {
+            # v1.1074: trim → str_trim（str 库函数命名约定 str_ 前缀）
+            memcpy(heap + O_SCAL + 5900, heap + O_SCAL + 4700);  # "str_" 放头部？直接拼
+            # 拼 "str_" + mname 到 5900 槽
+            let q: i64 = heap + O_SCAL + 5900;
+            store8(q + 0, 115); store8(q + 1, 116); store8(q + 2, 114); store8(q + 3, 95);
+            memcpy(q + 4, mname);
+            ff = sym_lookup_func(q);
+            if ff < 0 {
+                # 特例别名：contains → strstr
+                if streq(mname, "contains") == 1 { ff = sym_lookup_func("strstr"); }
+            }
+        }        if ff < 0 { return err_atp("not a class value", gv(K_PLINE), gv(K_PCOL), gv(K_PPOS)); }
+        load_sym(osym);
+        g_push_rax();
+        let na: i64 = 1;
+        while tok_is(")") == 0 {
+            parse_expr();
+            g_push_rax();
+            na += 1;
+            if accept(",") == 0 {
+                if tok_is(")") == 0 { return syntax_error(); }
+            }
+        }
+        expect(")");
+        if na > NARGS_MAX { return err_atp("too many arguments", gv(K_PLINE), gv(K_PCOL), gv(K_PPOS)); }
+        if na > 6 { arg_spill(na); }
+        if na >= 6 { g_pop_r9(); }
+        if na >= 5 { g_pop_r8(); }
+        if na >= 4 { g_pop_rcx(); }
+        if na >= 3 { g_pop_rdx(); }
+        if na >= 2 { g_pop_rsi(); }
+        if na >= 1 { g_pop_rdi(); }
+        if na > 6 { arg_restack(na); }
+        spill_cache();
+        emit_call_patch(ff);
+        return 0;
+    }
     # 接口值（{ obj; vt }）→ 运行时动态分派
     let ifk: i64 = if_lookup_si(ci);
     let midx: i64 = 0 - 1;
