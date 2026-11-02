@@ -1,3 +1,7 @@
+## [1.1055.0]
+
+- struct 字面量作 return 值(parse_return CUR_RET==2 变量分支前探测 st_lookup+'{'; 数据段常量区+按值拷 rax/rdx); tests/234。（注: 该改动与 tests/234 因提交时序并入 1.1056.0 tag, 特此记录）
+
 ## [1.1056.0]
 
 - 📋 工程规范补课（评测 P0/P1 回应）：
