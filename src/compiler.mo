@@ -7337,6 +7337,32 @@ fn parse_let() -> i64 {
         if accept("=") == 1 {
             # v1.1050: kind 3 且 elem 是数组 = 二维数组初始化，放行
             if ty_kind(et) != 0 { if ty_kind(et) != 5 { if ty_kind(et) != 4 { if ty_kind(et) != 3 { if ty_kind(elem_type(et)) != 3 { return err_at2("cannot init a struct array this way", gv(K_LINE), gv(K_COL)); } } } } }   # v1.1019: kind 4 = ptr 数组字面量（&fn 表）; v1.1050: 二维放行
+            # v1.1079: 非字面量 RHS —— 仅当「函数调用」返回数组
+            # （rax = 数组地址）。标量 0 清零初始化等仍走字面量填 0 路径。
+            let arrcall: i64 = 0;
+            if gv(K_TKIND) == 1 {
+                memcpy(scratch3(), tokbuf());
+                let pkq: i64 = gv(K_TOKPOS);
+                next_token();
+                if tok_is("(") == 1 {
+                    if sym_lookup_func(scratch3()) >= 0 { arrcall = 1; }
+                }
+                set_pos(pkq);
+            }
+            if arrcall == 1 {
+                if sym_dup(scratch2()) >= 0 { return err_atp("duplicate definition", gv(K_PLINE), gv(K_PCOL), gv(K_PPOS)); }
+                let ida: i64 = sym_add(scratch2(), 1, off, 0);
+                store64(heap + O_STY + ida * 8, ty_array(et, n));
+                dbg_var(scratch2(), off, dcln, ty_array(et, n));
+                parse_expr();
+                expect(";");
+                g_push_rax();                     # 自带 spill；源地址入栈
+                g_lea_local(off);                 # rax = 目的（新数组槽）—— g_copy_words 约定 rax=目的游标 rsi=源
+                spill_cache();
+                emit1(0x5e);                      # pop rsi = 源
+                g_copy_words(ty_size(ty_array(et, n)) / 8);
+                return 0;
+            }
             let lcnt2: i64 = 0 - 1;
             let sinit2: i64 = 0 - 1;
             # v1.1066: 二维数组嵌套字面量 [[1,2],[3,4]] —— elem 是数组时
@@ -8424,6 +8450,21 @@ fn parse_return() -> i64 {
         g_epilogue();
         return 0;
     }
+    if ty_kind(CUR_RET) == 3 {
+        # v1.1079: 数组返回 —— rax = 数组变量地址（调用方按地址用）
+        if gv(K_TKIND) != 1 {
+            return err_atp("array return: expected a variable", gv(K_PLINE), gv(K_PCOL), gv(K_PPOS));
+        }
+        let an2: i64 = heap + O_SCAL + 1800;
+        memcpy(an2, tokbuf());
+        next_token();
+        expect(";");
+        let as2: i64 = sym_lookup(an2);
+        if as2 < 0 { return undef_err(an2); }
+        g_addr_sym_rax(as2);
+        g_epilogue();
+        return 0;
+    }
     parse_expr();
     expect(";");
     g_epilogue();
@@ -9114,6 +9155,87 @@ fn method_self_class(scratch2_: i64) -> i64 {
     return si;
 }
 
+# v1.1079: '->' 之后的普通返回类型（不含 '[' 数组，那由 parse_arr_ret 处理）。
+# 返回类型 id；解析失败返回 -1（调用方报错）。
+fn parse_ret_type() -> i64 {
+    let rt: i64 = -1;
+    if accept("str") == 1 {
+        rt = ty_str();
+    } else {
+    if accept("i64") == 1 {
+        rt = ty_int();
+    } else {
+        if accept("f64") == 1 {
+            rt = ty_float();
+        } else {
+        if accept("bool") == 1 {
+            rt = ty_bool();
+        } else {
+        if accept("ptr") == 1 {
+            # v1.1043: -> ptr [i64/byte/P]
+            rt = ty_ptr(parse_ptr_target());
+        } else {
+            if gv(K_TKIND) == 1 {
+                let rsi: i64 = st_lookup(tokbuf());
+                let renum: i64 = 0;
+                if rsi < 0 {
+                    # v1.1057: enum 名作返回类型（等价 i64）
+                    let renm: i64 = intern(tokbuf());
+                    if enum_type_exists(renm) == 1 {
+                        next_token();
+                        rt = ty_int();
+                        renum = 1;
+                    }
+                }
+                if renum == 1 {
+                    # enum 命中已消费（rt=ty_int），跳过 struct 路径
+                } else {
+                if rsi < 0 { return -1; }
+                if load64(heap + O_STF + rsi * 8) > 2 {
+                    # 3 个字段起要走隐藏指针（System V），暂不支持
+                    return -1;
+                }
+                rt = ty_struct(rsi);
+                next_token();
+                }
+            } else {
+                return -1;
+            }
+        }
+        }
+        }
+    }
+    }
+    return rt;
+}
+
+# v1.1079: 解析 -> [N] T 数组返回类型。命中返回类型 id，未命中回退返回 -1。
+fn parse_arr_ret() -> i64 {
+    let back: i64 = gv(K_TOKPOS);
+    next_token();
+    let n: i64 = 0;
+    if gv(K_TKIND) == 2 { n = gv(K_TIVAL); }
+    next_token();
+    expect("]");
+    let et: i64 = -1;
+    if tok_is("i64") == 1 { next_token(); et = ty_int(); }
+    else {
+        if tok_is("byte") == 1 { next_token(); et = ty_byte(); }
+        else {
+            if tok_is("ptr") == 1 { next_token(); et = ty_ptr(parse_ptr_target()); }
+            else {
+                if gv(K_TKIND) == 1 {
+                    let si: i64 = st_lookup(tokbuf());
+                    if si >= 0 { next_token(); et = ty_struct(si); }
+                }
+            }
+        }
+    }
+    if et < 0 { set_pos(back); return -1; }
+    if n <= 0 { set_pos(back); return -1; }
+    return ty_array(et, n);
+}
+
 fn parse_func() -> i64 {
     next_token();
     memcpy(scratch2(), tokbuf());
@@ -9295,53 +9417,16 @@ fn parse_func() -> i64 {
     if hasarrow == 0 {
         rt = ty_int();
     } else {
-    if accept("str") == 1 {
-        rt = ty_str();
-    } else {
-    if accept("i64") == 1 {
-        rt = ty_int();
-    } else {
-        if accept("f64") == 1 {
-            rt = ty_float();
+        # v1.1079: '->' 返回类型整体提出为独立 fn（str/i64/f64/bool/ptr/
+        # struct/enum），parse_func 嵌套深度因此减 1 —— 之前再加一层
+        # if/else 就会让符号作用域错位（duplicate definition 假报）。
+        if tok_is("[") == 1 {
+            rt = parse_arr_ret();
+            if rt < 0 { return err_atp("expected a type", gv(K_PLINE), gv(K_PCOL), gv(K_PPOS)); }
         } else {
-        if accept("bool") == 1 {
-            rt = ty_bool();
-        } else {
-        if accept("ptr") == 1 {
-            # v1.1043: -> ptr [i64/byte/P]
-            rt = ty_ptr(parse_ptr_target());
-        } else {
-            if gv(K_TKIND) == 1 {
-                let rsi: i64 = st_lookup(tokbuf());
-                let renum: i64 = 0;
-                if rsi < 0 {
-                    # v1.1057: enum 名作返回类型（等价 i64）
-                    let renm: i64 = intern(tokbuf());
-                    if enum_type_exists(renm) == 1 {
-                        next_token();
-                        rt = ty_int();
-                        renum = 1;
-                    }
-                }
-                if renum == 1 {
-                    # enum 命中已消费（rt=ty_int），跳过 struct 路径
-                } else {
-                if rsi < 0 { return err_atp("unknown return type", gv(K_PLINE), gv(K_PCOL), gv(K_PPOS)); }
-                if load64(heap + O_STF + rsi * 8) > 2 {
-                    # 3 个字段起要走隐藏指针（System V），暂不支持
-                    return err_atp("struct return: at most 2 fields", gv(K_PLINE), gv(K_PCOL), gv(K_PPOS));
-                }
-                rt = ty_struct(rsi);
-                next_token();
-                }
-            } else {
-                return err_atp("expected a type", gv(K_PLINE), gv(K_PCOL), gv(K_PPOS));
-            }
+            rt = parse_ret_type();
+            if rt < 0 { return err_atp("unknown return type", gv(K_PLINE), gv(K_PCOL), gv(K_PPOS)); }
         }
-        }
-        }
-    }
-    }
     }
     store64(heap + O_SRT + fsi * 8, rt);
     CUR_RET = rt;
@@ -9591,13 +9676,6 @@ fn imp_seen(path: i64) -> i64 {
     sv(K_NIMP, n + 1);
     return 0;
 }
-
-# 依次尝试若干路径，返回第一个能打开的 fd；全失败返回 -1
-#   1) 原样
-#   2) lib/<basename>
-#   3) ../lib/<basename>
-# 让 examples/ 下的程序写 import "io.mo" 就能用上标准库，不必手工拷贝。
-var SP_BUF: i64 = 7416760;
 
 # 依次尝试若干路径，返回第一个能打开的 fd；全失败返回 -1
 #   1) 原样  2) lib/<basename>  3) ../lib/<basename>

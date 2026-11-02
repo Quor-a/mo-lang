@@ -1,3 +1,7 @@
+## [1.1079.0]
+
+- 函数返回数组：`fn f() -> [N] T` + `return 数组变量;`（rax=地址约定）；`let q: [N] T = f();` 块拷贝（仅函数调用 RHS；标量 0 清零初始化仍走原路径）。'->' 类型链提出为独立 parse_ret_type/parse_arr_ret（parse_func 嵌套深度减 1）。清除遗留垃圾 `var SP_BUF`（拼接后编译失败根因）。tests/261(79)。
+
 ## [1.1078.0]
 
 - 数组整体赋值 `q = p;`：同型一维数组、纯 ident RHS，块拷贝 g_copy_words（与 struct 赋值同款）。tests/260(79)。
