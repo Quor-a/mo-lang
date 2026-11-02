@@ -826,7 +826,12 @@ fn parse_addr() -> i64 {
     } else {
         g_movabs_rax(sym_addr(sv));
     }
-    # v1.1023: &r.x —— 字段地址（结构与数组元素 alike：rax=基址+偏移）
+    # v1.1023: &r.x / v1.1024: &a[i] —— 地址 = 基址 + 偏移
+    if tok_is("[") == 1 {
+        index_addr(sv);                  # rax = 元素地址
+        R_ETY = ty_ptr(elem_type(sym_type(sv)));
+        return 0;
+    }
     if tok_is(".") == 1 {
         let ft: i64 = field_chain(sym_type(sv));
         R_ETY = ty_ptr(ft);
