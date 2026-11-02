@@ -7443,6 +7443,38 @@ fn parse_for_step() -> i64 {
 # 那条路在**嵌套 for** 上会坏：外层记录的回退位置被内层 for 的 set_pos
 # 覆盖，位置跑飞，报 syntax error 且行列超出文件末尾（n1 用例实测）。
 # 本布局靠多两条 jmp 换取"线性解析、可任意嵌套"，不碰 token 位置。
+
+# v1.1072: for 的 init 里支持裸赋值 `i = 0` / `i += 1`。
+# 返回 1 = 已完整消费（含 ';'，调用方直接结束 init）；0 = 不是赋值（未消费任何 token）。
+fn parse_for_init() -> i64 {
+    memcpy(heap + O_SCAL + 5700, tokbuf());
+    next_token();
+    let fs: i64 = 0;
+    if tok_is("=") == 1 { fs = 100; } else { fs = compound_op(); }
+    if fs == 0 {
+        set_pos(gv(K_TOKPOS));   # 回退：让调用方走普通 parse_expr
+        return 0;
+    }
+    next_token();                # 吃 '=' / compound op
+    R_SYM = sym_lookup(heap + O_SCAL + 5700);
+    if R_SYM < 0 { return undef_err(heap + O_SCAL + 5700); }
+    if fs == 100 {
+        parse_expr();
+    } else {
+        load_sym(R_SYM);
+        g_push_rax();
+        parse_expr();
+        let cdv: i64 = 0;
+        let cdk: i64 = 0 - 1;
+        if fs == 4 { cdv = cmpdiv_d(); cdk = cmpdiv_k(); }
+        if fs == 5 { cdv = cmpdiv_d(); cdk = cmpdiv_k(); }
+        g_pop_rcx();
+        g_compound(fs, cdv, cdk);
+    }
+    store_sym(R_SYM);
+    expect(";");
+    return 1;
+}
 # v1.1070: for x in arr { BODY } —— 数组遍历糖。
 # 进入时 tok=元素变量名(x)，peek_in_kw 已确认其后是 'in'。
 # 发射：_fi=0; chk: _fi-n>=0→end; x=a[_fi]; BODY; _fi++; jmp chk
@@ -7549,12 +7581,25 @@ fn parse_for() -> i64 {
         next_token();
         if tok_is("in") == 1 { return parse_for_in(heap + O_SCAL + 5400); }
     }
+    expect("(");   # v1.1072 修复：v1.1070 引入 for-in 时误删了括号形式 '(' 的消费
     # for 自带一层作用域：init 里的 let 属于 for，多个 for 可以各用 i
     let d: i64 = gv(K_DEPTH) + 1;
     sv(K_DEPTH, d);
     # init
     if tok_is(";") == 0 {
-        if accept("let") == 1 { parse_let(); } else { parse_expr(); expect(";"); }
+        if accept("let") == 1 {
+            parse_let();
+        } else {
+            # v1.1072: init 支持裸赋值 `i = 0` / `i += 1`（ident 开头才探测）
+            # v1.1072: parse_for_init()==1 表示已消费完 init（含 ';'），落 cond。
+            # ==0 表示不是赋值 → set_pos 回退走普通 parse_expr。
+            if gv(K_TKIND) == 1 {
+                if parse_for_init() == 0 { set_pos(gv(K_TOKPOS)); parse_expr(); expect(";"); }
+            } else {
+                parse_expr();
+                expect(";");
+            }
+        }
     } else {
         next_token();
     }

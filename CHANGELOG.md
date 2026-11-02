@@ -1,3 +1,9 @@
+## [1.1072.1]
+
+- 🔴 回归修复：v1.1070 引入 for-in 时误删括号形式 for 的 expect("(")——一切 `for (...)` 全崩（tests/132 报 undefined 'let'），run730/731 门禁漏检（当时只统计子串）。恢复 expect("(") 于探测之后。
+- for init 支持裸赋值 `i = 0` / `i += 1`（parse_for_init 独立 fn，==1 消费完落 cond、==0 回退 parse_expr）。
+- tests/254(12)。
+
 ## [1.1072.0]
 
 - 逻辑复合赋值 &&= ||＝：词法新增三字符 token（38/38/61、124/124/61）；compound_op 加 op 11/12，g_compound 里 g_and/g_or 后布尔化（cmp rax,0 → 0/1 模板）；左值为简单变量（无副作用，无真短路需求）。tests/253(101)。
