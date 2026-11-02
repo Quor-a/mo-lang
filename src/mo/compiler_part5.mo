@@ -543,6 +543,84 @@ fn parse_stmt() -> i64 {
             let sy: i64 = sym_lookup(scratch2());
             if sy < 0 { return undef_err(scratch2()); }
             let ft: i64 = field_addr(sy);
+            # v1.1035: r.v[i] 数组字段索引 —— 与语句层 a[i] 同构:
+            # rax=数组基址(field_addr 已算好)，吃 '['，下标*宽加回，
+            # 之后 ++/--/复合/= 全部照 a[i] 分支处理。
+            if tok_is("[") == 1 {
+                next_token();
+                let at0: i64 = elem_type(ft);
+                g_push_rax();
+                parse_expr();
+                expect("]");
+                let ets0: i64 = ty_size(at0);
+                if ets0 > 1 {
+                    g_movabs_rdx(ets0);
+                    g_imul_rdx();
+                }
+                g_pop_rcx();
+                g_add();
+                let at: i64 = at0;
+                # 数组元素是 struct：w.a[i].x 继续走字段链
+                if tok_is(".") == 1 {
+                    let ft5: i64 = field_chain(at);
+                    if ty_kind(ft5) == 2 { return err_at2("cannot assign a struct value", gv(K_LINE), gv(K_COL)); }
+                    at = ft5;
+                }
+                if tok_is("++") == 1 {
+                    next_token();
+                    expect(";");
+                    sv(K_LAST, 0);
+                    g_push_rax();
+                    if ty_kind(at) == 5 { g_load_at_b(); } else { g_load_at(); }
+                    g_push_rax();
+                    g_movabs_rax(1);
+                    g_pop_rcx();
+                    g_add();
+                    g_pop_rcx();
+                    if ty_kind(at) == 5 { g_store_at_b(); } else { g_store_at(); }
+                    return 0;
+                }
+                if tok_is("--") == 1 {
+                    next_token();
+                    expect(";");
+                    sv(K_LAST, 0);
+                    g_push_rax();
+                    if ty_kind(at) == 5 { g_load_at_b(); } else { g_load_at(); }
+                    g_push_rax();
+                    g_movabs_rax(1);
+                    g_pop_rcx();
+                    g_sub();
+                    g_pop_rcx();
+                    if ty_kind(at) == 5 { g_store_at_b(); } else { g_store_at(); }
+                    return 0;
+                }
+                if compound_op() > 0 {
+                    let cop4: i64 = compound_op();
+                    next_token();
+                    sv(K_LAST, 0);
+                    g_push_rax();
+                    if ty_kind(at) == 5 { g_load_at_b(); } else { g_load_at(); }
+                    g_push_rax();
+                    parse_expr();
+                    expect(";");
+                    let cdv4: i64 = 0;
+                    let cdk4: i64 = 0 - 1;
+                    if cop4 == 4 { cdv4 = cmpdiv_d(); cdk4 = cmpdiv_k(); }
+                    if cop4 == 5 { cdv4 = cmpdiv_d(); cdk4 = cmpdiv_k(); }
+                    g_pop_rcx();
+                    g_compound(cop4, cdv4, cdk4);
+                    g_pop_rcx();
+                    if ty_kind(at) == 5 { g_store_at_b(); } else { g_store_at(); }
+                    return 0;
+                }
+                g_push_rax();
+                expect("=");
+                parse_expr();
+                expect(";");
+                g_pop_rcx();
+                if ty_kind(at) == 5 { g_store_at_b(); } else { g_store_at(); }
+                return 0;
+            }
             if ty_kind(ft) == 2 { return err_at2("cannot assign a struct value", gv(K_LINE), gv(K_COL)); }
             if tok_is("++") == 1 {
                 next_token();
@@ -2908,6 +2986,31 @@ fn parse_class() -> i64 {
                 ft = ty_byte();
                 next_token();
             } else {
+                if tok_is("[") == 1 {
+                    # v1.1035: 结构体字段可为数组类型 v: [N] T
+                    next_token();
+                    let an: i64 = const_expr();
+                    expect("]");
+                    let et: i64 = ty_int();
+                    if tok_is("i64") == 1 {
+                        next_token();
+                    } else {
+                        if tok_is("byte") == 1 {
+                            et = ty_byte();
+                            next_token();
+                        } else {
+                            if gv(K_TKIND) == 1 {
+                                let sub2: i64 = st_lookup(tokbuf());
+                                if sub2 < 0 { return err_at2("unknown type", gv(K_LINE), gv(K_COL)); }
+                                et = ty_struct(sub2);
+                                next_token();
+                            } else {
+                                return err_at2("expected a type", gv(K_LINE), gv(K_COL));
+                            }
+                        }
+                    }
+                    ft = ty_array(et, an);
+                } else {
                 if gv(K_TKIND) == 1 {
                     let sub: i64 = st_lookup(tokbuf());
                     if sub >= 0 {
@@ -2918,6 +3021,7 @@ fn parse_class() -> i64 {
                     }
                 } else {
                     return err_at2("expected a type", gv(K_LINE), gv(K_COL));
+                }
                 }
             }
         }
@@ -3166,6 +3270,31 @@ fn parse_struct() -> i64 {
                 ft = ty_byte();
                 next_token();
             } else {
+                if tok_is("[") == 1 {
+                    # v1.1035: 结构体字段可为数组类型 v: [N] T
+                    next_token();
+                    let an: i64 = const_expr();
+expect("]");
+                    let et: i64 = ty_int();
+                    if tok_is("i64") == 1 {
+                        next_token();
+                    } else {
+                        if tok_is("byte") == 1 {
+                            et = ty_byte();
+                            next_token();
+                        } else {
+                            if gv(K_TKIND) == 1 {
+                                let sub2: i64 = st_lookup(tokbuf());
+                                if sub2 < 0 { return err_at2("unknown type", gv(K_LINE), gv(K_COL)); }
+                                et = ty_struct(sub2);
+                                next_token();
+                            } else {
+                                return err_at2("expected a type", gv(K_LINE), gv(K_COL));
+                            }
+                        }
+                    }
+                    ft = ty_array(et, an);
+                } else {
                 if gv(K_TKIND) == 1 {
                     let sub: i64 = st_lookup(tokbuf());
                     if sub >= 0 {
@@ -3176,6 +3305,7 @@ fn parse_struct() -> i64 {
                     }
                 } else {
                     return err_at2("expected a type", gv(K_LINE), gv(K_COL));
+                }
                 }
             }
         }

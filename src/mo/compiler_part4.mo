@@ -10,7 +10,7 @@ var R_L2:    i64 = 0;
 var R_BASE:  i64 = 0;
 var R_AFTER: i64 = 0;
 
-fn scratch1() -> i64 { return heap + O_SCAL + 400; }
+fn scratch1() -> i64 { return heap + O_SCAL + 720; }  # 🔴 400 与 K_TFLT 槽撞车（v1.1035）
 fn scratch2() -> i64 { return heap + O_SCAL + 700; }
 fn scratch3() -> i64 { return heap + O_SCAL + 1000; }
 
@@ -305,7 +305,10 @@ fn st_words_d(si: i64, depth: i64) -> i64 {
     while i < n {
         let ft: i64 = st_field_type(si, i);
         if ty_kind(ft) == 2 { w = w + st_words_d(ty_a(ft), depth + 1); }
-        if ty_kind(ft) != 2 { w = w + 1; }
+        if ty_kind(ft) == 3 { w = w + ty_b(ft); }
+        if ty_kind(ft) != 2 {
+            if ty_kind(ft) != 3 { w = w + 1; }
+        }
         i = i + 1;
     }
     return w;
@@ -328,7 +331,10 @@ fn st_field_off(si: i64, fi: i64) -> i64 {
     while i < fi {
         let ft: i64 = st_field_type(si, i);
         if ty_kind(ft) == 2 { pos = pos + ty_size(ft); }
-        if ty_kind(ft) != 2 { pos = pos + 8; }
+        if ty_kind(ft) == 3 { pos = pos + ty_size(ft); }
+        if ty_kind(ft) != 2 {
+            if ty_kind(ft) != 3 { pos = pos + 8; }
+        }
         i = i + 1;
     }
     return pos;
@@ -1381,6 +1387,39 @@ fn parse_primary() -> i64 {
         # 保留 field_chain 对 ptr→struct 的支持，于是 self.w 依然可用。
         if tok_is(".") == 1 {
             let ft: i64 = field_addr(sy);
+            # v1.1035: 字段为数组时 r.v[i] / r.v[i].x —— rax 已是数组基址
+            if tok_is("[") == 1 {
+                next_token();                # 吃 '['
+                let ae: i64 = elem_type(ft);
+                # rax=基址 → push；解析下标 → rcx=下标*宽 → 加回 rax
+                g_push_rax();
+                parse_expr();
+                expect("]");
+                let ets: i64 = ty_size(ae);
+                if ets > 1 {
+                    g_movabs_rdx(ets);
+                    g_imul_rdx();
+                }
+                g_pop_rcx();
+                g_add();
+                let e2: i64 = ae;
+                if tok_is(".") == 1 {
+                    let ft2: i64 = field_chain(e2);
+                    if ty_kind(ft2) != 2 {
+                        if ty_kind(ft2) == 5 { g_load_at_b(); } else { g_load_at(); }
+                    }
+                    R_ETY = ft2;
+                    return 0;
+                }
+                if ty_kind(e2) == 2 {
+                    R_SADDR = 1;
+                    R_ETY = e2;
+                    return 0;
+                }
+                if ty_kind(e2) == 5 { g_load_at_b(); } else { g_load_at(); }
+                R_ETY = e2;
+                return 0;
+            }
             if ty_kind(ft) != 2 { g_load_at(); }
             else { R_SADDR = 1; }
             R_ETY = ft;
