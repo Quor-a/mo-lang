@@ -911,9 +911,12 @@ fn try_parse_type() -> i64 {
                         else {
                             if tok_is("byte") == 1 { next_token(); et = ty_byte(); }
                             else {
+                                if tok_is("ptr") == 1 { next_token(); et = ty_ptr(ty_byte()); }   # v1.1019: [N] ptr 函数指针表
+                                else {
                                 if gv(K_TKIND) == 1 {
                                     let si2: i64 = st_lookup(tokbuf());
                                     if si2 >= 0 { next_token(); et = ty_struct(si2); }
+                                }
                                 }
                             }
                         }

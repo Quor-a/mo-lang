@@ -775,6 +775,8 @@ fn parse_let() -> i64 {
                 et = ty_byte();
                 next_token();
             } else {
+                if tok_is("ptr") == 1 { et = ty_ptr(ty_byte()); next_token(); }   # v1.1019: [N] ptr
+                else {
                 if gv(K_TKIND) == 1 {
                     let si: i64 = st_lookup(tokbuf());
                     if si >= 0 {
@@ -785,6 +787,7 @@ fn parse_let() -> i64 {
                     }
                 } else {
                     return err_at2("expected a type", gv(K_LINE), gv(K_COL));
+                }
                 }
             }
         }
@@ -810,7 +813,7 @@ fn parse_let() -> i64 {
             sv(K_CUROFF, p - esz * n);
         }
         if accept("=") == 1 {
-            if ty_kind(et) != 0 { if ty_kind(et) != 5 { return err_at2("cannot init a struct array this way", gv(K_LINE), gv(K_COL)); } }
+            if ty_kind(et) != 0 { if ty_kind(et) != 5 { if ty_kind(et) != 4 { return err_at2("cannot init a struct array this way", gv(K_LINE), gv(K_COL)); } } }   # v1.1019: kind 4 = ptr 数组字面量（&fn 表）
             let lcnt2: i64 = 0 - 1;
             let sinit2: i64 = 0 - 1;
             if tok_is("[") == 1 { lcnt2 = parse_i64_list(); }
@@ -1652,6 +1655,19 @@ fn parse_i64_list() -> i64 {
         let neg: i64 = 0;
         if accept("-") == 1 { neg = 1; }
         let v: i64 = 0;
+        # v1.1019: &funcname 元素 —— 函数指针表（[N] ptr = [&a, &b]）
+        if tok_is("&") == 1 {
+            next_token();
+            if gv(K_TKIND) != 1 { return err_at2("array literal: expected function name after &", gv(K_LINE), gv(K_COL)); }
+            let fsy: i64 = sym_lookup_func(tokbuf());
+            if fsy < 0 { return err_at2("array literal: unknown function", gv(K_LINE), gv(K_COL)); }
+            store64(heap + O_SU + fsy * 8, 1);
+            # func_addr 会发 movabs 代码或重定位 —— 数组字面量必须纯数据。
+            # 编译期地址 = sym_addr（函数代码地址在非 -c 模式可算）。
+            let ta: i64 = sym_addr(fsy);
+            if ta < 4194304 { return err_at2("array literal: cannot take function address here", gv(K_LINE), gv(K_COL)); }
+            v = ta;
+        } else {
         if gv(K_TKIND) == 2 {
             v = gv(K_TIVAL);
             next_token();
@@ -1678,6 +1694,7 @@ fn parse_i64_list() -> i64 {
                 return err_at2("array literal elements must be integer constants", gv(K_LINE), gv(K_COL));
             }
         }
+        }   # v1.1019: & 元素 else 块闭合
         if neg == 1 { v = 0 - v; }
         if cnt >= 512 { return err_at2("array literal exceeds 512 elements", gv(K_LINE), gv(K_COL)); }
         store64(heap + O_LSTV + cnt * 8, v);
@@ -1925,6 +1942,8 @@ fn parse_global() -> i64 {
                 et = ty_byte();
                 next_token();
             } else {
+                if tok_is("ptr") == 1 { et = ty_ptr(ty_byte()); next_token(); }   # v1.1019: [N] ptr
+                else {
                 if gv(K_TKIND) == 1 {
                     let si: i64 = st_lookup(tokbuf());
                     if si >= 0 {
@@ -1935,6 +1954,7 @@ fn parse_global() -> i64 {
                     }
                 } else {
                     return err_at2("expected a type", gv(K_LINE), gv(K_COL));
+                }
                 }
             }
         }
