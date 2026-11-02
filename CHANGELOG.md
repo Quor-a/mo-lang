@@ -1,3 +1,7 @@
+## [1.1071.0]
+
+- do { ... } while (cond); 循环：body 至少执行一次；loop_push(chk=cond, end, stp=cond) 使 continue 跳条件、break 出循环；支持嵌套。独立 parse_do_while()（parse_stmt 探测 accept("do")）。tests/252(111)。
+
 ## [1.1070.0]
 
 - for-in 数组遍历 `for x in arr { ... }`（无括号）：parse_for 开头探测，独立 parse_for_in() 发射索引循环（隐藏 _fi 变量按深度命名）；break/continue 支持；二维外层遍历行——行变量为 ptr(标量)，行内 row[i] 按标量步索引；步长 = ty_size(元素类型)（非 8 字节行正确）。v1 限制：in 右侧须是数组变量名。tests/251(163)。

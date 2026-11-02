@@ -66,3 +66,4 @@ let a: [HALF] i64;              # const 作数组长度
 - **三元运算符**（v1.1069）：`cond ? a : b` —— 两分支跳转汇合，rax 即选中值；🔴 汇合后 sv(K_LAST,0) 防折叠回退吃跨分支字节；支持嵌套/函数调用分支/括号后接运算。
 - 相关示例：examples/len_builtin.mo、ternary.mo。
 - **for-in 数组遍历**（v1.1070）：`for x in arr { ... }`（无括号）——编译期发射索引循环；break/continue 支持；二维外层遍历行（行变量是 ptr(标量)，行内 row[i] 按标量步索引）；v1 限制：in 右侧须是数组变量名，N 维内层（对行变量再 for-in）不支持。
+- **do-while**（v1.1071）：`do { ... } while (cond);` —— body 至少执行一次；continue 跳条件、break 出循环；支持嵌套。

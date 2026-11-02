@@ -6243,6 +6243,8 @@ fn parse_stmt() -> i64 {
     if tok_is("const") == 1 { return parse_const(); }
     if accept("if") == 1 { return parse_if(); }
     if accept("while") == 1 { return parse_while(); }
+    # v1.1071: do { ... } while (cond); —— 先执行后判（continue → cond）
+    if accept("do") == 1 { return parse_do_while(); }
     if accept("for") == 1 { return parse_for(); }
     # switch / case / default / fallthrough 都是**上下文关键字**：
     # 只在语句起始位置识别 switch，case 等只在 switch 主体里识别。
@@ -7282,6 +7284,30 @@ fn parse_if() -> i64 {
         }
     }
     place_label(end);
+    return 0;
+}
+
+# v1.1071: do { ... } while (cond); —— body 先行，尾部判 cond 非零回跳。
+# loop_push(chk=cond, end, stp=cond)：continue 跳 cond，break 跳 end。
+fn parse_do_while() -> i64 {
+    let d: i64 = gv(K_DEPTH) + 1;
+    sv(K_DEPTH, d);
+    let cond: i64 = new_label();
+    let end: i64 = new_label();
+    loop_push(cond, end, cond);
+    place_label(cond);
+    parse_block(d);
+    if accept("while") == 0 { return syntax_error(); }
+    expect("(");
+    parse_expr();
+    expect(")");
+    g_cmp_rax_0();
+    emit_jcc(0x85, cond);   # jne → 回跳 body
+    place_label(end);
+    expect(";");
+    sym_pop_scope(d);
+    sv(K_DEPTH, d - 1);
+    loop_pop();
     return 0;
 }
 
