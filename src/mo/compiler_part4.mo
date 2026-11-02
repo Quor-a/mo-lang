@@ -2597,8 +2597,23 @@ fn emit_lit_struct(si: i64) -> i64 {
         expect(":");
         parse_expr();
         expect(";");
-        g_movabs_rsi(addr + st_field_off(si, fni));
-        ops3(0x48, 0x89, 0x06);         # mov [rsi], rax
+        spill_cache();
+        g_movabs_rsi(addr + st_field_off(si, fni));   # rsi = 字段目标地址
+        # v1.1067: 字段值为 struct（嵌套字面量/struct 变量）→ 源在数据段
+        # （rax=源地址）→ 逐 word 整块拷贝，不能 mov [rsi],rax 存地址
+        #（与 v1.1064 litok 同款修复）。
+        if ty_kind(R_ETY) == 2 {
+            ops3(0x48, 0x89, 0xc7);             # mov rdi, rax（源）
+            let wi: i64 = 0;
+            while wi < st_words(ty_si(R_ETY)) {
+                let o2: i64 = wi * 8;
+                ops3(0x48, 0x8b, 0x8f); emit4(o2);   # mov rcx, [rdi+o]
+                ops3(0x48, 0x89, 0x8e); emit4(o2);   # mov [rsi+o], rcx
+                wi = wi + 1;
+            }
+        } else {
+            ops3(0x48, 0x89, 0x06);         # mov [rsi], rax
+        }
         accept(",");
     }
     next_token();                       # 吃 '}'
