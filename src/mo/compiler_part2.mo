@@ -1193,6 +1193,47 @@ fn g_str_eq(eq: i64) -> i64 {
     return 0;
 }
 
+# v1.1075: s in pat —— 子串包含。进入 rcx=hay 地址、rax=needle 地址 → rax=0/1。
+# 寄存器：r8=hay 基址, rcx=i, r9=needle 基址, rdi=hay+i, rsi=needle+j。
+fn g_str_in() -> i64 {
+    let lnext: i64 = new_label();
+    let lcheck: i64 = new_label();
+    let lmiss: i64 = new_label();
+    let lfound: i64 = new_label();
+    let lfail: i64 = new_label();
+    let ldone: i64 = new_label();
+    ops3(0x49, 0x89, 0xc0);          # mov r8, rax   (hay 基址=右侧)
+    ops3(0x49, 0x89, 0xc9);          # mov r9, rcx   (needle 基址=左侧)
+    ops2(0x31, 0xc9);                # 🔴 xor ecx,ecx —— rcx 此时还是 hay 地址，必须清零当 i=0
+    place_label(lnext);
+    ops4(0x41, 0x8a, 0x14, 0x08);    # mov dl, [r8+rcx]
+    ops2(0x84, 0xd2);                # test dl, dl
+    emit_jcc(0x84, lfail);           # je lfail（hay 尽 → 未找到）
+    ops3(0x4c, 0x89, 0xc7);          # mov rdi, r8
+    ops3(0x48, 0x01, 0xcf);          # add rdi, rcx
+    ops3(0x4c, 0x89, 0xce);          # mov rsi, r9
+    place_label(lcheck);
+    ops2(0x8a, 0x1e);                # mov bl, [rsi]   (needle[j])
+    ops2(0x84, 0xdb);                # test bl, bl
+    emit_jcc(0x84, lfound);          # je lfound（needle 尽 → 找到）
+    ops2(0x8a, 0x17);                # mov dl, [rdi]
+    ops2(0x38, 0xda);                # cmp dl, bl
+    emit_jcc(0x85, lmiss);           # jne lmiss
+    ops3(0x48, 0xff, 0xc7);          # inc rdi
+    ops3(0x48, 0xff, 0xc6);          # inc rsi
+    emit_jmp(lcheck);
+    place_label(lmiss);
+    ops3(0x48, 0xff, 0xc1);          # inc rcx
+    emit_jmp(lnext);
+    place_label(lfound);
+    emit1(0xb8); emit4(1);           # mov eax, 1
+    emit_jmp(ldone);
+    place_label(lfail);
+    ops2(0x31, 0xc0);                # xor eax, eax
+    place_label(ldone);
+    return 0;
+}
+
 # str 的 < <= > >= —— **无符号字节字典序**。
 #
 # 进入时同样是 rcx = 左串地址、rax = 右串地址。

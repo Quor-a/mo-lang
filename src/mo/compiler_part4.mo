@@ -780,6 +780,19 @@ fn parse_eq() -> i64 {
     parse_rel();
     let lt: i64 = R_ETY;
     while 1 {
+        # v1.1075: s in pat —— 子串包含（str 双侧）
+        if tok_is("in") == 1 {
+            if ty_kind(lt) != 10 { return err_atp("'in': left side must be a string", gv(K_PLINE), gv(K_PCOL), gv(K_PPOS)); }
+            next_token();               # 吃 in
+            g_push_rax();               # 左串入栈（g_str_in 约定 rcx=左）
+            parse_rel();
+            let it: i64 = R_ETY;
+            if ty_kind(it) != 10 { return err_atp("'in': right side must be a string", gv(K_PLINE), gv(K_PCOL), gv(K_PPOS)); }
+            g_pop_rcx();
+            g_str_in();
+            R_ETY = ty_int();
+            lt = R_ETY;
+        } else {
         if accept("==") == 1 {
             g_push_rax();
             parse_rel();
@@ -849,6 +862,7 @@ fn parse_eq() -> i64 {
                 return 0;
             }
         }
+        }   # v1.1075 in-else 闭合
     }
     return 0;
 }

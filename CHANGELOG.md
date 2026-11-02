@@ -1,3 +1,7 @@
+## [1.1075.0]
+
+- `in` 运算符：`a in b` = a 是 b 的子串。parse_eq 新分支（tok_is("in")，str 双侧检查），g_str_in 朴素子串搜索。调试教训：REX 前缀方向（mov r8,rax=49 89 c0 非 4c），hay/needle 方向（左=needle 右=hay）。tests/257(101) + examples/str_in.mo。
+
 ## [1.1074.0]
 
 - 字符串方法语法：`s.trim()` / `s.contains(x)` / `s.starts_with(p)` 等库自由函数方法化 —— parse_method_stmt/parse_expr_method 的 ci<0 分支回退 sym_lookup_func（原名→str_ 前缀→contains 特例 strstr），接收者作第一实参。tests/256(11) + examples/str_method.mo。
