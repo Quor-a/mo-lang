@@ -5775,6 +5775,11 @@ fn parse_call() -> i64 {
 # ==========================================================================
 #  语句
 # ==========================================================================
+# v1.1060: struct 字段默认值表 —— SDV[si*64+fi] 值, SDH[si*64+fi] 存在标志。
+# 必须定义在所有使用点（parse_let/parse_struct）之前。
+var SDV: [16384] i64 = 0;
+var SDH: [16384] i64 = 0;
+
 fn parse_block(d: i64) -> i64 {
     let prev: i64 = gv(K_DEPTH);
     sv(K_DEPTH, d);
@@ -6658,7 +6663,16 @@ fn parse_let() -> i64 {
                 let addr: i64 = 268435456 + gv(K_DLEN);
                 let j: i64 = 0;
                 while j < n {
-                    dquad(0);
+                    # v1.1060: 字段默认值 —— 槽 j 若对应有默认值的字段则填默认
+                    let dv: i64 = 0;
+                    let fi2: i64 = 0;
+                    while fi2 < st_nfields(si) {
+                        if st_field_off(si, fi2) == j * 8 {
+                            if SDH[si * 64 + fi2] == 1 { dv = SDV[si * 64 + fi2]; }
+                        }
+                        fi2 = fi2 + 1;
+                    }
+                    dquad(dv);
                     j += 1;
                 }
                 if sym_dup(scratch2()) >= 0 { return err_atp("duplicate definition", gv(K_PLINE), gv(K_PCOL), gv(K_PPOS)); }
@@ -8111,7 +8125,16 @@ fn parse_global() -> i64 {
                 let addr: i64 = 268435456 + gv(K_DLEN);
                 let j: i64 = 0;
                 while j < n {
-                    dquad(0);
+                    # v1.1060: 全局 struct 字段默认值（与局部 let 同约定）
+                    let dv2: i64 = 0;
+                    let fj2: i64 = 0;
+                    while fj2 < st_nfields(si) {
+                        if st_field_off(si, fj2) == j * 8 {
+                            if SDH[si * 64 + fj2] == 1 { dv2 = SDV[si * 64 + fj2]; }
+                        }
+                        fj2 = fj2 + 1;
+                    }
+                    dquad(dv2);
                     j = j + 1;
                 }
                 let id: i64 = sym_add(scratch2(), 2, addr, 0);
@@ -9597,6 +9620,11 @@ expect("]");
         # struct { char x; long y; } 在 C 里同样是 16 字节）。
         # 于是 ty_size 的 8*nfields 依然成立。
         st_add_field(si, scratch1(), ft);
+        # v1.1060: 字段默认值 struct P { x: i64 = 10; }
+        if accept("=") == 1 {
+            SDV[si * 64 + st_nfields(si) - 1] = const_expr();
+            SDH[si * 64 + st_nfields(si) - 1] = 1;
+        }
         expect(";");
     }
     next_token();
