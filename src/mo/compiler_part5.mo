@@ -1168,19 +1168,89 @@ fn parse_let() -> i64 {
             if ty_kind(et) != 0 { if ty_kind(et) != 5 { if ty_kind(et) != 4 { if ty_kind(et) != 3 { if ty_kind(elem_type(et)) != 3 { return err_at2("cannot init a struct array this way", gv(K_LINE), gv(K_COL)); } } } } }   # v1.1019: kind 4 = ptr 数组字面量（&fn 表）; v1.1050: 二维放行
             let lcnt2: i64 = 0 - 1;
             let sinit2: i64 = 0 - 1;
+            # v1.1066: 二维数组嵌套字面量 [[1,2],[3,4]] —— elem 是数组时
+            # 逐子列表解析, 行主展开铺平到 O_LSTV。
+            # v1.1066: 任意维嵌套字面量 [[[1,2],[3,4]],[[5,6],[7,8]]] —
+            # 递归下降: dp 栈(O_LSTV+900 区)存每层写指针, 叶子值直接铺平
+            # 写入 O_LSTV[512..)。行长度校验: 同层第二行起长度须与首行一致。
+            if tok_is("[") == 1 && ndims >= 1 {
+                # 维度链: dims[0]=最内 … dims[ndims-1]=最外; 总元数 prod
+                let prod: i64 = n;
+                let di: i64 = 0;
+                while di < ndims {
+                    prod = prod * load64(heap + O_LSTV + di * 8);
+                    di = di + 1;
+                }
+                # 深度优先解析 — 用栈: 900 区 [depth*wptr][depth*elen][depth*cnt]
+                let sp: i64 = 0;          # 栈深
+                let wp: i64 = 0;          # 铺平写指针 (O_LSTV 512+)
+                next_token();             # 吃最外 '['
+                sp = 1;
+                store64(heap + O_LSTV + (900 + 0) * 8, 0);   # level0 计数
+                store64(heap + O_LSTV + (920 + 0) * 8, 0 - 1);  # level0 首行长度(未定)
+                while sp > 0 {
+                    if tok_is("[") == 1 {
+                        next_token();
+                        store64(heap + O_LSTV + (900 + sp) * 8, 0);
+                        store64(heap + O_LSTV + (920 + sp) * 8, 0 - 1);
+                        sp = sp + 1;
+                    } else {
+                        if tok_is("]") == 1 {
+                            next_token();
+                            sp = sp - 1;
+                            # 校验本层子数 = 期望维
+                            let lvlcnt: i64 = load64(heap + O_LSTV + (900 + sp) * 8);
+                            if sp > 0 { store64(heap + O_LSTV + (900 + sp - 1) * 8, load64(heap + O_LSTV + (900 + sp - 1) * 8) + 1); }
+                            let wantd: i64 = n;
+                            if sp > 0 { wantd = load64(heap + O_LSTV + (ndims - sp) * 8); }
+                            if lvlcnt != wantd { return err_at2("nested array literal: row count mismatch", gv(K_LINE), gv(K_COL)); }
+                            accept(",");
+                        } else {
+                            # 叶子: 常量表达式元素（负数/const/enum）
+                            let lv: i64 = 0;
+                            let negv: i64 = 0;
+                            if accept("-") == 1 { negv = 1; }
+                            if gv(K_TKIND) == 2 { lv = gv(K_TIVAL); next_token(); }
+                            else {
+                                if gv(K_TKIND) == 1 {
+                                    let csi3: i64 = sym_lookup(tokbuf());
+                                    if csi3 >= 0 && load64(heap + O_SK + csi3 * 8) == 4 { lv = const_expr(); }
+                                    else { lv = const_expr(); }
+                                } else { return err_at2("array literal elements must be integer constants", gv(K_LINE), gv(K_COL)); }
+                            }
+                            if negv == 1 { lv = 0 - lv; }
+                            store64(heap + O_LSTV + (512 + wp) * 8, lv);
+                            wp = wp + 1;
+                            # 只计最深层（叶子数）; 行闭包时上级+1
+                            store64(heap + O_LSTV + (900 + sp - 1) * 8, load64(heap + O_LSTV + (900 + sp - 1) * 8) + 1);
+                            accept(",");
+                        }
+                    }
+                }
+                if wp != prod { return err_at2("nested array literal: total element count mismatch", gv(K_LINE), gv(K_COL)); }
+                lcnt2 = 0 - 65536 - prod;   # 编码: < -65535 标记嵌套铺平
+            } else {
             if tok_is("[") == 1 { lcnt2 = parse_i64_list(); }
             else {
                 if gv(K_TKIND) == 3 { sinit2 = gv(K_STROFF); }
             }
+            }
             let v: i64 = gv(K_TIVAL);
-            if lcnt2 < 0 { next_token(); }
+            # 嵌套铺平（<= -65536）后 token 已在 ';'；其余（标量值/str）
+            # 需 next_token 吃掉当前 token
+            if lcnt2 < 0 && lcnt2 > 0 - 65536 { next_token(); }
             expect(";");
             if sym_dup(scratch2()) >= 0 { return err_atp("duplicate definition", gv(K_PLINE), gv(K_PCOL), gv(K_PPOS)); }
             let id: i64 = sym_add(scratch2(), 1, off, 0);
             store64(heap + O_STY + id * 8, ty_array(et, n));
             dbg_var(scratch2(), off, dcln, ty_array(et, n));
             let k: i64 = 0;
-            while k < n {
+            # v1.1066: 嵌套字面量需填 n*inn 个元素（铺平）
+            let filln: i64 = n;
+            if lcnt2 <= 0 - 65536 {
+                filln = 0 - 65536 - lcnt2;   # prod（铺平元素总数）
+            }
+            while k < filln {
                 let cv: i64 = v;
                 if sinit2 >= 0 {
                     if k < gv(K_NSTR) - sinit2 - 1 { cv = load8(heap + O_STRS + sinit2 + k); }
@@ -1189,11 +1259,20 @@ fn parse_let() -> i64 {
                     if lcnt2 >= 0 {
                         if k < lcnt2 { cv = load64(heap + O_LSTV + k * 8); }
                         else { cv = 0; }
+                    } else {
+                        if lcnt2 <= 0 - 65536 {
+                            let dec: i64 = 0 - 65536 - lcnt2;
+                            if k < dec { cv = load64(heap + O_LSTV + (512 + k) * 8); }
+                            else { cv = 0; }
+                        }
                     }
                 }
                 g_movabs_rax(cv);
-                if ty_kind(et) == 5 { g_store_local_b(off + k * esz); }
-                else { g_store_local(off + k * esz); }
+                # v1.1066: 嵌套字面量铺平按 word 步进（esz 是整行大小）
+                let step: i64 = esz;
+                if lcnt2 <= 0 - 65536 { step = 8; }
+                if ty_kind(et) == 5 { g_store_local_b(off + k * step); }
+                else { g_store_local(off + k * step); }
                 k = k + 1;
             }
             return 0;
