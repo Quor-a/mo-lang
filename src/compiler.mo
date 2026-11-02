@@ -2913,6 +2913,67 @@ fn param_index(fid: i64, name: i64) -> i64 {
 # 探测会破坏外层解析状态，曾致大文件假 syntax error）。
 # 当前 token 为标识符时，扫 [A-Za-z0-9_] 名字结束处，再跳空白看是否 ':'。
 # 是 → 返回名字结束偏移；否 → 0。
+# v1.1070: 从当前 token 位置（K_TOKPOS）看：当前是标识符，其后的
+# 第一个非空白 token 是否为关键字 'in'。纯源码扫描，不碰 lexer 状态
+#（v1.1039 铁律）。
+fn peek_in_kw() -> i64 {
+    syscall(1, 2, heap + O_SCAL + 7750, 4);   # DBG:H
+    let p: i64 = gv(K_TOKPOS);
+    let n: i64 = gv(K_SRCLEN);
+    # 跳过当前标识符
+    let q: i64 = p;
+    while q < n {
+        let c: i64 = sbyte(q);
+        let isid: i64 = 0;
+        if c == 95 { isid = 1; }
+        if c >= 97 { if c <= 122 { isid = 1; } }
+        if c >= 65 { if c <= 90 { isid = 1; } }
+        if c >= 48 { if c <= 57 { isid = 1; } }
+        if isid == 1 { q = q + 1; } else { q = q + 100000000; }
+    }
+    # 跳空白与 # 注释（q 停在名尾+1：用大步跳出而非 q=n，否则名尾丢失）
+    let r: i64 = q - 100000000;
+    let stop: i64 = 0;
+    while r < n {
+        if stop == 1 { r = n; }
+        else {
+            let d: i64 = sbyte(r);
+            if d == 35 { r = skip_comment(r); }
+            else {
+                if d == 32 { r = r + 1; }
+                else {
+                    if d == 9 { r = r + 1; }
+                    else {
+                        if d == 10 { r = r + 1; }
+                        else {
+                            if d == 13 { r = r + 1; }
+                            else {
+                                stop = 1;
+                                store64(heap + O_SCAL + 7760, d);
+                                store64(heap + O_SCAL + 7768, r);
+                                store64(heap + O_SCAL + 7776, p);
+                                store64(heap + O_SCAL + 7784, q);
+                                syscall(1, 2, heap + O_SCAL + 7760, 32);   # DBG:I dump d,r,p,q
+                                if d == 105 {   # 'i'
+                                    if sbyte(r + 1) == 110 {   # 'n'
+                                        let e: i64 = sbyte(r + 2);
+                                        if e == 32 { return 1; }
+                                        if e == 9 { return 1; }
+                                        if e == 10 { return 1; }
+                                        if e == 123 { return 1; }   # '{'
+                                    }
+                                }
+                                return 0;
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+    return 0;
+}
+
 fn peek_named_colon() -> i64 {
     if gv(K_TKIND) != 1 { return 0; }
     let p: i64 = gv(K_TOKPOS);
@@ -7326,8 +7387,112 @@ fn parse_for_step() -> i64 {
 # 那条路在**嵌套 for** 上会坏：外层记录的回退位置被内层 for 的 set_pos
 # 覆盖，位置跑飞，报 syntax error 且行列超出文件末尾（n1 用例实测）。
 # 本布局靠多两条 jmp 换取"线性解析、可任意嵌套"，不碰 token 位置。
+# v1.1070: for x in arr { BODY } —— 数组遍历糖。
+# 进入时 tok=元素变量名(x)，peek_in_kw 已确认其后是 'in'。
+# 发射：_fi=0; chk: _fi-n>=0→end; x=a[_fi]; BODY; _fi++; jmp chk
+# v1 限制：in 右侧必须是数组变量名（不支持任意表达式）。
+fn parse_for_in(vname: i64) -> i64 {
+    next_token();            # 吃 'in'（x 名已在 vname 独立缓冲）
+    if gv(K_TKIND) != 1 { return err_at2("for-in: expected array variable", gv(K_LINE), gv(K_COL)); }
+    let asym: i64 = sym_lookup(tokbuf());
+    if asym < 0 { return undef_err(tokbuf()); }
+    let at: i64 = sym_type(asym);
+    # kind3=数组变量；ptr(数组)=嵌套行的行指针（parse_for_in 自身产生）
+    if ty_kind(at) == 4 {
+        if ty_kind(ty_a(at)) != 3 { return err_at2("for-in: right side must be an array", gv(K_LINE), gv(K_COL)); }
+        at = ty_a(at);   # 解包：elem=行类型
+    } else {
+        if ty_kind(at) != 3 { return err_at2("for-in: right side must be an array", gv(K_LINE), gv(K_COL)); }
+    }
+    next_token();            # 吃数组名（无括号形式；'(' 已在老路径由 accept 兜底）
+    let d: i64 = gv(K_DEPTH) + 1;
+    sv(K_DEPTH, d);
+    # 元素变量 x
+    if sym_dup(vname) >= 0 { return err_atp("duplicate definition", gv(K_PLINE), gv(K_PCOL), gv(K_PPOS)); }
+    let xo: i64 = gv(K_CUROFF);
+    sv(K_CUROFF, xo - 8);
+    let xid: i64 = sym_add(vname, 1, xo, 0);
+    # 行元素（kind3）存**行地址** → 声明成 ptr(标量)：行内 p[i] 按
+    # 标量步长索引（ptr 目标必须是标量，否则行内索引跨整行）
+    let xty: i64 = elem_type(at);
+    if ty_kind(xty) == 3 {
+        let e3: i64 = xty;
+        while ty_kind(e3) == 3 { e3 = elem_type(e3); }
+        xty = ty_ptr(e3);
+    }
+    store64(heap + O_STY + xid * 8, xty);
+    dbg_var(vname, xo, gv(K_LINE), xty);
+    # 索引变量 _fiN（按深度区分嵌套）
+    let fbuf: i64 = heap + O_SCAL + 5600;
+    memcpy(fbuf, "_fi_");
+    store8(fbuf + 4, 48 + gv(K_DEPTH));
+    store8(fbuf + 5, 0);
+    if sym_dup(fbuf) >= 0 { return err_atp("duplicate definition", gv(K_PLINE), gv(K_PCOL), gv(K_PPOS)); }
+    let fo: i64 = gv(K_CUROFF);
+    sv(K_CUROFF, fo - 8);
+    let fid: i64 = sym_add(fbuf, 1, fo, 0);
+    store64(heap + O_STY + fid * 8, ty_int());
+    dbg_var(fbuf, fo, gv(K_LINE), ty_int());
+    # _fi = 0
+    g_movabs_rax(0);
+    g_store_local(fo);
+    let chk: i64 = new_label();
+    let end: i64 = new_label();
+    let stp: i64 = new_label();
+    let bdy: i64 = new_label();
+    loop_push(chk, end, stp);
+    place_label(chk);
+    # cond: _fi - n >= 0 → end
+    g_load_local(fo);
+    g_push_rax();
+    g_movabs_rax(ty_b(at));   # 元素个数（编译期常量）
+    g_pop_rcx();
+    g_sub();                  # rax = _fi - n
+    g_cmp_rax_0();
+    emit_jcc(0x8d, end);      # jge → end
+    emit_jmp(bdy);
+    # step（continue 跳到这里）：_fi++
+    place_label(stp);
+    g_load_local(fo);
+    ops3(0x48, 0x83, 0xc0); emit1(1);   # add rax, 1
+    g_store_local(fo);
+    emit_jmp(chk);
+    # body 前置段：x = arr[_fi]
+    place_label(bdy);
+    load_sym(asym);           # 数组退化首地址（kind3 → lea/movabs）
+    g_push_rax();
+    g_load_local(fo);
+    # 步长 = 元素大小（标量 8 → shl 3；行/struct 多字节 → 移位累乘）
+    let esz: i64 = ty_size(elem_type(at));
+    let sh: i64 = 0;
+    let e2: i64 = esz;
+    while e2 > 1 {
+        sh = sh + 1;
+        e2 = e2 / 2;
+    }
+    if sh > 0 { g_shl_rax_imm(sh); }
+    g_pop_rcx();
+    g_add();                  # rax = 基址 + _fi*esz
+    # 标量元素 load 值；数组/struct 元素保留地址（与 load_sym 退化语义一致）
+    if ty_kind(elem_type(at)) != 3 { ops3(0x48, 0x8b, 0x00); }   # mov rax,[rax]：标量 load 值；数组/struct 行保留地址
+    g_store_local(xo);
+    parse_block(d + 1);
+    emit_jmp(stp);
+    place_label(end);
+    sym_pop_scope(d);
+    sv(K_DEPTH, d - 1);
+    loop_pop();
+    return 0;
+}
+
 fn parse_for() -> i64 {
-    expect("(");
+    # v1.1070: for x in arr {...}（无括号形式）。探测：'for' 后是标识符
+    # 且下一 token 是 'in'；命中后 x 名已存 5400 缓冲、tok='in'。
+    if gv(K_TKIND) == 1 {
+        memcpy(heap + O_SCAL + 5400, tokbuf());
+        next_token();
+        if tok_is("in") == 1 { return parse_for_in(heap + O_SCAL + 5400); }
+    }
     # for 自带一层作用域：init 里的 let 属于 for，多个 for 可以各用 i
     let d: i64 = gv(K_DEPTH) + 1;
     sv(K_DEPTH, d);

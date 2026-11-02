@@ -77,6 +77,67 @@ fn param_index(fid: i64, name: i64) -> i64 {
 # 探测会破坏外层解析状态，曾致大文件假 syntax error）。
 # 当前 token 为标识符时，扫 [A-Za-z0-9_] 名字结束处，再跳空白看是否 ':'。
 # 是 → 返回名字结束偏移；否 → 0。
+# v1.1070: 从当前 token 位置（K_TOKPOS）看：当前是标识符，其后的
+# 第一个非空白 token 是否为关键字 'in'。纯源码扫描，不碰 lexer 状态
+#（v1.1039 铁律）。
+fn peek_in_kw() -> i64 {
+    syscall(1, 2, heap + O_SCAL + 7750, 4);   # DBG:H
+    let p: i64 = gv(K_TOKPOS);
+    let n: i64 = gv(K_SRCLEN);
+    # 跳过当前标识符
+    let q: i64 = p;
+    while q < n {
+        let c: i64 = sbyte(q);
+        let isid: i64 = 0;
+        if c == 95 { isid = 1; }
+        if c >= 97 { if c <= 122 { isid = 1; } }
+        if c >= 65 { if c <= 90 { isid = 1; } }
+        if c >= 48 { if c <= 57 { isid = 1; } }
+        if isid == 1 { q = q + 1; } else { q = q + 100000000; }
+    }
+    # 跳空白与 # 注释（q 停在名尾+1：用大步跳出而非 q=n，否则名尾丢失）
+    let r: i64 = q - 100000000;
+    let stop: i64 = 0;
+    while r < n {
+        if stop == 1 { r = n; }
+        else {
+            let d: i64 = sbyte(r);
+            if d == 35 { r = skip_comment(r); }
+            else {
+                if d == 32 { r = r + 1; }
+                else {
+                    if d == 9 { r = r + 1; }
+                    else {
+                        if d == 10 { r = r + 1; }
+                        else {
+                            if d == 13 { r = r + 1; }
+                            else {
+                                stop = 1;
+                                store64(heap + O_SCAL + 7760, d);
+                                store64(heap + O_SCAL + 7768, r);
+                                store64(heap + O_SCAL + 7776, p);
+                                store64(heap + O_SCAL + 7784, q);
+                                syscall(1, 2, heap + O_SCAL + 7760, 32);   # DBG:I dump d,r,p,q
+                                if d == 105 {   # 'i'
+                                    if sbyte(r + 1) == 110 {   # 'n'
+                                        let e: i64 = sbyte(r + 2);
+                                        if e == 32 { return 1; }
+                                        if e == 9 { return 1; }
+                                        if e == 10 { return 1; }
+                                        if e == 123 { return 1; }   # '{'
+                                    }
+                                }
+                                return 0;
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+    return 0;
+}
+
 fn peek_named_colon() -> i64 {
     if gv(K_TKIND) != 1 { return 0; }
     let p: i64 = gv(K_TOKPOS);
