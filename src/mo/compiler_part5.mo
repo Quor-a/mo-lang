@@ -2282,7 +2282,7 @@ fn parse_func() -> i64 {
     # v1.1037: 本函数默认参数表清 -1；ndf = 有默认值的形参个数（尾部连续）
     let dvi: i64 = 0;
     while dvi < 8 {
-        store64(DFV + fsi * 64 + dvi * 8, 0 - 1);
+        store64(DFV + fsi * 80 + dvi * 8, 0 - 1);
         dvi = dvi + 1;
     }
     let ndf: i64 = 0;
@@ -2352,7 +2352,7 @@ fn parse_func() -> i64 {
         # v1.1037: 形参默认值（const 表达式，必须尾部连续）
         if accept("=") == 1 {
             let dv: i64 = const_expr();
-            store64(DFV + fsi * 64 + nb * 8, dv);
+            store64(DFV + fsi * 80 + nb * 8, dv);
             ndf = nb + 1;
         } else {
             if ndf > 0 {
@@ -2434,7 +2434,7 @@ fn parse_func() -> i64 {
         return err_atp("too many parameters (limit 32)", fnln, fncol, fnpos);
     }
     store64(heap + O_SP + fsi * 8, nb);
-    store64(DFV + fsi * 64 + 7 * 8, ndf);   # v1.1037: 槽 7 存默认参数个数
+    store64(DFV + fsi * 80 + 9 * 8, ndf);   # v1.1038: 槽 9 存 ndf（槽 0..7 属形参）
     g_prologue();
     let i: i64 = 0;
     while i < nb {

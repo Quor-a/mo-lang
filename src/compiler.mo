@@ -2841,7 +2841,7 @@ var R_AFTER: i64 = 0;
 
 # v1.1037: 默认参数表。DFV[fid*8 + pidx] = 编译期默认值（-1 = 无默认）。
 # 约定：默认参数必须全部位于形参列表**尾部**。
-var DFV: [16384] i64 = 0;   # fsi*64+pidx：大库 fsi 可超 512，4096 槽曾越界
+var DFV: [20480] i64 = 0;   # fsi*80+pidx：8 形参槽 + 槽 9 存 ndf（v1.1038：槽 7 曾与形参 7 冲突）
 
 fn scratch1() -> i64 { return heap + O_SCAL + 720; }  # 🔴 400 与 K_TFLT 槽撞车（v1.1035）
 fn scratch2() -> i64 { return heap + O_SCAL + 700; }
@@ -5119,24 +5119,35 @@ fn parse_call() -> i64 {
                             if npv >= 0 {
                                 if npv != na {
                                     # v1.1037: 默认参数 —— 缺的尾部实参用编译期默认值补
-                                    let ndf: i64 = load64(DFV + R_SYM * 64 + 7 * 8);
+                                    let ndf: i64 = load64(DFV + R_SYM * 80 + 9 * 8);
                                     if ndf <= 0 {
                                         return err_atp("wrong number of arguments", gv(K_PLINE), gv(K_PCOL), gv(K_PPOS));
                                     }
                                     if na < npv - ndf {
                                         return err_atp("too few arguments (required params missing)", gv(K_PLINE), gv(K_PCOL), gv(K_PPOS));
                                     }
-                                    if npv > 6 {
-                                        return err_atp("default-arg call limited to 6 params", gv(K_PLINE), gv(K_PCOL), gv(K_PPOS));
-                                    }
-                                    # 按编号升序 push 默认值（arg_{na+1} 先 → 栈顶是 arg_npv）
+                                    # v1.1038: >6 也支持。寄存器级（编号 ≤6）按升序 push
+                                    # （pop r9..rdi 从栈顶弹 arg_npv→…）；栈级（编号 >6）
+                                    # 必须降序 push —— arg_spill 从栈顶先弹 arg7。
                                     let mi: i64 = na;
                                     while mi < npv {
-                                        let mval: i64 = load64(DFV + R_SYM * 64 + mi * 8);
-                                        spill_cache();
-                                        g_movabs_rax(mval);
-                                        g_push_rax();
+                                        if mi < 6 {
+                                            let mval: i64 = load64(DFV + R_SYM * 80 + mi * 8);
+                                            spill_cache();
+                                            g_movabs_rax(mval);
+                                            g_push_rax();
+                                        }
                                         mi = mi + 1;
+                                    }
+                                    # 栈参数默认值：升序补（arg7 先 push … argN 最后）——
+                                    # 与显式实参同一约定：spill 从顶弹 argN→…→arg7。
+                                    let mj: i64 = 7;
+                                    while mj <= npv {
+                                        let mval2: i64 = load64(DFV + R_SYM * 80 + (mj - 1) * 8);
+                                        spill_cache();
+                                        g_movabs_rax(mval2);
+                                        g_push_rax();
+                                        mj = mj + 1;
                                     }
                                     na = npv;
                                 }
@@ -7483,7 +7494,7 @@ fn parse_func() -> i64 {
     # v1.1037: 本函数默认参数表清 -1；ndf = 有默认值的形参个数（尾部连续）
     let dvi: i64 = 0;
     while dvi < 8 {
-        store64(DFV + fsi * 64 + dvi * 8, 0 - 1);
+        store64(DFV + fsi * 80 + dvi * 8, 0 - 1);
         dvi = dvi + 1;
     }
     let ndf: i64 = 0;
@@ -7553,7 +7564,7 @@ fn parse_func() -> i64 {
         # v1.1037: 形参默认值（const 表达式，必须尾部连续）
         if accept("=") == 1 {
             let dv: i64 = const_expr();
-            store64(DFV + fsi * 64 + nb * 8, dv);
+            store64(DFV + fsi * 80 + nb * 8, dv);
             ndf = nb + 1;
         } else {
             if ndf > 0 {
@@ -7635,7 +7646,7 @@ fn parse_func() -> i64 {
         return err_atp("too many parameters (limit 32)", fnln, fncol, fnpos);
     }
     store64(heap + O_SP + fsi * 8, nb);
-    store64(DFV + fsi * 64 + 7 * 8, ndf);   # v1.1037: 槽 7 存默认参数个数
+    store64(DFV + fsi * 80 + 9 * 8, ndf);   # v1.1038: 槽 9 存 ndf（槽 0..7 属形参）
     g_prologue();
     let i: i64 = 0;
     while i < nb {
