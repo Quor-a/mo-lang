@@ -1,3 +1,34 @@
+## [1.1063.0]
+
+- 数组值比较 == / !=（parse_eq 新增 kind3 数组分支，g_struct_eq(ty_size(lt)/8) 逐 word；类型不同报错）；
+- 🔴 修复 g_struct_eq 两个既有 bug：① sete 每轮覆盖 r11b 导致只看最后一个 word（改为 sete r10b + and r11b,r10b 累积）② invert 用 setne 同样覆盖累积（改为循环后 xor r11b,1 取反）。tests/241 改用字段赋值构造（嵌套字面量交互 bug 待修，见下）。
+- 已知问题：嵌套字面量 Q { p: P {...}; n: 9 } 在前置 ==/!= 表达式之后，内层 P{} 会走非拷贝路径存地址（R_SADDR 状态污染），待后续版本修复。tests/244; 门禁 395/395。
+
+## [1.1062.0]
+
+- 语句层字段整体赋值 r.f = q2（struct 变量，v1.1059 遗留缺口收口）：字段基地址真 push（0x50）、源地址 g_movabs_rax(sym_addr)+mov rdi,rax、pop rsi（0x5e）、逐 word 内联拷贝；局部与全局源变量均支持；
+- 🔴 st_words 必须传 ty_si(sym_type(vsi))（传 sym index 会得 0 → 循环零次静默失败）；🔴 局部变量须用 sym_lookup（st_lookup 只查结构表）。tests/243; 门禁 394/394。
+
+## [1.1061.0]
+
+- struct 字段默认值：struct P { x: i64 = 10; y: i64; } —— 新增 SDV/SDH 表（si*64+fi 索引）；parse_struct 字段解析 accept("=") 后 const_expr 折叠；let 局部与全局 var 的数据段造槽按 st_field_off 匹配填默认值；struct 字面量未列出的字段自动取默认。tests/242; 门禁 393/393。
+
+## [1.1060.0]
+
+- struct 值相等比较 == / !=：parse_eq 新增 kind2 分支，g_struct_eq(n, invert) 逐 word 比较（mov r11,1 → 逐 word mov rdx,[rcx+o] / cmp [rax+o],rdx / sete r11b → mov rax,r11）；嵌套 struct 支持；类型不同报错。tests/241; 门禁 392/392。
+
+## [1.1059.0]
+
+- 嵌套 struct 字面量：表达式位置 Q { x: 3; y: 4; }（parse_primary sy<0 探测 ident+'{'，tok 已在 '{' 勿再 next_token）；litok 字段值为 struct 时走 g_struct_copy（不能 mov [rsi],rax 存地址）；语句层字段整体赋值 r.f = Q {...}：真 push 0x50 + mov rsi,[rsp]（48 8b 34 24）+ add rsi,imm32（48 81 c6）。tests/239~240; 门禁 391/391。
+
+## [1.1058.0]
+
+- 任意维数组（三维+）：收维 while 存 O_LSTV（et 声明前只收 dims，元素类型链解析后倒序 ty_array 包装）；index_addr 尾部 while 本就任意维；field_chain 开头解包数组（while ty_kind==3 ty=elem_type）修复二维 struct 元素字段访问。tests/237~238; 门禁 389/389。
+
+## [1.1057.0]
+
+- enum 名作类型（等价 i64）：enum_type_exists（O_ECNT/O_ENAME 扫描，字符串内容 streq 比较——intern 不查重）；类型链 6 处同步：try_parse_type、局部 let 标量、数组元素（两处）、全局 var 标量、形参、返回类型（renum 标志）。tests/235~236; 门禁 387/387。
+
 ## [1.1055.0]
 
 - struct 字面量作 return 值(parse_return CUR_RET==2 变量分支前探测 st_lookup+'{'; 数据段常量区+按值拷 rax/rdx); tests/234。（注: 该改动与 tests/234 因提交时序并入 1.1056.0 tag, 特此记录）
