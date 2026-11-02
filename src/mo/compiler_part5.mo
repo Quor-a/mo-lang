@@ -2056,7 +2056,21 @@ fn parse_global() -> i64 {
             }
         }
     }
-    expect("=");
+    # v1.1032: 全局标量可省略初始化（var X: i64;）—— 默认 0
+    let ghe: i64 = accept("=");
+    if ghe == 0 {
+        if tok_is(";") == 0 { return syntax_error(); }
+        let gaddr0: i64 = 268435456 + gv(K_DLEN);
+        data_align(16);
+        let gaddr: i64 = 268435456 + gv(K_DLEN);
+        dquad(0);
+        if sym_dup(scratch2()) >= 0 { return err_atp("duplicate definition", gv(K_PLINE), gv(K_PCOL), gv(K_PPOS)); }
+        let gid: i64 = sym_add(scratch2(), 2, gaddr, 0);
+        store64(heap + O_STY + gid * 8, vt);
+        dbg_gvar(scratch2(), gaddr, gv(K_LINE), vt);
+        expect(";");
+        return 0;
+    }
     let v: i64 = gv(K_TIVAL);
     if gv(K_TKIND) == 2 {
         next_token();
