@@ -7105,19 +7105,27 @@ fn parse_global() -> i64 {
                 }
             }
         }
-        expect("=");
+        # v1.1030: 全局数组可省略初始化（var G: [N] T;）—— 默认 0 填充
         let lcnt: i64 = 0 - 1;
         let sinit: i64 = 0 - 1;
+        let has_eq: i64 = accept("=");
+        if has_eq == 0 {
+            if tok_is(";") == 0 { return syntax_error(); }
+        }
+        if has_eq == 1 {
         if tok_is("[") == 1 { lcnt = parse_i64_list(); }
         else {
             if gv(K_TKIND) == 3 { sinit = gv(K_STROFF); }
         }
+        }
         let v: i64 = gv(K_TIVAL);
+        if has_eq == 0 { v = 0; }   # v1.1030: 无初始化默认 0
         # 🔴 列表分支下 **不能再 next_token**：parse_i64_list 结束时就停在
         #    `;` 上（它内部的 expect("]") 已经把 `]` 吃掉）。
         #    多走一步会跳过分号，于是 expect(";") 读到下一行开头 ——
         #    报错位置指向**下一行**（3:1），很容易误判成下一行写错了。
-        if lcnt < 0 { next_token(); }
+        #    v1.1030：无初始化时 token 已停在 ';'，同样不能再吃。
+        if has_eq == 1 { if lcnt < 0 { next_token(); } }
         expect(";");
         data_align(16);
         let addr: i64 = 268435456 + gv(K_DLEN);
