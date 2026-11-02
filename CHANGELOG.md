@@ -1,3 +1,7 @@
+## [1.1068.0]
+
+- len(arr) 内建：编译期返回数组外层元素个数（二维取最外维）；非数组实参报错 "len: argument must be an array"。parse_call 开头拦截、独立 parse_len()（不占 parse_call 局部槽）；嵌套字面量叶子铺平区迁至 O_LSTV[64..]（修复与 dims 表的区冲突）。tests/249 + errors/e28；门禁见 Release。
+
 ## [1.1067.0]
 
 - 嵌套 struct 字面量作函数实参：get(Q { p: P { x: 1; y: 2; }; n: 3; }) —— emit_lit_struct 字段值为 struct 时逐 word 整块拷贝（修复存地址 bug，与 v1.1064 litok 同款）。tests/248; 门禁 399/399。

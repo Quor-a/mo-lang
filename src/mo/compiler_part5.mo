@@ -1181,26 +1181,24 @@ fn parse_let() -> i64 {
                     prod = prod * load64(heap + O_LSTV + di * 8);
                     di = di + 1;
                 }
-                # 深度优先解析 — 用栈: 900 区 [depth*wptr][depth*elen][depth*cnt]
+                # 深度优先解析 — 计数栈用 heap 高区 89981000（无 let，不占局部槽）
                 let sp: i64 = 0;          # 栈深
-                let wp: i64 = 0;          # 铺平写指针 (O_LSTV 512+)
+                let wp: i64 = 0;          # 铺平写指针（O_LSTV 512+ 区废弃）
                 next_token();             # 吃最外 '['
                 sp = 1;
-                store64(heap + O_LSTV + (900 + 0) * 8, 0);   # level0 计数
-                store64(heap + O_LSTV + (920 + 0) * 8, 0 - 1);  # level0 首行长度(未定)
+                store64(heap + 89981000, 0);
                 while sp > 0 {
                     if tok_is("[") == 1 {
                         next_token();
-                        store64(heap + O_LSTV + (900 + sp) * 8, 0);
-                        store64(heap + O_LSTV + (920 + sp) * 8, 0 - 1);
+                        store64(heap + 89981000 + sp * 8, 0);
                         sp = sp + 1;
                     } else {
                         if tok_is("]") == 1 {
                             next_token();
                             sp = sp - 1;
                             # 校验本层子数 = 期望维
-                            let lvlcnt: i64 = load64(heap + O_LSTV + (900 + sp) * 8);
-                            if sp > 0 { store64(heap + O_LSTV + (900 + sp - 1) * 8, load64(heap + O_LSTV + (900 + sp - 1) * 8) + 1); }
+                            let lvlcnt: i64 = load64(heap + 89981000 + sp * 8);
+                            if sp > 0 { store64(heap + 89981000 + (sp - 1) * 8, load64(heap + 89981000 + (sp - 1) * 8) + 1); }
                             let wantd: i64 = n;
                             if sp > 0 { wantd = load64(heap + O_LSTV + (ndims - sp) * 8); }
                             if lvlcnt != wantd { return err_at2("nested array literal: row count mismatch", gv(K_LINE), gv(K_COL)); }
@@ -1219,10 +1217,11 @@ fn parse_let() -> i64 {
                                 } else { return err_at2("array literal elements must be integer constants", gv(K_LINE), gv(K_COL)); }
                             }
                             if negv == 1 { lv = 0 - lv; }
-                            store64(heap + O_LSTV + (512 + wp) * 8, lv);
+                            # 叶子直接写 O_LSTV[wp]（嵌套分支独占该区，无冲突）
+                            store64(heap + O_LSTV + (64 + wp) * 8, lv);
                             wp = wp + 1;
                             # 只计最深层（叶子数）; 行闭包时上级+1
-                            store64(heap + O_LSTV + (900 + sp - 1) * 8, load64(heap + O_LSTV + (900 + sp - 1) * 8) + 1);
+                            store64(heap + 89981000 + (sp - 1) * 8, load64(heap + 89981000 + (sp - 1) * 8) + 1);
                             accept(",");
                         }
                     }
@@ -1262,7 +1261,7 @@ fn parse_let() -> i64 {
                     } else {
                         if lcnt2 <= 0 - 65536 {
                             let dec: i64 = 0 - 65536 - lcnt2;
-                            if k < dec { cv = load64(heap + O_LSTV + (512 + k) * 8); }
+                            if k < dec { cv = load64(heap + O_LSTV + (64 + k) * 8); }
                             else { cv = 0; }
                         }
                     }

@@ -2623,6 +2623,21 @@ fn emit_lit_struct(si: i64) -> i64 {
     return 0;
 }
 
+fn parse_len() -> i64 {
+    if gv(K_TKIND) != 1 { return syntax_error(); }
+    let lsy: i64 = sym_lookup(tokbuf());
+    if lsy < 0 { return err_at2("len: undefined variable", gv(K_LINE), gv(K_COL)); }
+    let lt2: i64 = sym_type(lsy);
+    if ty_kind(lt2) != 3 { return err_at2("len: argument must be an array", gv(K_LINE), gv(K_COL)); }
+    next_token();
+    expect(")");
+    g_movabs_rax(ty_b(lt2));
+    R_ETY = ty_int();
+    R_SADDR = 0;
+    CALLD = CALLD - 1;
+    return 0;
+}
+
 fn parse_call() -> i64 {
     CALLD = CALLD + 1;
     memcpy(cscratch(), scratch1());
@@ -2630,6 +2645,7 @@ fn parse_call() -> i64 {
     CE_C = gv(K_PCOL);
     CE_L = gv(K_PLINE);
     expect("(");
+    if streq(cscratch(), "len") == 1 { return parse_len(); }
     # print(f"...") / sfmt(dst, f"...") —— 插值字符串特判
     if streq(cscratch(), "print") == 1 {
         if gv(K_TKIND) == 5 { return parse_print_fmt(); }
