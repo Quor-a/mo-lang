@@ -4804,20 +4804,95 @@ fn parse_expr_method(osym: i64) -> i64 {
     }
     g_push_rax();
     let na: i64 = 1;
+    let mnpre: i64 = 1;   # 已覆盖形参个数（含 self）
+    let mhasnamed: i64 = 0;
+    let mnpv: i64 = 0 - 1;
     while tok_is(")") == 0 {
-        parse_expr();
-        g_push_rax();
-        na = na + 1;
-        if accept(",") == 0 {
-            if tok_is(")") == 0 { return syntax_error(); }
+        let mnend: i64 = peek_named_colon();
+        if mnend == 0 {
+            if mhasnamed == 1 {
+                return err_atp("positional argument after named argument", gv(K_PLINE), gv(K_PCOL), gv(K_PPOS));
+            }
+            parse_expr();
+            g_push_rax();
+            na = na + 1;
+            mnpre = mnpre + 1;
+            if accept(",") == 0 {
+                if tok_is(")") == 0 { return syntax_error(); }
+            }
+        } else {
+            # 命名实参（方法）：形参编号含 self(0)
+            if ifk >= 0 { return err_atp("named arguments not supported on interface methods", gv(K_PLINE), gv(K_PCOL), gv(K_PPOS)); }
+            mhasnamed = 1;
+            if mnpv < 0 { mnpv = sym_npar(fsym); }
+            let mpidx: i64 = param_index(fsym, tokbuf());
+            if mpidx < 0 { return err_atp("no such parameter name", gv(K_PLINE), gv(K_PCOL), gv(K_PPOS)); }
+            if mpidx < mnpre {
+                return err_atp("named arguments must be in parameter order", gv(K_PLINE), gv(K_PCOL), gv(K_PPOS));
+            }
+            let mqi: i64 = mnpre;
+            while mqi < mpidx {
+                if load64(DFVDONE + fsym * 8) == 0 {
+                    emit1(0xb8);
+                    defp_add(gv(K_CLEN), fsym, mqi);
+                    emit4(0);
+                    sv(K_LAST, 0);
+                } else {
+                    if load8(DFVHAS + fsym * 8 + mqi) != 1 {
+                        return err_atp("skipped parameter has no default value", gv(K_PLINE), gv(K_PCOL), gv(K_PPOS));
+                    }
+                    g_movabs_rax(load64(DFV + fsym * 80 + mqi * 8));
+                }
+                spill_cache();
+                g_push_rax();
+                na = na + 1;
+                mqi = mqi + 1;
+            }
+            next_token();               # 吃 ':'
+            expect(":");
+            parse_expr();
+            g_push_rax();
+            na = na + 1;
+            mnpre = mpidx + 1;
+            if accept(",") == 0 {
+                if tok_is(")") == 0 { return syntax_error(); }
+            }
         }
     }
     expect(")");
+    # 尾部未提及的默认形参就地补齐
+    if mhasnamed == 1 {
+        if ifk < 0 {
+            if mnpv < 0 { mnpv = sym_npar(fsym); }
+            if mnpre < mnpv {
+                let mti: i64 = mnpre;
+                while mti < mnpv {
+                    if load64(DFVDONE + fsym * 8) == 0 {
+                        emit1(0xb8);
+                        defp_add(gv(K_CLEN), fsym, mti);
+                        emit4(0);
+                        sv(K_LAST, 0);
+                    } else {
+                        if load8(DFVHAS + fsym * 8 + mti) != 1 {
+                            return err_atp("skipped parameter has no default value", gv(K_PLINE), gv(K_PCOL), gv(K_PPOS));
+                        }
+                        g_movabs_rax(load64(DFV + fsym * 80 + mti * 8));
+                    }
+                    spill_cache();
+                    g_push_rax();
+                    na = na + 1;
+                    mti = mti + 1;
+                }
+                mnpre = mnpv;
+            }
+        }
+    }
 
     # v1.1041: 方法调用缺省尾部实参补默认值（同 parse_call；前向占位回填同法）
-    let mnpv: i64 = 0 - 1;
     if ifk >= 0 { mnpv = 0 - 1; }
-    else { mnpv = sym_npar(fsym); }
+    else {
+        if mnpv < 0 { mnpv = sym_npar(fsym); }
+    }
     if mnpv > 0 {
         if na < mnpv {
             let mdi: i64 = na;
