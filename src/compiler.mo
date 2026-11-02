@@ -2812,6 +2812,12 @@ fn set_pos(p: i64) -> i64 {
     return 0;
 }
 
+# v1.1047: 当前 token 是否字符串字面量（K_TKIND==3）
+fn tok_is_strlit() -> i64 {
+    if gv(K_TKIND) == 3 { return 1; }
+    return 0;
+}
+
 fn tok_is(s: i64) -> i64 {
     if gv(K_TKIND) == 0 { return 0; }
     return streq(tokbuf(), s);
@@ -5899,6 +5905,11 @@ fn parse_nested_fn() -> i64 {
 
 fn parse_stmt() -> i64 {
     dbg_mark();
+    # v1.1047: 裸块语句 { ... }（case 体花括号等）—— 复用 parse_block
+    if tok_is("{") == 1 {
+        let bd: i64 = gv(K_DEPTH) + 1;
+        return parse_block(bd);
+    }
     if accept("break") == 1 { return parse_break(); }
     if accept("continue") == 1 { return parse_continue(); }
     if accept("let") == 1 { return parse_let(); }
@@ -6784,6 +6795,7 @@ var O_SWL:   i64 = 8760000;   # case 标签号，同上
 var O_SWTOP: i64 = 8768000;   # 下一个 switch 的基址（栈式分配）
 var O_SWC:   i64 = 8768008;   # sw_const 的输出槽
 var O_SWNB:  i64 = 8768100;   # sw_const 的名字缓冲（64 字节）
+var SWSTR:   i64 = 8770000;   # v1.1047: case 是否字符串（n*8，128 项）
 
 # 读一个编译期常量写入 *out：整数字面量 / 前导负号 / enum 常量。
 # 返回 1 成功、0 失败。**失败时不报错**，由调用方决定怎么提示。
@@ -6923,7 +6935,15 @@ fn sw_scan(vals: i64) -> i64 {
         if iscase == 1 {
             next_token();
             if n >= 128 { return 0 - 1; }
-            if sw_const(vals + n * 8) == 0 { return 0 - 2; }
+            if tok_is_strlit() == 1 {
+                # v1.1047: 字符串 case —— 存数据段绝对地址（与 str 表达式同形态）+ 标记
+                store64(heap + SWSTR + n * 8, 1);
+                store64(vals + n * 8, gv(K_TIVAL));
+                next_token();
+            } else {
+                store64(heap + SWSTR + n * 8, 0);
+                if sw_const(vals + n * 8) == 0 { return 0 - 2; }
+            }
             n = n + 1;
         } else {
             # 🔴 跳过嵌套 switch 之后**不能再推进**：跳过的终点正好落在
@@ -6978,6 +6998,14 @@ fn parse_switch() -> i64 {
         return sw_fail("switch: case 必须是编译期常量（整数或 enum）", base);
     }
     set_pos(save);
+    # v1.1047: 任一 case 为字符串 → 字符串 switch（要求全部 case 均为字符串）
+    let sws: i64 = 0;
+    let qi: i64 = 0;
+    while qi < n {
+        if load64(heap + SWSTR + qi * 8) == 1 { sws = 1; }
+        else { if sws == 1 { return sw_fail("switch: 字符串与整数 case 不能混用", base); } }
+        qi = qi + 1;
+    }
 
     let mn: i64 = 0;
     let mx: i64 = 0;
@@ -7046,13 +7074,28 @@ fn parse_switch() -> i64 {
         # jmp [rcx + rax*8]
         emit1(0xff); emit1(0x24); emit1(0xc1);
     } else {
-        i = 0;
-        while i < n {
-            emit1(0x48); emit1(0x3d); emit4(load64(vals + i * 8));   # cmp rax, imm32
-            emit_jcc(0x84, load64(lbls + i * 8));                    # je
-            i = i + 1;
+        if sws == 1 {
+            # v1.1047: 字符串 switch —— 逐 case 调 g_str_eq 约定(rcx=左串, rax=右串)
+            ops3(0x49, 0x89, 0xc3);                    # v1.1047: mov r11, rax —— 判别串保值（g_str_eq 破坏 rax/rcx）
+            i = 0;
+            while i < n {
+                ops3(0x4c, 0x89, 0xd9);                # mov rcx, r11 (判别串)
+                g_movabs_rax(load64(vals + i * 8));        # movabs rax, case 串地址
+                g_str_eq(1);                               # rax = (equal ? 1 : 0)
+                ops2(0x85, 0xc0);                          # test eax, eax
+                emit_jcc(0x85, load64(lbls + i * 8));      # jne → case
+                i = i + 1;
+            }
+            emit_jmp(dflt);
+        } else {
+            i = 0;
+            while i < n {
+                emit1(0x48); emit1(0x3d); emit4(load64(vals + i * 8));   # cmp rax, imm32
+                emit_jcc(0x84, load64(lbls + i * 8));                    # je
+                i = i + 1;
+            }
+            emit_jmp(dflt);
         }
-        emit_jmp(dflt);
     }
 
     expect("{");
@@ -7065,8 +7108,16 @@ fn parse_switch() -> i64 {
             # 而跳转表里这一项也仍然要指向它。
             place_label(load64(lbls + i * 8));
             fell = 0;
-            if sw_const(heap + O_SWC) == 0 {
-                return sw_fail("switch: case 必须是编译期常量", base);
+            if tok_is_strlit() == 1 {
+                # v1.1047: 字符串 case —— 发射时值已在 sw_scan 录入，这里只吃 token。
+                # 但必须与 sw_scan 的顺序一致：SWSTR[i] 已由扫描置 1。
+                if i >= n { return sw_fail("switch: case 与扫描结果不一致", base); }
+                if load64(heap + SWSTR + i * 8) != 1 { return sw_fail("switch: 字符串与整数 case 不能混用", base); }
+                next_token();
+            } else {
+                if sw_const(heap + O_SWC) == 0 {
+                    return sw_fail("switch: case 必须是编译期常量", base);
+                }
             }
             expect(":");
             let cd: i64 = d + 1;

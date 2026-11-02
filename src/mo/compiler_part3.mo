@@ -480,6 +480,12 @@ fn set_pos(p: i64) -> i64 {
     return 0;
 }
 
+# v1.1047: 当前 token 是否字符串字面量（K_TKIND==3）
+fn tok_is_strlit() -> i64 {
+    if gv(K_TKIND) == 3 { return 1; }
+    return 0;
+}
+
 fn tok_is(s: i64) -> i64 {
     if gv(K_TKIND) == 0 { return 0; }
     return streq(tokbuf(), s);
