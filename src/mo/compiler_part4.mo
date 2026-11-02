@@ -325,6 +325,19 @@ fn st_lookup(name: i64) -> i64 {
     return -1;
 }
 
+# v1.1043: "ptr" 之后的目标类型：i64/byte 关键字或结构体名。
+# 返回 1 = 已消费一个目标 token；0 = 无目标（裸 ptr，退 byte）。
+# 调用约定：进入时当前 token 是 "ptr" 的下一个 token，"ptr" 已被消费。
+fn parse_ptr_target() -> i64 {
+    if tok_is("i64") == 1 { next_token(); return ty_int(); }
+    if tok_is("byte") == 1 { next_token(); return ty_byte(); }
+    if gv(K_TKIND) == 1 {
+        let psi: i64 = st_lookup(tokbuf());
+        if psi >= 0 { next_token(); return ty_struct(psi); }
+    }
+    return ty_byte();
+}
+
 fn st_nfields(si: i64) -> i64 { return load64(heap + O_STF + si * 8); }
 
 # 反查结构体名字（已 intern 的字符串地址）。
@@ -1033,13 +1046,7 @@ fn try_parse_type() -> i64 {
             if tok_is("ptr") == 1 {
                 next_token();
                 # v1.1025: ptr P —— 指向结构体的指针类型（let p: ptr P = &r;）
-                if gv(K_TKIND) == 1 {
-                    let psi: i64 = st_lookup(tokbuf());
-                    if psi >= 0 { next_token(); t = ty_ptr(ty_struct(psi)); }
-                    else { t = ty_ptr(ty_byte()); }
-                } else {
-                    t = ty_ptr(ty_byte());
-                }
+                t = ty_ptr(parse_ptr_target());
             } else {
                 if gv(K_TKIND) == 1 {
                     let si: i64 = st_lookup(tokbuf());
@@ -1061,7 +1068,7 @@ fn try_parse_type() -> i64 {
                         else {
                             if tok_is("byte") == 1 { next_token(); et = ty_byte(); }
                             else {
-                                if tok_is("ptr") == 1 { next_token(); et = ty_ptr(ty_byte()); }   # v1.1019: [N] ptr 函数指针表
+                                if tok_is("ptr") == 1 { next_token(); et = ty_ptr(parse_ptr_target()); }   # v1.1043: [N] ptr [i64]
                                 else {
                                 if gv(K_TKIND) == 1 {
                                     let si2: i64 = st_lookup(tokbuf());

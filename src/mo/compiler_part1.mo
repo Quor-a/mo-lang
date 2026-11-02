@@ -651,6 +651,7 @@ fn ty_new(kind: i64, a: i64, b: i64) -> i64 {
 fn ty_struct(si: i64) -> i64 { return ty_new(2, si, 0); }
 fn ty_array(el: i64, n: i64) -> i64 { return ty_new(3, el, n); }
 fn ty_ptr(to: i64) -> i64 { return ty_new(4, to, 0); }
+
 # f64：kind 6。
 #
 # ⚠️ f64 值**不放在 xmm 寄存器里**，而是像整数一样在 rax 里传 ——

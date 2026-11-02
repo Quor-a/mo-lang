@@ -853,7 +853,7 @@ fn parse_let() -> i64 {
                 et = ty_byte();
                 next_token();
             } else {
-                if tok_is("ptr") == 1 { et = ty_ptr(ty_byte()); next_token(); }   # v1.1019: [N] ptr
+                if tok_is("ptr") == 1 { next_token(); et = ty_ptr(parse_ptr_target()); }   # v1.1043
                 else {
                 if gv(K_TKIND) == 1 {
                     let si: i64 = st_lookup(tokbuf());
@@ -945,14 +945,8 @@ fn parse_let() -> i64 {
                 vt = ty_byte();
             } else {
                 if accept("ptr") == 1 {
-                    # v1.1025: ptr P —— 指向结构体的指针
-                    if gv(K_TKIND) == 1 {
-                        let psi: i64 = st_lookup(tokbuf());
-                        if psi >= 0 { next_token(); vt = ty_ptr(ty_struct(psi)); }
-                        else { vt = ty_ptr(ty_byte()); }
-                    } else {
-                        vt = ty_ptr(ty_byte());
-                    }
+                    # v1.1043: ptr [i64/byte/P]
+                    vt = ty_ptr(parse_ptr_target());
                 } else {
                     return err_atp("expected a type", gv(K_PLINE), gv(K_PCOL), gv(K_PPOS));
                 }
@@ -1684,7 +1678,7 @@ fn parse_extern() -> i64 {
             rt = ty_int();
         } else {
             if accept("ptr") == 1 {
-                rt = ty_ptr(ty_byte());
+                rt = ty_ptr(parse_ptr_target());
             } else {
                 if accept("f64") == 1 {
                     rt = ty_float();
@@ -2030,7 +2024,7 @@ fn parse_global() -> i64 {
                 et = ty_byte();
                 next_token();
             } else {
-                if tok_is("ptr") == 1 { et = ty_ptr(ty_byte()); next_token(); }   # v1.1019: [N] ptr
+                if tok_is("ptr") == 1 { next_token(); et = ty_ptr(parse_ptr_target()); }   # v1.1043
                 else {
                 if gv(K_TKIND) == 1 {
                     let si: i64 = st_lookup(tokbuf());
@@ -2311,14 +2305,8 @@ fn parse_func() -> i64 {
                 pt = ty_byte();
             } else {
                 if accept("ptr") == 1 {
-                    # v1.1026: 形参 ptr P —— 指向结构体的指针形参
-                    if gv(K_TKIND) == 1 {
-                        let qsi: i64 = st_lookup(tokbuf());
-                        if qsi >= 0 { next_token(); pt = ty_ptr(ty_struct(qsi)); }
-                        else { pt = ty_ptr(ty_byte()); }
-                    } else {
-                        pt = ty_ptr(ty_byte());
-                    }
+                    # v1.1043: 形参 ptr [i64/byte/P]
+                    pt = ty_ptr(parse_ptr_target());
                 } else {
                     # 形参声明成**类名** = this 指针（对标 C++ 的 Rect& self）。
                     # 实现为 ptr(该类)：于是方法体里 self.w 能直接写 ——
@@ -2395,14 +2383,8 @@ fn parse_func() -> i64 {
             rt = ty_bool();
         } else {
         if accept("ptr") == 1 {
-            # v1.1027: -> ptr P 返回类型（指向结构体的指针）
-            if gv(K_TKIND) == 1 {
-                let rpi: i64 = st_lookup(tokbuf());
-                if rpi >= 0 { next_token(); rt = ty_ptr(ty_struct(rpi)); }
-                else { rt = ty_ptr(ty_byte()); }
-            } else {
-                rt = ty_ptr(ty_byte());
-            }
+            # v1.1043: -> ptr [i64/byte/P]
+            rt = ty_ptr(parse_ptr_target());
         } else {
             if gv(K_TKIND) == 1 {
                 let rsi: i64 = st_lookup(tokbuf());
