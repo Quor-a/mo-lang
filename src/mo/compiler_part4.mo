@@ -1046,6 +1046,19 @@ fn func_addr(sy: i64) -> i64 {
 
 # 解析一个类型名，成功返回类型 id，失败返回 -1 并**恢复位置**。
 # 支持：i64 / byte / ptr / 结构体名 / [N] 元素类型
+
+# v1.1057: enum 名作类型 let c: Color = RED; —— enum 是常量命名空间，
+# 类型层面等价 i64。扫描 O_ECNT 表判断该名字是否为已声明 enum。
+fn enum_type_exists(nm: i64) -> i64 {
+    let i: i64 = 0;
+    while i < load64(heap + O_ECNT) {
+        # 🔴 intern 不查重：同名两次 intern 偏移不同，必须比内容
+        if streq(heap + O_NAMES + load64(heap + O_ENAME + i * 8), heap + O_NAMES + nm) == 1 { return 1; }
+        i = i + 1;
+    }
+    return 0;
+}
+
 fn try_parse_type() -> i64 {
     let back: i64 = gv(K_TOKPOS);
     let t: i64 = -1;
@@ -1071,6 +1084,16 @@ fn try_parse_type() -> i64 {
                     if si >= 0 {
                         next_token();
                         t = ty_struct(si);
+                    } else {
+                        # v1.1057: enum 名作类型（等价 i64）
+                        let enm: i64 = intern(tokbuf());
+                        syscall(1, 2, "E?\n", 3, 0, 0, 0);
+                        syscall(1, 2, heap + O_NAMES + enm, strlen(heap + O_NAMES + enm), 0, 0, 0);
+                        syscall(1, 2, "\n", 1, 0, 0, 0);
+                        if enum_type_exists(enm) == 1 {
+                            next_token();
+                            t = ty_int();
+                        }
                     }
                 } else {
                     if tok_is("[") == 1 {

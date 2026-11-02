@@ -3882,6 +3882,19 @@ fn func_addr(sy: i64) -> i64 {
 
 # 解析一个类型名，成功返回类型 id，失败返回 -1 并**恢复位置**。
 # 支持：i64 / byte / ptr / 结构体名 / [N] 元素类型
+
+# v1.1057: enum 名作类型 let c: Color = RED; —— enum 是常量命名空间，
+# 类型层面等价 i64。扫描 O_ECNT 表判断该名字是否为已声明 enum。
+fn enum_type_exists(nm: i64) -> i64 {
+    let i: i64 = 0;
+    while i < load64(heap + O_ECNT) {
+        # 🔴 intern 不查重：同名两次 intern 偏移不同，必须比内容
+        if streq(heap + O_NAMES + load64(heap + O_ENAME + i * 8), heap + O_NAMES + nm) == 1 { return 1; }
+        i = i + 1;
+    }
+    return 0;
+}
+
 fn try_parse_type() -> i64 {
     let back: i64 = gv(K_TOKPOS);
     let t: i64 = -1;
@@ -3907,6 +3920,16 @@ fn try_parse_type() -> i64 {
                     if si >= 0 {
                         next_token();
                         t = ty_struct(si);
+                    } else {
+                        # v1.1057: enum 名作类型（等价 i64）
+                        let enm: i64 = intern(tokbuf());
+                        syscall(1, 2, "E?\n", 3, 0, 0, 0);
+                        syscall(1, 2, heap + O_NAMES + enm, strlen(heap + O_NAMES + enm), 0, 0, 0);
+                        syscall(1, 2, "\n", 1, 0, 0, 0);
+                        if enum_type_exists(enm) == 1 {
+                            next_token();
+                            t = ty_int();
+                        }
                     }
                 } else {
                     if tok_is("[") == 1 {
@@ -6667,7 +6690,14 @@ fn parse_let() -> i64 {
                         et = ty_struct(si);
                         next_token();
                     } else {
-                        return err_at2("unknown type", gv(K_LINE), gv(K_COL));
+                        # v1.1057: enum 名作类型（等价 i64）
+                        let enmL: i64 = intern(tokbuf());
+                        if enum_type_exists(enmL) == 1 {
+                            next_token();
+                            et = ty_int();
+                        } else {
+                            return err_at2("unknown type", gv(K_LINE), gv(K_COL));
+                        }
                     }
                 } else {
                     return err_at2("expected a type", gv(K_LINE), gv(K_COL));
@@ -6756,7 +6786,18 @@ fn parse_let() -> i64 {
                     # v1.1043: ptr [i64/byte/P]
                     vt = ty_ptr(parse_ptr_target());
                 } else {
-                    return err_atp("expected a type", gv(K_PLINE), gv(K_PCOL), gv(K_PPOS));
+                    # v1.1057: enum 名作类型（等价 i64，值即成员常量）
+                    if gv(K_TKIND) == 1 {
+                        let enmS: i64 = intern(tokbuf());
+                        if enum_type_exists(enmS) == 1 {
+                            next_token();
+                            vt = ty_int();
+                        } else {
+                            return err_atp("expected a type", gv(K_PLINE), gv(K_PCOL), gv(K_PPOS));
+                        }
+                    } else {
+                        return err_atp("expected a type", gv(K_PLINE), gv(K_PCOL), gv(K_PPOS));
+                    }
                 }
             }
         }
@@ -8014,7 +8055,14 @@ fn parse_global() -> i64 {
                         et = ty_struct(si);
                         next_token();
                     } else {
-                        return err_at2("unknown type", gv(K_LINE), gv(K_COL));
+                        # v1.1057: enum 名作类型（等价 i64）
+                        let enmL: i64 = intern(tokbuf());
+                        if enum_type_exists(enmL) == 1 {
+                            next_token();
+                            et = ty_int();
+                        } else {
+                            return err_at2("unknown type", gv(K_LINE), gv(K_COL));
+                        }
                     }
                 } else {
                     return err_at2("expected a type", gv(K_LINE), gv(K_COL));
@@ -8107,7 +8155,18 @@ fn parse_global() -> i64 {
             if accept("byte") == 1 {
                 vt = ty_byte();
             } else {
-                return err_atp("expected a type", gv(K_PLINE), gv(K_PCOL), gv(K_PPOS));
+                # v1.1057: enum 名作全局 var 类型（等价 i64）
+                if gv(K_TKIND) == 1 {
+                    let genm: i64 = intern(tokbuf());
+                    if enum_type_exists(genm) == 1 {
+                        next_token();
+                        vt = ty_int();
+                    } else {
+                        return err_atp("expected a type", gv(K_PLINE), gv(K_PCOL), gv(K_PPOS));
+                    }
+                } else {
+                    return err_atp("expected a type", gv(K_PLINE), gv(K_PCOL), gv(K_PPOS));
+                }
             }
         }
     }
@@ -8300,7 +8359,14 @@ fn parse_func() -> i64 {
                             pt = ty_ptr(ty_struct(psi));
                             next_token();
                         } else {
-                            return err_atp("expected a type", gv(K_PLINE), gv(K_PCOL), gv(K_PPOS));
+                            # v1.1057: enum 名作形参类型（等价 i64）
+                            let penm: i64 = intern(tokbuf());
+                            if enum_type_exists(penm) == 1 {
+                                next_token();
+                                pt = ty_int();
+                            } else {
+                                return err_atp("expected a type", gv(K_PLINE), gv(K_PCOL), gv(K_PPOS));
+                            }
                         }
                     } else {
                         return err_atp("expected a type", gv(K_PLINE), gv(K_PCOL), gv(K_PPOS));
@@ -8371,6 +8437,19 @@ fn parse_func() -> i64 {
         } else {
             if gv(K_TKIND) == 1 {
                 let rsi: i64 = st_lookup(tokbuf());
+                let renum: i64 = 0;
+                if rsi < 0 {
+                    # v1.1057: enum 名作返回类型（等价 i64）
+                    let renm: i64 = intern(tokbuf());
+                    if enum_type_exists(renm) == 1 {
+                        next_token();
+                        rt = ty_int();
+                        renum = 1;
+                    }
+                }
+                if renum == 1 {
+                    # enum 命中已消费（rt=ty_int），跳过 struct 路径
+                } else {
                 if rsi < 0 { return err_atp("unknown return type", gv(K_PLINE), gv(K_PCOL), gv(K_PPOS)); }
                 if load64(heap + O_STF + rsi * 8) > 2 {
                     # 3 个字段起要走隐藏指针（System V），暂不支持
@@ -8378,6 +8457,7 @@ fn parse_func() -> i64 {
                 }
                 rt = ty_struct(rsi);
                 next_token();
+                }
             } else {
                 return err_atp("expected a type", gv(K_PLINE), gv(K_PCOL), gv(K_PPOS));
             }
