@@ -671,7 +671,57 @@ fn parse_stmt() -> i64 {
                 if ty_kind(at) == 5 { g_store_at_b(); } else { g_store_at(); }
                 return 0;
             }
-            if ty_kind(ft) == 2 { return err_at2("cannot assign a struct value", gv(K_LINE), gv(K_COL)); }
+            if ty_kind(ft) == 2 {
+                # v1.1059: r.f = Q { ... }; —— 字段整体赋值（字面量）。
+                # rax 已是字段地址（field_addr）。字段地址压栈保存，
+                # 逐字段：值算好 → 弹地址到 rsi → 加偏移 → store。
+                if tok_is("=") == 1 {
+                    let fsq: i64 = gv(K_TOKPOS);
+                    next_token();
+                    if gv(K_TKIND) == 1 {
+                        let fsi: i64 = st_lookup(tokbuf());
+                        if fsi >= 0 {
+                            let fsvp: i64 = gv(K_TOKPOS);
+                            next_token();
+                            if tok_is("{") == 1 {
+                                if ty_si(ft) != fsi { return err_at2("struct assignment requires the same type", gv(K_LINE), gv(K_COL)); }
+                                spill_cache();
+                                emit1(0x50);        # 真 push rax —— 字段基地址（g_push_rax 是 rbx 缓存不是真栈）
+                                sv(K_LAST, 0);
+                                next_token();   # 吃 '{'
+                                while tok_is("}") == 0 {
+                                    if gv(K_TKIND) != 1 { return syntax_error(); }
+                                    let ffni: i64 = 0 - 1;
+                                    let ffi: i64 = 0;
+                                    while ffi < st_nfields(fsi) {
+                                        if streq(tokbuf(), st_field_name(fsi, ffi)) == 1 { ffni = ffi; }
+                                        ffi = ffi + 1;
+                                    }
+                                    if ffni < 0 { return err_at2("struct literal: no such field", gv(K_LINE), gv(K_COL)); }
+                                    next_token();
+                                    expect(":");
+                                    sv(K_LAST, 0);
+                                    parse_expr();
+                                    expect(";");
+                                    spill_cache();
+                                    ops4(0x48, 0x8b, 0x34, 0x24);  # mov rsi,[rsp] = 字段基地址
+                                    if st_field_off(fsi, ffni) != 0 {
+                                        ops2(0x48, 0x81); emit1(0xc6); emit4(st_field_off(fsi, ffni));  # add rsi, off
+                                    }
+                                    ops3(0x48, 0x89, 0x06);  # mov [rsi], rax
+                                }
+                                emit1(0x58);        # pop rax（平衡真栈）
+                                next_token();   # 吃 '}'
+                                expect(";");
+                                return 0;
+                            }
+                            set_pos(fsvp);
+                        }
+                    }
+                    set_pos(fsq);
+                }
+                return err_at2("cannot assign a struct value", gv(K_LINE), gv(K_COL));
+            }
             if tok_is("++") == 1 {
                 next_token();
                 expect(";");
@@ -880,6 +930,15 @@ fn parse_let() -> i64 {
                             expect(";");
                             spill_cache();
                             let fo2: i64 = addr + st_field_off(si, fni);
+                            # v1.1059: 字段值为 struct（嵌套字面量）—— rax 是
+                            # 数据段常量区地址，需整块拷贝（g_struct_copy）。
+                            if ty_kind(R_ETY) == 2 {
+                                if R_SADDR == 0 {
+                                    g_struct_copy(fo2, st_words(ty_si(R_ETY)));
+                                    accept(",");
+                                    continue;
+                                }
+                            }
                             g_movabs_rsi(fo2);
                             ops3(0x48, 0x89, 0x06);   # mov [rsi], rax
                             accept(",");

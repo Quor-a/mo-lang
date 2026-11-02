@@ -1493,6 +1493,14 @@ fn parse_primary() -> i64 {
                 R_ETY = ty_int();
                 return 0;
             }
+            # v1.1059: 嵌套 struct 字面量 Q { x: 1; y: 2; } 作字段值/表达式
+            let lsiP: i64 = st_lookup(scratch1());
+            if lsiP >= 0 {
+                # 主流程已 next：tok 已停在名字之后的 '{'（若为字面量）
+                if tok_is("{") == 1 {
+                    return emit_lit_struct(lsiP);
+                }
+            }
             return undef_err(scratch1());
         }
         if tok_is("[") == 1 {
@@ -2513,7 +2521,9 @@ fn emit_lit_array() -> i64 {
 # 编译期发射到数据段常量区（data_align(16)+逐字段 store），
 # 实参值 = 该区地址。字段名匹配 st_field_name，右值为完整表达式。
 fn emit_lit_struct(si: i64) -> i64 {
+    syscall(1, 2, "ELS\n", 4, 0, 0, 0);
     expect("{");                        # 探测已消费 struct 名，tok 停在 '{'
+    syscall(1, 2, "ELS2\n", 5, 0, 0, 0);
 
     data_align(16);
     let addr: i64 = 268435456 + gv(K_DLEN);
