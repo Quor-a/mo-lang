@@ -6386,6 +6386,45 @@ fn parse_let() -> i64 {
                 # 结构体之后，这条路径就成了自然需求。
                 # 值按 System V 放在 rax（第 0 字段）与 rdx（第 1 字段）。
                 if accept("=") == 1 {
+                    # v1.1048: struct 字面量 let q: Pair = Pair { x: 1, y: 2 };
+                    let svp: i64 = gv(K_TOKPOS);
+                    let litok: i64 = 0;
+                    if gv(K_TKIND) == 1 {
+                        let lsi: i64 = st_lookup(tokbuf());
+                        if lsi == si {
+                            let svp2: i64 = gv(K_TOKPOS);
+                            next_token();
+                            if tok_is("{") == 1 { litok = 1; }
+                            else { set_pos(svp2); }
+                        }
+                    }
+                    if litok == 1 {
+                        next_token();   # 吃 '{'（探测已消费 struct 名）
+
+                        while tok_is("}") == 0 {
+                            if gv(K_TKIND) != 1 { return syntax_error(); }
+                            let fni: i64 = 0 - 1;
+                            let fi2: i64 = 0;
+                            while fi2 < st_nfields(si) {
+                                if streq(tokbuf(), st_field_name(si, fi2)) == 1 { fni = fi2; }
+                                fi2 = fi2 + 1;
+                            }
+                            if fni < 0 { return err_at2("struct literal: no such field", gv(K_LINE), gv(K_COL)); }
+                            next_token();
+                            expect(":");
+                            parse_expr();
+                            expect(";");
+                            spill_cache();
+                            let fo2: i64 = addr + st_field_off(si, fni);
+                            g_movabs_rsi(fo2);
+                            ops3(0x48, 0x89, 0x06);   # mov [rsi], rax
+                            accept(",");
+                        }
+                        next_token();   # 吃 '}'
+                        expect(";");
+                        return 0;
+                    }
+                    set_pos(svp);
                     parse_expr();
                     expect(";");
                     spill_cache();         # 值可能还在 rbx 里，先落回 rax
