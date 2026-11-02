@@ -4293,7 +4293,16 @@ fn parse_primary() -> i64 {
         if sy >= 0 {
             store64(heap + O_SU + sy * 8, 1);
         }
-        if sy < 0 { return undef_err(scratch1()); }
+        if sy < 0 {
+            # v1.1049: 裸 enum 成员作表达式 —— enum_value 兜底（编译期常量）
+            let ev: i64 = enum_value(scratch1());
+            if ev >= 0 {
+                g_movabs_rax(load64(heap + O_EVAL + ev * 8));
+                R_ETY = ty_int();
+                return 0;
+            }
+            return undef_err(scratch1());
+        }
         if tok_is("[") == 1 {
             index_addr(sy);
             let e2: i64 = elem_type(sym_type(sy));
