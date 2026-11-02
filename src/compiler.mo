@@ -3505,6 +3505,27 @@ fn parse_band() -> i64 {
     return 0;
 }
 
+
+# v1.1060: struct 值相等比较 —— 逐 word sete 累积到 r11b。
+# rcx=左地址, rax=右地址。结束后 rax = 1(相等) / 0；invert=1 时取反。
+fn g_struct_eq(n: i64, invert: i64) -> i64 {
+    ops4(0x49, 0xc7, 0xc3, 0x01);            # mov r11, 1
+    emit1(0); emit1(0); emit1(0);
+    let i: i64 = 0;
+    while i < n {
+        let o: i64 = i * 8;
+        ops3(0x48, 0x8b, 0x91); emit4(o);    # mov rdx, [rcx+o]
+        ops3(0x48, 0x39, 0x90); emit4(o);    # cmp [rax+o], rdx
+        emit1(0x41); emit1(0x0f); emit1(0x94); emit1(0xc3);   # sete r11b
+        i = i + 1;
+    }
+    if invert == 1 {
+        emit1(0x45); emit1(0x0f); emit1(0x95); emit1(0xc3);   # setne r11b
+    }
+    ops3(0x4c, 0x89, 0xd8);                  # mov rax, r11
+    return 0;
+}
+
 fn parse_eq() -> i64 {
     parse_rel();
     let lt: i64 = R_ETY;
@@ -3520,10 +3541,18 @@ fn parse_eq() -> i64 {
                 else {
                     # 两侧**都是** str 才做内容比较；一侧是 str 一侧是整数
                     # （典型：`s == 0` 判空）仍按地址比——那才是想要的语义。
-                    if ty_kind(lt) == 10 {
-                        if ty_kind(rt) == 10 { g_str_eq(1); }
-                        else { g_cmp_set(0x94); }
-                    } else { g_cmp_set(0x94); }
+                    if ty_kind(lt) == 2 {
+                        if ty_kind(rt) == 2 {
+                            # v1.1060: struct 值 ==（逐 word）
+                            if ty_si(lt) != ty_si(rt) { return err_atp("struct comparison requires the same type", gv(K_PLINE), gv(K_PCOL), gv(K_PPOS)); }
+                            g_struct_eq(st_words(ty_si(lt)), 0);
+                        } else { g_cmp_set(0x94); }
+                    } else {
+                        if ty_kind(lt) == 10 {
+                            if ty_kind(rt) == 10 { g_str_eq(1); }
+                            else { g_cmp_set(0x94); }
+                        } else { g_cmp_set(0x94); }
+                    }
                 }
             }
             R_ETY = ty_int();
@@ -3538,10 +3567,18 @@ fn parse_eq() -> i64 {
                 else {
                     if ty_kind(rt2) == 6 { g_i2f_rcx(); g_cmp_set_f64(0x95); }
                     else {
-                        if ty_kind(lt) == 10 {
-                            if ty_kind(rt2) == 10 { g_str_eq(0); }
-                            else { g_cmp_set(0x95); }
-                        } else { g_cmp_set(0x95); }
+                        if ty_kind(lt) == 2 {
+                            if ty_kind(rt2) == 2 {
+                                # v1.1060: struct 值 !=（逐 word 取反）
+                                if ty_si(lt) != ty_si(rt2) { return err_atp("struct comparison requires the same type", gv(K_PLINE), gv(K_PCOL), gv(K_PPOS)); }
+                                g_struct_eq(st_words(ty_si(lt)), 1);
+                            } else { g_cmp_set(0x95); }
+                        } else {
+                            if ty_kind(lt) == 10 {
+                                if ty_kind(rt2) == 10 { g_str_eq(0); }
+                                else { g_cmp_set(0x95); }
+                            } else { g_cmp_set(0x95); }
+                        }
                     }
                 }
                 R_ETY = ty_int();
