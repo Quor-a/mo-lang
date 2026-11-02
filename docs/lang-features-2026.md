@@ -78,3 +78,4 @@ let a: [HALF] i64;              # const 作数组长度
 - **函数返回数组**（v1.1079）：`fn mk() -> [3] i64`、`return 数组变量;`（rax=地址约定；调用方 `let q: [3] i64 = mk();` 块拷贝。返回局部数组悬垂，建议返回全局/静态数组）。'->' 返回类型链整体提出为独立 fn parse_ret_type（parse_func 嵌套减 1——再加一层 if/else 就会符号作用域错位）。
 - **len() 扩展**（v1.1080）：`len(str)`（运行时 strlen，需 import "str.mo"）、`len(多维数组)` = 最外维元素个数。
 - **struct 解构**（v1.1081）：`let P { x, y } = r;` —— 字段名按任意顺序逐一 load 到新栈槽（标量字段 load/store；数组/嵌套字段块拷贝）。
+- **嵌套解构**（v1.1082）：`let [[x, y], [z, w]] = m;` —— 子元素逐一 load 到新栈槽（子名按列表平铺，meta 记 start/end）。

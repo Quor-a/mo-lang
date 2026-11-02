@@ -1,3 +1,7 @@
+## [1.1082.0]
+
+- 嵌套解构：`let [[x, y], [z, w]] = m;` —— parse_destructure 收集阶段支持一层 `'[' … ']'` 子列表；meta 记 start/end（🔴 meta 槽 stride 必须 24，否则相邻槽字段重叠）。tests/264(225)。
+
 ## [1.1081.0]
 
 - struct 解构：`let P { x, y } = r;` —— parse_let 探测 ident+`'{'`（struct 表命中）→ parse_struct_destr：字段名任意顺序，标量 load/store、数组/嵌套块拷贝。tests/263(21)。

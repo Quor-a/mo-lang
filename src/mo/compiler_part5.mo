@@ -1064,7 +1064,29 @@ fn parse_destructure(dcln: i64) -> i64 {
     expect("[");
     # 收变量名到 O_SCAL+5800（每 32 字节一个）
     let cnt: i64 = 0;
+    # v1.1082: 嵌套解构 [[x, y], [z, w]] —— meta[i*16]=0 标量 / 1 嵌套
+    let subn: i64 = 0;              # 子名总数（平铺在 +6800）
     while tok_is("]") == 0 {
+        if tok_is("[") == 1 {
+            next_token();
+            store64(heap + O_SCAL + 6600 + cnt * 24, 1);     # nested
+            store64(heap + O_SCAL + 6600 + cnt * 24 + 8, subn);  # 子名起点
+            while tok_is("]") == 0 {
+                if gv(K_TKIND) != 1 { return syntax_error(); }
+                memcpy(heap + O_SCAL + 6800 + subn * 32, tokbuf());
+                subn = subn + 1;
+                next_token();
+                if tok_is(",") == 1 { next_token(); }
+                else { break; }
+            }
+            expect("]");
+            store64(heap + O_SCAL + 6600 + cnt * 24 + 16, subn);   # 子名终点
+            cnt = cnt + 1;
+            if tok_is(",") == 1 { next_token(); }
+            else { break; }
+            continue;
+        }
+        store64(heap + O_SCAL + 6600 + cnt * 24, 0);
         if gv(K_TKIND) != 1 { return syntax_error(); }
         memcpy(heap + O_SCAL + 5800 + cnt * 32, tokbuf());
         cnt = cnt + 1;
@@ -1102,6 +1124,39 @@ fn parse_destructure(dcln: i64) -> i64 {
     let i: i64 = 0;
     let src: i64 = 0;   # 当前元素字节偏移
     while i < cnt {
+        # v1.1082: 嵌套槽 —— 元素是行（数组），子元素逐一 load
+        if load64(heap + O_SCAL + 6600 + i * 24) == 1 {
+            let etin: i64 = ty_a(et);
+            if ty_kind(etin) == 3 { etin = ty_a(etin); }   # m 二维: 元素=行=数组 → 再下: 标量
+            let esz2: i64 = ty_size(etin);
+            let st: i64 = load64(heap + O_SCAL + 6600 + i * 24 + 8);
+            let se2: i64 = st;
+            let subend: i64 = load64(heap + O_SCAL + 6600 + i * 24 + 16);
+            while se2 < subend {
+                if sym_dup(heap + O_SCAL + 6800 + se2 * 32) >= 0 { return err_atp("duplicate definition", gv(K_PLINE), gv(K_PCOL), gv(K_PPOS)); }
+                let vo2: i64 = gv(K_CUROFF);
+                sv(K_CUROFF, vo2 - esz2);
+                let vid2: i64 = sym_add(heap + O_SCAL + 6800 + se2 * 32, 1, vo2, 0);
+                store64(heap + O_STY + vid2 * 8, etin);
+                dbg_var(heap + O_SCAL + 6800 + se2 * 32, vo2, dcln, etin);
+                # rax = &arr + src + (se2-st)*esz2 → load → store vo2
+                if is_local == 1 { g_lea_local(aoff); } else { g_movabs_rax(aoff); }
+                let off2: i64 = src + (se2 - st) * esz2;
+                if off2 > 0 {
+                    g_push_rax();
+                    g_movabs_rax(off2);
+                    g_pop_rcx();
+                    g_add();
+                }
+                ops3(0x48, 0x89, 0xc1);
+                g_load_at();
+                g_store_local(vo2);
+                se2 = se2 + 1;
+            }
+            src = src + stride;
+            i = i + 1;
+            continue;
+        }
         let nm: i64 = heap + O_SCAL + 5800 + i * 32;
         if sym_dup(nm) >= 0 { return err_atp("duplicate definition", gv(K_PLINE), gv(K_PCOL), gv(K_PPOS)); }
         let esz: i64 = ty_size(et);
