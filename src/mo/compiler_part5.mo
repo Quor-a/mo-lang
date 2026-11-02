@@ -2285,6 +2285,7 @@ fn parse_func() -> i64 {
         store64(DFV + fsi * 80 + dvi * 8, 0 - 1);
         dvi = dvi + 1;
     }
+    store64(DFVDONE + fsi * 8, 1);
     let ndf: i64 = 0;
     # 各层函数的符号表基线入栈：EBS[K_NEST] = 本层第一个局部符号下标。
     # cap_depth 靠它算出符号属于往上第几层（K_ENCBASE 只记了一层，深层不够用）。
@@ -2355,6 +2356,7 @@ fn parse_func() -> i64 {
         if accept("=") == 1 {
             let dv: i64 = const_expr();
             store64(DFV + fsi * 80 + nb * 8, dv);
+            store8(DFVHAS + fsi * 8 + nb, 1);
             ndf = nb + 1;
         } else {
             if ndf > 0 {
@@ -2547,7 +2549,86 @@ fn predeclare() -> i64 {
                                 }
                             }
                             if any == 1 { np = np + 1; }
-                            let sid: i64 = sym_add(b, 0, 0, np);
+                                                        let sid: i64 = sym_add(b, 0, 0, np);
+                            # v1.1040: predeclare 顺手抄录形参名 → PNMT，
+                            # 使前向调用的命名实参也能查到形参名。
+                            # 形参形状: [mut] ident ':' ... ',' 或 ')'。
+                            let k2: i64 = q + i + 1;
+                            let pi2: i64 = 0;
+                            let go2: i64 = 1;
+                            while go2 == 1 {
+                                # 跳空白（遇到非空白停住 —— 不是退出）
+                                let wdone: i64 = 0;
+                                while wdone == 0 {
+                                    if k2 >= n { wdone = 1; }
+                                    else {
+                                        let w: i64 = sbyte(k2);
+                                        if w == 32 { k2 = k2 + 1; }
+                                        else {
+                                            if w == 9 { k2 = k2 + 1; }
+                                            else {
+                                                if w == 10 { k2 = k2 + 1; }
+                                                else {
+                                                    if w == 13 { k2 = k2 + 1; }
+                                                    else { wdone = 1; }
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                                if k2 >= n { go2 = 0; }
+                                else {
+                                    # 读一个 ident
+                                    let i3: i64 = 0;
+                                    let c3: i64 = sbyte(k2);
+                                    if is_alnum(c3) == 1 {
+                                        while is_alnum(sbyte(k2 + i3)) == 1 { i3 = i3 + 1; }
+                                    }
+                                    if i3 == 0 { go2 = 0; }
+                                    else {
+                                        # 类型名(如 i64) vs 形参名: 形参名后必须紧跟 ':'（跳空白）
+                                        let k4: i64 = k2 + i3;
+                                        let k5: i64 = k4;
+                                        let sp4: i64 = 0;
+                                        while sp4 < 8 {
+                                            let w4: i64 = sbyte(k5);
+                                            if w4 == 32 { k5 = k5 + 1; sp4 = sp4 + 1; }
+                                            else {
+                                                if w4 == 9 { k5 = k5 + 1; sp4 = sp4 + 1; }
+                                                else { sp4 = 99; }
+                                            }
+                                        }
+                                        if sbyte(k5) == 58 {
+                                            # 形参名: 抄进 scratch2 再 intern
+                                            let b3: i64 = scratch2();
+                                            let t3: i64 = 0;
+                                            while t3 < i3 {
+                                                store8(b3 + t3, sbyte(k2 + t3));
+                                                t3 = t3 + 1;
+                                            }
+                                            store8(b3 + i3, 0);
+                                                                                        if pi2 < 60 {
+                                                store64(PNMT + sid * 256 + pi2 * 8, heap + O_NAMES + intern(b3));
+                                                pi2 = pi2 + 1;
+                                                                                            }
+                                        }
+                                        k2 = k2 + i3;
+                                        # 跳到下一个 ',' 或 ')'
+                                        let go3: i64 = 1;
+                                        while go3 == 1 {
+                                            if k2 >= n { go3 = 0; go2 = 0; }
+                                            else {
+                                                let c5: i64 = sbyte(k2);
+                                                if c5 == 44 { k2 = k2 + 1; go3 = 0; }
+                                                else {
+                                                    if c5 == 41 { go3 = 0; go2 = 0; }
+                                                    else { k2 = k2 + 1; }
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
                         }
                         p = next_line(p);
                     } else {
@@ -4914,6 +4995,7 @@ fn main() -> i64 {
     # 有语法错误（软恢复后）仍生成 elf，让错误行之后的正确代码照常运行；
     # 退出码由调用方按 ERR_N 判 1。
     emit_panic();
+    resolve_defp();
     resolve_all();
 
     let m: i64 = sym_lookup_func("main");

@@ -2845,6 +2845,49 @@ var DFV: [20480] i64 = 0;
 # v1.1039: 形参名表 PNMT[fid*256 + pidx*8] = 名字（tokbuf 可比较的字符串指针）
 # 容量 512 函数 × 64 形参。索引统一 fid*256（与 part5 parse_func 登记处一致）。
 var PNMT: [131072] i64 = 0;
+# v1.1040: 前向调用补默认占位回填表。前向调用时 DFV 还没填(parse 在后)，
+# 先 push 0xb8+emit4(0) 占位，编译尾 resolve_defp() 回填真实默认值。
+# DFP[i*4+0]=输出偏移(emit4 的 4 字节处), +1=fn id, +2=形参 idx, +3=是否已回填
+var DFP: [12288] i64 = 0;
+var DFPN: i64 = 0;
+var DFVDONE: [4096] i64 = 0;
+var DFVHAS: [32768] i64 = 0;   # [fn*8+pidx]=1 表示该形参有默认值（默认值可为任意 i64，含负）
+
+fn defp_add(off: i64, fnid: i64, pidx: i64) -> i64 {
+    let i: i64 = DFPN;
+    if i >= 3072 { return die("too many deferred default-arg patches"); }
+    store64(DFP + i * 32 + 0, off);
+    store64(DFP + i * 32 + 8, fnid);
+    store64(DFP + i * 32 + 16, pidx);
+    DFPN = i + 1;
+    return 0;
+}
+
+# 编译尾回填：把占位的 4 字节立即数改成真实默认值。
+# 若届时仍无默认（DFV==-1）→ 该参数实际无默认，前向跳过它本来就是错误，
+# 但调用点已经 emit 了占位 —— 报错最合适，然而此时源位置已丢失；
+# 直接回填 0 会静默出错。折中：报错到 stderr（无行号）。
+fn resolve_defp() -> i64 {
+    let i: i64 = 0;
+    while i < DFPN {
+        let off: i64 = load64(DFP + i * 32 + 0);
+        let fnid: i64 = load64(DFP + i * 32 + 8);
+        let pidx: i64 = load64(DFP + i * 32 + 16);
+        let dv: i64 = load64(DFV + fnid * 80 + pidx * 8);
+        if load8(DFVHAS + fnid * 8 + pidx) != 1 {
+            die("forward call skips a parameter with no default value");
+        }
+        # movabs 占位是 emit1(0xb8) + emit4(v)：4 字节小端在代码区偏移 off
+        let b2: i64 = heap + O_CODE + off;
+        store8(b2, dv & 255);
+        store8(b2 + 1, (dv / 256) & 255);
+        store8(b2 + 2, (dv / 65536) & 255);
+        store8(b2 + 3, (dv / 16777216) & 255);
+        i = i + 1;
+    }
+    return 0;
+}
+
 
 fn param_index(fid: i64, name: i64) -> i64 {
     let npv: i64 = sym_npar(fid);
@@ -5079,12 +5122,18 @@ fn parse_call() -> i64 {
     let na: i64 = 0;
     # v1.1039: 命名实参 f(b: 2, c: 3)。限制：按形参顺序，跳过的中间形参须有默认值。
     let npre: i64 = 0;   # 已覆盖的形参个数（显式 + 补默认）
+    let hasnamed: i64 = 0;
     while tok_is(")") == 0 {
         let nend: i64 = peek_named_colon();
         if nend == 0 {
+            if hasnamed == 1 {
+                CALLD = CALLD - 1;
+                return err_atp("positional argument after named argument", gv(K_PLINE), gv(K_PCOL), gv(K_PPOS));
+            }
             parse_expr();
             g_push_rax();
             na = na + 1;
+            npre = npre + 1;
             if accept(",") == 0 {
                 if tok_is(")") == 0 { CALLD = CALLD - 1; return syntax_error(); }
             }
@@ -5105,16 +5154,26 @@ fn parse_call() -> i64 {
             let qi: i64 = npre;
             while qi < pidx {
                 let qv: i64 = load64(DFV + pnm * 80 + qi * 8);
-                if qv < 0 {
-                    CALLD = CALLD - 1;
-                    return err_atp("skipped parameter has no default value", gv(K_PLINE), gv(K_PCOL), gv(K_PPOS));
-                }
                 spill_cache();
-                g_movabs_rax(qv);
+                if load64(DFVDONE + pnm * 8) == 0 {
+                    # 前向：DFV/HAS 都还没填，占位回填；无默认由 resolve_defp 判
+                    # 前向调用：DFV 还没填，占位 0xb8+emit4(0)，编译尾回填
+                    emit1(0xb8);
+                    defp_add(gv(K_CLEN), pnm, qi);
+                    emit4(0);
+                    sv(K_LAST, 0);
+                } else {
+                    if load8(DFVHAS + pnm * 8 + qi) != 1 {
+                        CALLD = CALLD - 1;
+                        return err_atp("skipped parameter has no default value", gv(K_PLINE), gv(K_PCOL), gv(K_PPOS));
+                    }
+                    g_movabs_rax(qv);
+                }
                 g_push_rax();
                 qi = qi + 1;
             }
             na = na + (pidx - npre);
+            hasnamed = 1;
             next_token();               # 吃 ':'（当前 token 本来就是 ident，next 后应为 ':'）
             expect(":");
             parse_expr();
@@ -5124,6 +5183,34 @@ fn parse_call() -> i64 {
             if accept(",") == 0 {
                 if tok_is(")") == 0 { CALLD = CALLD - 1; return syntax_error(); }
             }
+        }
+    }
+    # v1.1040: 命名实参后省略的尾部默认参数 —— 就地补齐（前向则占位回填）
+    if hasnamed == 1 {
+        if npre < sym_npar(sym_lookup_func(cscratch())) {
+            let rnpv: i64 = sym_npar(sym_lookup_func(cscratch()));
+            let rfn: i64 = sym_lookup_func(cscratch());
+            let ri: i64 = npre;
+            while ri < rnpv {
+                let rv: i64 = load64(DFV + rfn * 80 + ri * 8);
+                spill_cache();
+                if load64(DFVDONE + rfn * 8) == 0 {
+                    emit1(0xb8);
+                    defp_add(gv(K_CLEN), rfn, ri);
+                    emit4(0);
+                    sv(K_LAST, 0);
+                } else {
+                    if load8(DFVHAS + rfn * 8 + ri) != 1 {
+                        CALLD = CALLD - 1;
+                        return err_atp("skipped parameter has no default value", gv(K_PLINE), gv(K_PCOL), gv(K_PPOS));
+                    }
+                    g_movabs_rax(rv);
+                }
+                g_push_rax();
+                ri = ri + 1;
+            }
+            na = rnpv;
+            npre = rnpv;
         }
     }
     expect(")");
@@ -7610,6 +7697,7 @@ fn parse_func() -> i64 {
         store64(DFV + fsi * 80 + dvi * 8, 0 - 1);
         dvi = dvi + 1;
     }
+    store64(DFVDONE + fsi * 8, 1);
     let ndf: i64 = 0;
     # 各层函数的符号表基线入栈：EBS[K_NEST] = 本层第一个局部符号下标。
     # cap_depth 靠它算出符号属于往上第几层（K_ENCBASE 只记了一层，深层不够用）。
@@ -7680,6 +7768,7 @@ fn parse_func() -> i64 {
         if accept("=") == 1 {
             let dv: i64 = const_expr();
             store64(DFV + fsi * 80 + nb * 8, dv);
+            store8(DFVHAS + fsi * 8 + nb, 1);
             ndf = nb + 1;
         } else {
             if ndf > 0 {
@@ -7872,7 +7961,86 @@ fn predeclare() -> i64 {
                                 }
                             }
                             if any == 1 { np = np + 1; }
-                            let sid: i64 = sym_add(b, 0, 0, np);
+                                                        let sid: i64 = sym_add(b, 0, 0, np);
+                            # v1.1040: predeclare 顺手抄录形参名 → PNMT，
+                            # 使前向调用的命名实参也能查到形参名。
+                            # 形参形状: [mut] ident ':' ... ',' 或 ')'。
+                            let k2: i64 = q + i + 1;
+                            let pi2: i64 = 0;
+                            let go2: i64 = 1;
+                            while go2 == 1 {
+                                # 跳空白（遇到非空白停住 —— 不是退出）
+                                let wdone: i64 = 0;
+                                while wdone == 0 {
+                                    if k2 >= n { wdone = 1; }
+                                    else {
+                                        let w: i64 = sbyte(k2);
+                                        if w == 32 { k2 = k2 + 1; }
+                                        else {
+                                            if w == 9 { k2 = k2 + 1; }
+                                            else {
+                                                if w == 10 { k2 = k2 + 1; }
+                                                else {
+                                                    if w == 13 { k2 = k2 + 1; }
+                                                    else { wdone = 1; }
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                                if k2 >= n { go2 = 0; }
+                                else {
+                                    # 读一个 ident
+                                    let i3: i64 = 0;
+                                    let c3: i64 = sbyte(k2);
+                                    if is_alnum(c3) == 1 {
+                                        while is_alnum(sbyte(k2 + i3)) == 1 { i3 = i3 + 1; }
+                                    }
+                                    if i3 == 0 { go2 = 0; }
+                                    else {
+                                        # 类型名(如 i64) vs 形参名: 形参名后必须紧跟 ':'（跳空白）
+                                        let k4: i64 = k2 + i3;
+                                        let k5: i64 = k4;
+                                        let sp4: i64 = 0;
+                                        while sp4 < 8 {
+                                            let w4: i64 = sbyte(k5);
+                                            if w4 == 32 { k5 = k5 + 1; sp4 = sp4 + 1; }
+                                            else {
+                                                if w4 == 9 { k5 = k5 + 1; sp4 = sp4 + 1; }
+                                                else { sp4 = 99; }
+                                            }
+                                        }
+                                        if sbyte(k5) == 58 {
+                                            # 形参名: 抄进 scratch2 再 intern
+                                            let b3: i64 = scratch2();
+                                            let t3: i64 = 0;
+                                            while t3 < i3 {
+                                                store8(b3 + t3, sbyte(k2 + t3));
+                                                t3 = t3 + 1;
+                                            }
+                                            store8(b3 + i3, 0);
+                                                                                        if pi2 < 60 {
+                                                store64(PNMT + sid * 256 + pi2 * 8, heap + O_NAMES + intern(b3));
+                                                pi2 = pi2 + 1;
+                                                                                            }
+                                        }
+                                        k2 = k2 + i3;
+                                        # 跳到下一个 ',' 或 ')'
+                                        let go3: i64 = 1;
+                                        while go3 == 1 {
+                                            if k2 >= n { go3 = 0; go2 = 0; }
+                                            else {
+                                                let c5: i64 = sbyte(k2);
+                                                if c5 == 44 { k2 = k2 + 1; go3 = 0; }
+                                                else {
+                                                    if c5 == 41 { go3 = 0; go2 = 0; }
+                                                    else { k2 = k2 + 1; }
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
                         }
                         p = next_line(p);
                     } else {
@@ -10239,6 +10407,7 @@ fn main() -> i64 {
     # 有语法错误（软恢复后）仍生成 elf，让错误行之后的正确代码照常运行；
     # 退出码由调用方按 ERR_N 判 1。
     emit_panic();
+    resolve_defp();
     resolve_all();
 
     let m: i64 = sym_lookup_func("main");

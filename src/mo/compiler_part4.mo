@@ -16,6 +16,49 @@ var DFV: [20480] i64 = 0;
 # v1.1039: 形参名表 PNMT[fid*256 + pidx*8] = 名字（tokbuf 可比较的字符串指针）
 # 容量 512 函数 × 64 形参。索引统一 fid*256（与 part5 parse_func 登记处一致）。
 var PNMT: [131072] i64 = 0;
+# v1.1040: 前向调用补默认占位回填表。前向调用时 DFV 还没填(parse 在后)，
+# 先 push 0xb8+emit4(0) 占位，编译尾 resolve_defp() 回填真实默认值。
+# DFP[i*4+0]=输出偏移(emit4 的 4 字节处), +1=fn id, +2=形参 idx, +3=是否已回填
+var DFP: [12288] i64 = 0;
+var DFPN: i64 = 0;
+var DFVDONE: [4096] i64 = 0;
+var DFVHAS: [32768] i64 = 0;   # [fn*8+pidx]=1 表示该形参有默认值（默认值可为任意 i64，含负）
+
+fn defp_add(off: i64, fnid: i64, pidx: i64) -> i64 {
+    let i: i64 = DFPN;
+    if i >= 3072 { return die("too many deferred default-arg patches"); }
+    store64(DFP + i * 32 + 0, off);
+    store64(DFP + i * 32 + 8, fnid);
+    store64(DFP + i * 32 + 16, pidx);
+    DFPN = i + 1;
+    return 0;
+}
+
+# 编译尾回填：把占位的 4 字节立即数改成真实默认值。
+# 若届时仍无默认（DFV==-1）→ 该参数实际无默认，前向跳过它本来就是错误，
+# 但调用点已经 emit 了占位 —— 报错最合适，然而此时源位置已丢失；
+# 直接回填 0 会静默出错。折中：报错到 stderr（无行号）。
+fn resolve_defp() -> i64 {
+    let i: i64 = 0;
+    while i < DFPN {
+        let off: i64 = load64(DFP + i * 32 + 0);
+        let fnid: i64 = load64(DFP + i * 32 + 8);
+        let pidx: i64 = load64(DFP + i * 32 + 16);
+        let dv: i64 = load64(DFV + fnid * 80 + pidx * 8);
+        if load8(DFVHAS + fnid * 8 + pidx) != 1 {
+            die("forward call skips a parameter with no default value");
+        }
+        # movabs 占位是 emit1(0xb8) + emit4(v)：4 字节小端在代码区偏移 off
+        let b2: i64 = heap + O_CODE + off;
+        store8(b2, dv & 255);
+        store8(b2 + 1, (dv / 256) & 255);
+        store8(b2 + 2, (dv / 65536) & 255);
+        store8(b2 + 3, (dv / 16777216) & 255);
+        i = i + 1;
+    }
+    return 0;
+}
+
 
 fn param_index(fid: i64, name: i64) -> i64 {
     let npv: i64 = sym_npar(fid);
@@ -2250,12 +2293,18 @@ fn parse_call() -> i64 {
     let na: i64 = 0;
     # v1.1039: 命名实参 f(b: 2, c: 3)。限制：按形参顺序，跳过的中间形参须有默认值。
     let npre: i64 = 0;   # 已覆盖的形参个数（显式 + 补默认）
+    let hasnamed: i64 = 0;
     while tok_is(")") == 0 {
         let nend: i64 = peek_named_colon();
         if nend == 0 {
+            if hasnamed == 1 {
+                CALLD = CALLD - 1;
+                return err_atp("positional argument after named argument", gv(K_PLINE), gv(K_PCOL), gv(K_PPOS));
+            }
             parse_expr();
             g_push_rax();
             na = na + 1;
+            npre = npre + 1;
             if accept(",") == 0 {
                 if tok_is(")") == 0 { CALLD = CALLD - 1; return syntax_error(); }
             }
@@ -2276,16 +2325,26 @@ fn parse_call() -> i64 {
             let qi: i64 = npre;
             while qi < pidx {
                 let qv: i64 = load64(DFV + pnm * 80 + qi * 8);
-                if qv < 0 {
-                    CALLD = CALLD - 1;
-                    return err_atp("skipped parameter has no default value", gv(K_PLINE), gv(K_PCOL), gv(K_PPOS));
-                }
                 spill_cache();
-                g_movabs_rax(qv);
+                if load64(DFVDONE + pnm * 8) == 0 {
+                    # 前向：DFV/HAS 都还没填，占位回填；无默认由 resolve_defp 判
+                    # 前向调用：DFV 还没填，占位 0xb8+emit4(0)，编译尾回填
+                    emit1(0xb8);
+                    defp_add(gv(K_CLEN), pnm, qi);
+                    emit4(0);
+                    sv(K_LAST, 0);
+                } else {
+                    if load8(DFVHAS + pnm * 8 + qi) != 1 {
+                        CALLD = CALLD - 1;
+                        return err_atp("skipped parameter has no default value", gv(K_PLINE), gv(K_PCOL), gv(K_PPOS));
+                    }
+                    g_movabs_rax(qv);
+                }
                 g_push_rax();
                 qi = qi + 1;
             }
             na = na + (pidx - npre);
+            hasnamed = 1;
             next_token();               # 吃 ':'（当前 token 本来就是 ident，next 后应为 ':'）
             expect(":");
             parse_expr();
@@ -2295,6 +2354,34 @@ fn parse_call() -> i64 {
             if accept(",") == 0 {
                 if tok_is(")") == 0 { CALLD = CALLD - 1; return syntax_error(); }
             }
+        }
+    }
+    # v1.1040: 命名实参后省略的尾部默认参数 —— 就地补齐（前向则占位回填）
+    if hasnamed == 1 {
+        if npre < sym_npar(sym_lookup_func(cscratch())) {
+            let rnpv: i64 = sym_npar(sym_lookup_func(cscratch()));
+            let rfn: i64 = sym_lookup_func(cscratch());
+            let ri: i64 = npre;
+            while ri < rnpv {
+                let rv: i64 = load64(DFV + rfn * 80 + ri * 8);
+                spill_cache();
+                if load64(DFVDONE + rfn * 8) == 0 {
+                    emit1(0xb8);
+                    defp_add(gv(K_CLEN), rfn, ri);
+                    emit4(0);
+                    sv(K_LAST, 0);
+                } else {
+                    if load8(DFVHAS + rfn * 8 + ri) != 1 {
+                        CALLD = CALLD - 1;
+                        return err_atp("skipped parameter has no default value", gv(K_PLINE), gv(K_PCOL), gv(K_PPOS));
+                    }
+                    g_movabs_rax(rv);
+                }
+                g_push_rax();
+                ri = ri + 1;
+            }
+            na = rnpv;
+            npre = rnpv;
         }
     }
     expect(")");
