@@ -6132,6 +6132,51 @@ fn parse_stmt() -> i64 {
         }
         if tok_is("=") == 1 {
             next_token();
+            # v1.1054: p = P { x: 1; y: 2; }; —— 字面量整体赋值。
+            # 探测 ident+'{' 且 ident 是 struct：字段逐一直接 store
+            # 到变量地址（语句层，变量可能是局部或全局，load_sym 前）。
+            if gv(K_TKIND) == 1 {
+                let lsiS: i64 = st_lookup(tokbuf());
+                if lsiS >= 0 {
+                    let svpS: i64 = gv(K_TOKPOS);
+                    next_token();
+                    if tok_is("{") == 1 {
+                        R_SYM = sym_lookup(scratch2());
+                        if R_SYM < 0 { return undef_err(scratch2()); }
+                        let ltS: i64 = sym_type(R_SYM);
+                        if ty_kind(ltS) != 2 { return err_at2("struct literal assigned to non-struct", gv(K_LINE), gv(K_COL)); }
+                        let siS: i64 = ty_si(ltS);
+                        if siS != lsiS { return err_at2("struct assignment requires the same type", gv(K_LINE), gv(K_COL)); }
+                        g_addr_sym_rax(R_SYM);
+                        next_token();   # 吃 '{'（探测已消费 struct 名）
+                        while tok_is("}") == 0 {
+                            if gv(K_TKIND) != 1 { return syntax_error(); }
+                            let fniS: i64 = 0 - 1;
+                            let fiS: i64 = 0;
+                            while fiS < st_nfields(siS) {
+                                if streq(tokbuf(), st_field_name(siS, fiS)) == 1 { fniS = fiS; }
+                                fiS = fiS + 1;
+                            }
+                            if fniS < 0 { return err_at2("struct literal: no such field", gv(K_LINE), gv(K_COL)); }
+                            next_token();
+                            expect(":");
+                            g_movabs_rsi(sym_addr(R_SYM) + st_field_off(siS, fniS));
+                            parse_expr();
+                            expect(";");
+                            spill_cache();
+                            g_pop_rcx();
+                            ops3(0x48, 0x89, 0x06);   # mov [rsi], rax
+                            accept(",");
+                        }
+                        next_token();   # 吃 '}'
+                        expect(";");
+                        R_ETY = ltS;
+                        return 0;
+                    } else {
+                        set_pos(svpS);
+                    }
+                }
+            }
             # 预读右边是否为「单个标识符」。结构体整体赋值需要右边的地址，
             # 所以只支持 标识符 = 标识符；其它形状仍然报错。
             let rhs: i64 = -1;
