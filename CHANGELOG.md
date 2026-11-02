@@ -1,3 +1,7 @@
+## [1.1081.0]
+
+- struct 解构：`let P { x, y } = r;` —— parse_let 探测 ident+`'{'`（struct 表命中）→ parse_struct_destr：字段名任意顺序，标量 load/store、数组/嵌套块拷贝。tests/263(21)。
+
 ## [1.1080.0]
 
 - len() 扩展：`len(str)` 运行时 strlen（rdi 约定，需 import "str.mo"）；`len(多维数组)` = 最外维（此前只支持一维编译期常量）。tests/262(7)。

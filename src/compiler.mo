@@ -7019,6 +7019,79 @@ fn dbg_gvar(nm: i64, addr: i64, ln: i64, ty: i64) -> i64 {
 
 # v1.1073: 数组解构 let [x, y, z] = arr; —— 逐元素拷贝（x_i = arr[i]）。
 # v1 限制：RHS 必须是一维数组变量名；元素 i64（stride 8）。
+# v1.1081: struct 解构 let P { x, y } = r; —— 字段逐一 load 到新栈槽
+fn parse_struct_destr(dcln: i64) -> i64 {
+    let si: i64 = st_lookup(scratch3());   # struct 名由调用点存入 scratch3
+    expect("{");
+    # 收集：字段名 → 名字缓冲 O_SCAL+6200+i*32
+    let cnt: i64 = 0;
+    while tok_is("}") == 0 {
+        if gv(K_TKIND) != 1 { return syntax_error(); }
+        memcpy(heap + O_SCAL + 6200 + cnt * 32, tokbuf());
+        cnt = cnt + 1;
+        next_token();
+        if tok_is(",") == 1 { next_token(); }
+        else { break; }
+    }
+    expect("}");
+    expect("=");
+    if gv(K_TKIND) != 1 { return err_at2("destructure: right side must be a struct variable", gv(K_LINE), gv(K_COL)); }
+    let rs: i64 = sym_lookup(tokbuf());
+    if rs < 0 { return undef_err(tokbuf()); }
+    if ty_kind(sym_type(rs)) != 2 { return err_at2("destructure: right side is not a struct", gv(K_LINE), gv(K_COL)); }
+    if ty_si(sym_type(rs)) != si { return err_at2("destructure: struct type mismatch", gv(K_LINE), gv(K_COL)); }
+    next_token();
+    expect(";");
+    g_addr_sym_rax(rs);         # rax = &r
+    let i: i64 = 0;
+    while i < cnt {
+        let nm: i64 = heap + O_SCAL + 6200 + i * 32;
+        let fi: i64 = 0 - 1;
+        let fj: i64 = 0;
+        while fj < st_nfields(si) {
+            if streq(nm, st_field_name(si, fj)) == 1 { fi = fj; }
+            fj = fj + 1;
+        }
+        if fi < 0 { return err_at2("destructure: no such field", gv(K_LINE), gv(K_COL)); }
+        if sym_dup(nm) >= 0 { return err_atp("duplicate definition", gv(K_PLINE), gv(K_PCOL), gv(K_PPOS)); }
+        let ft: i64 = st_field_type(si, fi);
+        let esz: i64 = ty_size(ft);
+        let vo: i64 = gv(K_CUROFF);
+        sv(K_CUROFF, vo - esz);
+        let vid: i64 = sym_add(nm, 1, vo, 0);
+        store64(heap + O_STY + vid * 8, ft);
+        dbg_var(nm, vo, dcln, ft);
+        # rax 当前 = &r + 已走偏移; 需要绝对：重取源地址 + off
+        g_addr_sym_rax(rs);
+        if st_field_off(si, fi) > 0 {
+            g_push_rax();
+            g_movabs_rax(st_field_off(si, fi));
+            g_pop_rcx();
+            g_add();
+        }
+        if ty_kind(ft) == 0 || ty_kind(ft) == 4 || ty_kind(ft) == 10 {
+            ops3(0x48, 0x89, 0xc1);      # mov rcx, rax
+            g_load_at();                 # rax = [rcx]
+            g_store_local(vo);
+        } else {
+            # 字段是数组/嵌套 struct：块拷贝（rax=源, rsi=目的）
+            ops3(0x48, 0x89, 0xc6);      # mov rsi, rax
+            g_lea_local(vo);             # rax = 目的
+            let nw: i64 = esz / 8;
+            let w: i64 = 0;
+            while w < nw {
+                ops3(0x48, 0x8b, 0x1e);  # mov rbx, [rsi]
+                ops3(0x48, 0x89, 0x18);  # mov [rax], rbx
+                ops4(0x48, 0x83, 0xc0, 0x08);
+                ops4(0x48, 0x83, 0xc6, 0x08);
+                w = w + 1;
+            }
+        }
+        i = i + 1;
+    }
+    return 0;
+}
+
 fn parse_destructure(dcln: i64) -> i64 {
     expect("[");
     # 收变量名到 O_SCAL+5800（每 32 字节一个）
@@ -7113,6 +7186,16 @@ fn parse_let() -> i64 {
     let dcln: i64 = gv(K_LINE);
     # v1.1073: 数组解构 let [x, y, z] = arr;
     if tok_is("[") == 1 { return parse_destructure(dcln); }
+    # v1.1081: struct 解构 let P { x, y } = r;
+    if gv(K_TKIND) == 1 {
+        if st_lookup(tokbuf()) >= 0 {
+            let pkp: i64 = gv(K_TOKPOS);
+            memcpy(scratch3(), tokbuf());
+            next_token();
+            if tok_is("{") == 1 { return parse_struct_destr(dcln); }
+            set_pos(pkp);
+        }
+    }
     memcpy(scratch2(), tokbuf());
     next_token();
     expect(":");
