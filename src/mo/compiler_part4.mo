@@ -2050,12 +2050,31 @@ fn parse_expr_method(osym: i64) -> i64 {
             if mhasnamed == 1 {
                 return err_atp("positional argument after named argument", gv(K_PLINE), gv(K_PCOL), gv(K_PPOS));
             }
+            let slsi: i64 = 0 - 1;
+            if gv(K_TKIND) == 1 {
+                let lsi2: i64 = st_lookup(tokbuf());
+                if lsi2 >= 0 { slsi = lsi2; }
+            }
             if tok_is("[") == 1 {
                 emit_lit_array();
                 g_push_rax();
             } else {
-                parse_expr();
-                g_push_rax();
+                if slsi >= 0 {
+                    # v1.1053: struct 字面量实参探测（ident 后跟 '{'）
+                    let svp3: i64 = gv(K_TOKPOS);
+                    next_token();
+                    if tok_is("{") == 1 {
+                        emit_lit_struct(slsi);
+                        g_push_rax();
+                    } else {
+                        set_pos(svp3);
+                        parse_expr();
+                        g_push_rax();
+                    }
+                } else {
+                    parse_expr();
+                    g_push_rax();
+                }
             }
             na = na + 1;
             mnpre = mnpre + 1;
@@ -2461,6 +2480,44 @@ fn emit_lit_array() -> i64 {
     return cnt;
 }
 
+
+# v1.1053: struct 字面量作函数实参 get(P { x: 1; y: 2; })。
+# 编译期发射到数据段常量区（data_align(16)+逐字段 store），
+# 实参值 = 该区地址。字段名匹配 st_field_name，右值为完整表达式。
+fn emit_lit_struct(si: i64) -> i64 {
+    expect("{");                        # 探测已消费 struct 名，tok 停在 '{'
+
+    data_align(16);
+    let addr: i64 = 268435456 + gv(K_DLEN);
+    let nw: i64 = st_words(si);
+    let j: i64 = 0;
+    while j < nw {
+        dquad(0);
+        j = j + 1;
+    }
+    while tok_is("}") == 0 {
+        if gv(K_TKIND) != 1 { return syntax_error(); }
+        let fni: i64 = 0 - 1;
+        let fi: i64 = 0;
+        while fi < st_nfields(si) {
+            if streq(tokbuf(), st_field_name(si, fi)) == 1 { fni = fi; }
+            fi = fi + 1;
+        }
+        if fni < 0 { return err_at2("struct literal: no such field", gv(K_LINE), gv(K_COL)); }
+        next_token();
+        expect(":");
+        parse_expr();
+        expect(";");
+        g_movabs_rsi(addr + st_field_off(si, fni));
+        ops3(0x48, 0x89, 0x06);         # mov [rsi], rax
+        accept(",");
+    }
+    next_token();                       # 吃 '}'
+    g_movabs_rax(addr);
+    R_ETY = ty_struct(si);
+    return 0;
+}
+
 fn parse_call() -> i64 {
     CALLD = CALLD + 1;
     memcpy(cscratch(), scratch1());
@@ -2492,12 +2549,31 @@ fn parse_call() -> i64 {
                 CALLD = CALLD - 1;
                 return err_atp("positional argument after named argument", gv(K_PLINE), gv(K_PCOL), gv(K_PPOS));
             }
+            let slsi: i64 = 0 - 1;
+            if gv(K_TKIND) == 1 {
+                let lsi2: i64 = st_lookup(tokbuf());
+                if lsi2 >= 0 { slsi = lsi2; }
+            }
             if tok_is("[") == 1 {
                 emit_lit_array();
                 g_push_rax();
             } else {
-                parse_expr();
-                g_push_rax();
+                if slsi >= 0 {
+                    # v1.1053: struct 字面量实参探测（ident 后跟 '{'）
+                    let svp3: i64 = gv(K_TOKPOS);
+                    next_token();
+                    if tok_is("{") == 1 {
+                        emit_lit_struct(slsi);
+                        g_push_rax();
+                    } else {
+                        set_pos(svp3);
+                        parse_expr();
+                        g_push_rax();
+                    }
+                } else {
+                    parse_expr();
+                    g_push_rax();
+                }
             }
             na = na + 1;
             npre = npre + 1;
