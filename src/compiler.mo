@@ -7406,7 +7406,14 @@ fn parse_func() -> i64 {
             rt = ty_bool();
         } else {
         if accept("ptr") == 1 {
-            rt = ty_ptr(ty_byte());
+            # v1.1027: -> ptr P 返回类型（指向结构体的指针）
+            if gv(K_TKIND) == 1 {
+                let rpi: i64 = st_lookup(tokbuf());
+                if rpi >= 0 { next_token(); rt = ty_ptr(ty_struct(rpi)); }
+                else { rt = ty_ptr(ty_byte()); }
+            } else {
+                rt = ty_ptr(ty_byte());
+            }
         } else {
             if gv(K_TKIND) == 1 {
                 let rsi: i64 = st_lookup(tokbuf());
