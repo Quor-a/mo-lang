@@ -274,6 +274,7 @@ var K_OBJSL:   i64 = 608;   # .symtab 长度
 var K_OBJTL:   i64 = 616;   # .strtab 长度
 var K_OBJHL:   i64 = 624;   # .shstrtab 长度
 var K_ESCP:    i64 = 688;   # lex_esc 返回后：下一个待读字符的位置
+var K_VOIDFN:  i64 = 1008;  # 🔴 v1.1036：本函数省略了 "->"（void）——省略时可无 return。1008 与 scratch3(1000)/其他槽无重叠（查重过）
 # --- f-string 插值（f"共 {n} 篇"）---
 var K_FMODE:   i64 = 464;   # 1 = 正在解析一个 f-string（后续引号走片段模式）
 var K_FEND:    i64 = 472;
@@ -7524,7 +7525,9 @@ fn parse_func() -> i64 {
         }
     }
     expect(")");
-    expect("->");
+    # v1.1036: void 函数 —— 省略 "-> i64"（默认返回 i64）
+    let hasarrow: i64 = accept("->");
+    sv(K_VOIDFN, 1 - hasarrow);
     # 返回类型：i64（默认） / ptr / 类名
     #
     # **为什么之前只支持 i64**：结构体与指针返回需要按 System V 处理
@@ -7532,6 +7535,9 @@ fn parse_func() -> i64 {
     # 是最省事的。代价是库函数只能返回 i64 —— 于是 str_trim 这类
     # 明明返回地址的函数，被 sfmt 当成数字打印（只能靠 ptr(v) 绕过）。
     let rt: i64 = ty_int();
+    if hasarrow == 0 {
+        rt = ty_int();
+    } else {
     if accept("str") == 1 {
         rt = ty_str();
     } else {
@@ -7569,6 +7575,7 @@ fn parse_func() -> i64 {
         }
         }
         }
+    }
     }
     }
     store64(heap + O_SRT + fsi * 8, rt);
@@ -7610,7 +7617,10 @@ fn parse_func() -> i64 {
     }
     parse_block(2);
     if gv(K_HASRET) == 0 {
-        return err_atp("missing return statement in a function returning i64", fnln, fncol, fnpos);
+        # v1.1036: void 函数（省略 "->"）可以没有 return
+        if gv(K_VOIDFN) == 0 {
+            return err_atp("missing return statement in a function returning i64", fnln, fncol, fnpos);
+        }
     }
     let frame: i64 = 0 - gv(K_CUROFF);
     # 🔴 序言多了一个 push rbx：进入函数体时 rsp = rbp - 8 - frame。

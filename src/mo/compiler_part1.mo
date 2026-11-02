@@ -274,6 +274,7 @@ var K_OBJSL:   i64 = 608;   # .symtab 长度
 var K_OBJTL:   i64 = 616;   # .strtab 长度
 var K_OBJHL:   i64 = 624;   # .shstrtab 长度
 var K_ESCP:    i64 = 688;   # lex_esc 返回后：下一个待读字符的位置
+var K_VOIDFN:  i64 = 1008;  # 🔴 v1.1036：本函数省略了 "->"（void）——省略时可无 return。1008 与 scratch3(1000)/其他槽无重叠（查重过）
 # --- f-string 插值（f"共 {n} 篇"）---
 var K_FMODE:   i64 = 464;   # 1 = 正在解析一个 f-string（后续引号走片段模式）
 var K_FEND:    i64 = 472;
