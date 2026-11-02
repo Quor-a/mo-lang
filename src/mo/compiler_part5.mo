@@ -934,10 +934,71 @@ fn dbg_gvar(nm: i64, addr: i64, ln: i64, ty: i64) -> i64 {
     return 0;
 }
 
+# v1.1073: 数组解构 let [x, y, z] = arr; —— 逐元素拷贝（x_i = arr[i]）。
+# v1 限制：RHS 必须是一维数组变量名；元素 i64（stride 8）。
+fn parse_destructure(dcln: i64) -> i64 {
+    expect("[");
+    # 收变量名到 O_SCAL+5800（每 32 字节一个）
+    let cnt: i64 = 0;
+    while tok_is("]") == 0 {
+        if gv(K_TKIND) != 1 { return syntax_error(); }
+        memcpy(heap + O_SCAL + 5800 + cnt * 32, tokbuf());
+        cnt = cnt + 1;
+        next_token();
+        if tok_is(",") == 1 { next_token(); }
+        else { break; }
+    }
+    expect("]");
+    expect("=");
+    if gv(K_TKIND) != 1 { return err_at2("destructure: right side must be an array variable", gv(K_LINE), gv(K_COL)); }
+    let asym: i64 = sym_lookup(tokbuf());
+    if asym < 0 { return undef_err(tokbuf()); }
+    let at: i64 = sym_type(asym);
+    if ty_kind(at) != 3 { return err_at2("destructure: right side must be an array", gv(K_LINE), gv(K_COL)); }
+    next_token();
+    expect(";");
+    let et: i64 = ty_a(at);
+    let stride: i64 = ty_size(et);
+    if ty_kind(et) != 0 || stride != 8 { return err_at2("destructure: only i64 arrays supported", gv(K_LINE), gv(K_COL)); }
+    # 数组变量在栈上（local）还是数据段？与 parse_addr 同判据：sym_kind==1
+    let is_local: i64 = sym_kind(asym);
+    let aoff: i64 = sym_addr(asym);
+    let i: i64 = 0;
+    while i < cnt {
+        let nm: i64 = heap + O_SCAL + 5800 + i * 32;
+        if sym_dup(nm) >= 0 { return err_atp("duplicate definition", gv(K_PLINE), gv(K_PCOL), gv(K_PPOS)); }
+        let vo: i64 = gv(K_CUROFF);
+        sv(K_CUROFF, vo - 8);
+        let vid: i64 = sym_add(nm, 1, vo, 0);
+        store64(heap + O_STY + vid * 8, ty_int());
+        dbg_var(nm, vo, dcln, ty_int());
+        # rax = *(arr + i*8)
+        if is_local == 1 {
+            g_lea_local(aoff);         # rax = &arr
+        } else {
+            g_movabs_rax(aoff);        # rax = 绝对地址
+        }
+        if i > 0 {
+            g_push_rax();
+            g_movabs_rax(i * 8);
+            g_pop_rcx();
+            g_add();               # g_add: rax=rax+rcx
+        }
+        # rax = &arr[i] → mov rcx,rax; mov rax,[rcx]
+        ops3(0x48, 0x89, 0xc1);   # mov rcx, rax
+        g_load_at();                  # mov rax, [rcx]
+        g_store_local(vo);
+        i = i + 1;
+    }
+    return 0;
+}
+
 fn parse_let() -> i64 {
     # 声明行要在解析表达式**之前**取：之后 K_LINE 会走到表达式末尾，
     # 记下来的行号就指向右值而不是声明处。
     let dcln: i64 = gv(K_LINE);
+    # v1.1073: 数组解构 let [x, y, z] = arr;
+    if tok_is("[") == 1 { return parse_destructure(dcln); }
     memcpy(scratch2(), tokbuf());
     next_token();
     expect(":");

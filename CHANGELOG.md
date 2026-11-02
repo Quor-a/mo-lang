@@ -1,3 +1,7 @@
+## [1.1073.0]
+
+- 数组解构 `let [x, y, z] = arr;`：parse_let 开头探测 '[' → 独立 parse_destructure()，逐元素 lea 基址 + load/store（判据与 parse_addr 一致用 sym_kind==1）；v1 限一维 i64 数组、RHS 数组变量名。tests/255(138) + examples/destructure.mo。
+
 ## [1.1072.1]
 
 - 🔴 回归修复：v1.1070 引入 for-in 时误删括号形式 for 的 expect("(")——一切 `for (...)` 全崩（tests/132 报 undefined 'let'），run730/731 门禁漏检（当时只统计子串）。恢复 expect("(") 于探测之后。
