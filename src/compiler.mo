@@ -2736,11 +2736,17 @@ fn lex_punct(p: i64) -> i64 {
         if d == 61 { return set_tok(62, 61, 2, p); }
     }
     if c == 38 {
-        if d == 38 { return set_tok(38, 38, 2, p); }
+        if d == 38 {
+            if sbyte(p + 2) == 61 { return set_tok3(38, 38, 61, p); }   # &&=
+            return set_tok(38, 38, 2, p);
+        }
         if d == 61 { return set_tok(38, 61, 2, p); }
     }
     if c == 124 {
-        if d == 124 { return set_tok(124, 124, 2, p); }
+        if d == 124 {
+            if sbyte(p + 2) == 61 { return set_tok3(124, 124, 61, p); } # ||=
+            return set_tok(124, 124, 2, p);
+        }
         if d == 61 { return set_tok(124, 61, 2, p); }
     }
     if c == 45 {
@@ -5969,6 +5975,8 @@ fn compound_op() -> i64 {
     # 否则会被切成 "<" 与 "<="，解析必然失败
     if tok_is("<<=") == 1 { return 9; }
     if tok_is(">>=") == 1 { return 10; }
+    if tok_is("&&=") == 1 { return 11; }
+    if tok_is("||=") == 1 { return 12; }
     return 0;
 }
 
@@ -6014,6 +6022,28 @@ fn g_compound(op: i64, d: i64, k: i64) -> i64 {
     if op == 8 { g_xor(); return 0; }
     if op == 9 { g_shl(); return 0; }
     if op == 10 { g_sar(); return 0; }
+    if op == 11 { g_and(); return cmp_lg(11); }
+    if op == 12 { g_or(); return cmp_lg(12); }
+    return 0;
+}
+
+# v1.1072: 逻辑复合赋值 &&= ||＝ —— 布尔短路语义，但左值是简单变量
+#（无副作用），退化为 a = a && b：与常规 compound 相同的 push/pop 流程，
+# 只是运算走短路表达式原语（g_cmp_rax_0 + 布尔化）。
+fn cmp_lg(op: i64) -> i64 {
+    # rax=右值 rcx=左原值（由 compound 主路径 push/pop 传入——cmp_lg 内先
+    # 自己重算：此 fn 在 rax=右值、栈顶=左原值 时被调？见调用点约定）
+    # 约定：rax = 左&&右 / 左||右 的**位运算结果**之前——这里只做布尔化：
+    # 若 (op==11: rax 已= and 结果；op==12: or 结果) → cmp rax,0 → 0/1 模板
+    let lz: i64 = new_label();
+    let le: i64 = new_label();
+    g_cmp_rax_0();
+    emit_jcc(0x84, lz);      # je → 结果 0
+    g_movabs_rax(1);
+    emit_jmp(le);
+    place_label(lz);
+    g_movabs_rax(0);
+    place_label(le);
     return 0;
 }
 

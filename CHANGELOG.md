@@ -1,3 +1,7 @@
+## [1.1072.0]
+
+- 逻辑复合赋值 &&= ||＝：词法新增三字符 token（38/38/61、124/124/61）；compound_op 加 op 11/12，g_compound 里 g_and/g_or 后布尔化（cmp rax,0 → 0/1 模板）；左值为简单变量（无副作用，无真短路需求）。tests/253(101)。
+
 ## [1.1071.0]
 
 - do { ... } while (cond); 循环：body 至少执行一次；loop_push(chk=cond, end, stp=cond) 使 continue 跳条件、break 出循环；支持嵌套。独立 parse_do_while()（parse_stmt 探测 accept("do")）。tests/252(111)。

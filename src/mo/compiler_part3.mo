@@ -404,11 +404,17 @@ fn lex_punct(p: i64) -> i64 {
         if d == 61 { return set_tok(62, 61, 2, p); }
     }
     if c == 38 {
-        if d == 38 { return set_tok(38, 38, 2, p); }
+        if d == 38 {
+            if sbyte(p + 2) == 61 { return set_tok3(38, 38, 61, p); }   # &&=
+            return set_tok(38, 38, 2, p);
+        }
         if d == 61 { return set_tok(38, 61, 2, p); }
     }
     if c == 124 {
-        if d == 124 { return set_tok(124, 124, 2, p); }
+        if d == 124 {
+            if sbyte(p + 2) == 61 { return set_tok3(124, 124, 61, p); } # ||=
+            return set_tok(124, 124, 2, p);
+        }
         if d == 61 { return set_tok(124, 61, 2, p); }
     }
     if c == 45 {
