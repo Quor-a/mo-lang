@@ -1759,6 +1759,55 @@ fn parse_return() -> i64 {
     if ty_kind(CUR_RET) == 2 {
         let si2: i64 = ty_si(CUR_RET);
         let nf2: i64 = load64(heap + O_STF + si2 * 8);
+        # v1.1055: return P { x: 1; y: 2; }; —— 字面量直接返回。
+        # 字面量发射到数据段常量区，返回时按值拷到 rax/rdx。
+        if gv(K_TKIND) == 1 {
+            let rlsi: i64 = st_lookup(tokbuf());
+            if rlsi >= 0 {
+                let rsvp: i64 = gv(K_TOKPOS);
+                next_token();
+                if tok_is("{") == 1 {
+                    if rlsi != si2 { return err_at2("struct return type mismatch", gv(K_LINE), gv(K_COL)); }
+                    data_align(16);
+                    let raddr: i64 = 268435456 + gv(K_DLEN);
+                    let rj: i64 = 0;
+                    while rj < st_words(si2) { dquad(0); rj = rj + 1; }
+                    next_token();   # 吃 '{'（探测已消费 struct 名）
+                    while tok_is("}") == 0 {
+                        if gv(K_TKIND) != 1 { return syntax_error(); }
+                        let rfi: i64 = 0 - 1;
+                        let rfj: i64 = 0;
+                        while rfj < st_nfields(si2) {
+                            if streq(tokbuf(), st_field_name(si2, rfj)) == 1 { rfi = rfj; }
+                            rfj = rfj + 1;
+                        }
+                        if rfi < 0 { return err_at2("struct literal: no such field", gv(K_LINE), gv(K_COL)); }
+                        next_token();
+                        expect(":");
+                        g_movabs_rsi(raddr + st_field_off(si2, rfi));
+                        parse_expr();
+                        expect(";");
+                        spill_cache();
+                        g_pop_rcx();
+                        ops3(0x48, 0x89, 0x06);   # mov [rsi], rax
+                        accept(",");
+                    }
+                    next_token();   # 吃 '}'
+                    expect(";");
+                    g_movabs_rax(raddr);            # rax = &字面量
+                    ops3(0x48, 0x89, 0xc6);         # mov rsi, rax
+                    ops3(0x48, 0x8b, 0x06);         # mov rax, [rsi]
+                    if nf2 == 2 {
+                        ops3(0x48, 0x8b, 0x56);     # mov rdx, [rsi+8]
+                        emit1(8);
+                    }
+                    g_epilogue();
+                    return 0;
+                } else {
+                    set_pos(rsvp);
+                }
+            }
+        }
         if gv(K_TKIND) != 1 {
             return err_atp("struct return: expected a variable", gv(K_PLINE), gv(K_PCOL), gv(K_PPOS));
         }

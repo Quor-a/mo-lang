@@ -1,3 +1,468 @@
+## [1.1056.0]
+
+- 📋 工程规范补课（评测 P0/P1 回应）：
+  - 补回 CHANGELOG v1.941.0–v1.1054.0 共 114 条（依据 git 提交记录逐版还原，断层消除）；
+  - VERSION 1.940.0 → 1.1054.0（与 tag/代码一致）；
+  - 新增 docs/lang-features-2026.md（新特性总览，覆盖 const 全集/字符串 switch/函数指针/类型化指针/函数签名增强/聚合增强/组件 DSL/诊断告警）；
+  - 新增 4 个新特性示例：examples/const_expr.mo、struct_lit.mo、two_d_array.mo、fnptr_table.mo（全部实测运行验证）。
+- tests 332/332（含 errors），门禁 run713=384/384、自举三级一致。
+
+## [1.1054.0]
+
+- struct 字面量赋值 p = P { ... }(语句层 '=' 后探测, 逐字段直接 store 变量地址; 局部+全局+乱序); tests/233
+
+## [1.1053.0]
+
+- struct 字面量作函数实参(emit_lit_struct 数据段常量区逐字段 store; parse_call/parse_expr_method 双路径探测 ident+'{'; R_ETY=ty_struct); tests/232
+
+## [1.1052.0]
+
+- 组件 _init 自动调用(展开器生成 X_auto 标志, _row 头插条件首调; default 首次渲染生效); tests/231
+
+## [1.1051.0]
+
+- case 算术表达式(enum case 的 +/- 后缀折叠, 与 const 分支对称; 乘除走括号 const_expr v1.998); tests/230
+
+## [1.1050.0]
+
+- 二维数组 [N][M] i64/byte/ptr/struct(dim2 类型链局部+全局; index_addr 多维下标行址保存+内层元素步; 局部 init kind3 放行; 行主布局); tests/228~229
+
+## [1.1049.0]
+
+- 裸 enum 成员作表达式(parse_primary sym<0 处 enum_value 兜底; let/switch case 全链); tests/226~227
+
+## [1.1048.0]
+
+- struct 字面量 let p: P = P { x: 1; y: 2; }(parse_let struct 分支探测 ident+'{'; 字段乱序可 st_field_name 匹配; movabs rsi(addr+off)+store; 右值为完整表达式); tests/224~225
+
+## [1.1047.0]
+
+- 字符串 switch + case 花括号块体(逐 case g_str_eq 内容比较; 判别串 mov r11 保值——g_str_eq 破坏 rax/rcx; case 值存 K_TIVAL 数据段绝对地址; parse_stmt 裸块分支复用 parse_block); tests/222~223
+
+## [1.1046.0]
+
+- const 数组 const A: [N] i64/byte = [...](数据段常量区 data_align(16)+dquad/dbyte; 顶层 kind2 同全局 var 数组; O_STY=ty_array; const_atom 编译期下标 O_DATA 镜像取值含越界检查; 尾部补零); tests/219~221
+
+## [1.1045.0]
+
+- 数组字面量直接作实参 f([1,2,3],3)(emit_lit_array 编译期发射数据段常量区 data_align(16)+dquad, 实参=地址; parse_i64_list 前向调用; 方法路径 parse_expr_method 同步); tests/217~218
+
+## [1.1044.0]
+
+- ptr 算术类型保留(字节步兼容库生态 &arr+i*8; ptr-ptr=地址差; int+ptr 结果 ptr; 内建 load8/load64/call0-3/atomic_cas/syscall R_ETY 防实参 ptr 泄漏); tests/215~216
+
+## [1.1043.0]
+
+- 类型化指针 ptr i64 / ptr byte(parse_ptr_target 助手, 形参/let/返回/[N]ptr 全类型链; ptr i64 索引按元素步; ptr P 保持); tests/214
+
+## [1.1042.0]
+
+- 方法命名实参 c.add(d: 1)(peek_named_colon 探测; 接口方法不支持命名实参报错; 尾部默认就地补齐; v1.1041 无命名路径回归修复 mnpv 恢复); tests/213
+
+## [1.1041.0]
+
+- 方法调用缺省尾部实参补默认值(parse_expr_method 循环后补齐; DFVHAS/DFVDONE/DFP 与 parse_call 同约定; self 传址语义回归确认); tests/212
+
+## [1.1040.0]
+
+- 前向调用命名实参(predeclare 抄录形参名→PNMT; 前向默认值 DFP 占位+resolve_defp 回填; DFVHAS 字节位图区分无默认与负默认; 位置实参须在命名前; 尾部默认就地补齐); tests/209~211
+
+## [1.1039.0]
+
+- 命名实参 f(b: 2)（按形参顺序, 跳过形参须有默认值; 纯源码 peek_named_colon 探测不碰 lexer 状态——tokbuf/next_token 探测曾致大文件假 syntax error; PNMT[fid*256+pidx] 形参名表）; tests/208
+
+## [1.1038.0]
+
+- 默认参数 >6 个(栈参数路径: 补默认升序 push 与显式实参同约定; DFV stride 80 槽9存ndf 修复槽7冲突); tests/207
+
+## [1.1037.0]
+
+- 形参默认值(尾部连续, const; DFV 表 fsi*64+pidx; 调用点缺省补压; 限6参) + DFV 16384 槽修复 fsi>512 越界(曾致 err.mo syntax error 假报); tests/205~206
+
+## [1.1036.0]
+
+- void 函数(省略 -> i64, 无 return 合法; K_VOIDFN=1008 槽) + ptr 形参数组字段 p.v[i] 读写验证; tests/202~204
+
+## [1.1035.0]
+
+- 结构体字段为数组类型 v: [N] T(含 struct 元素) + r.v[i] 读写/嵌套 a[i].x + 字段布局数组宽度 + scratch1/K_TFLT 槽位撞车修复; tests/199~201
+
+## [1.1034.0]
+
+- alignof 数组类型与结构体回归入库; tests/198
+
+## [1.1033.0]
+
+- sizeof 数组类型与结构体回归入库(336 mod 256=80); tests/197
+
+## [1.1032.0]
+
+- 全局标量可省略初始化(var X: i64; 默认0); tests/196
+
+## [1.1031.0]
+
+- 局部结构体数组无初始化回归入库; tests/195
+
+## [1.1030.0]
+
+- 全局数组可省略初始化(var G: [N] T; 默认0填充) + 全局struct数组 [N] P 修复; tests/193+194
+
+## [1.1029.0]
+
+- ptr null 检查习惯用法回归入库(p!=0, q==0, p==&r); tests/192
+
+## [1.1028.0]
+
+- ptr P 链式嵌套字段访问回归入库(p.i.v); tests/191
+
+## [1.1027.0]
+
+- -> ptr P 返回类型(指向结构体的指针); tests/190
+
+## [1.1026.0]
+
+- ptr P 形参(跨函数通过指针修改结构体); tests/189
+
+## [1.1025.0]
+
+- ptr P 指向结构体的指针类型(类型链三处) + &structvar 保留字段后缀路径; tests/188
+
+## [1.1024.0]
+
+- 取数组元素地址 &a[i](parse_addr index_addr); tests/187
+
+## [1.1023.0]
+
+- 取结构体字段地址 &r.x(parse_addr 字段链, field_chain+偏移); tests/186
+
+## [1.1022.0]
+
+- const 内字符字面量 + sizeof 混合回归入库(1675 mod 256=139); tests/185
+
+## [1.1021.0]
+
+- 数组元素函数指针多实参调用回归入库(t[0](a,b) 寄存器分配正确); tests/184
+
+## [1.1020.0]
+
+- 数组元素函数指针直接调用 t[0](x)(push f/实参 push/逆序弹寄存器/pop rax/call rax); tests/183
+
+## [1.1019.0]
+
+- [N] ptr 函数指针表(ty_parse 加 ptr 元素 + &fn 数组字面量/赋值 + struct 字段类型链修复); tests/182
+
+## [1.1018.0]
+
+- 函数指针作返回值回归入库(-> ptr 返回 &fn); tests/181
+
+## [1.1017.0]
+
+- 函数指针相等比较回归入库(f == g, 同地址); tests/180
+
+## [1.1016.0]
+
+- 函数指针调用 f(x)(ptr 变量后跟 () 走 call rax, 配合 &fn 取地址); tests/179
+
+## [1.1015.0]
+
+- 数组作 ptr 参数传递回归入库(ptr 索引按字节 a[i*8]); tests/178
+
+## [1.1014.0]
+
+- 递归 fib(20) 回归入库(6765 mod 256=109); tests/177
+
+## [1.1013.0]
+
+- 字符字面量与整数比较/运算回归入库('A'==65, 'z'-'a'); tests/176
+
+## [1.1012.0]
+
+- 字符串 <= >= 回归入库(1111 mod 256=87); tests/175
+
+## [1.1011.0]
+
+- 字符串 > 与负数取模 C 语义回归入库(abc>abb, -7%3=-1); tests/173+174
+
+## [1.1010.0]
+
+- f-string 内嵌 const 回归入库(X={X}); tests/172
+
+## [1.1009.0]
+
+- f-string 表达式插值回归入库({n + 1} 完整表达式); tests/171
+
+## [1.1008.0]
+
+- 字符串字典序比较回归入库(abc<abd, zzz<abc=0); tests/170
+
+## [1.1007.0]
+
+- 字符串 == / != 比较回归入库(功能已有, tests/169 固化)
+
+## [1.1006.0]
+
+- const 错误软恢复(消费到 ';' 继续解析后续定义); tests/168 + errors/e26/e27
+
+## [1.1005.0]
+
+- -Wall while 常量条件告警(与 if 对称); tests/167
+
+## [1.1004.0]
+
+- -Wall 常量条件告警(if (0)/if (1), set_pos 探测不影响解析); tests/166
+
+## [1.1003.0]
+
+- const 比较(== != < <= > >= 编译期求值); tests/165
+
+## [1.1002.0]
+
+- const 逻辑与/或(1 && 1, 0 || 0 编译期求值); tests/164
+
+## [1.1001.0]
+
+- sym_lookup 首字符+长度预过滤(自举热点优化, qemu 下噪声掩盖但减少 streq 全串比较); tests/163
+
+## [1.1000.0]
+
+- 🔴 case/数组长度使用 const 补 O_SU used 标记(-Wall 误报 unused const 根修); tests/162
+
+## [1.999.0]
+
+- case 数字路径后缀接 const/enum 原子(case 0 - N); tests/161
+
+## [1.998.0]
+
+- case 括号表达式 case (N * 2) - 1(sw_const 括号分支+后缀折叠); tests/160
+
+## [1.997.0]
+
+- const 作 hist/min 属性(DSL 整数属性 const 化收官, 与 rows/width/max 对称); tests/159
+
+## [1.996.0]
+
+- const 作 component gauge max 属性; tests/158
+
+## [1.995.0]
+
+- 编译期 alignof 进 const 表达式(与 sizeof 对称); tests/157
+
+## [1.994.0]
+
+- 数组字面量 >512 元素响亮报错(原静默截断 0 填充数据损坏); tests/156 + errors/e25
+
+## [1.993.0]
+
+- 编译期 sizeof 进 const 表达式(sizeof([8] i64)=64); tests/155
+
+## [1.992.0]
+
+- const 表达式 enum 点访问(E.A 形式, enum_lookup+set_pos 回退); tests/154
+
+## [1.991.0]
+
+- const 重复定义报错(duplicate definition, sym_dup 前置检查); tests/153 + errors/e24
+
+## [1.990.0]
+
+- const 位运算 & | ^(const_expr 最低优先级层); tests/152
+
+## [1.989.0]
+
+- 局部 const 声明(函数体内 const, parse_stmt 分支不预消费); tests/151
+
+## [1.988.0]
+
+- const 取模与移位(N % 4, 1 << 3, 与运行时 %/<<//>> 对应); tests/150
+
+## [1.987.0]
+
+- -Wall 未使用 const 警告(kind 4 纳入 unused 扫描, unused const 消息); tests/149
+
+## [1.986.0]
+
+- const 作 enum 显式值(A = BASE, 后续成员自动递增); tests/148
+
+## [1.985.0]
+
+- const/enum 作数组字面量元素(parse_i64_list const 分支); tests/147
+
+## [1.984.0]
+
+- const 表达式作全局 var 初始化器(var X: i64 = MAX * 2, const_expr 复用); tests/146
+
+## [1.983.0]
+
+- const 作 component 字段 width; tests/145
+
+## [1.982.0]
+
+- const 作 component rows(rows 常量名支持); tests/144
+
+## [1.981.0]
+
+- enum 值用于 const 表达式(const_atom 枚举原子, GREEN + 1 编译期折叠); tests/143
+
+## [1.980.0]
+
+- const 除零编译期报错(const: division by zero, 不再段错误); tests/142
+
+## [1.979.0]
+
+- case 表达式 const A + 1(sw_const const 分支后缀 +/- 折叠, 修复 v1.978 误判的双消费根因); tests/141
+
+## [1.978.0]
+
+- sw_const 幂等性文档化(case A+1 尝试回退, 两遍调用不对称根因注释); 无行为变更
+
+## [1.977.0]
+
+- const 用作 case 标签 + 🔴 switch 报错路径死循环根修(sw_fail 统一出口消费 {...}; sw_scan 表达式/主循环 EOF 守卫); tests/140
+
+## [1.976.0]
+
+- const 一元负号/正号(const_atom 前缀分支, -NEG*3 嵌套求值); tests/139
+
+## [1.975.0]
+
+- const 用作数组长度(let a: [MAX] i64, 两处数组长度解析点接入 kind 4 查表); tests/138
+
+## [1.974.0]
+
+- 顶层 const 声明 + 编译期常量折叠(parse_const/const_expr 递归下降, kind 4 符号 O_SCV 值表, 使用点 movabs 立即数); tests/137
+
+## [1.973.0]
+
+- -Wall 未使用全局变量警告(kind 2 纳入扫描, 消息区分 function/global); tests/136
+
+## [1.972.0]
+
+- -Wall 未使用函数警告(K_WARN 槽位冲突 K_FMODE 根修 464→648; O_SWN 文件过滤; 调用点 O_SU 标记; 虚表扫描兜底); tests/135
+
+## [1.971.0]
+
+- 语法错误恢复 ERR_BUF/软恢复/ERR_DUP 死循环守卫/err_atp+err_at2 软化计 NBER/elf 仍生成; tests/134
+
+## [1.970.0]
+
+- component 新增 title 属性（grid 标题行）
+
+## [1.969.0]
+
+- component 新增 sep 属性（grid 行间分隔线）
+
+## [1.968.0]
+
+- component 新增 fmt 属性（数值进制渲染）
+
+## [1.967.0]
+
+- component 新增 default 属性（init 函数默认值填充）
+
+## [1.966.0]
+
+- component 新增 rows N 声明属性（生成 grid 函数）
+
+## [1.965.0]
+
+- component 新增 suffix 属性（num 值后缀渲染）
+
+## [1.964.0]
+
+- component 新增 prefix 属性（num 值前缀渲染）
+
+## [1.963.0]
+
+- component 新增 min/max 属性（setter 数值钳制）
+
+## [1.962.0]
+
+- component 新增 on_hover 回调属性
+
+## [1.961.0]
+
+- component 新增 on_click 回调属性
+
+## [1.960.0]
+
+- num 字段 hist N 模式（历史均值渲染）
+
+## [1.959.0]
+
+- pct/delta 字段 hist N 模式（历史均值渲染）
+
+## [1.958.0]
+
+- bar 字段新增 hist N 模式（历史均值渲染）
+
+## [1.957.0]
+
+- spark 字段新增 hist N 历史走势模式
+
+## [1.956.0]
+
+- component 新增 hidden 属性
+
+## [1.955.0]
+
+- delta 字段超宽截断
+
+## [1.954.0]
+
+- num/pct 字段超宽截断
+
+## [1.953.0]
+
+- text 字段超宽截断 + 🔴 修复 CMP_BUF 类型根因
+
+## [1.952.0]
+
+- align right 推广到 pct/delta 字段
+
+## [1.951.0]
+
+- align right 推广到 num 字段
+
+## [1.950.0]
+
+- component 新增 align 属性（text 字段右对齐）
+
+## [1.949.0]
+
+- component 新增 delta 字段类型（▲▼ 涨跌差值渲染）
+
+## [1.948.0]
+
+- component 新增 pct 字段类型（百分比文本渲染）
+
+## [1.947.0]
+
+- component 新增 spark 字段类型（迷你负载条渲染）
+
+## [1.946.0]
+
+- 重构 component 扩展渲染分支为独立函数 cmp_row_ext
+
+## [1.945.0]
+
+- component 新增 hex 字段类型（十六进制渲染）
+
+## [1.944.0]
+
+- component 新增 kv 字段类型（键值文本渲染）
+
+## [1.943.0]
+
+- component 新增 gauge 字段类型（块字符仪表渲染）
+
+## [1.942.0]
+
+- component 新增 bar 字段类型（进度条渲染）
+
+## [1.941.0]
+
+- 编译器原生 component 展开支持
+
 ## [1.940.0]
 
 - lib/uic_edge.mo 继续新增边缘任务画布组件（v1.931~v1.940，10 个）：
