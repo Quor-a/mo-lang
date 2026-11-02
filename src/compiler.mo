@@ -4839,8 +4839,13 @@ fn parse_expr_method(osym: i64) -> i64 {
             if mhasnamed == 1 {
                 return err_atp("positional argument after named argument", gv(K_PLINE), gv(K_PCOL), gv(K_PPOS));
             }
-            parse_expr();
-            g_push_rax();
+            if tok_is("[") == 1 {
+                emit_lit_array();
+                g_push_rax();
+            } else {
+                parse_expr();
+                g_push_rax();
+            }
             na = na + 1;
             mnpre = mnpre + 1;
             if accept(",") == 0 {
@@ -5228,6 +5233,23 @@ fn parse_print_fmt() -> i64 {
     return 0;
 }
 
+
+# v1.1045: 数组字面量直接作实参 f([1,2,3], 3)。
+# 编译期把字面量发射到数据段常量区（data_align(16) 对齐 + dquad 逐元素），
+# 实参值 = 该区地址。O_LSTV 由 parse_i64_list 填充（part5，前向调用）。
+fn emit_lit_array() -> i64 {
+    let cnt: i64 = parse_i64_list();
+    data_align(16);
+    let addr: i64 = 268435456 + gv(K_DLEN);
+    let i: i64 = 0;
+    while i < cnt {
+        dquad(load64(heap + O_LSTV + i * 8));
+        i = i + 1;
+    }
+    g_movabs_rax(addr);
+    return cnt;
+}
+
 fn parse_call() -> i64 {
     CALLD = CALLD + 1;
     memcpy(cscratch(), scratch1());
@@ -5259,8 +5281,13 @@ fn parse_call() -> i64 {
                 CALLD = CALLD - 1;
                 return err_atp("positional argument after named argument", gv(K_PLINE), gv(K_PCOL), gv(K_PPOS));
             }
-            parse_expr();
-            g_push_rax();
+            if tok_is("[") == 1 {
+                emit_lit_array();
+                g_push_rax();
+            } else {
+                parse_expr();
+                g_push_rax();
+            }
             na = na + 1;
             npre = npre + 1;
             if accept(",") == 0 {
