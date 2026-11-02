@@ -3509,18 +3509,22 @@ fn parse_band() -> i64 {
 # v1.1060: struct 值相等比较 —— 逐 word sete 累积到 r11b。
 # rcx=左地址, rax=右地址。结束后 rax = 1(相等) / 0；invert=1 时取反。
 fn g_struct_eq(n: i64, invert: i64) -> i64 {
-    ops4(0x49, 0xc7, 0xc3, 0x01);            # mov r11, 1
-    emit1(0); emit1(0); emit1(0);
+    sv(K_LAST, 0);
+    ops3(0x49, 0xc7, 0xc3); emit4(1);        # mov r11, 1（imm32）
     let i: i64 = 0;
     while i < n {
         let o: i64 = i * 8;
         ops3(0x48, 0x8b, 0x91); emit4(o);    # mov rdx, [rcx+o]
         ops3(0x48, 0x39, 0x90); emit4(o);    # cmp [rax+o], rdx
-        emit1(0x41); emit1(0x0f); emit1(0x94); emit1(0xc3);   # sete r11b
+        # 🔴 v1.1063 修正: sete 覆盖 r11b 会丢前几 word 结果（只看最后 word）。
+        # 改累积: sete r10b; and r11b, r10b
+        emit1(0x41); emit1(0x0f); emit1(0x94); emit1(0xc2);   # sete r10b
+        ops3(0x45, 0x20, 0xd3);              # and r11b, r10b
         i = i + 1;
     }
     if invert == 1 {
-        emit1(0x45); emit1(0x0f); emit1(0x95); emit1(0xc3);   # setne r11b
+        # 🔴 v1.1063: 不能 setne（覆盖累积）— 用 xor r11b, 1 取反
+        ops4(0x41, 0x80, 0xf3, 0x01);   # xor r11b, 1
     }
     ops3(0x4c, 0x89, 0xd8);                  # mov rax, r11
     return 0;
@@ -3548,10 +3552,16 @@ fn parse_eq() -> i64 {
                             g_struct_eq(st_words(ty_si(lt)), 0);
                         } else { g_cmp_set(0x94); }
                     } else {
+                        # v1.1063: 数组值 ==（逐元素，word 布局）
+                        if ty_kind(lt) == 3 {
+                            if ty_kind(rt) != 3 { return err_atp("array comparison requires the same type", gv(K_PLINE), gv(K_PCOL), gv(K_PPOS)); }
+                            g_struct_eq(ty_size(lt) / 8, 0);
+                        } else {
                         if ty_kind(lt) == 10 {
                             if ty_kind(rt) == 10 { g_str_eq(1); }
                             else { g_cmp_set(0x94); }
                         } else { g_cmp_set(0x94); }
+                        }
                     }
                 }
             }
@@ -3574,10 +3584,16 @@ fn parse_eq() -> i64 {
                                 g_struct_eq(st_words(ty_si(lt)), 1);
                             } else { g_cmp_set(0x95); }
                         } else {
+                            # v1.1063: 数组值 !=（逐元素取反）
+                            if ty_kind(lt) == 3 {
+                                if ty_kind(rt2) != 3 { return err_atp("array comparison requires the same type", gv(K_PLINE), gv(K_PCOL), gv(K_PPOS)); }
+                                g_struct_eq(ty_size(lt) / 8, 1);
+                            } else {
                             if ty_kind(lt) == 10 {
                                 if ty_kind(rt2) == 10 { g_str_eq(0); }
                                 else { g_cmp_set(0x95); }
                             } else { g_cmp_set(0x95); }
+                            }
                         }
                     }
                 }
