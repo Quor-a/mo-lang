@@ -1,3 +1,11 @@
+## 1.1105.0
+- match struct 模式移植到表达式版（parse_match_expr）：发射段（r11 保值 +
+  逐字段 cmp 链 + 全绑定臂 emit_jmp）与第二遍臂循环（吃 token + 建绑定
+  符号 + place 后 store）全部抄语句版 v1.1103/1104。
+- 🔴 排坑：scan 与第二遍建符号都不能用 scratch2 —— 推断 let 的变量名
+  存在 scratch2（parse_let 记下、parse_expr 后才 sym_add），被覆盖导致
+  外层变量 undefined。统一用 scratch3。
+
 ## 1.1104.0
 - match struct 模式支持字段绑定变量：`P { y: v; }` —— 臂内 v = r.y（i64）。
   scan 记绑定名（O_SWSB 区，intern id）；发射在 place_label(臂) 之后统一

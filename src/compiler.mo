@@ -9117,8 +9117,10 @@ fn mt_scan(vals: i64) -> i64 {
                     store64(heap + O_SWSM + (smbase + 2 + cnt * 2) * 8, foff);
                     # v1.1104: 字段值为标识符 → 绑定变量（capture）
                     if gv(K_TKIND) == 1 {
-                        memcpy(scratch2(), tokbuf());   # 绑定名
-                        store64(heap + O_SWSB + (smbase/64*31 + cnt) * 8, intern(scratch2()));
+                        # 🔴 scratch2 存着推断 let 的变量名（parse_let 记下，声明
+                        # 在 parse_expr 之后 sym_add）—— 必须用 scratch3
+                        memcpy(scratch3(), tokbuf());   # 绑定名
+                        store64(heap + O_SWSB + (smbase/64*31 + cnt) * 8, intern(scratch3()));
                         store64(heap + O_SWSM + (smbase + 3 + cnt * 2) * 8, 0 - 1);
                         next_token();
                     } else {
@@ -9443,8 +9445,44 @@ fn parse_match_expr(hs_off: i64) -> i64 {
             i = i + 1;
         }
     } else {
+        # v1.1105: 任一 struct 模式臂 → 判别对象地址保 r11（数字臂不用 r11）
+        let smany: i64 = 0;
+        let smq2: i64 = 0;
+        while smq2 < n {
+            if load64(heap + O_SWSN + smq2 * 8) == 1 { smany = 1; }
+            smq2 = smq2 + 1;
+        }
+        if smany == 1 { ops3(0x49, 0x89, 0xc3); }    # mov r11, rax
         i = 0;
         while i < n {
+            if load64(heap + O_SWSN + i * 8) == 1 {
+                # v1.1105: struct 模式（抄语句版 v1.1103）—— r11=对象地址，
+                # 逐字段 mov rsi,r11 / mov rax,[rsi+off] / cmp imm32 / jne smfail
+                ops3(0x4c, 0x89, 0xde);              # mov rsi, r11
+                let smk: i64 = 0;
+                let smcnt: i64 = load64(heap + O_SWSM + ((i * 64) + 1) * 8);
+                let smf: i64 = new_label();
+                let smcmp: i64 = 0;
+                while smk < smcnt {
+                    if load64(heap + O_SWSM + ((i * 64) + 3 + smk * 2) * 8) != 0 - 1 {
+                        smcmp = 1;
+                        emit1(0x48); emit1(0x8b); emit1(0x86); emit4(load64(heap + O_SWSM + ((i * 64) + 2 + smk * 2) * 8));
+                        emit1(0x48); emit1(0x3d); emit4(load64(heap + O_SWSM + ((i * 64) + 3 + smk * 2) * 8));
+                        emit_jcc(0x85, smf);
+                    }
+                    smk = smk + 1;
+                }
+                if smcmp == 0 {
+                    emit_jmp(load64(lbls + i * 8));  # 全绑定臂无条件进
+                    place_label(smf);
+                    i = i + 1;
+                    continue;
+                }
+                emit_jcc(0x84, load64(lbls + i * 8));    # je 臂
+                place_label(smf);
+                i = i + 1;
+                continue;
+            }
             emit1(0x48); emit1(0x3d); emit4(load64(vals + i * 8));   # cmp rax, imm32
             emit_jcc(0x84, load64(lbls + i * 8));                    # je
             i = i + 1;
@@ -9481,13 +9519,57 @@ fn parse_match_expr(hs_off: i64) -> i64 {
         }
         accept(",");                        # 臂间逗号（首臂无害）
         place_label(load64(lbls + i * 8));
-        if load64(heap + SWSTR + i * 8) == 1 {
-            next_token();                   # v1.1102: 字符串模式（值已在 scan 录入）
+        if load64(heap + O_SWSN + i * 8) == 1 {
+            # v1.1105: struct 模式 —— 吃 token + 建绑定符号 + place 后 store
+            let smbi: i64 = i * 64;
+            let smn2: i64 = load64(heap + O_SWSM + (smbi + 1) * 8);
+            next_token();                   # struct 名
+            expect("{");
+            let smk2: i64 = 0;
+            while smk2 < smn2 {
+                next_token();               # 字段名
+                next_token();               # ':'
+                let bval2: i64 = load64(heap + O_SWSM + (smbi + 3 + smk2 * 2) * 8);
+                if bval2 == 0 - 1 {
+                    let bvid2: i64 = load64(heap + O_SWSB + ((smbi/64) * 31 + smk2) * 8);
+                    # 🔴 不能用 scratch2 —— 表达式版外层 let 的变量名还活在 scratch2
+                    memcpy(scratch3(), heap + O_NAMES + bvid2);
+                    let boff2: i64 = gv(K_CUROFF) - 8;
+                    sv(K_CUROFF, boff2);
+                    if sym_dup(scratch3()) >= 0 { return err_atp("duplicate definition", gv(K_PLINE), gv(K_PCOL), gv(K_PPOS)); }
+                    let bid2: i64 = sym_add(scratch3(), 1, boff2, 0);
+                    store64(heap + O_STY + bid2 * 8, ty_int());
+                    store64(heap + O_SWC + (i * 8), boff2);
+                } else {
+                    next_token();           # 常量值
+                }
+                next_token();               # ';'
+                smk2 = smk2 + 1;
+            }
+            while tok_is("}") == 0 {
+                if gv(K_TKIND) == 0 { return -1; }
+                next_token();
+            }
+            next_token();                   # '}'
+            # place 已过 → 立即发射绑定 store（数据驱动，地址在 r11）
+            let sbk2: i64 = 0;
+            while sbk2 < smn2 {
+                if load64(heap + O_SWSM + (smbi + 3 + sbk2 * 2) * 8) == 0 - 1 {
+                    ops3(0x4c, 0x89, 0xde);              # mov rsi, r11
+                    emit1(0x48); emit1(0x8b); emit1(0x86); emit4(load64(heap + O_SWSM + (smbi + 2 + sbk2 * 2) * 8));
+                    g_store_local(load64(heap + O_SWC + (i * 8)));
+                }
+                sbk2 = sbk2 + 1;
+            }
         } else {
-            if sw_const(heap + O_SWC) == 0 {
-                sv(K_DEPTH, d - 1);
-                store64(heap + O_SWTOP, base);
-                return err_atp("match: 模式必须是编译期常量", gv(K_PLINE), gv(K_PCOL), gv(K_PPOS));
+            if load64(heap + SWSTR + i * 8) == 1 {
+                next_token();                   # v1.1102: 字符串模式（值已在 scan 录入）
+            } else {
+                if sw_const(heap + O_SWC) == 0 {
+                    sv(K_DEPTH, d - 1);
+                    store64(heap + O_SWTOP, base);
+                    return err_atp("match: 模式必须是编译期常量", gv(K_PLINE), gv(K_PCOL), gv(K_PPOS));
+                }
             }
         }
         expect("=>");
