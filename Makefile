@@ -163,8 +163,13 @@ $(SEED): $(ASM)/base.s $(ASM)/lex.s $(ASM)/sym.s $(ASM)/expr.s $(ASM)/stmt.s $(A
 	cd $(ASM) && ld -o ../../$(SEED) base.o lex.o sym.o expr.o stmt.o main.o
 
 $(MOC): $(SEED) src/compiler.mo | bin
-	@echo "== 用 seed 编译 compiler.mo =="
-	./build.sh self $(SEED)
+	@if [ -x bin/moc ]; then \
+	  echo "== 自举：用现有 moc 重编 compiler.mo（seed 仅支持语言子集，完整链见 verify_bootstrap.sh） =="; \
+	  ./bin/moc src/compiler.mo bin/moc.new && mv bin/moc.new bin/moc; \
+	else \
+	  echo "== Stage0：用 seed 编译 compiler.mo（要求 compiler.mo 限于 seed 子集） =="; \
+	  ./build.sh self $(SEED); \
+	fi
 
 test: $(MOC)
 	bash tests/run.sh $(MOC) | tail -3
@@ -189,7 +194,7 @@ seedalign: $(MOC)
 seedalignpy:
 	@python3 tools/seedalign.py
 
-boot: $(MOC)
+boot: $(SEED)
 	bash verify_bootstrap.sh
 
 # 代码体积度量：给出基线与各冗余模式占比，让优化可量化、可回归
