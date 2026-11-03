@@ -1650,6 +1650,12 @@ fn g_syscall() -> i64 { ops2(0x0f, 0x05); return 0; }
 
 # rax = rcx - rax
 fn g_sub() -> i64 {
+    # v1.1113: 右值为编译期常量时折叠为 sub rax,imm（省 pop rcx + sub + mov 3 条）
+    if try_fold_rhs() == 1 {
+        emit1(0x58);
+        g_imm_g1(0xe8, 0x2d);
+        return 0;
+    }
     ops3(0x48, 0x29, 0xc1);
     g_mov_rax_rcx();
     return 0;
@@ -1840,17 +1846,15 @@ fn g_idiv(mode: i64) -> i64 {
 }
 
 fn g_shl() -> i64 {
-    g_mov_rbx_rax();
-    g_mov_rax_rcx();
-    g_mov_rcx_rbx();
+    # v1.1113: xchg 代替 3 条 mov（12B/4条 → 6B/2条）
+    ops2(0x48, 0x91);
     ops3(0x48, 0xd3, 0xe0);
     return 0;
 }
 
 fn g_sar() -> i64 {
-    g_mov_rbx_rax();
-    g_mov_rax_rcx();
-    g_mov_rcx_rbx();
+    # v1.1113: xchg 代替 3 条 mov
+    ops2(0x48, 0x91);
     ops3(0x48, 0xd3, 0xf8);
     return 0;
 }
