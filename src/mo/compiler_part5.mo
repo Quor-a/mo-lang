@@ -3530,6 +3530,27 @@ fn parse_func() -> i64 {
                     # v1.1043: 形参 ptr [i64/byte/P]
                     pt = ty_ptr(parse_ptr_target());
                 } else {
+                if tok_is("[") == 1 {
+                    # v1.1087: 数组形参 fn sum(a: [3] i64) —— 一维数组按
+                    # ptr(元素) 传入（实参数组退化为首地址，a[i] 标量步长）。
+                    # 长度信息不随参数传递（调用方需自行传 len）。
+                    next_token();
+                    let dimp: i64 = 0;
+                    if gv(K_TKIND) == 2 { dimp = gv(K_TIVAL); next_token(); }
+                    expect("]");
+                    let etp: i64 = ty_int();
+                    if accept("i64") == 1 { etp = ty_int(); }
+                    else { if accept("byte") == 1 { etp = ty_byte(); }
+                    else { if accept("f64") == 1 { etp = ty_float(); }
+                    else { if accept("bool") == 1 { etp = ty_bool(); }
+                    else { if gv(K_TKIND) == 1 {
+                        let qsi: i64 = st_lookup(tokbuf());
+                        if qsi >= 0 { etp = ty_struct(qsi); next_token(); }
+                        else { return err_atp("expected a type", gv(K_PLINE), gv(K_PCOL), gv(K_PPOS)); }
+                    } else { return err_atp("expected a type", gv(K_PLINE), gv(K_PCOL), gv(K_PPOS)); }
+                    } } } }
+                    pt = ty_ptr(etp);
+                } else {
                     # 形参声明成**类名** = this 指针（对标 C++ 的 Rect& self）。
                     # 实现为 ptr(该类)：于是方法体里 self.w 能直接写 ——
                     # field_chain 已支持 ptr→struct 的字段访问。
@@ -3551,6 +3572,7 @@ fn parse_func() -> i64 {
                     } else {
                         return err_atp("expected a type", gv(K_PLINE), gv(K_PCOL), gv(K_PPOS));
                     }
+                }
                 }
             }
             }
