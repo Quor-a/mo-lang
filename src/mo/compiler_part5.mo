@@ -1602,7 +1602,7 @@ fn parse_let() -> i64 {
             # v1.1066: 任意维嵌套字面量 [[[1,2],[3,4]],[[5,6],[7,8]]] —
             # 递归下降: dp 栈(O_LSTV+900 区)存每层写指针, 叶子值直接铺平
             # 写入 O_LSTV[512..)。行长度校验: 同层第二行起长度须与首行一致。
-            if tok_is("[") == 1 && ndims >= 1 {
+            if tok_is("[") == 1 && ndims >= 0 {
                 # 维度链: dims[0]=最内 … dims[ndims-1]=最外; 总元数 prod
                 let prod: i64 = n;
                 let di: i64 = 0;
@@ -1642,12 +1642,44 @@ fn parse_let() -> i64 {
                                 if gv(K_TKIND) == 1 {
                                     let csi3: i64 = sym_lookup(tokbuf());
                                     if csi3 >= 0 && load64(heap + O_SK + csi3 * 8) == 4 { lv = const_expr(); }
-                                    else { lv = const_expr(); }
-                                } else { return err_at2("array literal elements must be integer constants", gv(K_LINE), gv(K_COL)); }
+                                    else {
+                                        # v1.1097: 变量名 → 运行期求值
+                                        if sym_lookup(tokbuf()) >= 0 {
+                                            spill_cache();
+                                            parse_expr();
+                                            if negv == 1 { emit1(0x48); emit1(0xf7); emit1(0xd8); }  # neg rax
+                                            if ty_kind(et) == 5 { g_store_local_b(off + wp * 8); }
+                                            else { g_store_local(off + wp * 8); }
+                                            store64(heap + 89981300 + wp * 8, 1);
+                                            lv = 0;
+                                        } else {
+                                            if enum_value(tokbuf()) >= 0 {
+                                                spill_cache();
+                                                lv = const_expr();   # const_atom 兜底 enum（v1.1049），折叠算术后缀
+                                                g_movabs_rax(lv);
+                                            } else { lv = const_expr(); }
+                                            if negv == 1 { emit1(0x48); emit1(0xf7); emit1(0xd8); }  # neg rax（变量/enum 负前缀）
+                                            if ty_kind(et) == 5 { g_store_local_b(off + wp * 8); }
+                                            else { g_store_local(off + wp * 8); }
+                                            store64(heap + 89981300 + wp * 8, 1);
+                                            lv = 0;
+                                        }
+                                    }
+                                } else {
+                                    # v1.1097: 其他 token（括号表达式等）→ 运行期求值
+                                    spill_cache();
+                                    parse_expr();
+                                    if ty_kind(et) == 5 { g_store_local_b(off + wp * 8); }
+                                    else { g_store_local(off + wp * 8); }
+                                    store64(heap + 89981300 + wp * 8, 1);
+                                    lv = 0;
+                                }
                             }
-                            if negv == 1 { lv = 0 - lv; }
-                            # 叶子直接写 O_LSTV[wp]（嵌套分支独占该区，无冲突）
-                            store64(heap + O_LSTV + (64 + wp) * 8, lv);
+                            if load64(heap + 89981300 + wp * 8) == 0 {
+                                if negv == 1 { lv = 0 - lv; }
+                                # 叶子直接写 O_LSTV[wp]（嵌套分支独占该区，无冲突）
+                                store64(heap + O_LSTV + (64 + wp) * 8, lv);
+                            }
                             wp = wp + 1;
                             # 只计最深层（叶子数）; 行闭包时上级+1
                             store64(heap + 89981000 + (sp - 1) * 8, load64(heap + 89981000 + (sp - 1) * 8) + 1);
@@ -1679,6 +1711,7 @@ fn parse_let() -> i64 {
                 filln = 0 - 65536 - lcnt2;   # prod（铺平元素总数）
             }
             while k < filln {
+                if lcnt2 <= 0 - 65536 && load64(heap + 89981300 + k * 8) == 1 { k = k + 1; continue; }
                 let cv: i64 = v;
                 if sinit2 >= 0 {
                     if k < gv(K_NSTR) - sinit2 - 1 { cv = load8(heap + O_STRS + sinit2 + k); }
@@ -1697,8 +1730,9 @@ fn parse_let() -> i64 {
                 }
                 g_movabs_rax(cv);
                 # v1.1066: 嵌套字面量铺平按 word 步进（esz 是整行大小）
+                # v1.1097: byte 数组例外 —— 叶子本就逐字节，step 保持 esz=1
                 let step: i64 = esz;
-                if lcnt2 <= 0 - 65536 { step = 8; }
+                if lcnt2 <= 0 - 65536 && esz > 1 { step = 8; }
                 if ty_kind(et) == 5 { g_store_local_b(off + k * step); }
                 else { g_store_local(off + k * step); }
                 k = k + 1;
