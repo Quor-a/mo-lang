@@ -1,3 +1,11 @@
+## [1.1117.0] — 自举验证诚实化（seed 债清偿）
+
+- verify_bootstrap.sh 重写为两层验证：A) seed（Stage0，手写汇编，语言子集）冒烟自洽；B) moc 三级自举链（Stage1/2/3 字节一致）。修复过程中踩掉三处脚本 bug（heredoc 引号转义污染 cut -d、ELF 误拷为 test.mo、moc 无实参运行需自备 test.mo）。
+- 根因披露：bin/seed 是语言子集编译器，从未支持 struct/enum/const/match 全家 —— 它编不了现代 compiler.mo。既有 verify_bootstrap.sh 声称验证「seed→moc」完整链，实际一直是坏的。
+- Makefile $(MOC) 双路径：bin/moc 存在 → moc 自举重编（新常态）；不存在 → seed Stage0 路径（仅限子集源）。消除「cat 拼接刷新 mtime → make 用 seed 重编 → syntax error」复发债。
+- freshbuild 3/3：全新环境（无任何产物）= seed 从零汇编 + 自洽（降级模式，诚实标注完整 moc 需前代编译器）。
+- 完整 seed 重建（扩 4838 行汇编到全语法）仍列长线工程。
+
 ## [1.1116.0] — 语句级 enum 声明
 
 - **局部 enum**：函数体内可声明 `enum Color { RED; GREEN = 2; }`，常量注册进
