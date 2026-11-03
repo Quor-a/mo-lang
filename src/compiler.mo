@@ -1846,6 +1846,19 @@ fn g_idiv(mode: i64) -> i64 {
 }
 
 fn g_shl() -> i64 {
+    # v1.1114: 右值常量 c → pop rax + shl rax,imm8（c<=63）；否则 movabs rcx + shl rax,cl
+    if try_fold_rhs() == 1 {
+        emit1(0x58);
+        let c: i64 = gv(K_PLV);
+        if c <= 63 {
+            ops3(0x48, 0xc1, 0xe0);
+            emit1(c & 255);
+            return 0;
+        }
+        g_movabs_rcx(c);
+        ops3(0x48, 0xd3, 0xe0);
+        return 0;
+    }
     # v1.1113: xchg 代替 3 条 mov（12B/4条 → 6B/2条）
     ops2(0x48, 0x91);
     ops3(0x48, 0xd3, 0xe0);
@@ -1853,6 +1866,19 @@ fn g_shl() -> i64 {
 }
 
 fn g_sar() -> i64 {
+    # v1.1114: 右值常量折叠（同 g_shl）
+    if try_fold_rhs() == 1 {
+        emit1(0x58);
+        let c: i64 = gv(K_PLV);
+        if c <= 63 {
+            ops3(0x48, 0xc1, 0xf8);
+            emit1(c & 255);
+            return 0;
+        }
+        g_movabs_rcx(c);
+        ops3(0x48, 0xd3, 0xf8);
+        return 0;
+    }
     # v1.1113: xchg 代替 3 条 mov
     ops2(0x48, 0x91);
     ops3(0x48, 0xd3, 0xf8);

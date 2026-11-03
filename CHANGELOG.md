@@ -1,3 +1,11 @@
+## [1.1114.0] — shl/sar 常量移位量折叠
+
+- **g_shl / g_sar 接入 try_fold_rhs**：右值为常量 c（≤63）时折叠为 `pop rax + shl/sar rax,imm8`
+  （原 xchg+shl 两条 + pop rcx → 二条）。c>63 时回退 `movabs rcx + shl rax,cl`（CPU 语义不变）。
+- 至此 **+ - * / % & | ^ << >> 全部**支持常量右值零栈往返。
+- 边界实证：负数 sar ✓、<<70 回退 ✓（与旧编译器产物逐位一致）、bench 持平（40ms，移位量场景瓶颈在循环）。
+- 自举三级一致 md5 5e5418c0a9dcd8f2f9b69b962f4fb6e4。tests 297_shlfold（t297=32）。门禁 run781 448/0。
+
 ## [1.1113.0] — 表达式常量右值折叠扩展（sub）+ shl/sar xchg 化
 
 - **g_sub 接入 try_fold_rhs**：右值为编译期常量（≤2^31-1）时折叠为 `sub rax,imm`
