@@ -189,3 +189,6 @@ verify_bootstrap.sh 重写为两层验证：seed（Stage0 语言子集）冒烟 
 
 ### v1.1118 — `in` 运算符（标量 in 数组）
 `x in arr`：x 为 i64 标量、arr 为定长 i64 数组时编译期展开逐元素比较（元素个数来自类型系统，无运行时长度依赖），结果 1/0。`s in pat`（子串，v1.1075）按左值类型自动分派。与 `==` 同优先级，元素类型限 i64。
+
+### v1.1119 — `not in` 运算符
+`x not in arr` / `s not in pat`：`not in` 整体探测（非 in 时 set_back 回滚），对 `in` 结果取反。与 `in` 同优先级。
