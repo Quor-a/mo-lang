@@ -8557,6 +8557,7 @@ var O_SWSM:  i64 = 8773000;   # v1.1103: match struct 模式区。每臂 64 槽�
                               #   槽 2+2k=字段 offset，槽 3+2k=字段常量值。
                               #   128 臂 × 64 槽 × 8 = 65536 字节（至 8838536）。
 var O_SWSN:  i64 = 8839000;   # v1.1103: struct 模式结构体类型（ty_struct 值，n*8，128 项）
+var O_SWSB:  i64 = 8840000;   # v1.1104: struct 模式字段**绑定名**（intern id，臂×31；0=常量比较）
 
 # 读一个编译期常量写入 *out：整数字面量 / 前导负号 / enum 常量。
 # 返回 1 成功、0 失败。**失败时不报错**，由调用方决定怎么提示。
@@ -9113,9 +9114,18 @@ fn mt_scan(vals: i64) -> i64 {
                     let ssi: i64 = load64(heap + O_SWSM + smbase * 8);
                     let fidx: i64 = st_field(ssi, fnm);
                     let foff: i64 = st_field_off(ssi, fidx);
-                    if sw_const(heap + O_SWC) == 0 { return 0 - 2; }
                     store64(heap + O_SWSM + (smbase + 2 + cnt * 2) * 8, foff);
-                    store64(heap + O_SWSM + (smbase + 3 + cnt * 2) * 8, load64(heap + O_SWC));
+                    # v1.1104: 字段值为标识符 → 绑定变量（capture）
+                    if gv(K_TKIND) == 1 {
+                        memcpy(scratch2(), tokbuf());   # 绑定名
+                        store64(heap + O_SWSB + (smbase/64*31 + cnt) * 8, intern(scratch2()));
+                        store64(heap + O_SWSM + (smbase + 3 + cnt * 2) * 8, 0 - 1);
+                        next_token();
+                    } else {
+                        store64(heap + O_SWSB + (smbase/64*31 + cnt) * 8, 0);
+                        if sw_const(heap + O_SWC) == 0 { return 0 - 2; }
+                        store64(heap + O_SWSM + (smbase + 3 + cnt * 2) * 8, load64(heap + O_SWC));
+                    }
                     cnt = cnt + 1;
                     next_token();               # 吃 ';'
                 }
@@ -9217,12 +9227,23 @@ fn parse_match() -> i64 {
                 let smk: i64 = 0;
                 let smcnt: i64 = load64(heap + O_SWSM + ((i * 64) + 1) * 8);
                 let smf: i64 = new_label();
+                let smcmp: i64 = 0;
                 while smk < smcnt {
-                    # mov rax, [rsi+off]  （off 字节，无位移=0 时省略）
-                    emit1(0x48); emit1(0x8b); emit1(0x86); emit4(load64(heap + O_SWSM + ((i * 64) + 2 + smk * 2) * 8));
-                    emit1(0x48); emit1(0x3d); emit4(load64(heap + O_SWSM + ((i * 64) + 3 + smk * 2) * 8));  # cmp rax, imm32
-                    emit_jcc(0x85, smf);             # jne smfail
+                    if load64(heap + O_SWSM + ((i * 64) + 3 + smk * 2) * 8) != 0 - 1 {
+                        smcmp = 1;
+                        # mov rax, [rsi+off]; cmp imm32; jne smfail
+                        emit1(0x48); emit1(0x8b); emit1(0x86); emit4(load64(heap + O_SWSM + ((i * 64) + 2 + smk * 2) * 8));
+                        emit1(0x48); emit1(0x3d); emit4(load64(heap + O_SWSM + ((i * 64) + 3 + smk * 2) * 8));
+                        emit_jcc(0x85, smf);
+                    }
                     smk = smk + 1;
+                }
+                if smcmp == 0 {
+                    # v1.1104: 全绑定字段无比较 → 无条件进臂（je 无 cmp 撞残留标志）
+                    emit_jmp(load64(lbls + i * 8));
+                    place_label(smf);
+                    i = i + 1;
+                    continue;
                 }
                 if load64(heap + O_SWG + i * 8) == 1 {
                     emit_jcc(0x84, load64(heap + O_SWGL + i * 8));   # je 守卫检查点
@@ -9270,10 +9291,38 @@ fn parse_match() -> i64 {
         }
         if load64(heap + O_SWG + i * 8) == 1 { place_label(load64(heap + O_SWGL + i * 8)); }
         if load64(heap + O_SWSN + i * 8) == 1 {
-            # v1.1103: struct 模式 —— 第二遍重新吃掉 `P { f: v; …; }`（scan 已录）
+            # v1.1103/1104: struct 模式 —— 第二遍重新吃掉 `P { f: v; …; }`
+            # 并为绑定字段建局部变量 + 发射 store（rax=判别地址，臂开头已 place）。
+            # 判别地址在 r11（发射段保值）——mov rsi, r11 后逐绑定字段 store。
+            let smbi: i64 = i * 64;
+            let smn2: i64 = load64(heap + O_SWSM + (smbi + 1) * 8);
+            let smd: i64 = 0;
+            # 先收集绑定字段：类型 i64，槽 = CUROFF 递减
             next_token();               # struct 名
             expect("{");
-            let pd3: i64 = 0;
+            let smk2: i64 = 0;
+            while smk2 < smn2 {
+                next_token();           # 字段名
+                let fidx2: i64 = st_field(load64(heap + O_SWSM + smbi * 8), tokbuf());
+                next_token();           # ':'
+                let bvid: i64 = load64(heap + O_SWSB + ((smbi/64) * 31 + smk2) * 8);
+                let bval: i64 = load64(heap + O_SWSM + ((smbi) + 3 + smk2 * 2) * 8);
+                if bval == 0 - 1 {
+                    # v1.1104: 绑定 —— 只建符号（发射在 place_label(lbls) 之后统一做，
+                    # 否则 store 会落在臂标签之前被跳转跳过）
+                    memcpy(scratch2(), heap + O_NAMES + bvid);
+                    let boff: i64 = gv(K_CUROFF) - 8;
+                    sv(K_CUROFF, boff);
+                    if sym_dup(scratch2()) >= 0 { return err_atp("duplicate definition", gv(K_PLINE), gv(K_PCOL), gv(K_PPOS)); }
+                    let bid: i64 = sym_add(scratch2(), 1, boff, 0);
+                    store64(heap + O_STY + bid * 8, ty_int());
+                    store64(heap + O_SWC + (i * 8), boff);  # 暂存绑定槽号（O_SWC 此时空闲）
+                } else {
+                    next_token();       # 常量值
+                }
+                next_token();           # ';'
+                smk2 = smk2 + 1;
+            }
             while tok_is("}") == 0 {
                 if gv(K_TKIND) == 0 { return -1; }
                 next_token();
@@ -9302,6 +9351,19 @@ fn parse_match() -> i64 {
             } else { emit_jcc(0x84, dflt); }
         }
         place_label(load64(lbls + i * 8));
+        if load64(heap + O_SWSN + i * 8) == 1 {
+            # v1.1104: 绑定字段 store（数据驱动重放，地址在 r11）
+            let sbi2: i64 = i * 64;
+            let sbk2: i64 = 0;
+            while sbk2 < load64(heap + O_SWSM + (sbi2 + 1) * 8) {
+                if load64(heap + O_SWSM + (sbi2 + 3 + sbk2 * 2) * 8) == 0 - 1 {
+                    ops3(0x4c, 0x89, 0xde);              # mov rsi, r11
+                    emit1(0x48); emit1(0x8b); emit1(0x86); emit4(load64(heap + O_SWSM + (sbi2 + 2 + sbk2 * 2) * 8));  # mov rax,[rsi+off]
+                    g_store_local(load64(heap + O_SWC + (i * 8)));
+                }
+                sbk2 = sbk2 + 1;
+            }
+        }
         expect("=>");
         let cd: i64 = d + 1;
         sv(K_DEPTH, cd);

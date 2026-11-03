@@ -1,3 +1,11 @@
+## 1.1104.0
+- match struct 模式支持字段绑定变量：`P { y: v; }` —— 臂内 v = r.y（i64）。
+  scan 记绑定名（O_SWSB 区，intern id）；发射在 place_label(臂) 之后统一
+  store（数据驱动重放）；符号在第二遍臂循环时建（sym_add，CUROFF 递减）。
+- 🔴 排坑①：全绑定字段（无比较）的 struct 臂不能 emit je —— 上一条指令
+  的残留标志撞运气，必须 emit_jmp 无条件进臂。
+- 🔴 排坑②：绑定 store 必须发在 place_label(臂标签) 之后，否则被跳转跳过。
+
 ## 1.1103.0
 - match struct 模式：`match r { P { x: 1; } => …, _ => … }`（语句版）。
   字段名: 编译期常量（分号分隔），部分字段可省略；全部匹配才进臂。
