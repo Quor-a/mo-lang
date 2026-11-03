@@ -2421,6 +2421,8 @@ var O_SWTOP: i64 = 8768000;   # 下一个 switch 的基址（栈式分配）
 var O_SWC:   i64 = 8768008;   # sw_const 的输出槽
 var O_SWNB:  i64 = 8768100;   # sw_const 的名字缓冲（64 字节）
 var SWSTR:   i64 = 8770000;   # v1.1047: case 是否字符串（n*8，128 项）
+var O_SWG:   i64 = 8771000;   # v1.1099: match 臂是否带守卫 if（n*8，128 项）
+var O_SWGL:  i64 = 8772000;   # v1.1099: 守卫臂的匹配点标签（n*8，128 项）
 
 # 读一个编译期常量写入 *out：整数字面量 / 前导负号 / enum 常量。
 # 返回 1 成功、0 失败。**失败时不报错**，由调用方决定怎么提示。
@@ -2902,6 +2904,19 @@ fn mt_scan(vals: i64) -> i64 {
             continue;
         }
         if tok_is("}") == 1 { d = d - 1; next_token(); continue; }
+        # v1.1099: 守卫 `PAT if cond =>` —— 词法跳过 if 条件（括号平衡）。
+        # n 已 ++（收臂时），守卫标记写 n-1。
+        if gv(K_TKIND) == 1 && streq(tokbuf(), "if") == 1 {
+            next_token();
+            store64(heap + O_SWG + (n - 1) * 8, 1);
+            let pd: i64 = 0;
+            while tok_is("=>") == 0 {
+                if gv(K_TKIND) == 0 { return 0 - 2; }
+                if tok_is("(") == 1 { pd = pd + 1; }
+                if tok_is(")") == 1 { pd = pd - 1; }
+                next_token();
+            }
+        }
         if tok_is("=>") == 1 {
             next_token();               # 箭头（模式已收）
             if tok_is("{") == 1 {       # 跳过臂体 {...}
@@ -2916,22 +2931,32 @@ fn mt_scan(vals: i64) -> i64 {
             }
             continue;
         }
+        if gv(K_TKIND) == 3 {
+            # v1.1099: 字符串模式 —— 存数据段串地址（同 str 表达式形态）
+            if n >= 128 { return 0 - 1; }
+            store64(vals + n * 8, gv(K_TIVAL));
+            store64(heap + SWSTR + n * 8, 1);
+            next_token();
+            n = n + 1;
+        } else {
         if gv(K_TKIND) == 2 {
             if n >= 128 { return 0 - 1; }
             store64(vals + n * 8, gv(K_TIVAL));
             next_token();
             n = n + 1;
-            continue;
-        }
+        } else {
         if gv(K_TKIND) == 1 {
             # _ = default 不收；数字/enum/const 模式 sw_const 折叠
             if streq(tokbuf(), "_") == 1 { next_token(); continue; }
             if n >= 128 { return 0 - 1; }
+            store64(heap + SWSTR + n * 8, 0);
             if sw_const(vals + n * 8) == 0 { return 0 - 2; }
             n = n + 1;
-            continue;
+        } else {
+            next_token();
         }
-        next_token();
+        }
+        }
     }
     return n;
 }
@@ -2953,6 +2978,7 @@ fn parse_match() -> i64 {
     set_back(save);
     let qi: i64 = 0;
     while qi < n {
+        if load64(heap + O_SWG + qi * 8) == 1 { qi = qi + 1; continue; }   # 守卫臂豁免
         let qj: i64 = 0;
         while qj < qi {
             if load64(vals + qi * 8) == load64(vals + qj * 8) {
@@ -2967,15 +2993,48 @@ fn parse_match() -> i64 {
     let dflt: i64 = new_label();
     let hasdflt: i64 = 0;
     let i: i64 = 0;
-    while i < n { store64(lbls + i * 8, new_label()); i = i + 1; }
-    next_token();                       # 越过 'match'（路由是探测式，不消费）
-    parse_expr();                       # 判别值 → rax
-    i = 0;
     while i < n {
-        emit1(0x48); emit1(0x3d); emit4(load64(vals + i * 8));   # cmp rax, imm32
-        emit_jcc(0x84, load64(lbls + i * 8));                    # je
+        store64(lbls + i * 8, new_label());
+        if load64(heap + O_SWG + i * 8) == 1 { store64(heap + O_SWGL + i * 8, new_label()); }
         i = i + 1;
     }
+    next_token();                       # 越过 'match'（路由是探测式，不消费）
+    parse_expr();                       # 判别值 → rax
+    # v1.1099: 混合约束（同 switch）—— 任一字符串模式则全部必须为字符串
+    let msws: i64 = 0;
+    let mq: i64 = 0;
+    while mq < n {
+        if load64(heap + SWSTR + mq * 8) == 1 { msws = 1; }
+        mq = mq + 1;
+    }
+    if msws == 1 {
+        ops3(0x49, 0x89, 0xc3);                    # mov r11, rax —— 判别串保值
+        i = 0;
+        while i < n {
+            ops3(0x4c, 0x89, 0xd9);                # mov rcx, r11
+            g_movabs_rax(load64(vals + i * 8));    # movabs rax, 模式串地址
+            g_str_eq(1);
+            ops2(0x85, 0xc0);                      # test eax, eax
+            if load64(heap + O_SWG + i * 8) == 1 {
+                emit_jcc(0x85, load64(heap + O_SWGL + i * 8));  # jne → 守卫检查点
+            } else {
+                emit_jcc(0x85, load64(lbls + i * 8));           # jne → 臂
+            }
+            i = i + 1;
+        }
+    } else {
+        i = 0;
+        while i < n {
+            emit1(0x48); emit1(0x3d); emit4(load64(vals + i * 8));   # cmp rax, imm32
+            if load64(heap + O_SWG + i * 8) == 1 {
+                emit_jcc(0x84, load64(heap + O_SWGL + i * 8));       # je 守卫检查点
+            } else {
+                emit_jcc(0x84, load64(lbls + i * 8));                # je
+            }
+            i = i + 1;
+        }
+    }
+    i = 0;                              # 复位（臂循环要用）
     emit_jmp(dflt);
     i = 0;                              # 复位：发射比较链的循环已把 i 走到 n
     if tok_is("{") == 0 { return err_atp("match: ERR-B no brace after expr", gv(K_PLINE), gv(K_PCOL), gv(K_PPOS)); }
@@ -3001,12 +3060,28 @@ fn parse_match() -> i64 {
             store64(heap + O_SWTOP, base);
             return err_atp("match: 模式与扫描结果不一致", gv(K_PLINE), gv(K_PCOL), gv(K_PPOS));
         }
-        place_label(load64(lbls + i * 8));
-        if sw_const(heap + O_SWC) == 0 {
-            loop_pop();
-            store64(heap + O_SWTOP, base);
-            return err_atp("match: 模式必须是编译期常量", gv(K_PLINE), gv(K_PCOL), gv(K_PPOS));
+        if load64(heap + O_SWG + i * 8) == 1 { place_label(load64(heap + O_SWGL + i * 8)); }
+        if load64(heap + SWSTR + i * 8) == 1 {
+            next_token();               # 吃字符串模式（值已在 scan 录入）
+        } else {
+            if sw_const(heap + O_SWC) == 0 {
+                loop_pop();
+                store64(heap + O_SWTOP, base);
+                return err_atp("match: 模式必须是编译期常量", gv(K_PLINE), gv(K_PCOL), gv(K_PPOS));
+            }
         }
+        # v1.1099: 守卫 —— 模式匹配后再验 if 条件；失败跳下一臂（或 default）
+        if load64(heap + O_SWG + i * 8) == 1 {
+            expect("if");
+            parse_expr();               # cond → rax
+            spill_cache();              # 值可能还在 rbx 缓存里，落回 rax
+            ops2(0x85, 0xc0);           # test eax, eax
+            if i + 1 < n {
+                if load64(heap + O_SWG + (i + 1) * 8) == 1 { emit_jcc(0x84, load64(heap + O_SWGL + (i + 1) * 8)); }
+                else { emit_jcc(0x84, load64(lbls + (i + 1) * 8)); }
+            } else { emit_jcc(0x84, dflt); }
+        }
+        place_label(load64(lbls + i * 8));
         expect("=>");
         let cd: i64 = d + 1;
         sv(K_DEPTH, cd);
