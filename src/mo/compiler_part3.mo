@@ -380,6 +380,7 @@ fn lex_punct(p: i64) -> i64 {
     let c: i64 = sbyte(p);
     let d: i64 = sbyte(p + 1);
     if c == 61 {
+        if d == 62 { return set_tok(61, 62, 2, p); }   # v1.1098: '=>' match 箭头
         if d == 61 { return set_tok(61, 61, 2, p); }
     }
     # 复合赋值：+= -= *= /= %= &= |= ^=

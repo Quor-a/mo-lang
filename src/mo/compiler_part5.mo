@@ -415,6 +415,13 @@ fn parse_stmt() -> i64 {
     # 只在语句起始位置识别 switch，case 等只在 switch 主体里识别。
     # 于是库里那些叫 case 的变量、注释里的 "case" 都不受影响。
     if accept("switch") == 1 { return parse_switch(); }
+        if gv(K_TKIND) == 1 && streq(tokbuf(), "match") == 1 {
+        # match 是上下文关键字：若后面是 '='（变量赋值）则当标识符放行
+        let mpk: i64 = gv(K_TOKPOS);
+        next_token();
+        if tok_is("=") == 1 { set_back(mpk); }
+        else { set_back(mpk); return parse_match(); }
+    }
     if accept("return") == 1 { return parse_return(); }
     # 嵌套函数（闭包）：定义在函数体内，可捕获外层的局部变量
     if tok_is("fn") == 1 { return parse_nested_fn(); }
@@ -2853,6 +2860,167 @@ fn parse_switch() -> i64 {
         }
         store64(heap + O_CODE + timm, cb + tp);
     }
+    sym_pop_scope(d);
+    sv(K_DEPTH, d - 1);
+    loop_pop();
+    store64(heap + O_SWTOP, base);
+    return 0;
+}
+
+# ---------------------------------------------------------------------------
+#  v1.1098: match 表达式
+#  match e { PAT => { ... }  PAT => { ... }  _ => { ... } }
+#  PAT = 数字 / enum 成员 / const 名 / _（else）。比较链发射（无跳转表），
+#  每臂隐式 break（无穿透）。复用 switch 的栈式 case 表（O_SWV/O_SWL）。
+# ---------------------------------------------------------------------------
+fn mt_scan(vals: i64) -> i64 {
+    let n: i64 = 0;
+    # 'match' 已被 parse_stmt 的 accept 消费；这里从判别表达式开始
+    while tok_is("{") == 0 {
+        if gv(K_TKIND) == 0 { return 0 - 2; }
+        next_token();
+    }
+    next_token();                       # 吃 '{'
+    let d: i64 = 1;
+    while d > 0 {
+        if gv(K_TKIND) == 0 { return 0 - 2; }
+        # 嵌套 match 整段跳过
+        if gv(K_TKIND) == 1 && streq(tokbuf(), "match") == 1 {
+            next_token();
+            while tok_is("{") == 0 {
+                if gv(K_TKIND) == 0 { return 0 - 2; }
+                next_token();
+            }
+            next_token();
+            let e: i64 = 1;
+            while e > 0 {
+                if gv(K_TKIND) == 0 { return 0 - 2; }
+                if tok_is("{") == 1 { e = e + 1; }
+                if tok_is("}") == 1 { e = e - 1; }
+                next_token();
+            }
+            continue;
+        }
+        if tok_is("}") == 1 { d = d - 1; next_token(); continue; }
+        if tok_is("=>") == 1 {
+            next_token();               # 箭头（模式已收）
+            if tok_is("{") == 1 {       # 跳过臂体 {...}
+                next_token();
+                let b: i64 = 1;
+                while b > 0 {
+                    if gv(K_TKIND) == 0 { return 0 - 2; }
+                    if tok_is("{") == 1 { b = b + 1; }
+                    if tok_is("}") == 1 { b = b - 1; }
+                    next_token();
+                }
+            }
+            continue;
+        }
+        if gv(K_TKIND) == 2 {
+            if n >= 128 { return 0 - 1; }
+            store64(vals + n * 8, gv(K_TIVAL));
+            next_token();
+            n = n + 1;
+            continue;
+        }
+        if gv(K_TKIND) == 1 {
+            # _ = default 不收；数字/enum/const 模式 sw_const 折叠
+            if streq(tokbuf(), "_") == 1 { next_token(); continue; }
+            if n >= 128 { return 0 - 1; }
+            if sw_const(vals + n * 8) == 0 { return 0 - 2; }
+            n = n + 1;
+            continue;
+        }
+        next_token();
+    }
+    return n;
+}
+
+fn parse_match() -> i64 {
+    let base: i64 = load64(heap + O_SWTOP);
+    if base + 128 > 1024 {
+        return err_atp("match: 嵌套过深（上限 8 层）", gv(K_PLINE), gv(K_PCOL), gv(K_PPOS));
+    }
+    store64(heap + O_SWTOP, base + 128);
+    let vals: i64 = heap + O_SWV + base * 8;
+    let lbls: i64 = heap + O_SWL + base * 8;
+    let save: i64 = gv(K_TOKPOS);
+    let n: i64 = mt_scan(vals);
+    if n < 0 {
+        store64(heap + O_SWTOP, base);
+        return err_atp("match: 模式必须是编译期常量（数字/enum/const/_）", gv(K_PLINE), gv(K_PCOL), gv(K_PPOS));
+    }
+    set_back(save);
+    let qi: i64 = 0;
+    while qi < n {
+        let qj: i64 = 0;
+        while qj < qi {
+            if load64(vals + qi * 8) == load64(vals + qj * 8) {
+                store64(heap + O_SWTOP, base);
+                return err_atp("match: duplicate pattern value", gv(K_PLINE), gv(K_PCOL), gv(K_PPOS));
+            }
+            qj = qj + 1;
+        }
+        qi = qi + 1;
+    }
+    let end: i64 = new_label();
+    let dflt: i64 = new_label();
+    let hasdflt: i64 = 0;
+    let i: i64 = 0;
+    while i < n { store64(lbls + i * 8, new_label()); i = i + 1; }
+    next_token();                       # 越过 'match'（路由是探测式，不消费）
+    parse_expr();                       # 判别值 → rax
+    i = 0;
+    while i < n {
+        emit1(0x48); emit1(0x3d); emit4(load64(vals + i * 8));   # cmp rax, imm32
+        emit_jcc(0x84, load64(lbls + i * 8));                    # je
+        i = i + 1;
+    }
+    emit_jmp(dflt);
+    i = 0;                              # 复位：发射比较链的循环已把 i 走到 n
+    if tok_is("{") == 0 { return err_atp("match: ERR-B no brace after expr", gv(K_PLINE), gv(K_PCOL), gv(K_PPOS)); }
+    expect("{");
+    if tok_is("}") == 1 { return err_atp("match: ERR-C empty brace next", gv(K_PLINE), gv(K_PCOL), gv(K_PPOS)); }
+    let d: i64 = gv(K_DEPTH) + 1;
+    sv(K_DEPTH, d);
+    loop_push(0 - 1, end, 0 - 1);
+    while tok_is("}") == 0 {
+        if gv(K_TKIND) == 1 && streq(tokbuf(), "_") == 1 {
+            next_token();
+            expect("=>");
+            hasdflt = 1;
+            place_label(dflt);
+            expect("{");
+            while tok_is("}") == 0 { parse_stmt(); }
+            next_token();
+            emit_jmp(end);
+            continue;
+        }
+        if i >= n {
+            loop_pop();
+            store64(heap + O_SWTOP, base);
+            return err_atp("match: 模式与扫描结果不一致", gv(K_PLINE), gv(K_PCOL), gv(K_PPOS));
+        }
+        place_label(load64(lbls + i * 8));
+        if sw_const(heap + O_SWC) == 0 {
+            loop_pop();
+            store64(heap + O_SWTOP, base);
+            return err_atp("match: 模式必须是编译期常量", gv(K_PLINE), gv(K_PCOL), gv(K_PPOS));
+        }
+        expect("=>");
+        let cd: i64 = d + 1;
+        sv(K_DEPTH, cd);
+        expect("{");
+        while tok_is("}") == 0 { parse_stmt(); }
+        next_token();
+        sym_pop_scope(cd);
+        sv(K_DEPTH, d);
+        emit_jmp(end);
+        i = i + 1;
+    }
+    next_token();                       # 越过 match 的 '}'
+    if hasdflt == 0 { place_label(dflt); }
+    place_label(end);
     sym_pop_scope(d);
     sv(K_DEPTH, d - 1);
     loop_pop();
