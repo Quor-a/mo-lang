@@ -1,8 +1,8 @@
 # 墨语言 Mo
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
-[![Version](https://img.shields.io/badge/version-1.1117.0-blue.svg)](VERSION)
-[![Tests](https://img.shields.io/badge/tests-449%20passing-brightgreen.svg)](tests/)
+[![Version](https://img.shields.io/badge/version-1.1118.0-blue.svg)](VERSION)
+[![Tests](https://img.shields.io/badge/tests-450%20passing-brightgreen.svg)](tests/)
 
 **一个没有外部依赖、能自己编译自己、还能编译到 ARM64 裸机的完整工具链。**
 编译器 1.5 万行、自举 0.13 秒——改一行代码，立刻知道结果。

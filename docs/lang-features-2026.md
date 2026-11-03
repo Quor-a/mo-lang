@@ -186,3 +186,6 @@ let a: [HALF] i64;              # const 作数组长度
 
 ### v1.1117 — 自举验证诚实化（工程）
 verify_bootstrap.sh 重写为两层验证：seed（Stage0 语言子集）冒烟 + moc 三级自举链字节一致。Makefile `$(MOC)` 双路径（moc 自举优先 / seed 兜底），消除拼接 mtime 触发的 seed 重编复发债。freshbuild 全新环境 3/3（seed 从零汇编 + 降级自洽）。
+
+### v1.1118 — `in` 运算符（标量 in 数组）
+`x in arr`：x 为 i64 标量、arr 为定长 i64 数组时编译期展开逐元素比较（元素个数来自类型系统，无运行时长度依赖），结果 1/0。`s in pat`（子串，v1.1075）按左值类型自动分派。与 `==` 同优先级，元素类型限 i64。
