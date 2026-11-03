@@ -718,6 +718,8 @@ fn ty_eq(x: i64, y: i64) -> i64 {
 
 # 结构体类型的 aux1 里存的是结构体索引
 fn ty_si(t: i64) -> i64 { return load64(heap + O_TA + t * 8); }
+fn ty_ta(t: i64) -> i64 { return load64(heap + O_TA + t * 8); }
+fn ty_tb(t: i64) -> i64 { return load64(heap + O_TB + t * 8); }
 
 fn ty_size(t: i64) -> i64 {
     let k: i64 = ty_kind(t);
@@ -3758,20 +3760,50 @@ fn g_struct_eq(n: i64, invert: i64) -> i64 {
     return 0;
 }
 
+# v1.1118: `x in arr`（标量 in 定长 i64 数组）—— 展开循环逐元素比较。
+# rcx=待查值, rax=数组首地址, n=元素个数。结果 rax=1/0。
+fn g_arr_in(n: i64) -> i64 {
+    sv(K_LAST, 0);
+    ops3(0x49, 0xc7, 0xc3); emit4(0);        # mov r11, 0（found=0）
+    let i: i64 = 0;
+    while i < n {
+        let o: i64 = i * 8;
+        ops3(0x48, 0x8b, 0x90); emit4(o);    # mov rdx, [rax+o]
+        ops3(0x48, 0x39, 0xd1);              # cmp rcx, rdx
+        emit1(0x41); emit1(0x0f); emit1(0x94); emit1(0xc2);   # sete r10b
+        ops3(0x45, 0x08, 0xd3);              # or r11b, r10b
+        i = i + 1;
+    }
+    emit1(0x49); emit1(0x0f); emit1(0xb6); emit1(0xc3);       # movzx rax, r11b
+    return 0;
+}
+
 fn parse_eq() -> i64 {
     parse_rel();
     let lt: i64 = R_ETY;
     while 1 {
-        # v1.1075: s in pat —— 子串包含（str 双侧）
+        # v1.1118: x in arr —— 标量 in 定长 i64 数组（展开循环）
         if tok_is("in") == 1 {
-            if ty_kind(lt) != 10 { return err_atp("'in': left side must be a string", gv(K_PLINE), gv(K_PCOL), gv(K_PPOS)); }
+            if ty_kind(lt) != 0 {
+                # 非 int 左值维持 v1.1075 str in str 路径
+                if ty_kind(lt) != 10 { return err_atp("'in': left side must be a string or integer", gv(K_PLINE), gv(K_PCOL), gv(K_PPOS)); }
+            }
             next_token();               # 吃 in
-            g_push_rax();               # 左串入栈（g_str_in 约定 rcx=左）
+            g_push_rax();               # 左入栈（rcx=左）
             parse_rel();
             let it: i64 = R_ETY;
-            if ty_kind(it) != 10 { return err_atp("'in': right side must be a string", gv(K_PLINE), gv(K_PCOL), gv(K_PPOS)); }
-            g_pop_rcx();
-            g_str_in();
+            if ty_kind(lt) == 10 {
+                if ty_kind(it) != 10 { return err_atp("'in': right side must be a string", gv(K_PLINE), gv(K_PCOL), gv(K_PPOS)); }
+                g_pop_rcx();
+                g_str_in();
+            } else {
+                if ty_kind(it) != 3 { return err_atp("'in': right side must be an array", gv(K_PLINE), gv(K_PCOL), gv(K_PPOS)); }
+                let el: i64 = ty_ta(it);
+                let n: i64 = ty_tb(it);
+                if ty_kind(el) != 0 { return err_atp("'in': array element must be i64", gv(K_PLINE), gv(K_PCOL), gv(K_PPOS)); }
+                g_pop_rcx();
+                g_arr_in(n);
+            }
             R_ETY = ty_int();
             lt = R_ETY;
         } else {

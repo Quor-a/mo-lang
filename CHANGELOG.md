@@ -1,3 +1,9 @@
+## [1.1118.0] — `in` 运算符：标量 in 数组
+
+- `x in arr`（x 为 i64 标量、arr 为定长 i64 数组）：编译期展开逐元素比较循环（mov rdx,[rax+o]; cmp; sete r10b; or r11b,r10b 累积），O(n) 无运行时长度依赖（元素个数来自类型系统）。
+- `s in pat`（子串，v1.1075）路径保留并与新分支共存（按左值类型分派）。
+- 元素类型限 i64（byte/float 数组报错提示）；`in` 优先级与 `==` 同级。
+
 ## [1.1117.0] — 自举验证诚实化（seed 债清偿）
 
 - verify_bootstrap.sh 重写为两层验证：A) seed（Stage0，手写汇编，语言子集）冒烟自洽；B) moc 三级自举链（Stage1/2/3 字节一致）。修复过程中踩掉三处脚本 bug（heredoc 引号转义污染 cut -d、ELF 误拷为 test.mo、moc 无实参运行需自备 test.mo）。

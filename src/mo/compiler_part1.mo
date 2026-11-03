@@ -718,6 +718,8 @@ fn ty_eq(x: i64, y: i64) -> i64 {
 
 # 结构体类型的 aux1 里存的是结构体索引
 fn ty_si(t: i64) -> i64 { return load64(heap + O_TA + t * 8); }
+fn ty_ta(t: i64) -> i64 { return load64(heap + O_TA + t * 8); }
+fn ty_tb(t: i64) -> i64 { return load64(heap + O_TB + t * 8); }
 
 fn ty_size(t: i64) -> i64 {
     let k: i64 = ty_kind(t);
