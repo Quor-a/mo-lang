@@ -180,3 +180,9 @@ let a: [HALF] i64;              # const 作数组长度
 - 函数体内 `enum Color { RED; GREEN = 2; }`：自动编号/显式值/const 值全支持，
   分号结尾可选。常量注册进全局 enum 表（作用域上函数退出后仍可见，
   重名先注册者生效——与 top-level 一致）。
+
+### v1.1116 — 语句级 enum 声明
+函数体内可直接声明 enum（`enum Color { RED; GREEN = 2; BLUE; }`），复用 top-level 机制：常量注册进全局 enum 表（重名先注册者生效），支持自动编号 / 显式值 / const 成员值，可与 match 组合。
+
+### v1.1117 — 自举验证诚实化（工程）
+verify_bootstrap.sh 重写为两层验证：seed（Stage0 语言子集）冒烟 + moc 三级自举链字节一致。Makefile `$(MOC)` 双路径（moc 自举优先 / seed 兜底），消除拼接 mtime 触发的 seed 重编复发债。freshbuild 全新环境 3/3（seed 从零汇编 + 降级自洽）。
