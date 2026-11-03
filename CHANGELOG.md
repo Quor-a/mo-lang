@@ -1,3 +1,6 @@
+- 🔴 排坑续：绑定符号须记臂内深度（sym_add 前 sv(K_DEPTH,d+1)，add 后还原），
+  match 结束 sym_pop_scope(d+1) 回收 —— 否则后续 match 同名绑定报 duplicate。
+
 ## 1.1105.0
 - match struct 模式移植到表达式版（parse_match_expr）：发射段（r11 保值 +
   逐字段 cmp 链 + 全绑定臂 emit_jmp）与第二遍臂循环（吃 token + 建绑定

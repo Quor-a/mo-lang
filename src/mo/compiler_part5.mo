@@ -3422,7 +3422,10 @@ fn parse_match_expr(hs_off: i64) -> i64 {
                     let boff2: i64 = gv(K_CUROFF) - 8;
                     sv(K_CUROFF, boff2);
                     if sym_dup(scratch3()) >= 0 { return err_atp("duplicate definition", gv(K_PLINE), gv(K_PCOL), gv(K_PPOS)); }
+                    let sd2: i64 = gv(K_DEPTH);
+                    sv(K_DEPTH, sd2 + 1);        # 绑定符号记臂内深度 → 结束 pop
                     let bid2: i64 = sym_add(scratch3(), 1, boff2, 0);
+                    sv(K_DEPTH, sd2);
                     store64(heap + O_STY + bid2 * 8, ty_int());
                     store64(heap + O_SWC + (i * 8), boff2);
                 } else {
@@ -3474,6 +3477,9 @@ fn parse_match_expr(hs_off: i64) -> i64 {
     next_token();                       # 越过 '}'
     if hasdflt == 0 { place_label(dflt); }
     place_label(end);
+    # v1.1105: 回收臂内绑定变量（同语句版 sym_pop_scope）—— 否则下一个
+    # match 的同名绑定报 duplicate（t287 实证）
+    sym_pop_scope(d + 1);
     sv(K_DEPTH, d - 1);
     g_load_local(hs_off);               # rax = 结果
     store64(heap + O_SWTOP, base);
