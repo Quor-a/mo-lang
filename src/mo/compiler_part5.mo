@@ -1096,15 +1096,39 @@ fn parse_destructure(dcln: i64) -> i64 {
     }
     expect("]");
     expect("=");
-    if gv(K_TKIND) != 1 { return err_at2("destructure: right side must be an array variable", gv(K_LINE), gv(K_COL)); }
-    let asym: i64 = sym_lookup(tokbuf());
-    if asym < 0 { return undef_err(tokbuf()); }
-    let at: i64 = sym_type(asym);
-    if ty_kind(at) != 3 { return err_at2("destructure: right side must be an array", gv(K_LINE), gv(K_COL)); }
+    # v1.1089: RHS 支持函数调用 let [x, y, z] = mk(); —— 数组地址存隐藏槽
+    let hcall: i64 = 0;      # 哨兵 0=无调用（栈槽偏移恒为负）
+    let at: i64 = ty_int();
+    if gv(K_TKIND) == 1 {
+        let lk0: i64 = sym_lookup(tokbuf());
+        let isfn: i64 = 0;
+        if lk0 < 0 { if sym_lookup_func(tokbuf()) >= 0 { isfn = 1; } }
+        else { if sym_kind(lk0) == 0 { isfn = 1; } }
+        if isfn == 1 {
+            {
+                memcpy(scratch1(), tokbuf());
+                next_token();             # 吃函数名 → tok='(' 交 parse_call
+                let hv: i64 = gv(K_CUROFF);
+                sv(K_CUROFF, hv - 8);
+                parse_call();
+                g_store_local(hv);        # rax(数组地址) → 隐藏槽
+                hcall = hv;
+                if ty_kind(R_ETY) == 3 { at = R_ETY; } else { return err_at2("destructure: call must return an array", gv(K_LINE), gv(K_COL)); }
+            }
+        }
+    }
+    let asym: i64 = 0 - 1;
+    if hcall == 0 {
+        if gv(K_TKIND) != 1 { return err_at2("destructure: right side must be an array variable", gv(K_LINE), gv(K_COL)); }
+        asym = sym_lookup(tokbuf());
+        if asym < 0 { return undef_err(tokbuf()); }
+        at = sym_type(asym);
+        if ty_kind(at) != 3 { return err_at2("destructure: right side must be an array", gv(K_LINE), gv(K_COL)); }
+    }
     # v1.1077: RHS 支持常量行索引 m[1] —— aoff += idx * 行stride
     let aoff_extra: i64 = 0;
     let rowidx: i64 = 0;
-    next_token();               # 吃掉数组名，现在可能是 '['
+    if asym >= 0 { next_token(); }               # 吃掉数组名，现在可能是 '['
     if tok_is("[") == 1 {
         next_token();
         if gv(K_TKIND) != 2 { return err_at2("destructure: row index must be a constant", gv(K_LINE), gv(K_COL)); }
@@ -1119,8 +1143,13 @@ fn parse_destructure(dcln: i64) -> i64 {
     let et: i64 = ty_a(at);
     let stride: i64 = ty_size(et);
     # 数组变量在栈上（local）还是数据段？与 parse_addr 同判据：sym_kind==1
-    let is_local: i64 = sym_kind(asym);
-    let aoff: i64 = sym_addr(asym) + aoff_extra;
+    # v1.1089: is_local==2 = 函数调用 RHS —— 基址从隐藏槽加载
+    let is_local: i64 = 2;
+    let aoff: i64 = hcall;
+    if hcall == 0 {
+        is_local = sym_kind(asym);
+        aoff = sym_addr(asym) + aoff_extra;
+    }
     let i: i64 = 0;
     let src: i64 = 0;   # 当前元素字节偏移
     while i < cnt {
@@ -1140,7 +1169,10 @@ fn parse_destructure(dcln: i64) -> i64 {
                 store64(heap + O_STY + vid2 * 8, etin);
                 dbg_var(heap + O_SCAL + 6800 + se2 * 32, vo2, dcln, etin);
                 # rax = &arr + src + (se2-st)*esz2 → load → store vo2
-                if is_local == 1 { g_lea_local(aoff); } else { g_movabs_rax(aoff); }
+                if is_local == 1 { g_lea_local(aoff); } else {
+                    if is_local == 2 { g_lea_local(hcall); g_load_at(); sv(K_LAST, 0); }
+                    else { g_movabs_rax(aoff); }
+                }
                 let off2: i64 = src + (se2 - st) * esz2;
                 if off2 > 0 {
                     g_push_rax();
@@ -1169,7 +1201,13 @@ fn parse_destructure(dcln: i64) -> i64 {
         if is_local == 1 {
             g_lea_local(aoff);         # rax = &arr
         } else {
-            g_movabs_rax(aoff);        # rax = 绝对地址
+            if is_local == 2 {
+                g_lea_local(hcall);    # v1.1089: 基址 = 隐藏槽里的地址
+                g_load_at();
+                sv(K_LAST, 0);         # 🔴 防折叠吃掉 lea/load 对
+            } else {
+                g_movabs_rax(aoff);    # rax = 绝对地址
+            }
         }
         if src > 0 {
             g_push_rax();
@@ -2668,6 +2706,10 @@ fn parse_return() -> i64 {
         expect(";");
         let as2: i64 = sym_lookup(an2);
         if as2 < 0 { return undef_err(an2); }
+        # v1.1089: 局部数组返回悬垂（帧已弹出）—— 硬错，必须返回全局/静态数组
+        if sym_kind(as2) == 1 {
+            return err_at2("array return: local array would dangle; return a global array", gv(K_LINE), gv(K_COL));
+        }
         g_addr_sym_rax(as2);
         g_epilogue();
         return 0;
@@ -4707,6 +4749,11 @@ fn reserve_arg_slots() -> i64 {
 
 fn parse_program() -> i64 {
     predeclare();
+    # v1.1089: 数据段头预留 256B 返回暂存区（全零，不与全局冲突）
+    data_align(16);
+    RETB = 268435456 + gv(K_DLEN);
+    let rbi: i64 = 0;
+    while rbi < 32 { dquad(0); rbi = rbi + 1; }
     next_token();
     while gv(K_TKIND) != 0 {
         if ERR_DUP > 3 { break; }   # 恢复卡死：停止解析，走完编译流程报错退出
