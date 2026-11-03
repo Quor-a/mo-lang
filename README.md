@@ -1,20 +1,45 @@
-# 墨语言 Mo — 一门从零自举的原创编程语言
+# 墨语言 Mo
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
-[![Version](https://img.shields.io/badge/version-1.301.0-blue.svg)](VERSION)
+[![Version](https://img.shields.io/badge/version-1.1112.0-blue.svg)](VERSION)
+[![Tests](https://img.shields.io/badge/tests-446%20passing-brightgreen.svg)](tests/)
 
-一门静态类型、编译到原生 x86-64 / ARM64 机器码的系统级小语言，编译器**用墨语言自身写成**，
-并完成 Stage 0 → 1 → 2 → 3 完整自举闭环。
+**一个没有外部依赖、能自己编译自己、还能编译到 ARM64 裸机的完整工具链。**
+编译器 1.5 万行、自举 0.13 秒——改一行代码，立刻知道结果。
 
-## 亮点
+## 为什么是 Mo
 
-- 🔁 **完全自举**：手写汇编引导编译器（`bin/seed`）→ 墨语言版编译器（`src/compiler.mo`）→ 编译自身，三级产物字节一致。
-- 🧬 **双后端**：原生 x86-64 后端（`moc`）+ 交叉编译到 ARM64 / 安卓（`mo2x`，C 无 libc 落地）。
-- 📦 **包管理**：`mopkg`（类 cargo）——`pack` / `publish` / `fetch` / `search` / `list` / `tree` / `verify` / `remove`，支持远程 registry、缓存、sha256 校验、token 鉴权、409 防覆盖。
-- 🌐 **网络栈**：HTTP/1.1 keep-alive 客户端（4 槽连接池、gzip、条件请求、读超时）、HTTP 服务器（路由/参数路由/中间件/ETag/日志/配额）、DNS、TCP 自实现。
-- 🔐 **密码学**：SHA-256 / CRC32 / Base64 / ChaCha20（纯墨语言实现）。
-- 🧮 **标准库**：字符串、数组、JSON、tar、gzip、文件 IO、进程、协程、向量、映射、自动微分（神经网络）、概率数据结构（HLL / Q-digest / LSH / SDM）。
-- 🧰 **工具链**：格式化、代码检查、性能基准、交叉编译、内核/安卓/WASM/Windows 目标。
+- **真自举**：手写汇编引导（`bin/seed`）→ Mo 编译器 → 编译自身，三级产物**字节一致**，且能编译到 **ARM64 裸机**（无 OS 自举）——主流系统语言里没有第二家。
+- **秒级迭代**：0.13 秒编译整个 1.5 万行编译器（self-hosting 的日常不是等 20 秒，是像脚本一样改完就跑）。
+- **零依赖**：编译器、包管理、网络栈、密码学全部标准库自带，clone 下来一个脚本构建。
+- **中文语法亲和**：关键字与文档中文优先，对中文母语者是最低门槛的系统语言。
+
+## 语言能力（全部 self-hosted 实现）
+
+| 能力 | 说明 |
+|---|---|
+| **泛型** | 单态化 `generic fn maxg<T>(a: T, b: T) -> T` + `instantiate`，trait bound `<T: Shape + Tag>` |
+| **接口 / 动态分派** | `interface` / `impl`，vtable 运行时分派 |
+| **模式匹配** | `match`：数字/字符串/enum/struct 模式、字段绑定、守卫 `PAT if cond =>`、表达式版、任意深度嵌套 |
+| **闭包** | 嵌套函数捕获外层局部变量 |
+| **const fn** | `const fn sq(x: i64) -> i64 { return x * x; }` 调用点编译期折叠（v1.1112） |
+| **解构** | struct 模式字段绑定 `P { y: v; }` |
+| **默认参数 / 命名实参** | 函数与方法均支持，含前向命名 |
+| **类型化指针 / 引用** | `ptr Node` 自引用、ptr 字节步进、取地址 `&x` |
+| **多维数组 / 数组字面量** | `[2][3] i64`、struct 字段数组、len()、for-in、range for `for i in A..B` |
+| **struct 按值** | 字面量全家、按值传参/返回（rax/rdx ABI）、整体赋值、字段默认值 |
+| **错误传播** | `f()?` 链式传播 |
+
+完整语言文档在 [`docs/`](docs/)（140 篇），语言特性总览见 [`docs/lang-features-2026.md`](docs/lang-features-2026.md)。
+
+## 工具链
+
+- 🧬 **双后端**：原生 x86-64（`moc`）+ 交叉编译 ARM64 / 安卓 / WASM / Windows / 裸机（`mo2x`，C 无 libc 落地）。
+- 📦 **包管理**：`mopkg`（类 cargo）——`pack` / `publish` / `fetch` / `search` / `tree` / `verify`，远程 registry、sha256 校验、token 鉴权。
+- 🌐 **网络栈**：HTTP/1.1 keep-alive 客户端（连接池/gzip/条件请求）、HTTP 服务器（路由/中间件/ETag/配额）、DNS、TCP 自实现。
+- 🔐 **密码学**：SHA-256 / CRC32 / Base64 / ChaCha20（纯 Mo 实现）。
+- 🧮 **标准库**：JSON、tar、gzip、文件 IO、进程、协程、向量、映射、**自动微分**（神经网络，Q16.16 定点）、概率数据结构（HLL / Q-digest / LSH / SDM）。
+- 🧰 **工具**：格式化、代码检查（-Wall）、性能基准。
 
 ## 快速开始
 
