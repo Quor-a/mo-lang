@@ -10718,7 +10718,7 @@ fn parse_program() -> i64 {
                                 if tok_is("extern") == 1 {
                                     parse_extern();
                                 } else {
-                                    if tok_is("var") == 1 {
+                                    if tok_is("var") == 1 || tok_is("let") == 1 {
                                         parse_global();
                                     } else {
                                     if tok_is("const") == 1 {
