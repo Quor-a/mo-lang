@@ -1482,6 +1482,19 @@ fn parse_primary() -> i64 {
             R_ETY = ty_bool();
             return 0;
         }
+        # v1.1101: match 表达式（任意位置）—— 借栈顶临时槽，值落槽后读回。
+        # 借槽期间 CUROFF 前移，臂表达式内不会再有声明，结束还原。
+        # 'match' 作为变量名兼容（tests/294）：已声明同名变量则不当 match 关键字
+        if streq(scratch1(), "match") == 1 && sym_lookup(scratch1()) < 0 {
+            let pcur: i64 = gv(K_CUROFF);
+            let phs: i64 = pcur - 8;
+            sv(K_CUROFF, phs);
+            let mr: i64 = parse_match_expr(phs);
+            sv(K_CUROFF, pcur);
+            if mr != 0 { return -1; }
+            R_ETY = ty_int();
+            return 0;
+        }
         # Enum.CONST —— 具名整型常量。
         #
         # ⚠️ 位置：必须在**变量查找之前**，且只在 tok 是 '.' 时才试探。

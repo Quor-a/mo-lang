@@ -1,3 +1,12 @@
+## 1.1101.0
+- match 表达式任意位置内嵌：`return f() + match c { ... };` 等（parse_primary 集成，
+  借栈顶临时槽，结束后还原 CUROFF；'match' 已声明为变量名时兼容 tests/294）。
+- 🔴 存量 bug 修复：推断 let（`let a = 5;`）与 typed let（`let b: i64 = 6;`）混用时
+  撞槽（推断路径 CUROFF 留在已用槽顶，typed 从 CUROFF 分配 → 两变量同槽）。
+  统一：声明后 CUROFF = 已用槽顶 - 8。pq 探针实证 144→220。
+- 表达式臂语法确认：多模式臂之间必须逗号分隔（`1 => 11, 2 => 22,`）；
+  语句版 match 不受影响。mt_scan/parse_match_expr 臂间逗号 accept 兼容。
+
 ## 1.1100.0
 - match 表达式：`let r = match c { PAT => EXPR, ... };` 与 `r = match ...;`。
   臂值为裸表达式（逗号分隔）或 `{ expr }` 单表达式块；结果写入变量槽。

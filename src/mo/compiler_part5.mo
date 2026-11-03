@@ -514,20 +514,6 @@ fn parse_stmt() -> i64 {
         }
         if tok_is("=") == 1 {
             next_token();
-            # v1.1100: 赋值右值 match 表达式 —— 借栈顶临时槽
-            if gv(K_TKIND) == 1 && streq(tokbuf(), "match") == 1 {
-                let mcur: i64 = gv(K_CUROFF);
-                let mhs: i64 = mcur - 8;
-                sv(K_CUROFF, mhs);
-                if parse_match_expr(mhs) != 0 { sv(K_CUROFF, mcur); return -1; }
-                sv(K_CUROFF, mcur);
-                expect(";");
-                R_SYM = sym_lookup(scratch2());
-                if R_SYM < 0 { return undef_err(scratch2()); }
-                R_ETY = ty_int();
-                store_sym(R_SYM);
-                return 0;
-            }
             # v1.1054: p = P { x: 1; y: 2; }; —— 字面量整体赋值。
             # 探测 ident+'{' 且 ident 是 struct：字段逐一直接 store
             # 到变量地址（语句层，变量可能是局部或全局，load_sym 前）。
@@ -1294,6 +1280,8 @@ fn parse_let() -> i64 {
             # 发射后再声明变量。结果槽 = bo2 - 8。
             if parse_match_expr(bo2 - 8) != 0 { return -1; }
             expect(";");
+            # 与普通推断路径统一：CUROFF 留已用槽顶，下个声明从 CUROFF-8 分配
+            sv(K_CUROFF, bo2 - 16);
             let mid: i64 = sym_add(scratch2(), 1, bo2 - 8, 0);
             store64(heap + O_STY + mid * 8, ty_int());
             dbg_var(scratch2(), bo2 - 8, dcln, ty_int());
@@ -1304,7 +1292,9 @@ fn parse_let() -> i64 {
         let ity: i64 = R_ETY;
         let isz: i64 = ty_size(ity);
         if isz < 8 { isz = 8; }
-        sv(K_CUROFF, bo2 - isz);
+        # v1.1100: 与 typed 标量路径统一 —— CUROFF 留在已用槽顶，下个声明从 CUROFF-8 分配
+        # （旧代码 sv(CUROFF, bo2-isz) 让下一个 typed let 与本变量撞槽，pq 探针实证）
+        sv(K_CUROFF, bo2 - isz - 8);
         let iid: i64 = sym_add(scratch2(), 1, bo2 - isz, 0);
         store64(heap + O_STY + iid * 8, ity);
         dbg_var(scratch2(), bo2 - isz, dcln, ity);
@@ -1823,10 +1813,10 @@ fn parse_let() -> i64 {
     expect("=");
     # v1.1100: match 表达式右值 —— 结果槽即变量槽（CUROFF-8）
     if gv(K_TKIND) == 1 && streq(tokbuf(), "match") == 1 {
-        let moff: i64 = gv(K_CUROFF) - 8;
+        let moff: i64 = gv(K_CUROFF);   # 槽约定与原路径一致：存 CUROFF，声明后 CUROFF-=8
         if parse_match_expr(moff) != 0 { return -1; }
         expect(";");
-        sv(K_CUROFF, moff);
+        sv(K_CUROFF, moff - 8);
         if sym_dup(scratch2()) >= 0 { return err_atp("duplicate definition", gv(K_PLINE), gv(K_PCOL), gv(K_PPOS)); }
         let mid2: i64 = sym_add(scratch2(), 1, moff, 0);
         store64(heap + O_STY + mid2 * 8, vt);
@@ -3195,7 +3185,8 @@ fn parse_match_expr(hs_off: i64) -> i64 {
     let hasdflt: i64 = 0;
     let i: i64 = 0;
     while i < n { store64(lbls + i * 8, new_label()); i = i + 1; }
-    next_token();                       # 越过 'match'
+    # primary 调用方已消费 'match'；语句/let 路由未消费 —— 探测式越过
+    if streq(tokbuf(), "match") == 1 { next_token(); }
     parse_expr();                       # 判别值 → rax
     i = 0;
     while i < n {
@@ -3210,6 +3201,7 @@ fn parse_match_expr(hs_off: i64) -> i64 {
     sv(K_DEPTH, d);
     while tok_is("}") == 0 {
         if gv(K_TKIND) == 1 && streq(tokbuf(), "_") == 1 {
+            accept(",");                    # 臂间逗号（首臂无害）
             next_token();
             expect("=>");
             hasdflt = 1;
@@ -3231,6 +3223,7 @@ fn parse_match_expr(hs_off: i64) -> i64 {
             store64(heap + O_SWTOP, base);
             return err_atp("match: 模式与扫描结果不一致", gv(K_PLINE), gv(K_PCOL), gv(K_PPOS));
         }
+        accept(",");                        # 臂间逗号（首臂无害）
         place_label(load64(lbls + i * 8));
         if sw_const(heap + O_SWC) == 0 {
             sv(K_DEPTH, d - 1);
