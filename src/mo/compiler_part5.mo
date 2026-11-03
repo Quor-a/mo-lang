@@ -3003,18 +3003,39 @@ fn mt_scan(vals: i64) -> i64 {
                     # v1.1106: 嵌套 struct 模式 —— 字段值是 struct 名 → 展开一层
                     # （子字段 offset = 外层 foff + 子 off；绑定名同样下沉）
                     if gv(K_TKIND) == 1 && st_lookup(tokbuf()) >= 0 {
-                                                let nsi: i64 = st_lookup(tokbuf());
+                                                # v1.1109: 多级嵌套 —— struct 栈下钻（最多 8 层）
+                        let nsis: [8] i64;
+                        let offs: [8] i64;
+                        let depth: i64 = 0;
+                        nsis[0] = st_lookup(tokbuf());
+                        offs[0] = foff;
                         next_token();
                         if tok_is("{") == 0 { return 0 - 2; }
                         next_token();
-                        while tok_is("}") == 0 {
+                        while depth >= 0 {
                             if gv(K_TKIND) == 0 { return 0 - 2; }
+                            if tok_is("}") == 1 {
+                                depth = depth - 1;
+                                next_token();
+                                if depth >= 0 {
+                                    if tok_is(";") == 1 { next_token(); }   # 吃本层最后字段的 ';'
+                                }
+                                continue;
+                            }
                             memcpy(scratch3(), tokbuf());
-                            let nfo: i64 = foff + st_field_off(nsi, st_field(nsi, scratch3()));
+                            let nfo: i64 = offs[depth] + st_field_off(nsis[depth], st_field(nsis[depth], scratch3()));
                             next_token();
                             expect(":");
+                            # 字段值又是 struct → 下钻一层
                             if gv(K_TKIND) == 1 && st_lookup(tokbuf()) >= 0 {
-                                return 0 - 2;   # v1.1106: 暂不支持两层以上嵌套
+                                if depth >= 7 { return 0 - 2; }
+                                depth = depth + 1;
+                                nsis[depth] = st_lookup(tokbuf());
+                                offs[depth] = nfo;
+                                next_token();
+                                if tok_is("{") == 0 { return 0 - 2; }
+                                next_token();
+                                continue;
                             }
                             if gv(K_TKIND) == 1 {
                                 memcpy(scratch3(), tokbuf());
@@ -3026,12 +3047,10 @@ fn mt_scan(vals: i64) -> i64 {
                                 if sw_const(heap + O_SWC) == 0 { return 0 - 2; }
                                 store64(heap + O_SWSM + (smbase + 3 + cnt * 2) * 8, load64(heap + O_SWC));
                             }
-                            let wk: i64 = gv(K_TKIND);
                             store64(heap + O_SWSM + (smbase + 2 + cnt * 2) * 8, nfo);
                             cnt = cnt + 1;
                             next_token();       # 吃 ';'
                         }
-                        next_token();           # 吃子 '}'
                         next_token();           # 吃外层字段的 ';'
                                                 continue;               # 🔴 cnt 已在子循环内加过，不再加
                     } else {
@@ -3270,60 +3289,39 @@ fn parse_match() -> i64 {
         }
         if load64(heap + O_SWG + i * 8) == 1 { place_label(load64(heap + O_SWGL + i * 8)); }
         if load64(heap + O_SWSN + i * 8) == 1 {
-            # v1.1103/1104: struct 模式 —— 第二遍重新吃掉 `P { f: v; …; }`
-            # 并为绑定字段建局部变量 + 发射 store（rax=判别地址，臂开头已 place）。
-            # 判别地址在 r11（发射段保值）——mov rsi, r11 后逐绑定字段 store。
+            # v1.1109: struct 模式第二遍 —— 深度计数跳过整个模式 token + 数据驱动建绑定符号
+            # （scan 顺序 = O_SWSB/O_SWSM cnt 顺序，逐 token 重放对多层嵌套太脆弱，弃用）
             let smbi: i64 = i * 64;
             let smn2: i64 = load64(heap + O_SWSM + (smbi + 1) * 8);
-            let smd: i64 = 0;
-            # 先收集绑定字段：类型 i64，槽 = CUROFF 递减
             next_token();               # struct 名
             expect("{");
+            let sd9: i64 = 1;
+            next_token();
+            while sd9 > 0 {
+                if gv(K_TKIND) == 0 { return -1; }
+                if tok_is("{") == 1 { sd9 = sd9 + 1; }
+                else { if tok_is("}") == 1 { sd9 = sd9 - 1; if sd9 == 0 { break; } } }
+                next_token();
+            }
+            next_token();               # 吃模式收尾 '}'
             let smk2: i64 = 0;
             while smk2 < smn2 {
-                next_token();           # 字段名
-                let fidx2: i64 = st_field(load64(heap + O_SWSM + smbi * 8), tokbuf());
-                next_token();           # ':'
-                # v1.1106: 值是嵌套 struct 模式 → 深度吃子块
-                if gv(K_TKIND) == 1 && st_lookup(tokbuf()) >= 0 {
-                    next_token();
-                    expect("{");
-                    let sd7: i64 = 1;
-                    next_token();
-                    while sd7 > 0 {
-                        if gv(K_TKIND) == 0 { return -1; }
-                        if tok_is("{") == 1 { sd7 = sd7 + 1; }
-                        else { if tok_is("}") == 1 { sd7 = sd7 - 1; if sd7 == 0 { break; } } }
-                        next_token();
-                    }
-                    next_token();           # 吃子 '}'
-                    next_token();           # 吃外层字段的 ';'
-                    smk2 = smk2 + 1;
-                    continue;
-                }
                 let bvid: i64 = load64(heap + O_SWSB + ((smbi/64) * 31 + smk2) * 8);
                 let bval: i64 = load64(heap + O_SWSM + ((smbi) + 3 + smk2 * 2) * 8);
                 if bval == 0 - 1 {
-                    # v1.1104: 绑定 —— 只建符号（发射在 place_label(lbls) 之后统一做，
-                    # 否则 store 会落在臂标签之前被跳转跳过）
                     memcpy(scratch2(), heap + O_NAMES + bvid);
                     let boff: i64 = gv(K_CUROFF) - 8;
                     sv(K_CUROFF, boff);
                     if sym_dup(scratch2()) >= 0 { return err_atp("duplicate definition", gv(K_PLINE), gv(K_PCOL), gv(K_PPOS)); }
+                    let ssd: i64 = gv(K_DEPTH);
+                    sv(K_DEPTH, ssd + 1);
                     let bid: i64 = sym_add(scratch2(), 1, boff, 0);
+                    sv(K_DEPTH, ssd);
                     store64(heap + O_STY + bid * 8, ty_int());
-                    store64(heap + O_SWC + (i * 8 + smk2 * 8), boff);  # 暂存绑定槽号（O_SWC 此时空闲）
-                } else {
-                    next_token();       # 常量值
+                    store64(heap + O_SWC + (i * 8 + smk2 * 8), boff);
                 }
-                next_token();           # ';'
                 smk2 = smk2 + 1;
             }
-            while tok_is("}") == 0 {
-                if gv(K_TKIND) == 0 { return -1; }
-                next_token();
-            }
-            next_token();               # '}'
         } else {
         if load64(heap + SWSTR + i * 8) == 1 {
             next_token();               # 吃字符串模式（值已在 scan 录入）
@@ -3567,71 +3565,42 @@ fn parse_match_expr(hs_off: i64) -> i64 {
             let smn2: i64 = load64(heap + O_SWSM + (smbi + 1) * 8);
             next_token();                   # struct 名
             expect("{");
-            let smk2: i64 = 0;
-            while smk2 < smn2 {
-                next_token();               # 字段名
-                next_token();               # ':'
-                # v1.1106: 值是嵌套 struct 模式 → 跳到子模式收尾 '}'
-                # （嵌套子模式里的绑定名也建符号 + 暂存 boff，store 在 place 后统一做）
-                if gv(K_TKIND) == 1 && st_lookup(tokbuf()) >= 0 {
-                    let nbvid: i64 = load64(heap + O_SWSB + ((smbi/64) * 31 + smk2) * 8);
-                    let nbval: i64 = load64(heap + O_SWSM + (smbi + 3 + smk2 * 2) * 8);
-                    if nbval == 0 - 1 {
-                        memcpy(scratch3(), heap + O_NAMES + nbvid);
-                        let nboff: i64 = gv(K_CUROFF) - 8;
-                        sv(K_CUROFF, nboff);
-                        if sym_dup(scratch3()) >= 0 { return err_atp("duplicate definition", gv(K_PLINE), gv(K_PCOL), gv(K_PPOS)); }
-                        let nbid: i64 = sym_add(scratch3(), 1, nboff, 0);
-                        store64(heap + O_STY + nbid * 8, ty_int());
-                        store64(heap + O_SWC + (i * 8 + smk2 * 8), nboff);
-                    }
-                    next_token();
-                    expect("{");
-                    let sd6: i64 = 1;
-                    next_token();
-                    while sd6 > 0 {
-                        if gv(K_TKIND) == 0 { return -1; }
-                        if tok_is("{") == 1 { sd6 = sd6 + 1; }
-                        else { if tok_is("}") == 1 { sd6 = sd6 - 1; if sd6 == 0 { break; } } }
-                        next_token();
-                    }
-                    next_token();           # 吃子 '}'
-                    next_token();           # 吃外层字段的 ';'
-                    smk2 = smk2 + 1;
-                    continue;
-                }
-                let bval2: i64 = load64(heap + O_SWSM + (smbi + 3 + smk2 * 2) * 8);
-                if bval2 == 0 - 1 {
-                    let bvid2: i64 = load64(heap + O_SWSB + ((smbi/64) * 31 + smk2) * 8);
-                    # 🔴 不能用 scratch2 —— 表达式版外层 let 的变量名还活在 scratch2
-                    memcpy(scratch3(), heap + O_NAMES + bvid2);
-                    let boff2: i64 = gv(K_CUROFF) - 8;
-                    sv(K_CUROFF, boff2);
-                    if sym_dup(scratch3()) >= 0 { return err_atp("duplicate definition", gv(K_PLINE), gv(K_PCOL), gv(K_PPOS)); }
-                    let sd2: i64 = gv(K_DEPTH);
-                    sv(K_DEPTH, sd2 + 1);        # 绑定符号记臂内深度 → 结束 pop
-                    let bid2: i64 = sym_add(scratch3(), 1, boff2, 0);
-                    sv(K_DEPTH, sd2);
-                    store64(heap + O_STY + bid2 * 8, ty_int());
-                    store64(heap + O_SWC + (i * 8), boff2);
-                } else {
-                    next_token();           # 常量值
-                }
-                next_token();               # ';'
-                smk2 = smk2 + 1;
-            }
-            while tok_is("}") == 0 {
+            let sd8: i64 = 1;
+            next_token();
+            while sd8 > 0 {
                 if gv(K_TKIND) == 0 { return -1; }
+                if tok_is("{") == 1 { sd8 = sd8 + 1; }
+                else { if tok_is("}") == 1 { sd8 = sd8 - 1; if sd8 == 0 { break; } } }
                 next_token();
             }
-            next_token();                   # '}'
+            next_token();                   # 模式收尾 '}'
+            # v1.1109: 数据驱动建绑定符号（scan 顺序 = cnt 顺序，不再逐 token 重放）
+            let smk2: i64 = 0;
+            while smk2 < smn2 {
+                let bvid: i64 = load64(heap + O_SWSB + ((smbi/64) * 31 + smk2) * 8);
+                let bval: i64 = load64(heap + O_SWSM + ((smbi) + 3 + smk2 * 2) * 8);
+                if bval == 0 - 1 {
+                    memcpy(scratch3(), heap + O_NAMES + bvid);
+                    let boff: i64 = gv(K_CUROFF) - 8;
+                    sv(K_CUROFF, boff);
+                    if sym_dup(scratch3()) >= 0 { return err_atp("duplicate definition", gv(K_PLINE), gv(K_PCOL), gv(K_PPOS)); }
+                    # v1.1105 铁律: 绑定符号记臂内深度，结束后统一 pop（d+1）
+                    let esd: i64 = gv(K_DEPTH);
+                    sv(K_DEPTH, esd + 1);
+                    let bid: i64 = sym_add(scratch3(), 1, boff, 0);
+                    sv(K_DEPTH, esd);
+                    store64(heap + O_STY + bid * 8, ty_int());
+                    store64(heap + O_SWC + (i * 8 + smk2 * 8), boff);
+                }
+                smk2 = smk2 + 1;
+            }
             # place 已过 → 立即发射绑定 store（数据驱动，地址在 r11）
             let sbk2: i64 = 0;
             while sbk2 < smn2 {
                 if load64(heap + O_SWSM + (smbi + 3 + sbk2 * 2) * 8) == 0 - 1 {
                     ops3(0x4c, 0x89, 0xde);              # mov rsi, r11
                     emit1(0x48); emit1(0x8b); emit1(0x86); emit4(load64(heap + O_SWSM + (smbi + 2 + sbk2 * 2) * 8));
-                    g_store_local(load64(heap + O_SWC + (i * 8)));
+                    g_store_local(load64(heap + O_SWC + (i * 8 + sbk2 * 8)));
                 }
                 sbk2 = sbk2 + 1;
             }
