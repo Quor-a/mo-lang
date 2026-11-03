@@ -2300,17 +2300,24 @@ fn sw_const(out: i64) -> i64 {
         #    是 0 —— 于是只报一句 duplicate case，看不出真正的原因。
         #    折不动就返回 0（由调用方报"必须是编译期常量"），绝不静默。
         # v1.999：后缀接受 const/enum 原子（case 0 - N）
-        while tok_is("-") == 1 || tok_is("+") == 1 {
-            let do_: i64 = tok_is("-");
+        # v1.1092：扩展 * / （乘除折叠，与 + - 同级从左到右）
+        while tok_is("-") == 1 || tok_is("+") == 1 || tok_is("*") == 1 || tok_is("/") == 1 {
+            let do_: i64 = 0 - 1;
+            if tok_is("-") == 1 { do_ = 0; }
+            if tok_is("+") == 1 { do_ = 1; }
+            if tok_is("*") == 1 { do_ = 2; }
+            if do_ < 0 { do_ = 3; }   # '/'
             next_token();
-            if gv(K_TKIND) != 2 {
-                let sa: i64 = const_atom();
-                if sa == 0 && gv(K_TKIND) != 2 { return 0; }
-                if do_ == 1 { v = v - sa; } else { v = v + sa; }
-            } else {
-                if do_ == 1 { v = v - gv(K_TIVAL); } else { v = v + gv(K_TIVAL); }
-                next_token();
+            let sa2: i64 = 0;
+            if gv(K_TKIND) == 2 { sa2 = gv(K_TIVAL); next_token(); }
+            else {
+                sa2 = const_atom();
+                if sa2 == 0 && gv(K_TKIND) != 2 { return 0; }
             }
+            if do_ == 0 { v = v - sa2; }
+            if do_ == 1 { v = v + sa2; }
+            if do_ == 2 { v = v * sa2; }
+            if do_ == 3 { v = v / sa2; }
         }
         store64(out, v);
         return 1;
@@ -2338,12 +2345,21 @@ fn sw_const(out: i64) -> i64 {
             let e: i64 = enum_value(nb);
             if e >= 0 {
                 let v: i64 = load64(heap + O_EVAL + e * 8);
-                # v1.1051: enum case 的 +/- 后缀折叠（与 const 分支对称）
-                while tok_is("-") == 1 || tok_is("+") == 1 {
-                    let op2: i64 = tok_is("-");
+                # v1.1051/v1.1092: enum case 的 +/-/*/ 后缀折叠
+                while tok_is("-") == 1 || tok_is("+") == 1 || tok_is("*") == 1 || tok_is("/") == 1 {
+                    let op2: i64 = 0 - 1;
+                    if tok_is("-") == 1 { op2 = 0; }
+                    if tok_is("+") == 1 { op2 = 1; }
+                    if tok_is("*") == 1 { op2 = 2; }
+                    if op2 < 0 { op2 = 3; }
                     next_token();
-                    let a2: i64 = const_atom();
-                    if op2 == 1 { v = v - a2; } else { v = v + a2; }
+                    let a2: i64 = 0;
+                    if gv(K_TKIND) == 2 { a2 = gv(K_TIVAL); next_token(); }
+                    else { a2 = const_atom(); }
+                    if op2 == 0 { v = v - a2; }
+                    if op2 == 1 { v = v + a2; }
+                    if op2 == 2 { v = v * a2; }
+                    if op2 == 3 { v = v / a2; }
                 }
                 store64(out, v);
                 return 1;
@@ -2357,11 +2373,20 @@ fn sw_const(out: i64) -> i64 {
                 if load64(heap + O_SK + csi * 8) == 4 {
                     store64(heap + O_SU + csi * 8, 1);
                     let v: i64 = load64(heap + O_SCV + csi * 8);
-                    while tok_is("-") == 1 || tok_is("+") == 1 {
-                        let op: i64 = tok_is("-");
+                    while tok_is("-") == 1 || tok_is("+") == 1 || tok_is("*") == 1 || tok_is("/") == 1 {
+                        let op: i64 = 0 - 1;
+                        if tok_is("-") == 1 { op = 0; }
+                        if tok_is("+") == 1 { op = 1; }
+                        if tok_is("*") == 1 { op = 2; }
+                        if op < 0 { op = 3; }
                         next_token();
-                        let a: i64 = const_atom();
-                        if op == 1 { v = v - a; } else { v = v + a; }
+                        let a: i64 = 0;
+                        if gv(K_TKIND) == 2 { a = gv(K_TIVAL); next_token(); }
+                        else { a = const_atom(); }
+                        if op == 0 { v = v - a; }
+                        if op == 1 { v = v + a; }
+                        if op == 2 { v = v * a; }
+                        if op == 3 { v = v / a; }
                     }
                     store64(out, v);
                     return 1;
