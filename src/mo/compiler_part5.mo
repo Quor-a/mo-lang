@@ -3147,6 +3147,19 @@ fn parse_match() -> i64 {
     }
     next_token();                       # 越过 'match'（路由是探测式，不消费）
     parse_expr();                       # 判别值 → rax
+    # v1.1108: 有绑定守卫臂时预留判别槽并存值
+    let hasvb: i64 = 0;
+    let hv: i64 = 0;
+    while hv < n {
+        if load64(heap + O_SWVB + hv * 8) != 0 { hasvb = 1; }
+        hv = hv + 1;
+    }
+    let vboff: i64 = 0;
+    if hasvb == 1 {
+        vboff = gv(K_CUROFF) - 8;
+        sv(K_CUROFF, vboff);
+        g_store_local(vboff);
+    }
     # v1.1099: 混合约束（同 switch）—— 任一字符串模式则全部必须为字符串
     let msws: i64 = 0;
     let mq: i64 = 0;
@@ -3211,6 +3224,12 @@ fn parse_match() -> i64 {
                     emit_jcc(0x84, load64(lbls + i * 8));            # je 臂
                 }
                 place_label(smf);
+                i = i + 1;
+                continue;
+            }
+            # v1.1108: 绑定守卫臂 —— 无条件进守卫标签（vals=-1 无意义）
+            if load64(heap + O_SWVB + i * 8) != 0 {
+                emit_jmp(load64(heap + O_SWGL + i * 8));
                 i = i + 1;
                 continue;
             }
@@ -3309,15 +3328,29 @@ fn parse_match() -> i64 {
         if load64(heap + SWSTR + i * 8) == 1 {
             next_token();               # 吃字符串模式（值已在 scan 录入）
         } else {
+            # v1.1108: 绑定守卫模式 —— 建符号（槽 = 判别槽）
+            if load64(heap + O_SWVB + i * 8) != 0 {
+                memcpy(scratch3(), heap + O_NAMES + load64(heap + O_SWVB + i * 8));
+                sv(K_CUROFF, gv(K_CUROFF));
+                if sym_dup(scratch3()) >= 0 { return err_atp("duplicate definition", gv(K_PLINE), gv(K_PCOL), gv(K_PPOS)); }
+                let wsd: i64 = gv(K_DEPTH);
+                sv(K_DEPTH, wsd + 1);
+                let wbid: i64 = sym_add(scratch3(), 1, vboff, 0);
+                sv(K_DEPTH, wsd);
+                store64(heap + O_STY + wbid * 8, ty_int());
+                next_token();               # 吃绑定名
+            } else {
             if sw_const(heap + O_SWC) == 0 {
                 loop_pop();
                 store64(heap + O_SWTOP, base);
                 return err_atp("match: 模式必须是编译期常量", gv(K_PLINE), gv(K_PCOL), gv(K_PPOS));
             }
+            }
         }
         }
         # v1.1099: 守卫 —— 模式匹配后再验 if 条件；失败跳下一臂（或 default）
-        if load64(heap + O_SWG + i * 8) == 1 {
+        # v1.1108: 绑定守卫臂的匹配点 = O_SWGL 标签（发射段无条件 jmp 到此）
+        if load64(heap + O_SWVB + i * 8) != 0 { place_label(load64(heap + O_SWGL + i * 8)); }        if load64(heap + O_SWG + i * 8) == 1 {
             expect("if");
             parse_expr();               # cond → rax
             spill_cache();              # 值可能还在 rbx 缓存里，落回 rax

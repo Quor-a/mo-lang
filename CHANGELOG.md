@@ -1,3 +1,14 @@
+## 1.1108.0 - 2026-11-03
+
+### Added
+- **match 语句版守卫绑定**：`match x { y if y > 3 => { ... } _ => { ... } }` - 绑定变量在守卫条件与臂体内可见（值=判别值）。
+  - 发射段：绑定守卫臂（O_SWVB[i]!=0）无条件 jmp 守卫标签（vals=-1 无意义，不能走 cmp/je 匹配）
+  - 第二遍：绑定名建符号（槽=判别值槽 vboff=CUROFF-8，parse_expr 后 g_store_local 存值）
+  - 每 match 前 O_SWVB 清零（v1.1107 已有）
+
+### Fixed
+- 排查定位：语句版发射段在 parse_match 的 O_SWSM struct 路径之后（cmp rax,imm32 + je SWGL），v1.1107 的守卫处理只在表达式版；v1.1108 patch 误入 parse_switch 的 use_tbl 分支一次，已恢复。
+
 - 🔴 排坑续：绑定符号须记臂内深度（sym_add 前 sv(K_DEPTH,d+1)，add 后还原），
   match 结束 sym_pop_scope(d+1) 回收 —— 否则后续 match 同名绑定报 duplicate。
 
