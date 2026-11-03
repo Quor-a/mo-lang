@@ -128,3 +128,7 @@ let a: [HALF] i64;              # const 作数组长度
 - match 表达式（任意位置）现支持字符串模式，与语句版语义一致。
 - 修复 mt_scan 数字模式不清 SWSTR 的跨函数残留（SIGSEGV）。
 - let 右值 match 特判统一收敛到 parse_expr/primary 单一入口。
+
+### v1.1103.0 match struct 模式
+- `match r { P { x: 1; y: 2; } => …, _ => … }`：字段常量模式，部分匹配可。
+- 限制：暂不支持字段绑定变量（捕获）；仅语句版（表达式版同链可后续移植）。

@@ -1,3 +1,13 @@
+## 1.1103.0
+- match struct 模式：`match r { P { x: 1; } => …, _ => … }`（语句版）。
+  字段名: 编译期常量（分号分隔），部分字段可省略；全部匹配才进臂。
+  实现：O_SWSM/O_SWSN 区、mt_scan struct 分支（st_field 查 offset）、
+  发射 mov r11,rax 保判别地址 + 每臂 mov rsi,r11 / mov rax,[rsi+off] /
+  cmp imm32 / jne smfail 链；第二遍臂循环重新吃掉模式 token；
+  struct 臂豁免 duplicate 检查。
+- 🔴 排坑：st_field(si, fname) 第二参是**字符串缓冲地址**（scratch1/3），
+  不是 intern id —— 传 intern id 直接 SIGSEGV（探针实证）。
+
 ## 1.1102.0
 - match 表达式支持字符串模式（语句版 v1.1099 逻辑移植 parse_match_expr：
   SWSTR 标记 + g_str_eq 比较链 + r11 判别串保值）。

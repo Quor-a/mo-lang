@@ -8552,6 +8552,11 @@ var O_SWNB:  i64 = 8768100;   # sw_const 的名字缓冲（64 字节）
 var SWSTR:   i64 = 8770000;   # v1.1047: case 是否字符串（n*8，128 项）
 var O_SWG:   i64 = 8771000;   # v1.1099: match 臂是否带守卫 if（n*8，128 项）
 var O_SWGL:  i64 = 8772000;   # v1.1099: 守卫臂的匹配点标签（n*8，128 项）
+var O_SWSM:  i64 = 8773000;   # v1.1103: match struct 模式区。每臂 64 槽：
+                              #   槽0=struct si（-1=非 struct 模式），槽1=字段数，
+                              #   槽 2+2k=字段 offset，槽 3+2k=字段常量值。
+                              #   128 臂 × 64 槽 × 8 = 65536 字节（至 8838536）。
+var O_SWSN:  i64 = 8839000;   # v1.1103: struct 模式结构体类型（ty_struct 值，n*8，128 项）
 
 # 读一个编译期常量写入 *out：整数字面量 / 前导负号 / enum 常量。
 # 返回 1 成功、0 失败。**失败时不报错**，由调用方决定怎么提示。
@@ -9088,6 +9093,38 @@ fn mt_scan(vals: i64) -> i64 {
         if gv(K_TKIND) == 1 {
             # _ = default 不收；数字/enum/const 模式 sw_const 折叠
             if streq(tokbuf(), "_") == 1 { next_token(); continue; }
+            # v1.1103: struct 模式 —— `P { x: 1; y: 2; }`（P 是 struct 名）
+            if st_lookup(tokbuf()) >= 0 {
+                let smbase: i64 = n * 64;
+                store64(heap + O_SWSM + (smbase + 0) * 8, st_lookup(tokbuf()));
+                store64(vals + n * 8, 0);
+                store64(heap + SWSTR + n * 8, 0);
+                next_token();
+                if tok_is("{") == 0 { return 0 - 2; }
+                next_token();
+                let cnt: i64 = 0;
+                while tok_is("}") == 0 {
+                    if gv(K_TKIND) == 0 { return 0 - 2; }
+                    # 字段名: 常量值 ;
+                    memcpy(scratch3(), tokbuf());   # 字段名缓冲（st_field 要地址）
+                    let fnm: i64 = scratch3();
+                    next_token();
+                    expect(":");
+                    let ssi: i64 = load64(heap + O_SWSM + smbase * 8);
+                    let fidx: i64 = st_field(ssi, fnm);
+                    let foff: i64 = st_field_off(ssi, fidx);
+                    if sw_const(heap + O_SWC) == 0 { return 0 - 2; }
+                    store64(heap + O_SWSM + (smbase + 2 + cnt * 2) * 8, foff);
+                    store64(heap + O_SWSM + (smbase + 3 + cnt * 2) * 8, load64(heap + O_SWC));
+                    cnt = cnt + 1;
+                    next_token();               # 吃 ';'
+                }
+                next_token();                   # 吃 '}'
+                store64(heap + O_SWSM + (smbase + 1) * 8, cnt);
+                store64(heap + O_SWSN + n * 8, 1);
+                n = n + 1;
+                continue;
+            }
             if n >= 128 { return 0 - 1; }
             store64(heap + SWSTR + n * 8, 0);
             if sw_const(vals + n * 8) == 0 { return 0 - 2; }
@@ -9121,7 +9158,7 @@ fn parse_match() -> i64 {
         if load64(heap + O_SWG + qi * 8) == 1 { qi = qi + 1; continue; }   # 守卫臂豁免
         let qj: i64 = 0;
         while qj < qi {
-            if load64(vals + qi * 8) == load64(vals + qj * 8) {
+            if load64(vals + qi * 8) == load64(vals + qj * 8) && load64(heap + O_SWSN + qi * 8) != 1 && load64(heap + O_SWSN + qj * 8) != 1 {
                 store64(heap + O_SWTOP, base);
                 return err_atp("match: duplicate pattern value", gv(K_PLINE), gv(K_PCOL), gv(K_PPOS));
             }
@@ -9163,8 +9200,39 @@ fn parse_match() -> i64 {
             i = i + 1;
         }
     } else {
+        # v1.1103: 任一 struct 模式臂 → 判别对象地址保 r11（数字臂不用 r11）
+        let smany: i64 = 0;
+        let smq2: i64 = 0;
+        while smq2 < n {
+            if load64(heap + O_SWSN + smq2 * 8) == 1 { smany = 1; }
+            smq2 = smq2 + 1;
+        }
+        if smany == 1 { ops3(0x49, 0x89, 0xc3); }    # mov r11, rax
         i = 0;
         while i < n {
+            if load64(heap + O_SWSN + i * 8) == 1 {
+                # v1.1103: struct 模式 —— 判别对象地址保 r11（比较链前 mov r11,rax
+                # 一次），逐字段 mov rsi,r11; mov rax,[rsi+off]; cmp imm32。
+                ops3(0x4c, 0x89, 0xde);              # mov rsi, r11
+                let smk: i64 = 0;
+                let smcnt: i64 = load64(heap + O_SWSM + ((i * 64) + 1) * 8);
+                let smf: i64 = new_label();
+                while smk < smcnt {
+                    # mov rax, [rsi+off]  （off 字节，无位移=0 时省略）
+                    emit1(0x48); emit1(0x8b); emit1(0x86); emit4(load64(heap + O_SWSM + ((i * 64) + 2 + smk * 2) * 8));
+                    emit1(0x48); emit1(0x3d); emit4(load64(heap + O_SWSM + ((i * 64) + 3 + smk * 2) * 8));  # cmp rax, imm32
+                    emit_jcc(0x85, smf);             # jne smfail
+                    smk = smk + 1;
+                }
+                if load64(heap + O_SWG + i * 8) == 1 {
+                    emit_jcc(0x84, load64(heap + O_SWGL + i * 8));   # je 守卫检查点
+                } else {
+                    emit_jcc(0x84, load64(lbls + i * 8));            # je 臂
+                }
+                place_label(smf);
+                i = i + 1;
+                continue;
+            }
             emit1(0x48); emit1(0x3d); emit4(load64(vals + i * 8));   # cmp rax, imm32
             if load64(heap + O_SWG + i * 8) == 1 {
                 emit_jcc(0x84, load64(heap + O_SWGL + i * 8));       # je 守卫检查点
@@ -9201,6 +9269,17 @@ fn parse_match() -> i64 {
             return err_atp("match: 模式与扫描结果不一致", gv(K_PLINE), gv(K_PCOL), gv(K_PPOS));
         }
         if load64(heap + O_SWG + i * 8) == 1 { place_label(load64(heap + O_SWGL + i * 8)); }
+        if load64(heap + O_SWSN + i * 8) == 1 {
+            # v1.1103: struct 模式 —— 第二遍重新吃掉 `P { f: v; …; }`（scan 已录）
+            next_token();               # struct 名
+            expect("{");
+            let pd3: i64 = 0;
+            while tok_is("}") == 0 {
+                if gv(K_TKIND) == 0 { return -1; }
+                next_token();
+            }
+            next_token();               # '}'
+        } else {
         if load64(heap + SWSTR + i * 8) == 1 {
             next_token();               # 吃字符串模式（值已在 scan 录入）
         } else {
@@ -9209,6 +9288,7 @@ fn parse_match() -> i64 {
                 store64(heap + O_SWTOP, base);
                 return err_atp("match: 模式必须是编译期常量", gv(K_PLINE), gv(K_PCOL), gv(K_PPOS));
             }
+        }
         }
         # v1.1099: 守卫 —— 模式匹配后再验 if 条件；失败跳下一臂（或 default）
         if load64(heap + O_SWG + i * 8) == 1 {
@@ -9266,7 +9346,7 @@ fn parse_match_expr(hs_off: i64) -> i64 {
     while qi < n {
         let qj: i64 = 0;
         while qj < qi {
-            if load64(vals + qi * 8) == load64(vals + qj * 8) {
+            if load64(vals + qi * 8) == load64(vals + qj * 8) && load64(heap + O_SWSN + qi * 8) != 1 && load64(heap + O_SWSN + qj * 8) != 1 {
                 store64(heap + O_SWTOP, base);
                 return err_atp("match: duplicate pattern value", gv(K_PLINE), gv(K_PCOL), gv(K_PPOS));
             }
