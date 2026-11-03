@@ -1549,7 +1549,9 @@ fn parse_let() -> i64 {
                             next_token();
                             et = ty_int();
                         } else {
-                            return err_at2("unknown type", gv(K_LINE), gv(K_COL));
+                            # v1.1110: 前向 struct —— 预注册
+                            et = ty_struct(st_add(tokbuf()));
+                            next_token();
                         }
                     }
                 } else {
@@ -4340,7 +4342,9 @@ fn parse_global() -> i64 {
                             next_token();
                             et = ty_int();
                         } else {
-                            return err_at2("unknown type", gv(K_LINE), gv(K_COL));
+                            # v1.1110: 前向 struct —— 预注册
+                            et = ty_struct(st_add(tokbuf()));
+                            next_token();
                         }
                     }
                 } else {
@@ -4557,7 +4561,10 @@ fn parse_ret_type() -> i64 {
                 if renum == 1 {
                     # enum 命中已消费（rt=ty_int），跳过 struct 路径
                 } else {
-                if rsi < 0 { return -1; }
+                if rsi < 0 {
+                    # v1.1110: 前向 struct —— 预注册
+                    rsi = st_add(tokbuf());
+                }
                 if load64(heap + O_STF + rsi * 8) > 2 {
                     # 3 个字段起要走隐藏指针（System V），暂不支持
                     return -1;
@@ -4751,7 +4758,9 @@ fn parse_func() -> i64 {
                                 next_token();
                                 pt = ty_int();
                             } else {
-                                return err_atp("expected a type", gv(K_PLINE), gv(K_PCOL), gv(K_PPOS));
+                                # v1.1110: 前向 struct —— 预注册
+                                pt = ty_struct(st_add(tokbuf()));
+                                next_token();
                             }
                         }
                     } else {
@@ -5750,7 +5759,12 @@ fn parse_struct() -> i64 {
     if gv(K_TKIND) != 1 { return syntax_error(); }
     memcpy(scratch2(), tokbuf());
     next_token();
-    let si: i64 = st_add(scratch2());
+    # v1.1110: 前向引用 —— 签名里已预注册的 struct 直接复用（字段槽必须为空）
+    let si: i64 = st_lookup(scratch2());
+    if si < 0 { si = st_add(scratch2()); }
+    else {
+        if load64(heap + O_STF + si * 8) != 0 { return err_atp("duplicate struct definition", gv(K_PLINE), gv(K_PCOL), gv(K_PPOS)); }
+    }
     expect("{");
     while tok_is("}") == 0 {
         if gv(K_TKIND) != 1 { return syntax_error(); }

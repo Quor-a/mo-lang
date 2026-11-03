@@ -397,7 +397,12 @@ fn parse_ptr_target() -> i64 {
     if tok_is("byte") == 1 { next_token(); return ty_byte(); }
     if gv(K_TKIND) == 1 {
         let psi: i64 = st_lookup(tokbuf());
-        if psi >= 0 { next_token(); return ty_struct(psi); }
+        if psi < 0 {
+            # v1.1110: 前向 struct —— 预注册
+            psi = st_add(tokbuf());
+        }
+        next_token();
+        return ty_struct(psi);
     }
     return ty_byte();
 }
@@ -1258,6 +1263,11 @@ fn try_parse_type() -> i64 {
                         if enum_type_exists(enm) == 1 {
                             next_token();
                             t = ty_int();
+                        } else {
+                            # v1.1110: 前向 struct —— 未知名预注册，定义处复用
+                            st_add(tokbuf());
+                            next_token();
+                            t = ty_struct(gv(K_NSTRUCT) - 1);
                         }
                     }
                 } else {
