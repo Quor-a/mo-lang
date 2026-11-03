@@ -8557,6 +8557,7 @@ var O_SWSM:  i64 = 8773000;   # v1.1103: match struct 模式区。每臂 64 槽�
                               #   槽 2+2k=字段 offset，槽 3+2k=字段常量值。
                               #   128 臂 × 64 槽 × 8 = 65536 字节（至 8838536）。
 var O_SWSN:  i64 = 8839000;   # v1.1103: struct 模式结构体类型（ty_struct 值，n*8，128 项）
+var O_SWVB:  i64 = 8840000;   # v1.1107: 守卫臂绑定名 intern id（n*8，128 项）
 var O_SWSB:  i64 = 8840000;   # v1.1104: struct 模式字段**绑定名**（intern id，臂×31；0=常量比较）
 
 # 读一个编译期常量写入 *out：整数字面量 / 前导负号 / enum 常量。
@@ -9175,6 +9176,32 @@ fn mt_scan(vals: i64) -> i64 {
             }
             if n >= 128 { return 0 - 1; }
             store64(heap + SWSTR + n * 8, 0);
+            # v1.1107: 守卫绑定模式 `y if cond =>` —— 模式是**未定义标识符**
+            # （sym_lookup<0；const/enum 名 sym_lookup>=0 走 sw_const —— 280 回归实证）
+            if gv(K_TKIND) == 1 && streq(tokbuf(), "_") != 1 {
+                memcpy(scratch1(), tokbuf());
+            }
+            if gv(K_TKIND) == 1 && streq(tokbuf(), "_") != 1 && sym_lookup(scratch1()) < 0 && enum_value(scratch1()) < 0 {
+                memcpy(scratch3(), tokbuf());
+                store64(heap + O_SWVB + n * 8, intern(scratch3()));
+                next_token();               # 吃绑定名
+                if gv(K_TKIND) == 1 && streq(tokbuf(), "if") == 1 {
+                    next_token();
+                    store64(heap + O_SWG + n * 8, 1);
+                    let pd7: i64 = 0;
+                    while tok_is("=>") == 0 {
+                        if gv(K_TKIND) == 0 { return 0 - 2; }
+                        if tok_is("(") == 1 { pd7 = pd7 + 1; }
+                        if tok_is(")") == 1 { pd7 = pd7 - 1; }
+                        next_token();
+                    }
+                    store64(vals + n * 8, 0);
+                    n = n + 1;
+                    continue;
+                }
+                # 不是守卫 —— 非常量标识符，报错
+                return 0 - 2;
+            }
             if sw_const(vals + n * 8) == 0 { return 0 - 2; }
             n = n + 1;
         } else {
@@ -9195,6 +9222,16 @@ fn parse_match() -> i64 {
     let vals: i64 = heap + O_SWV + base * 8;
     let lbls: i64 = heap + O_SWL + base * 8;
     let save: i64 = gv(K_TOKPOS);
+    # v1.1107: 🔴 清跨 match 残留（SWG/SWVB/SWSTR/SWSN 是全局 n 槽，上一 match 的
+    # 标记会让本 match 误走守卫/字符串/struct 路径——c 探针实证）
+    let cz: i64 = 0;
+    while cz < 128 {
+        store64(heap + O_SWG + cz * 8, 0);
+        store64(heap + O_SWVB + cz * 8, 0);
+        store64(heap + SWSTR + cz * 8, 0);
+        store64(heap + O_SWSN + cz * 8, 0);
+        cz = cz + 1;
+    }
     let n: i64 = mt_scan(vals);
     if n < 0 {
         store64(heap + O_SWTOP, base);
@@ -9206,7 +9243,7 @@ fn parse_match() -> i64 {
         if load64(heap + O_SWG + qi * 8) == 1 { qi = qi + 1; continue; }   # 守卫臂豁免
         let qj: i64 = 0;
         while qj < qi {
-            if load64(vals + qi * 8) == load64(vals + qj * 8) && load64(heap + O_SWSN + qi * 8) != 1 && load64(heap + O_SWSN + qj * 8) != 1 {
+            if load64(vals + qi * 8) == load64(vals + qj * 8) && load64(heap + O_SWSN + qi * 8) != 1 && load64(heap + O_SWSN + qj * 8) != 1 && load64(heap + O_SWG + qi * 8) != 1 && load64(heap + O_SWG + qj * 8) != 1 {
                 store64(heap + O_SWTOP, base);
                 return err_atp("match: duplicate pattern value", gv(K_PLINE), gv(K_PCOL), gv(K_PPOS));
             }
@@ -9458,6 +9495,16 @@ fn parse_match_expr(hs_off: i64) -> i64 {
     let vals: i64 = heap + O_SWV + base * 8;
     let lbls: i64 = heap + O_SWL + base * 8;
     let save: i64 = gv(K_TOKPOS);
+    # v1.1107: 🔴 清跨 match 残留（SWG/SWVB/SWSTR/SWSN 是全局 n 槽，上一 match 的
+    # 标记会让本 match 误走守卫/字符串/struct 路径——c 探针实证）
+    let cz: i64 = 0;
+    while cz < 128 {
+        store64(heap + O_SWG + cz * 8, 0);
+        store64(heap + O_SWVB + cz * 8, 0);
+        store64(heap + SWSTR + cz * 8, 0);
+        store64(heap + O_SWSN + cz * 8, 0);
+        cz = cz + 1;
+    }
     let n: i64 = mt_scan(vals);
     if n < 0 {
         store64(heap + O_SWTOP, base);
@@ -9468,7 +9515,7 @@ fn parse_match_expr(hs_off: i64) -> i64 {
     while qi < n {
         let qj: i64 = 0;
         while qj < qi {
-            if load64(vals + qi * 8) == load64(vals + qj * 8) && load64(heap + O_SWSN + qi * 8) != 1 && load64(heap + O_SWSN + qj * 8) != 1 {
+            if load64(vals + qi * 8) == load64(vals + qj * 8) && load64(heap + O_SWSN + qi * 8) != 1 && load64(heap + O_SWSN + qj * 8) != 1 && load64(heap + O_SWG + qi * 8) != 1 && load64(heap + O_SWG + qj * 8) != 1 {
                 store64(heap + O_SWTOP, base);
                 return err_atp("match: duplicate pattern value", gv(K_PLINE), gv(K_PCOL), gv(K_PPOS));
             }
@@ -9480,10 +9527,22 @@ fn parse_match_expr(hs_off: i64) -> i64 {
     let dflt: i64 = new_label();
     let hasdflt: i64 = 0;
     let i: i64 = 0;
-    while i < n { store64(lbls + i * 8, new_label()); i = i + 1; }
+    while i < n {
+        store64(lbls + i * 8, new_label());
+        if load64(heap + O_SWG + i * 8) == 1 { store64(heap + O_SWGL + i * 8, new_label()); }
+        i = i + 1;
+    }
     # primary 调用方已消费 'match'；语句/let 路由未消费 —— 探测式越过
     if streq(tokbuf(), "match") == 1 { next_token(); }
     parse_expr();                       # 判别值 → rax
+    # v1.1107: 有绑定守卫臂时，把判别值先存 hs 槽（绑定变量即读它）
+    let hasvb: i64 = 0;
+    let hv: i64 = 0;
+    while hv < n {
+        if load64(heap + O_SWVB + hv * 8) != 0 { hasvb = 1; }
+        hv = hv + 1;
+    }
+    if hasvb == 1 { g_store_local(hs_off); }
     # v1.1102: 字符串模式（抄语句版 v1.1099）——任一字符串模式则全部必须为字符串
     let msws: i64 = 0;
     let mq: i64 = 0;
@@ -9536,13 +9595,20 @@ fn parse_match_expr(hs_off: i64) -> i64 {
                     i = i + 1;
                     continue;
                 }
-                emit_jcc(0x84, load64(lbls + i * 8));    # je 臂
+                if load64(heap + O_SWG + i * 8) == 1 { emit_jcc(0x84, load64(heap + O_SWGL + i * 8)); }
+                else { emit_jcc(0x84, load64(lbls + i * 8)); }
                 place_label(smf);
                 i = i + 1;
                 continue;
             }
+            # v1.1107: 绑定守卫臂 —— 无条件进（值任意），条件在第二遍验
+            if load64(heap + O_SWVB + i * 8) != 0 {
+                emit_jmp(load64(heap + O_SWGL + i * 8));
+            } else {
             emit1(0x48); emit1(0x3d); emit4(load64(vals + i * 8));   # cmp rax, imm32
-            emit_jcc(0x84, load64(lbls + i * 8));                    # je
+            if load64(heap + O_SWG + i * 8) == 1 { emit_jcc(0x84, load64(heap + O_SWGL + i * 8)); }
+            else { emit_jcc(0x84, load64(lbls + i * 8)); }
+            }
             i = i + 1;
         }
     }
@@ -9655,12 +9721,38 @@ fn parse_match_expr(hs_off: i64) -> i64 {
             if load64(heap + SWSTR + i * 8) == 1 {
                 next_token();                   # v1.1102: 字符串模式（值已在 scan 录入）
             } else {
+                # v1.1107: 守卫绑定模式 —— 建绑定符号（类型 = 判别式，这里按 i64）
+                if load64(heap + O_SWVB + i * 8) != 0 {
+                    memcpy(scratch3(), heap + O_NAMES + load64(heap + O_SWVB + i * 8));
+                    let vboff: i64 = hs_off;    # 绑定 = 判别值槽（发射段已存）
+                    sv(K_CUROFF, gv(K_CUROFF));
+                    if sym_dup(scratch3()) >= 0 { return err_atp("duplicate definition", gv(K_PLINE), gv(K_PCOL), gv(K_PPOS)); }
+                    let vsd: i64 = gv(K_DEPTH);
+                    sv(K_DEPTH, vsd + 1);
+                    let vbid: i64 = sym_add(scratch3(), 1, vboff, 0);
+                    sv(K_DEPTH, vsd);
+                    store64(heap + O_STY + vbid * 8, ty_int());
+                    next_token();               # 吃绑定名
+                } else {
                 if sw_const(heap + O_SWC) == 0 {
                     sv(K_DEPTH, d - 1);
                     store64(heap + O_SWTOP, base);
                     return err_atp("match: 模式必须是编译期常量", gv(K_PLINE), gv(K_PCOL), gv(K_PPOS));
                 }
+                }
             }
+        }
+        # v1.1107: 守卫 —— 匹配点已在发射段跳到 O_SWGL 标签；此处 place + 验条件
+        if load64(heap + O_SWG + i * 8) == 1 {
+            place_label(load64(heap + O_SWGL + i * 8));
+            expect("if");
+            parse_expr();               # cond → rax
+            spill_cache();
+            ops2(0x85, 0xc0);           # test eax, eax
+            if i + 1 < n {
+                if load64(heap + O_SWG + (i + 1) * 8) == 1 { emit_jcc(0x84, load64(heap + O_SWGL + (i + 1) * 8)); }
+                else { emit_jcc(0x84, load64(lbls + (i + 1) * 8)); }
+            } else { emit_jcc(0x84, dflt); }
         }
         expect("=>");
         # v1.1100: 臂值 = 表达式 或 { expr }（单表达式块）
@@ -9674,6 +9766,8 @@ fn parse_match_expr(hs_off: i64) -> i64 {
         g_store_local(hs_off);
         emit_jmp(end);
         accept(",");
+        # v1.1107: 回收守卫绑定符号
+        if load64(heap + O_SWVB + i * 8) != 0 { sym_pop_scope(gv(K_DEPTH) + 1); }
         i = i + 1;
     }
     next_token();                       # 越过 '}'

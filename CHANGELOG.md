@@ -1,6 +1,13 @@
 - 🔴 排坑续：绑定符号须记臂内深度（sym_add 前 sv(K_DEPTH,d+1)，add 后还原），
   match 结束 sym_pop_scope(d+1) 回收 —— 否则后续 match 同名绑定报 duplicate。
 
+## 1.1107.0 — 2026-11-03
+
+### Added
+- **match 表达式守卫**：`match x { y if y > 3 => y * 10, _ => 0 }` —— 绑定模式（未定义标识符）+ `if` 条件，判别值存 hs 槽供绑定读取；发射段绑定臂无条件进守卫标签，条件失败 je 下一臂/守卫标签/default。
+- **跨 match 残留清零**：每次 match 前清 O_SWG/O_SWVB/SWSTR/O_SWSN（同函数多 match 必需）。
+- 实现备忘：🔴 绑定模式判定 = `sym_lookup<0 && enum_value<0`（const/enum 名 sym_lookup 或 enum 表命中，走 sw_const —— 280 回归实证）；🔴 守卫标签 O_SWGL 分配循环须在发射段之前跑（否则 place(0)）。
+
 ## 1.1106.0 — 2026-11-03
 
 ### Added
