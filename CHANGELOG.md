@@ -1,3 +1,7 @@
+## 1.1100.0
+- match 表达式：`let r = match c { PAT => EXPR, ... };` 与 `r = match ...;`。
+  臂值为裸表达式（逗号分隔）或 `{ expr }` 单表达式块；结果写入变量槽。
+  表达式任意位置内嵌 match（如 return f() + match）暂不支持。
 ## 1.1099.0
 - match 增强：字符串模式（`"abc" =>`，判别式为 str，全部臂须为字符串，g_str_eq
   比较链）与守卫（`PAT if cond =>`，模式匹配后再验 cond，失败尝试下一臂）。

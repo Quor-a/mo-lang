@@ -115,3 +115,6 @@ let a: [HALF] i64;              # const 作数组长度
 
 - **match 增强**（v1.1099）：字符串模式（全字符串臂，g_str_eq 链）+
   守卫 `PAT if cond =>`（失败顺序尝试下一臂，守卫臂豁免 duplicate 检查）。
+
+- **match 表达式**（v1.1100）：`let r = match c { PAT => EXPR, _ => EXPR };`
+  与赋值右值。臂值 = 裸表达式（逗号分隔）或 `{ expr }`。结果存变量槽后读回。

@@ -514,6 +514,20 @@ fn parse_stmt() -> i64 {
         }
         if tok_is("=") == 1 {
             next_token();
+            # v1.1100: 赋值右值 match 表达式 —— 借栈顶临时槽
+            if gv(K_TKIND) == 1 && streq(tokbuf(), "match") == 1 {
+                let mcur: i64 = gv(K_CUROFF);
+                let mhs: i64 = mcur - 8;
+                sv(K_CUROFF, mhs);
+                if parse_match_expr(mhs) != 0 { sv(K_CUROFF, mcur); return -1; }
+                sv(K_CUROFF, mcur);
+                expect(";");
+                R_SYM = sym_lookup(scratch2());
+                if R_SYM < 0 { return undef_err(scratch2()); }
+                R_ETY = ty_int();
+                store_sym(R_SYM);
+                return 0;
+            }
             # v1.1054: p = P { x: 1; y: 2; }; —— 字面量整体赋值。
             # 探测 ident+'{' 且 ident 是 struct：字段逐一直接 store
             # 到变量地址（语句层，变量可能是局部或全局，load_sym 前）。
@@ -1272,6 +1286,19 @@ fn parse_let() -> i64 {
         let bo2: i64 = gv(K_CUROFF);
         sv(K_CUROFF, bo2 - 8);
         next_token();             # 吃 '='
+        # v1.1100: match 表达式 —— 右值直接发射到本变量的槽
+        if gv(K_TKIND) == 1 && streq(tokbuf(), "match") == 1 {
+            let mh: i64 = 0 - 1;
+            let mty: i64 = 0;
+            # 先按普通推断处理：match 值类型 i64（模式/臂值均为整数）
+            # 发射后再声明变量。结果槽 = bo2 - 8。
+            if parse_match_expr(bo2 - 8) != 0 { return -1; }
+            expect(";");
+            let mid: i64 = sym_add(scratch2(), 1, bo2 - 8, 0);
+            store64(heap + O_STY + mid * 8, ty_int());
+            dbg_var(scratch2(), bo2 - 8, dcln, ty_int());
+            return 0;
+        }
         parse_expr();
         expect(";");
         let ity: i64 = R_ETY;
@@ -1401,6 +1428,13 @@ fn parse_let() -> i64 {
                     # v1.1048: struct 字面量 let q: Pair = Pair { x: 1, y: 2 };
                     let svp: i64 = gv(K_TOKPOS);
                     let litok: i64 = 0;
+                    # v1.1100: match 表达式（typed let 右值）
+                    if gv(K_TKIND) == 1 && streq(tokbuf(), "match") == 1 {
+                        let mhoff: i64 = addr;
+                        if parse_match_expr(mhoff) != 0 { return -1; }
+                        expect(";");
+                        return 0;
+                    }
                     if gv(K_TKIND) == 1 {
                         let lsi: i64 = st_lookup(tokbuf());
                         if lsi == si {
@@ -1787,6 +1821,18 @@ fn parse_let() -> i64 {
         }
     }
     expect("=");
+    # v1.1100: match 表达式右值 —— 结果槽即变量槽（CUROFF-8）
+    if gv(K_TKIND) == 1 && streq(tokbuf(), "match") == 1 {
+        let moff: i64 = gv(K_CUROFF) - 8;
+        if parse_match_expr(moff) != 0 { return -1; }
+        expect(";");
+        sv(K_CUROFF, moff);
+        if sym_dup(scratch2()) >= 0 { return err_atp("duplicate definition", gv(K_PLINE), gv(K_PCOL), gv(K_PPOS)); }
+        let mid2: i64 = sym_add(scratch2(), 1, moff, 0);
+        store64(heap + O_STY + mid2 * 8, vt);
+        dbg_var(scratch2(), moff, dcln, vt);
+        return 0;
+    }
     parse_expr();
     expect(";");
     let off: i64 = gv(K_CUROFF);
@@ -2928,6 +2974,16 @@ fn mt_scan(vals: i64) -> i64 {
                     if tok_is("}") == 1 { b = b - 1; }
                     next_token();
                 }
+            } else {
+                # v1.1100: 表达式臂 —— 跳到深度 0 的 ',' 或 '}'（括号平衡）
+                let pd2: i64 = 0;
+                while tok_is(",") == 0 && tok_is("}") == 0 {
+                    if gv(K_TKIND) == 0 { return 0 - 2; }
+                    if tok_is("(") == 1 { pd2 = pd2 + 1; }
+                    if tok_is(")") == 1 { pd2 = pd2 - 1; }
+                    next_token();
+                }
+                if tok_is(",") == 1 { next_token(); }
             }
             continue;
         }
@@ -3099,6 +3155,107 @@ fn parse_match() -> i64 {
     sym_pop_scope(d);
     sv(K_DEPTH, d - 1);
     loop_pop();
+    store64(heap + O_SWTOP, base);
+    return 0;
+}
+
+
+# v1.1100: match 表达式 —— `let r = match c { PAT => EXPR, _ => EXPR };`
+# 臂体是单个表达式（逗号分隔），各臂值存隐藏槽后 jmp 汇合。
+# tok 入口: 'match' 未消费。结果 rax；hs_off = 结果槽偏移（调用方保证已分配）。
+fn parse_match_expr(hs_off: i64) -> i64 {
+    let base: i64 = load64(heap + O_SWTOP);
+    if base + 128 > 1024 {
+        return err_atp("match: 嵌套过深（上限 8 层）", gv(K_PLINE), gv(K_PCOL), gv(K_PPOS));
+    }
+    store64(heap + O_SWTOP, base + 128);
+    let vals: i64 = heap + O_SWV + base * 8;
+    let lbls: i64 = heap + O_SWL + base * 8;
+    let save: i64 = gv(K_TOKPOS);
+    let n: i64 = mt_scan(vals);
+    if n < 0 {
+        store64(heap + O_SWTOP, base);
+        return err_atp("match: 模式必须是编译期常量（数字/enum/const/_）", gv(K_PLINE), gv(K_PCOL), gv(K_PPOS));
+    }
+    set_back(save);
+    let qi: i64 = 0;
+    while qi < n {
+        let qj: i64 = 0;
+        while qj < qi {
+            if load64(vals + qi * 8) == load64(vals + qj * 8) {
+                store64(heap + O_SWTOP, base);
+                return err_atp("match: duplicate pattern value", gv(K_PLINE), gv(K_PCOL), gv(K_PPOS));
+            }
+            qj = qj + 1;
+        }
+        qi = qi + 1;
+    }
+    let end: i64 = new_label();
+    let dflt: i64 = new_label();
+    let hasdflt: i64 = 0;
+    let i: i64 = 0;
+    while i < n { store64(lbls + i * 8, new_label()); i = i + 1; }
+    next_token();                       # 越过 'match'
+    parse_expr();                       # 判别值 → rax
+    i = 0;
+    while i < n {
+        emit1(0x48); emit1(0x3d); emit4(load64(vals + i * 8));   # cmp rax, imm32
+        emit_jcc(0x84, load64(lbls + i * 8));                    # je
+        i = i + 1;
+    }
+    i = 0;
+    emit_jmp(dflt);
+    expect("{");
+    let d: i64 = gv(K_DEPTH) + 1;
+    sv(K_DEPTH, d);
+    while tok_is("}") == 0 {
+        if gv(K_TKIND) == 1 && streq(tokbuf(), "_") == 1 {
+            next_token();
+            expect("=>");
+            hasdflt = 1;
+            place_label(dflt);
+            if tok_is("{") == 1 {
+                next_token();
+                parse_expr();
+                expect("}");
+            } else {
+                parse_expr();
+            }
+            g_store_local(hs_off);
+            emit_jmp(end);
+            accept(",");
+            continue;
+        }
+        if i >= n {
+            sv(K_DEPTH, d - 1);
+            store64(heap + O_SWTOP, base);
+            return err_atp("match: 模式与扫描结果不一致", gv(K_PLINE), gv(K_PCOL), gv(K_PPOS));
+        }
+        place_label(load64(lbls + i * 8));
+        if sw_const(heap + O_SWC) == 0 {
+            sv(K_DEPTH, d - 1);
+            store64(heap + O_SWTOP, base);
+            return err_atp("match: 模式必须是编译期常量", gv(K_PLINE), gv(K_PCOL), gv(K_PPOS));
+        }
+        expect("=>");
+        # v1.1100: 臂值 = 表达式 或 { expr }（单表达式块）
+        if tok_is("{") == 1 {
+            next_token();
+            parse_expr();
+            expect("}");
+        } else {
+            parse_expr();
+        }
+        g_store_local(hs_off);
+        emit_jmp(end);
+        accept(",");
+        i = i + 1;
+    }
+    next_token();                       # 越过 '}'
+    if hasdflt == 0 { place_label(dflt); }
+    place_label(end);
+    sv(K_DEPTH, d - 1);
+    g_load_local(hs_off);               # rax = 结果
     store64(heap + O_SWTOP, base);
     return 0;
 }
