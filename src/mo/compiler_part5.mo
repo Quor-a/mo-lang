@@ -3228,6 +3228,33 @@ fn parse_global() -> i64 {
             let si: i64 = st_lookup(tokbuf());
             if si >= 0 {
                 next_token();
+                # v1.1091: var G: P = P { x: 1; y: 2; }; —— 字面量初始化
+                let gfv: [8] i64;
+                let gfn: i64 = st_nfields(si);
+                let gfj: i64 = 0;
+                while gfj < 8 { gfv[gfj] = 0 - 1; gfj = gfj + 1; }
+                let ghas: i64 = accept("=");
+                if ghas == 1 {
+                    # P { x: 1; y: 2; }
+                    let gnm2: i64 = heap + O_SCAL + 6200;
+                    memcpy(gnm2, tokbuf());
+                    next_token();
+                    expect("{");
+                    while tok_is("}") == 0 {
+                        memcpy(scratch1(), tokbuf());
+                        next_token();
+                        expect(":");
+                        parse_expr();
+                        # 字段下标
+                        let ffi2: i64 = 0;
+                        while ffi2 < gfn {
+                            if streq(scratch1(), st_field_name(si, ffi2)) == 1 { gfv[ffi2] = gv(K_TIVAL); }
+                            ffi2 = ffi2 + 1;
+                        }
+                        if tok_is(";") == 1 { next_token(); }
+                    }
+                    expect("}");
+                }
                 expect(";");
                 # 同全局变量：槽数必须是 st_words，见上面那条注释
                 let n: i64 = st_words(si);
@@ -3238,9 +3265,17 @@ fn parse_global() -> i64 {
                     # v1.1060: 全局 struct 字段默认值（与局部 let 同约定）
                     let dv2: i64 = 0;
                     let fj2: i64 = 0;
+                    # v1.1091: 字面量初始化值优先
+                    let fk2: i64 = 0;
+                    while fk2 < gfn {
+                        if st_field_off(si, fk2) == j * 8 {
+                            if gfv[fk2] != 0 - 1 { dv2 = gfv[fk2]; }
+                        }
+                        fk2 = fk2 + 1;
+                    }
                     while fj2 < st_nfields(si) {
                         if st_field_off(si, fj2) == j * 8 {
-                            if SDH[si * 64 + fj2] == 1 { dv2 = SDV[si * 64 + fj2]; }
+                            if SDH[si * 64 + fj2] == 1 { if gfv[fj2] == 0 - 1 { dv2 = SDV[si * 64 + fj2]; } }
                         }
                         fj2 = fj2 + 1;
                     }
