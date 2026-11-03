@@ -8021,15 +8021,11 @@ fn parse_for_in(vname: i64) -> i64 {
     load_sym(asym);           # 数组退化首地址（kind3 → lea/movabs）
     g_push_rax();
     g_load_local(fo);
-    # 步长 = 元素大小（标量 8 → shl 3；行/struct 多字节 → 移位累乘）
+    # 步长 = 元素大小。v1.1085 修复：**不能只对 2 次幂用移位** ——
+    # 二维行 [3] i64 的 stride=24，shl 4 得 16，第二轮 row 从 m[0][2]
+    # 起步（打出 3,4,5）。非 2 次幂走 imul（g_mul_imm 内部自判）。
     let esz: i64 = ty_size(elem_type(at));
-    let sh: i64 = 0;
-    let e2: i64 = esz;
-    while e2 > 1 {
-        sh = sh + 1;
-        e2 = e2 / 2;
-    }
-    if sh > 0 { g_shl_rax_imm(sh); }
+    if esz > 1 { g_mul_imm(esz); }
     g_pop_rcx();
     g_add();                  # rax = 基址 + _fi*esz
     # 标量元素 load 值；数组/struct 元素保留地址（与 load_sym 退化语义一致）
