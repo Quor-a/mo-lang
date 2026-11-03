@@ -1,3 +1,14 @@
+## [1.1116.0] — 语句级 enum 声明
+
+- **局部 enum**：函数体内可声明 `enum Color { RED; GREEN = 2; }`，常量注册进
+  全局 enum 表（与 top-level enum 同机制），自动编号/显式值/const-成员值全支持。
+- parse_stmt 加 `enum` 分支（parse_enum 复用 + 尾部分号可选消费）。
+- 与 match/守卫/块作用域组合验证通过；重名成员先注册者生效（与 top-level 一致）。
+- **排查插曲**：开发中多个 rc=0 假象全部为**陈旧 elf 残留**（/tmp/mot 共享目录 +
+  直编产物混用），run.sh 实跑 PASS —— 铁律「测 rc 前必 rm 旧 elf」再次应验。
+- 自举三级一致 md5 4fc5b9359d2c05ab093342e0a6427d54。tests 298_stmt_enum（t298=8）。
+  门禁 run782。
+
 ## [1.1115.0] — 常量折叠线收官（docs/perf.md 矩阵）+ 边界全景验证
 
 - 全部二元运算（+ - * / % & | ^ << >> 与全部比较）常量右值零栈往返覆盖确认。

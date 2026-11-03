@@ -406,6 +406,12 @@ fn parse_stmt() -> i64 {
     # 局部 const 声明（v1.989）：parse_const 自己消费首 token，
     # 这里只判断不消费
     if tok_is("const") == 1 { return parse_const(); }
+    # v1.1116: 语句级 enum 声明（局部枚举，常量注册进全局 enum 表）
+    if tok_is("enum") == 1 {
+        parse_enum();
+        accept(";");
+        return 0;
+    }
     if accept("if") == 1 { return parse_if(); }
     if accept("while") == 1 { return parse_while(); }
     # v1.1071: do { ... } while (cond); —— 先执行后判（continue → cond）
