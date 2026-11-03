@@ -397,6 +397,10 @@ fn lex_punct(p: i64) -> i64 {
     if c == 37 {
         if d == 61 { return set_tok(37, 61, 2, p); }
     }
+    # v1.1095: '..' range 运算符（for i in A..B）
+    if c == 46 {
+        if d == 46 { return set_tok(46, 46, 2, p); }
+    }
     if c == 94 {
         if d == 61 { return set_tok(94, 61, 2, p); }
     }

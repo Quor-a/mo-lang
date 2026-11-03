@@ -1,3 +1,6 @@
+## 1.1095.0
+- range for：`for i in A..B { BODY }`（A<B 时遍历 A..B-1），端点支持数字、const 名、
+  裸 enum 成员；`continue`/`break` 正常。词法新增 `..` 双字符 token。
 ## 1.1094.0
 - struct 字段支持指针类型（含自引用链表：`struct Node { v: i64; next: ptr Node; }`）。
 - 链式指针字段访问修复：`p.next.v`、`a.next.next.v`（中间 ptr 段自动解引用）。

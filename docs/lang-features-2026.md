@@ -95,3 +95,6 @@ let a: [HALF] i64;              # const 作数组长度
 
 - **指针字段与链表**（v1.1094）：struct 字段可为 `ptr T`（自引用）；链式访问
   `p.next.v` 中间 ptr 段自动解引用；try_parse_type 支持嵌套数组 `[[N] T]`。
+
+- **range for**（v1.1095）：`for i in 0..10`，端点为编译期常量（数字/const/enum 成员），
+  糖展开为 i=A; while i<B; i++。`..` 为新增词法 token。

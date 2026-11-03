@@ -2786,6 +2786,10 @@ fn lex_punct(p: i64) -> i64 {
     if c == 37 {
         if d == 61 { return set_tok(37, 61, 2, p); }
     }
+    # v1.1095: '..' range 运算符（for i in A..B）
+    if c == 46 {
+        if d == 46 { return set_tok(46, 46, 2, p); }
+    }
     if c == 94 {
         if d == 61 { return set_tok(94, 61, 2, p); }
     }
@@ -8148,12 +8152,108 @@ fn parse_for_in_ptr(vname: i64, rowname: i64) -> i64 {
     return 0;
 }
 
+# v1.1095: range 端点原子 —— 数字/const 名/裸 enum 成员（比 const_atom 多裸 enum）。
+fn range_atom() -> i64 {
+    if gv(K_TKIND) == 2 {
+        let v: i64 = gv(K_TIVAL);
+        next_token();
+        return v;
+    }
+    if gv(K_TKIND) == 1 {
+        let csi: i64 = sym_lookup(tokbuf());
+        if csi >= 0 {
+            if load64(heap + O_SK + csi * 8) == 4 {
+                let v: i64 = load64(heap + O_SCV + csi * 8);
+                store64(heap + O_SU + csi * 8, 1);
+                next_token();
+                return v;
+            }
+        }
+        let buf: i64 = heap + O_SCAL + 5700;
+        memcpy(buf, tokbuf());
+        let ev: i64 = enum_value(buf);
+        if ev >= 0 {
+            next_token();
+            return ev;
+        }
+    }
+    return err_at2("for-in: range endpoint must be a constant", gv(K_LINE), gv(K_COL));
+}
+
+# v1.1095: for i in A..B { BODY } —— range 遍历糖。
+# 发射：i=A; chk: i>=B→end; BODY; i++; jmp chk
+# A/B 支持数字字面量、const 名、enum 成员（const_atom 统一解析）。
+fn parse_range_for(vname: i64) -> i64 {
+    let lo: i64 = range_atom();
+    # 吃 '..'
+    if tok_is("..") == 0 { return err_at2("for-in: expected '..' in range", gv(K_LINE), gv(K_COL)); }
+    next_token();
+    let hi: i64 = range_atom();
+    let d: i64 = gv(K_DEPTH) + 1;
+    sv(K_DEPTH, d);
+    if sym_dup(vname) >= 0 { return err_atp("duplicate definition", gv(K_PLINE), gv(K_PCOL), gv(K_PPOS)); }
+    let xo: i64 = gv(K_CUROFF);
+    sv(K_CUROFF, xo - 8);
+    let xid: i64 = sym_add(vname, 1, xo, 0);
+    store64(heap + O_STY + xid * 8, ty_int());
+    dbg_var(vname, xo, gv(K_LINE), ty_int());
+    # i = lo
+    g_movabs_rax(lo);
+    g_store_local(xo);
+    let chk: i64 = new_label();
+    let end: i64 = new_label();
+    let stp: i64 = new_label();
+    loop_push(chk, end, stp);
+    place_label(chk);
+    # cond: i - hi >= 0 → end
+    g_load_local(xo);
+    g_push_rax();
+    g_movabs_rax(hi);
+    g_pop_rcx();
+    g_sub();
+    g_cmp_rax_0();
+    emit_jcc(0x8d, end);
+    let bdy: i64 = new_label();
+    emit_jmp(bdy);
+    # step（continue 跳到这里）：i++
+    place_label(stp);
+    g_load_local(xo);
+    ops3(0x48, 0x83, 0xc0); emit1(1);   # add rax, 1
+    g_store_local(xo);
+    emit_jmp(chk);
+    place_label(bdy);
+    parse_block(d + 1);
+    emit_jmp(stp);
+    place_label(end);
+    sym_pop_scope(d);
+    sv(K_DEPTH, d - 1);
+    loop_pop();
+    return 0;
+}
+
 # v1.1070: for x in arr { BODY } —— 数组遍历糖。
 # 进入时 tok=元素变量名(x)，peek_in_kw 已确认其后是 'in'。
 # 发射：_fi=0; chk: _fi-n>=0→end; x=a[_fi]; BODY; _fi++; jmp chk
 # v1 限制：in 右侧必须是数组变量名（不支持任意表达式）。
 fn parse_for_in(vname: i64) -> i64 {
     next_token();            # 吃 'in'（x 名已在 vname 独立缓冲）
+    # v1.1095: range 形式 for i in A..B { BODY } —— 变量 i 走 A..B-1
+    if gv(K_TKIND) == 2 {
+        return parse_range_for(vname);
+    }
+    # 常量/enum 起点：range_atom 统一解析（const 名、裸 enum 成员）
+    if gv(K_TKIND) == 1 {
+        let bufR: i64 = heap + O_SCAL + 5720;
+        memcpy(bufR, tokbuf());
+        if sym_lookup(bufR) >= 0 {
+            if load64(heap + O_SK + sym_lookup(bufR) * 8) == 4 {
+                return parse_range_for(vname);
+            }
+        }
+        if enum_value(bufR) >= 0 {
+            return parse_range_for(vname);
+        }
+    }
     if gv(K_TKIND) != 1 { return err_at2("for-in: expected array variable", gv(K_LINE), gv(K_COL)); }
     let asym: i64 = sym_lookup(tokbuf());
     if asym < 0 { return undef_err(tokbuf()); }
