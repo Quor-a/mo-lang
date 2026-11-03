@@ -361,23 +361,32 @@ fn emit1(b: i64) -> i64 {
     return 0;
 }
 
+# v1.1093 性能: emit4/emit8 直接写字节, 不逐字节过 emit1 (省 8-24 次 sv/gv 调用)
 fn emit4(v: i64) -> i64 {
-    emit1(v & 255);
-    emit1((v >> 8) & 255);
-    emit1((v >> 16) & 255);
-    emit1((v >> 24) & 255);
+    sv(K_LAST, 0);
+    sv(K_PJMP, 0);
+    let n: i64 = gv(K_CLEN);
+    store8(heap + O_CODE + n, v & 255);
+    store8(heap + O_CODE + n + 1, (v >> 8) & 255);
+    store8(heap + O_CODE + n + 2, (v >> 16) & 255);
+    store8(heap + O_CODE + n + 3, (v >> 24) & 255);
+    sv(K_CLEN, n + 4);
     return 0;
 }
 
 fn emit8(v: i64) -> i64 {
-    emit1(v & 255);
-    emit1((v >> 8) & 255);
-    emit1((v >> 16) & 255);
-    emit1((v >> 24) & 255);
-    emit1((v >> 32) & 255);
-    emit1((v >> 40) & 255);
-    emit1((v >> 48) & 255);
-    emit1((v >> 56) & 255);
+    sv(K_LAST, 0);
+    sv(K_PJMP, 0);
+    let n: i64 = gv(K_CLEN);
+    store8(heap + O_CODE + n, v & 255);
+    store8(heap + O_CODE + n + 1, (v >> 8) & 255);
+    store8(heap + O_CODE + n + 2, (v >> 16) & 255);
+    store8(heap + O_CODE + n + 3, (v >> 24) & 255);
+    store8(heap + O_CODE + n + 4, (v >> 32) & 255);
+    store8(heap + O_CODE + n + 5, (v >> 40) & 255);
+    store8(heap + O_CODE + n + 6, (v >> 48) & 255);
+    store8(heap + O_CODE + n + 7, (v >> 56) & 255);
+    sv(K_CLEN, n + 8);
     return 0;
 }
 
@@ -477,16 +486,22 @@ fn emit_dec(v: i64) -> i64 {
 
 # 把 K_LINE / K_COL 推进到源码位置 p（增量维护）
 fn advance_lc(p: i64) -> i64 {
+    # v1.1093 性能: 基址提出循环外; 换行数用字节扫描一次算出 (免逐字符 sv K_COL)
+    let q: i64 = heap + gv(K_SRCBASE);
     let c: i64 = gv(K_CPOS);
+    let line: i64 = gv(K_LINE);
+    let col0: i64 = gv(K_COL);
+    let ln0: i64 = c - col0 + 1;
+    let last_nl: i64 = ln0 - 1;
     while c < p {
-        if sbyte(c) == 10 {
-            sv(K_LINE, gv(K_LINE) + 1);
-            sv(K_COL, 1);
-        } else {
-            sv(K_COL, gv(K_COL) + 1);
+        if load8(q + c) == 10 {
+            line += 1;
+            last_nl = c;
         }
         c += 1;
     }
+    sv(K_LINE, line);
+    sv(K_COL, p - last_nl);
     sv(K_CPOS, c);
     return 0;
 }

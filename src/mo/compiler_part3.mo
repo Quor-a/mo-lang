@@ -57,8 +57,10 @@ fn skip_comment(p: i64) -> i64 {
 fn skip_ws() -> i64 {
     let p: i64 = gv(K_POS);
     let n: i64 = gv(K_SRCLEN);
+    # v1.1093 性能: 基址提出循环外
+    let q: i64 = heap + gv(K_SRCBASE);
     while p < n {
-        let c: i64 = sbyte(p);
+        let c: i64 = load8(q + p);
         if c == 35 {
             p = skip_comment(p);
         } else {
@@ -85,9 +87,22 @@ fn tokbuf() -> i64 {
 fn lex_ident(p: i64) -> i64 {
     let i: i64 = 0;
     let b: i64 = tokbuf();
-    while is_alnum(sbyte(p + i)) == 1 {
-        store8(b + i, sbyte(p + i));
-        i = i + 1;
+    # v1.1093 性能: 基址提出循环外, 字符分类内联 (is_alnum 三次函数调用→纯比较)
+    let sb: i64 = heap + gv(K_SRCBASE);
+    let q: i64 = sb + p;
+    let go: i64 = 1;
+    while go == 1 {
+        let c: i64 = load8(q + i);
+        let a: i64 = 0;
+        if c >= 97 { if c <= 122 { a = 1; } }
+        if a == 0 { if c >= 65 { if c <= 90 { a = 1; } } }
+        if a == 0 { if c >= 48 { if c <= 57 { a = 1; } } }
+        if a == 0 { if c == 95 { a = 1; } }
+        if a == 0 { go = 0; }
+        if go == 1 {
+            store8(b + i, c);
+            i = i + 1;
+        }
     }
     store8(b + i, 0);
     sv(K_POS, p + i);
@@ -482,6 +497,16 @@ fn set_pos(p: i64) -> i64 {
     sv(K_CPOS, 0);
     sv(K_LINE, 1);
     sv(K_COL, 1);
+    next_token();
+    return 0;
+}
+
+# v1.1093 性能: 探测回滚专用 —— 只回滚 K_POS, 不清 K_CPOS/K_LINE/K_COL。
+# 老的 set_pos 会把 K_CPOS 归零，之后每次 next_token 的 advance_lc 都从头重扫，
+# 探测越靠后文件越大越慢 —— 整体 O(n²)。探测回滚后行号无需重置：
+# 探测推进 advance_lc 时已把行号加到位，真实解析走到同一点时值一致。
+fn set_back(p: i64) -> i64 {
+    sv(K_POS, p);
     next_token();
     return 0;
 }

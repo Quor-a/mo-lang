@@ -361,23 +361,32 @@ fn emit1(b: i64) -> i64 {
     return 0;
 }
 
+# v1.1093 性能: emit4/emit8 直接写字节, 不逐字节过 emit1 (省 8-24 次 sv/gv 调用)
 fn emit4(v: i64) -> i64 {
-    emit1(v & 255);
-    emit1((v >> 8) & 255);
-    emit1((v >> 16) & 255);
-    emit1((v >> 24) & 255);
+    sv(K_LAST, 0);
+    sv(K_PJMP, 0);
+    let n: i64 = gv(K_CLEN);
+    store8(heap + O_CODE + n, v & 255);
+    store8(heap + O_CODE + n + 1, (v >> 8) & 255);
+    store8(heap + O_CODE + n + 2, (v >> 16) & 255);
+    store8(heap + O_CODE + n + 3, (v >> 24) & 255);
+    sv(K_CLEN, n + 4);
     return 0;
 }
 
 fn emit8(v: i64) -> i64 {
-    emit1(v & 255);
-    emit1((v >> 8) & 255);
-    emit1((v >> 16) & 255);
-    emit1((v >> 24) & 255);
-    emit1((v >> 32) & 255);
-    emit1((v >> 40) & 255);
-    emit1((v >> 48) & 255);
-    emit1((v >> 56) & 255);
+    sv(K_LAST, 0);
+    sv(K_PJMP, 0);
+    let n: i64 = gv(K_CLEN);
+    store8(heap + O_CODE + n, v & 255);
+    store8(heap + O_CODE + n + 1, (v >> 8) & 255);
+    store8(heap + O_CODE + n + 2, (v >> 16) & 255);
+    store8(heap + O_CODE + n + 3, (v >> 24) & 255);
+    store8(heap + O_CODE + n + 4, (v >> 32) & 255);
+    store8(heap + O_CODE + n + 5, (v >> 40) & 255);
+    store8(heap + O_CODE + n + 6, (v >> 48) & 255);
+    store8(heap + O_CODE + n + 7, (v >> 56) & 255);
+    sv(K_CLEN, n + 8);
     return 0;
 }
 
@@ -477,16 +486,22 @@ fn emit_dec(v: i64) -> i64 {
 
 # 把 K_LINE / K_COL 推进到源码位置 p（增量维护）
 fn advance_lc(p: i64) -> i64 {
+    # v1.1093 性能: 基址提出循环外; 换行数用字节扫描一次算出 (免逐字符 sv K_COL)
+    let q: i64 = heap + gv(K_SRCBASE);
     let c: i64 = gv(K_CPOS);
+    let line: i64 = gv(K_LINE);
+    let col0: i64 = gv(K_COL);
+    let ln0: i64 = c - col0 + 1;
+    let last_nl: i64 = ln0 - 1;
     while c < p {
-        if sbyte(c) == 10 {
-            sv(K_LINE, gv(K_LINE) + 1);
-            sv(K_COL, 1);
-        } else {
-            sv(K_COL, gv(K_COL) + 1);
+        if load8(q + c) == 10 {
+            line += 1;
+            last_nl = c;
         }
         c += 1;
     }
+    sv(K_LINE, line);
+    sv(K_COL, p - last_nl);
     sv(K_CPOS, c);
     return 0;
 }
@@ -2431,8 +2446,10 @@ fn skip_comment(p: i64) -> i64 {
 fn skip_ws() -> i64 {
     let p: i64 = gv(K_POS);
     let n: i64 = gv(K_SRCLEN);
+    # v1.1093 性能: 基址提出循环外
+    let q: i64 = heap + gv(K_SRCBASE);
     while p < n {
-        let c: i64 = sbyte(p);
+        let c: i64 = load8(q + p);
         if c == 35 {
             p = skip_comment(p);
         } else {
@@ -2459,9 +2476,22 @@ fn tokbuf() -> i64 {
 fn lex_ident(p: i64) -> i64 {
     let i: i64 = 0;
     let b: i64 = tokbuf();
-    while is_alnum(sbyte(p + i)) == 1 {
-        store8(b + i, sbyte(p + i));
-        i = i + 1;
+    # v1.1093 性能: 基址提出循环外, 字符分类内联 (is_alnum 三次函数调用→纯比较)
+    let sb: i64 = heap + gv(K_SRCBASE);
+    let q: i64 = sb + p;
+    let go: i64 = 1;
+    while go == 1 {
+        let c: i64 = load8(q + i);
+        let a: i64 = 0;
+        if c >= 97 { if c <= 122 { a = 1; } }
+        if a == 0 { if c >= 65 { if c <= 90 { a = 1; } } }
+        if a == 0 { if c >= 48 { if c <= 57 { a = 1; } } }
+        if a == 0 { if c == 95 { a = 1; } }
+        if a == 0 { go = 0; }
+        if go == 1 {
+            store8(b + i, c);
+            i = i + 1;
+        }
     }
     store8(b + i, 0);
     sv(K_POS, p + i);
@@ -2860,6 +2890,16 @@ fn set_pos(p: i64) -> i64 {
     return 0;
 }
 
+# v1.1093 性能: 探测回滚专用 —— 只回滚 K_POS, 不清 K_CPOS/K_LINE/K_COL。
+# 老的 set_pos 会把 K_CPOS 归零，之后每次 next_token 的 advance_lc 都从头重扫，
+# 探测越靠后文件越大越慢 —— 整体 O(n²)。探测回滚后行号无需重置：
+# 探测推进 advance_lc 时已把行号加到位，真实解析走到同一点时值一致。
+fn set_back(p: i64) -> i64 {
+    sv(K_POS, p);
+    next_token();
+    return 0;
+}
+
 # v1.1047: 当前 token 是否字符串字面量（K_TKIND==3）
 fn tok_is_strlit() -> i64 {
     if gv(K_TKIND) == 3 { return 1; }
@@ -3195,8 +3235,11 @@ fn sym_lookup_in(name: i64, pf: i64, wantfn: i64) -> i64 {
                 # 🔴 首字符+长度预过滤（v1.1001）：streq 全串比较是自举热点，
                 #    先比首字节与长度，多数不匹配在此短路。
                 let sn: i64 = name_at(i);
+                # v1.1093: 双字节预过滤（比单字节再省近半 streq 调用）
                 if load8(sn) == load8(name) {
-                    if streq(sn, name) == 1 { return i; }
+                    if load8(sn + 1) == load8(name + 1) {
+                        if streq(sn, name) == 1 { return i; }
+                    }
                 }
             }
         }
@@ -4156,15 +4199,15 @@ fn try_parse_type() -> i64 {
                                 }
                             }
                         }
-                        if et < 0 { set_pos(back); return -1; }
-                        if n <= 0 { set_pos(back); return -1; }
+                        if et < 0 { set_back(back); return -1; }
+                        if n <= 0 { set_back(back); return -1; }
                         t = ty_array(et, n);
                     }
                 }
             }
         }
     }
-    if t < 0 { set_pos(back); return -1; }
+    if t < 0 { set_back(back); return -1; }
     return t;
 }
 
@@ -4366,7 +4409,7 @@ fn parse_primary() -> i64 {
                     return 0;
                 }
             }
-            set_pos(save);              # 不是 enum：回退，走字段/方法路径
+            set_back(save);              # 不是 enum：回退，走字段/方法路径
         }
         if streq(scratch1(), "false") == 1 {
             g_movabs_rax(0);
@@ -4509,7 +4552,7 @@ fn parse_primary() -> i64 {
                         }
                     }
                 }
-                set_pos(save);
+                set_back(save);
             }
         }
         # 标记「被引用」。必须在解析处标记，不能只在 load_sym 里标：
@@ -4798,7 +4841,7 @@ fn index_addr(s: i64) -> i64 {
                 }
             }
         }
-        set_pos(back);
+        set_back(back);
     }
     parse_expr();
     expect("]");
@@ -4857,7 +4900,7 @@ fn index_addr(s: i64) -> i64 {
                 if iv2 < 0 { return err_atp("index out of bounds: negative constant index", gv(K_PLINE), gv(K_PCOL), gv(K_PPOS)); }
                 if iv2 >= ty_b(ct) { return err_atp("index out of bounds: constant index >= array length", gv(K_PLINE), gv(K_PCOL), gv(K_PPOS)); }
             }
-            set_pos(back2);
+            set_back(back2);
         }
         parse_expr();
         expect("]");
@@ -5182,7 +5225,7 @@ fn parse_expr_method(osym: i64) -> i64 {
                         emit_lit_struct(slsi);
                         g_push_rax();
                     } else {
-                        set_pos(svp3);
+                        set_back(svp3);
                         parse_expr();
                         g_push_rax();
                     }
@@ -5743,7 +5786,7 @@ fn parse_call() -> i64 {
                         emit_lit_struct(slsi);
                         g_push_rax();
                     } else {
-                        set_pos(svp3);
+                        set_back(svp3);
                         parse_expr();
                         g_push_rax();
                     }
@@ -6587,7 +6630,7 @@ fn parse_stmt() -> i64 {
                         R_ETY = ltS;
                         return 0;
                     } else {
-                        set_pos(svpS);
+                        set_back(svpS);
                     }
                 }
             }
@@ -6599,7 +6642,7 @@ fn parse_stmt() -> i64 {
                 let save2: i64 = gv(K_TOKPOS);
                 next_token();
                 if tok_is(";") == 1 { rhs = sym_lookup(scratch3()); }
-                set_pos(save2);
+                set_back(save2);
             }
             parse_expr();
             expect(";");
@@ -6740,7 +6783,7 @@ fn parse_stmt() -> i64 {
                         expect(";");
                         return 0;
                     }
-                    set_pos(alvp);
+                    set_back(alvp);
                 }
             }
             parse_expr();
@@ -6875,12 +6918,12 @@ fn parse_stmt() -> i64 {
                                 expect(";");
                                 return 0;
                             }
-                            set_pos(fsvp);
+                            set_back(fsvp);
                         }
                     }
                     # v1.1062: r.f = q2; —— 字段整体赋值（struct 变量）。
                     # '=' 后 parse_expr 给出源地址（kind2 变量）→ g_struct_copy。
-                    set_pos(fsq);
+                    set_back(fsq);
                     syscall(1, 2, tokbuf(), 2, 0, 0, 0);
                     if tok_is("=") == 1 {
                         next_token();
@@ -6912,7 +6955,7 @@ fn parse_stmt() -> i64 {
                                 return 0;
                             }
                         }
-                        set_pos(fsq);
+                        set_back(fsq);
                     }
                 }
                 return err_at2("cannot assign a struct value", gv(K_LINE), gv(K_COL));
@@ -6980,7 +7023,7 @@ fn parse_stmt() -> i64 {
             if ty_kind(ft) == 5 { g_store_at_b(); } else { g_store_at(); }
             return 0;
         }
-        set_pos(save);
+        set_back(save);
     }
     parse_expr();
     expect(";");
@@ -7293,7 +7336,7 @@ fn parse_let() -> i64 {
             memcpy(scratch3(), tokbuf());
             next_token();
             if tok_is("{") == 1 { return parse_struct_destr(dcln); }
-            set_pos(pkp);
+            set_back(pkp);
         }
     }
     memcpy(scratch2(), tokbuf());
@@ -7439,7 +7482,7 @@ fn parse_let() -> i64 {
                             let svp2: i64 = gv(K_TOKPOS);
                             next_token();
                             if tok_is("{") == 1 { litok = 1; }
-                            else { set_pos(svp2); }
+                            else { set_back(svp2); }
                         }
                     }
                     if litok == 1 {
@@ -7478,7 +7521,7 @@ fn parse_let() -> i64 {
                         expect(";");
                         return 0;
                     }
-                    set_pos(svp);
+                    set_back(svp);
                     parse_expr();
                     expect(";");
                     spill_cache();         # 值可能还在 rbx 里，先落回 rax
@@ -7618,7 +7661,7 @@ fn parse_let() -> i64 {
                 if tok_is("(") == 1 {
                     if sym_lookup_func(scratch3()) >= 0 { arrcall = 1; }
                 }
-                set_pos(pkq);
+                set_back(pkq);
             }
             if arrcall == 1 {
                 if sym_dup(scratch2()) >= 0 { return err_atp("duplicate definition", gv(K_PLINE), gv(K_PCOL), gv(K_PPOS)); }
@@ -7814,7 +7857,7 @@ fn warn_const_cond() -> i64 {
                     hit = 1;
                 }
             }
-            set_pos(sp);
+            set_back(sp);
             return hit;
         }
     }
@@ -7956,7 +7999,7 @@ fn parse_for_step() -> i64 {
             store_sym(R_SYM);
             return 0;
         }
-        set_pos(gv(K_TOKPOS));
+        set_back(gv(K_TOKPOS));
     }
     parse_expr();
     return 0;
@@ -7987,7 +8030,7 @@ fn parse_for_init() -> i64 {
     let fs: i64 = 0;
     if tok_is("=") == 1 { fs = 100; } else { fs = compound_op(); }
     if fs == 0 {
-        set_pos(gv(K_TOKPOS));   # 回退：让调用方走普通 parse_expr
+        set_back(gv(K_TOKPOS));   # 回退：让调用方走普通 parse_expr
         return 0;
     }
     next_token();                # 吃 '=' / compound op
@@ -8238,7 +8281,7 @@ fn parse_for() -> i64 {
             # v1.1072: parse_for_init()==1 表示已消费完 init（含 ';'），落 cond。
             # ==0 表示不是赋值 → set_pos 回退走普通 parse_expr。
             if gv(K_TKIND) == 1 {
-                if parse_for_init() == 0 { set_pos(gv(K_TOKPOS)); parse_expr(); expect(";"); }
+                if parse_for_init() == 0 { set_back(gv(K_TOKPOS)); parse_expr(); expect(";"); }
             } else {
                 parse_expr();
                 expect(";");
@@ -8557,7 +8600,7 @@ fn parse_switch() -> i64 {
     if n < 0 {
         return sw_fail("switch: case 必须是编译期常量（整数或 enum）", base);
     }
-    set_pos(save);
+    set_back(save);
     # v1.1047: 任一 case 为字符串 → 字符串 switch（要求全部 case 均为字符串）
     let sws: i64 = 0;
     let qi: i64 = 0;
@@ -8832,7 +8875,7 @@ fn parse_return() -> i64 {
                     g_epilogue();
                     return 0;
                 } else {
-                    set_pos(rsvp);
+                    set_back(rsvp);
                 }
             }
         }
@@ -9171,9 +9214,9 @@ fn const_atom() -> i64 {
                 next_token();
                 return mv;
             }
-            set_pos(savep);
+            set_back(savep);
         } else {
-            set_pos(savep);
+            set_back(savep);
         }
         # enum 值也可作 const 原子（v1.981）
         let ev: i64 = enum_value(tokbuf());
@@ -9675,8 +9718,8 @@ fn parse_arr_ret() -> i64 {
             }
         }
     }
-    if et < 0 { set_pos(back); return -1; }
-    if n <= 0 { set_pos(back); return -1; }
+    if et < 0 { set_back(back); return -1; }
+    if n <= 0 { set_back(back); return -1; }
     return ty_array(et, n);
 }
 
@@ -10272,7 +10315,7 @@ fn compile_file(path: i64) -> i64 {
     sv(K_SRCLEN, s_srclen);
     sv(K_CURFILE, s_cf);
     INPATH = s_in;
-    set_pos(s_tok);
+    set_back(s_tok);
     if en1 > en0 {
         return -1;
     }

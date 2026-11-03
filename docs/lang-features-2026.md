@@ -89,3 +89,6 @@ let a: [HALF] i64;              # const 作数组长度
 - **变量行 for-in**（v1.1090）：`for row in m { for v in row {...} }` —— 内层遍历 ptr 行变量，上界取外层 for-in 登记的 `_fl_<深度>` 行长度变量。
 - **全局 struct 字面量初始化**（v1.1091）：`var G: P = P { x: 1; y: 2; };` —— 编译期字段值写入数据段（无初始化字段的默认值仍生效）。
 - **case 乘除折叠**（v1.1092）：switch case 常量表达式支持 `*` `/`（与 `+` `-` 同级从左到右，enum/const/数字原子均可）。
+
+- **自举性能修复**（v1.1093）：编译 21.8s → 0.13s。根因：探测回滚 set_pos 清 K_CPOS，
+  advance_lc 每 token 从头重扫（O(n²)）。新增 set_back 供探测回滚使用；emit4/8 直写。

@@ -1,3 +1,7 @@
+## 1.1093.0
+- 编译器自举性能：21.8s → 0.13s（约 170 倍）。根因是 set_pos 探测回滚把 K_CPOS 清零，
+  之后每次 next_token 的 advance_lc 都从 0 重扫源码（O(n²)）。新增 set_back 回滚
+  （只回滚 K_POS，行号游标不动）；另将 emit4/emit8 改为直接写字节。
 ## 1.1092.0
 - switch case 常量折叠扩展乘除：`case GREEN * 3:`、`case 1 * 2 + 1:`。
 

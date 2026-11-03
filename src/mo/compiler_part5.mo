@@ -548,7 +548,7 @@ fn parse_stmt() -> i64 {
                         R_ETY = ltS;
                         return 0;
                     } else {
-                        set_pos(svpS);
+                        set_back(svpS);
                     }
                 }
             }
@@ -560,7 +560,7 @@ fn parse_stmt() -> i64 {
                 let save2: i64 = gv(K_TOKPOS);
                 next_token();
                 if tok_is(";") == 1 { rhs = sym_lookup(scratch3()); }
-                set_pos(save2);
+                set_back(save2);
             }
             parse_expr();
             expect(";");
@@ -701,7 +701,7 @@ fn parse_stmt() -> i64 {
                         expect(";");
                         return 0;
                     }
-                    set_pos(alvp);
+                    set_back(alvp);
                 }
             }
             parse_expr();
@@ -836,12 +836,12 @@ fn parse_stmt() -> i64 {
                                 expect(";");
                                 return 0;
                             }
-                            set_pos(fsvp);
+                            set_back(fsvp);
                         }
                     }
                     # v1.1062: r.f = q2; —— 字段整体赋值（struct 变量）。
                     # '=' 后 parse_expr 给出源地址（kind2 变量）→ g_struct_copy。
-                    set_pos(fsq);
+                    set_back(fsq);
                     syscall(1, 2, tokbuf(), 2, 0, 0, 0);
                     if tok_is("=") == 1 {
                         next_token();
@@ -873,7 +873,7 @@ fn parse_stmt() -> i64 {
                                 return 0;
                             }
                         }
-                        set_pos(fsq);
+                        set_back(fsq);
                     }
                 }
                 return err_at2("cannot assign a struct value", gv(K_LINE), gv(K_COL));
@@ -941,7 +941,7 @@ fn parse_stmt() -> i64 {
             if ty_kind(ft) == 5 { g_store_at_b(); } else { g_store_at(); }
             return 0;
         }
-        set_pos(save);
+        set_back(save);
     }
     parse_expr();
     expect(";");
@@ -1254,7 +1254,7 @@ fn parse_let() -> i64 {
             memcpy(scratch3(), tokbuf());
             next_token();
             if tok_is("{") == 1 { return parse_struct_destr(dcln); }
-            set_pos(pkp);
+            set_back(pkp);
         }
     }
     memcpy(scratch2(), tokbuf());
@@ -1400,7 +1400,7 @@ fn parse_let() -> i64 {
                             let svp2: i64 = gv(K_TOKPOS);
                             next_token();
                             if tok_is("{") == 1 { litok = 1; }
-                            else { set_pos(svp2); }
+                            else { set_back(svp2); }
                         }
                     }
                     if litok == 1 {
@@ -1439,7 +1439,7 @@ fn parse_let() -> i64 {
                         expect(";");
                         return 0;
                     }
-                    set_pos(svp);
+                    set_back(svp);
                     parse_expr();
                     expect(";");
                     spill_cache();         # 值可能还在 rbx 里，先落回 rax
@@ -1579,7 +1579,7 @@ fn parse_let() -> i64 {
                 if tok_is("(") == 1 {
                     if sym_lookup_func(scratch3()) >= 0 { arrcall = 1; }
                 }
-                set_pos(pkq);
+                set_back(pkq);
             }
             if arrcall == 1 {
                 if sym_dup(scratch2()) >= 0 { return err_atp("duplicate definition", gv(K_PLINE), gv(K_PCOL), gv(K_PPOS)); }
@@ -1775,7 +1775,7 @@ fn warn_const_cond() -> i64 {
                     hit = 1;
                 }
             }
-            set_pos(sp);
+            set_back(sp);
             return hit;
         }
     }
@@ -1917,7 +1917,7 @@ fn parse_for_step() -> i64 {
             store_sym(R_SYM);
             return 0;
         }
-        set_pos(gv(K_TOKPOS));
+        set_back(gv(K_TOKPOS));
     }
     parse_expr();
     return 0;
@@ -1948,7 +1948,7 @@ fn parse_for_init() -> i64 {
     let fs: i64 = 0;
     if tok_is("=") == 1 { fs = 100; } else { fs = compound_op(); }
     if fs == 0 {
-        set_pos(gv(K_TOKPOS));   # 回退：让调用方走普通 parse_expr
+        set_back(gv(K_TOKPOS));   # 回退：让调用方走普通 parse_expr
         return 0;
     }
     next_token();                # 吃 '=' / compound op
@@ -2199,7 +2199,7 @@ fn parse_for() -> i64 {
             # v1.1072: parse_for_init()==1 表示已消费完 init（含 ';'），落 cond。
             # ==0 表示不是赋值 → set_pos 回退走普通 parse_expr。
             if gv(K_TKIND) == 1 {
-                if parse_for_init() == 0 { set_pos(gv(K_TOKPOS)); parse_expr(); expect(";"); }
+                if parse_for_init() == 0 { set_back(gv(K_TOKPOS)); parse_expr(); expect(";"); }
             } else {
                 parse_expr();
                 expect(";");
@@ -2518,7 +2518,7 @@ fn parse_switch() -> i64 {
     if n < 0 {
         return sw_fail("switch: case 必须是编译期常量（整数或 enum）", base);
     }
-    set_pos(save);
+    set_back(save);
     # v1.1047: 任一 case 为字符串 → 字符串 switch（要求全部 case 均为字符串）
     let sws: i64 = 0;
     let qi: i64 = 0;
@@ -2793,7 +2793,7 @@ fn parse_return() -> i64 {
                     g_epilogue();
                     return 0;
                 } else {
-                    set_pos(rsvp);
+                    set_back(rsvp);
                 }
             }
         }
@@ -3132,9 +3132,9 @@ fn const_atom() -> i64 {
                 next_token();
                 return mv;
             }
-            set_pos(savep);
+            set_back(savep);
         } else {
-            set_pos(savep);
+            set_back(savep);
         }
         # enum 值也可作 const 原子（v1.981）
         let ev: i64 = enum_value(tokbuf());
@@ -3636,8 +3636,8 @@ fn parse_arr_ret() -> i64 {
             }
         }
     }
-    if et < 0 { set_pos(back); return -1; }
-    if n <= 0 { set_pos(back); return -1; }
+    if et < 0 { set_back(back); return -1; }
+    if n <= 0 { set_back(back); return -1; }
     return ty_array(et, n);
 }
 
@@ -4233,7 +4233,7 @@ fn compile_file(path: i64) -> i64 {
     sv(K_SRCLEN, s_srclen);
     sv(K_CURFILE, s_cf);
     INPATH = s_in;
-    set_pos(s_tok);
+    set_back(s_tok);
     if en1 > en0 {
         return -1;
     }

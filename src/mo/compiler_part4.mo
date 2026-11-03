@@ -311,8 +311,11 @@ fn sym_lookup_in(name: i64, pf: i64, wantfn: i64) -> i64 {
                 # 🔴 首字符+长度预过滤（v1.1001）：streq 全串比较是自举热点，
                 #    先比首字节与长度，多数不匹配在此短路。
                 let sn: i64 = name_at(i);
+                # v1.1093: 双字节预过滤（比单字节再省近半 streq 调用）
                 if load8(sn) == load8(name) {
-                    if streq(sn, name) == 1 { return i; }
+                    if load8(sn + 1) == load8(name + 1) {
+                        if streq(sn, name) == 1 { return i; }
+                    }
                 }
             }
         }
@@ -1272,15 +1275,15 @@ fn try_parse_type() -> i64 {
                                 }
                             }
                         }
-                        if et < 0 { set_pos(back); return -1; }
-                        if n <= 0 { set_pos(back); return -1; }
+                        if et < 0 { set_back(back); return -1; }
+                        if n <= 0 { set_back(back); return -1; }
                         t = ty_array(et, n);
                     }
                 }
             }
         }
     }
-    if t < 0 { set_pos(back); return -1; }
+    if t < 0 { set_back(back); return -1; }
     return t;
 }
 
@@ -1482,7 +1485,7 @@ fn parse_primary() -> i64 {
                     return 0;
                 }
             }
-            set_pos(save);              # 不是 enum：回退，走字段/方法路径
+            set_back(save);              # 不是 enum：回退，走字段/方法路径
         }
         if streq(scratch1(), "false") == 1 {
             g_movabs_rax(0);
@@ -1625,7 +1628,7 @@ fn parse_primary() -> i64 {
                         }
                     }
                 }
-                set_pos(save);
+                set_back(save);
             }
         }
         # 标记「被引用」。必须在解析处标记，不能只在 load_sym 里标：
@@ -1914,7 +1917,7 @@ fn index_addr(s: i64) -> i64 {
                 }
             }
         }
-        set_pos(back);
+        set_back(back);
     }
     parse_expr();
     expect("]");
@@ -1973,7 +1976,7 @@ fn index_addr(s: i64) -> i64 {
                 if iv2 < 0 { return err_atp("index out of bounds: negative constant index", gv(K_PLINE), gv(K_PCOL), gv(K_PPOS)); }
                 if iv2 >= ty_b(ct) { return err_atp("index out of bounds: constant index >= array length", gv(K_PLINE), gv(K_PCOL), gv(K_PPOS)); }
             }
-            set_pos(back2);
+            set_back(back2);
         }
         parse_expr();
         expect("]");
@@ -2298,7 +2301,7 @@ fn parse_expr_method(osym: i64) -> i64 {
                         emit_lit_struct(slsi);
                         g_push_rax();
                     } else {
-                        set_pos(svp3);
+                        set_back(svp3);
                         parse_expr();
                         g_push_rax();
                     }
@@ -2859,7 +2862,7 @@ fn parse_call() -> i64 {
                         emit_lit_struct(slsi);
                         g_push_rax();
                     } else {
-                        set_pos(svp3);
+                        set_back(svp3);
                         parse_expr();
                         g_push_rax();
                     }
