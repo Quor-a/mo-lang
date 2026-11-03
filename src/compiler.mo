@@ -9114,6 +9114,41 @@ fn mt_scan(vals: i64) -> i64 {
                     let ssi: i64 = load64(heap + O_SWSM + smbase * 8);
                     let fidx: i64 = st_field(ssi, fnm);
                     let foff: i64 = st_field_off(ssi, fidx);
+                    # v1.1106: 嵌套 struct 模式 —— 字段值是 struct 名 → 展开一层
+                    # （子字段 offset = 外层 foff + 子 off；绑定名同样下沉）
+                    if gv(K_TKIND) == 1 && st_lookup(tokbuf()) >= 0 {
+                                                let nsi: i64 = st_lookup(tokbuf());
+                        next_token();
+                        if tok_is("{") == 0 { return 0 - 2; }
+                        next_token();
+                        while tok_is("}") == 0 {
+                            if gv(K_TKIND) == 0 { return 0 - 2; }
+                            memcpy(scratch3(), tokbuf());
+                            let nfo: i64 = foff + st_field_off(nsi, st_field(nsi, scratch3()));
+                            next_token();
+                            expect(":");
+                            if gv(K_TKIND) == 1 && st_lookup(tokbuf()) >= 0 {
+                                return 0 - 2;   # v1.1106: 暂不支持两层以上嵌套
+                            }
+                            if gv(K_TKIND) == 1 {
+                                memcpy(scratch3(), tokbuf());
+                                store64(heap + O_SWSB + (smbase/64*31 + cnt) * 8, intern(scratch3()));
+                                store64(heap + O_SWSM + (smbase + 3 + cnt * 2) * 8, 0 - 1);
+                                next_token();
+                            } else {
+                                store64(heap + O_SWSB + (smbase/64*31 + cnt) * 8, 0);
+                                if sw_const(heap + O_SWC) == 0 { return 0 - 2; }
+                                store64(heap + O_SWSM + (smbase + 3 + cnt * 2) * 8, load64(heap + O_SWC));
+                            }
+                            let wk: i64 = gv(K_TKIND);
+                            store64(heap + O_SWSM + (smbase + 2 + cnt * 2) * 8, nfo);
+                            cnt = cnt + 1;
+                            next_token();       # 吃 ';'
+                        }
+                        next_token();           # 吃子 '}'
+                        next_token();           # 吃外层字段的 ';'
+                                                continue;               # 🔴 cnt 已在子循环内加过，不再加
+                    } else {
                     store64(heap + O_SWSM + (smbase + 2 + cnt * 2) * 8, foff);
                     # v1.1104: 字段值为标识符 → 绑定变量（capture）
                     if gv(K_TKIND) == 1 {
@@ -9127,6 +9162,7 @@ fn mt_scan(vals: i64) -> i64 {
                         store64(heap + O_SWSB + (smbase/64*31 + cnt) * 8, 0);
                         if sw_const(heap + O_SWC) == 0 { return 0 - 2; }
                         store64(heap + O_SWSM + (smbase + 3 + cnt * 2) * 8, load64(heap + O_SWC));
+                    }
                     }
                     cnt = cnt + 1;
                     next_token();               # 吃 ';'
@@ -9307,6 +9343,23 @@ fn parse_match() -> i64 {
                 next_token();           # 字段名
                 let fidx2: i64 = st_field(load64(heap + O_SWSM + smbi * 8), tokbuf());
                 next_token();           # ':'
+                # v1.1106: 值是嵌套 struct 模式 → 深度吃子块
+                if gv(K_TKIND) == 1 && st_lookup(tokbuf()) >= 0 {
+                    next_token();
+                    expect("{");
+                    let sd7: i64 = 1;
+                    next_token();
+                    while sd7 > 0 {
+                        if gv(K_TKIND) == 0 { return -1; }
+                        if tok_is("{") == 1 { sd7 = sd7 + 1; }
+                        else { if tok_is("}") == 1 { sd7 = sd7 - 1; if sd7 == 0 { break; } } }
+                        next_token();
+                    }
+                    next_token();           # 吃子 '}'
+                    next_token();           # 吃外层字段的 ';'
+                    smk2 = smk2 + 1;
+                    continue;
+                }
                 let bvid: i64 = load64(heap + O_SWSB + ((smbi/64) * 31 + smk2) * 8);
                 let bval: i64 = load64(heap + O_SWSM + ((smbi) + 3 + smk2 * 2) * 8);
                 if bval == 0 - 1 {
@@ -9318,7 +9371,7 @@ fn parse_match() -> i64 {
                     if sym_dup(scratch2()) >= 0 { return err_atp("duplicate definition", gv(K_PLINE), gv(K_PCOL), gv(K_PPOS)); }
                     let bid: i64 = sym_add(scratch2(), 1, boff, 0);
                     store64(heap + O_STY + bid * 8, ty_int());
-                    store64(heap + O_SWC + (i * 8), boff);  # 暂存绑定槽号（O_SWC 此时空闲）
+                    store64(heap + O_SWC + (i * 8 + smk2 * 8), boff);  # 暂存绑定槽号（O_SWC 此时空闲）
                 } else {
                     next_token();       # 常量值
                 }
@@ -9361,7 +9414,7 @@ fn parse_match() -> i64 {
                 if load64(heap + O_SWSM + (sbi2 + 3 + sbk2 * 2) * 8) == 0 - 1 {
                     ops3(0x4c, 0x89, 0xde);              # mov rsi, r11
                     emit1(0x48); emit1(0x8b); emit1(0x86); emit4(load64(heap + O_SWSM + (sbi2 + 2 + sbk2 * 2) * 8));  # mov rax,[rsi+off]
-                    g_store_local(load64(heap + O_SWC + (i * 8)));
+                    g_store_local(load64(heap + O_SWC + (i * 8 + sbk2 * 8)));
                 }
                 sbk2 = sbk2 + 1;
             }
@@ -9370,7 +9423,12 @@ fn parse_match() -> i64 {
         let cd: i64 = d + 1;
         sv(K_DEPTH, cd);
         expect("{");
-        while tok_is("}") == 0 { parse_stmt(); }
+        while tok_is("}") == 0 {
+            memcpy(scratch3(), tokbuf());
+            syscall(1, 2, scratch3(), 0, 0, 0, 0);
+            syscall(1, 2, "\n", 1, 0, 0, 0);
+            parse_stmt();
+        }
         next_token();
         sym_pop_scope(cd);
         sv(K_DEPTH, d);
@@ -9529,6 +9587,35 @@ fn parse_match_expr(hs_off: i64) -> i64 {
             while smk2 < smn2 {
                 next_token();               # 字段名
                 next_token();               # ':'
+                # v1.1106: 值是嵌套 struct 模式 → 跳到子模式收尾 '}'
+                # （嵌套子模式里的绑定名也建符号 + 暂存 boff，store 在 place 后统一做）
+                if gv(K_TKIND) == 1 && st_lookup(tokbuf()) >= 0 {
+                    let nbvid: i64 = load64(heap + O_SWSB + ((smbi/64) * 31 + smk2) * 8);
+                    let nbval: i64 = load64(heap + O_SWSM + (smbi + 3 + smk2 * 2) * 8);
+                    if nbval == 0 - 1 {
+                        memcpy(scratch3(), heap + O_NAMES + nbvid);
+                        let nboff: i64 = gv(K_CUROFF) - 8;
+                        sv(K_CUROFF, nboff);
+                        if sym_dup(scratch3()) >= 0 { return err_atp("duplicate definition", gv(K_PLINE), gv(K_PCOL), gv(K_PPOS)); }
+                        let nbid: i64 = sym_add(scratch3(), 1, nboff, 0);
+                        store64(heap + O_STY + nbid * 8, ty_int());
+                        store64(heap + O_SWC + (i * 8 + smk2 * 8), nboff);
+                    }
+                    next_token();
+                    expect("{");
+                    let sd6: i64 = 1;
+                    next_token();
+                    while sd6 > 0 {
+                        if gv(K_TKIND) == 0 { return -1; }
+                        if tok_is("{") == 1 { sd6 = sd6 + 1; }
+                        else { if tok_is("}") == 1 { sd6 = sd6 - 1; if sd6 == 0 { break; } } }
+                        next_token();
+                    }
+                    next_token();           # 吃子 '}'
+                    next_token();           # 吃外层字段的 ';'
+                    smk2 = smk2 + 1;
+                    continue;
+                }
                 let bval2: i64 = load64(heap + O_SWSM + (smbi + 3 + smk2 * 2) * 8);
                 if bval2 == 0 - 1 {
                     let bvid2: i64 = load64(heap + O_SWSB + ((smbi/64) * 31 + smk2) * 8);

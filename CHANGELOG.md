@@ -1,6 +1,12 @@
 - 🔴 排坑续：绑定符号须记臂内深度（sym_add 前 sv(K_DEPTH,d+1)，add 后还原），
   match 结束 sym_pop_scope(d+1) 回收 —— 否则后续 match 同名绑定报 duplicate。
 
+## 1.1106.0 — 2026-11-03
+
+### Added
+- **match 嵌套 struct 模式**：模式字段值可以是 struct 模式，`Q { p: P { x: 3; }; n: 5; }`（语句版+表达式版），字段 offset 自动下沉（外层 foff + 子 off）；表达式版嵌套子模式里的绑定名 `Q { p: P { y: v; } => v` 建符号 + place 后统一 store。
+- 实现备忘：scan 嵌套分支子字段循环内 cnt 已自增（嵌套分支尾不得重复 ++）；第二遍跳子块用深度计数、break 时停在子 '}'（再统一吃 '}' + 外层 ';'）。
+
 ## 1.1105.0
 - match struct 模式移植到表达式版（parse_match_expr）：发射段（r11 保值 +
   逐字段 cmp 链 + 全绑定臂 emit_jmp）与第二遍臂循环（吃 token + 建绑定
