@@ -1,3 +1,8 @@
+## [1.1119.0] — `not in` 运算符
+
+- `x not in arr` / `s not in pat`：`not in` 作为整体探测（parse_eq 前置 not 分支，非 in 时 set_back 回滚），结果对 `in` 取反（xor rax,1）。
+- 修复踩坑：探测分支吃过 `in` 导致 in 分支双吃 token（syntax error）——探测只标记，`in` 统一由 in 分支消费。
+
 ## [1.1118.0] — `in` 运算符：标量 in 数组
 
 - `x in arr`（x 为 i64 标量、arr 为定长 i64 数组）：编译期展开逐元素比较循环（mov rdx,[rax+o]; cmp; sete r10b; or r11b,r10b 累积），O(n) 无运行时长度依赖（元素个数来自类型系统）。

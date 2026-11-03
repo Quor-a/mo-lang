@@ -817,7 +817,17 @@ fn parse_eq() -> i64 {
     parse_rel();
     let lt: i64 = R_ETY;
     while 1 {
-        # v1.1118: x in arr —— 标量 in 定长 i64 数组（展开循环）
+        # v1.1118: x in arr；v1.1119: x not in arr / s not in pat
+        let nin: i64 = 0;
+        if tok_is("not") == 1 {
+            let spos: i64 = gv(K_POS);
+            next_token();               # 吃 not（探测 in）
+            if tok_is("in") != 1 {
+                set_back(spos);         # 不是 not in —— 回 not 重扫
+            } else {
+                nin = 1;                # 是 not in —— in 留给下方 in 分支吃
+            }
+        }
         if tok_is("in") == 1 {
             if ty_kind(lt) != 0 {
                 # 非 int 左值维持 v1.1075 str in str 路径
@@ -839,6 +849,7 @@ fn parse_eq() -> i64 {
                 g_pop_rcx();
                 g_arr_in(n);
             }
+            if nin == 1 { emit1(0x48); emit1(0x83); emit1(0xf0); emit1(0x01); }   # xor rax,1（not in 取反）
             R_ETY = ty_int();
             lt = R_ETY;
         } else {
