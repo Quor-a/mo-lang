@@ -1971,6 +1971,87 @@ fn parse_for_init() -> i64 {
     expect(";");
     return 1;
 }
+# v1.1090: for v in row —— row 是 ptr(标量) 行变量（外层 for-in 的行）。
+# 上界 = 外层登记的 _fl_<depth>（行长度）。行变量名已在 tokbuf（未消费）。
+fn parse_for_in_ptr(vname: i64, rowname: i64) -> i64 {
+    let rn: i64 = heap + O_SCAL + 5450;
+    memcpy(rn, rowname);
+    let rsym: i64 = sym_lookup(rn);
+    if rsym < 0 { return undef_err(rn); }
+    if ty_kind(sym_type(rsym)) != 4 { return err_at2("for-in: right side must be an array", gv(K_LINE), gv(K_COL)); }
+    next_token();            # 吃 'in' 后的行变量名
+    let fb3: i64 = heap + O_SCAL + 5500;
+    memcpy(fb3, "_fl_");
+    store8(fb3 + 4, 47 + gv(K_DEPTH));   # 外层 body depth = 本层-1
+    store8(fb3 + 5, 0);
+    let fsi3: i64 = sym_lookup(fb3);
+    if fsi3 < 0 { return err_at2("for-in: pointer needs an enclosing row loop", gv(K_LINE), gv(K_COL)); }
+    let d: i64 = gv(K_DEPTH) + 1;
+    sv(K_DEPTH, d);
+    if sym_dup(vname) >= 0 { return err_atp("duplicate definition", gv(K_PLINE), gv(K_PCOL), gv(K_PPOS)); }
+    let xo: i64 = gv(K_CUROFF);
+    sv(K_CUROFF, xo - 8);
+    let xid: i64 = sym_add(vname, 1, xo, 0);
+    let etp: i64 = ty_a(sym_type(rsym));   # 元素类型
+    store64(heap + O_STY + xid * 8, etp);
+    dbg_var(vname, xo, gv(K_LINE), etp);
+    # 内层索引 _fi_<depth>（外层是 _fi_<depth-1>，深度不同不撞）
+    let ibuf: i64 = heap + O_SCAL + 5600;
+    memcpy(ibuf, "_fi_");
+    store8(ibuf + 4, 48 + gv(K_DEPTH));
+    store8(ibuf + 5, 0);
+    if sym_dup(ibuf) >= 0 { return err_atp("duplicate definition", gv(K_PLINE), gv(K_PCOL), gv(K_PPOS)); }
+    let fo: i64 = gv(K_CUROFF);
+    sv(K_CUROFF, fo - 8);
+    let fid: i64 = sym_add(ibuf, 1, fo, 0);
+    store64(heap + O_STY + fid * 8, ty_int());
+    dbg_var(ibuf, fo, gv(K_LINE), ty_int());
+    # _fi = 0
+    g_movabs_rax(0);
+    g_store_local(fo);
+    let chk: i64 = new_label();
+    let end: i64 = new_label();
+    let stp: i64 = new_label();
+    let bdy: i64 = new_label();
+    loop_push(chk, end, stp);
+    place_label(chk);
+    # cond: _fi - len(_fl_) >= 0 → end
+    g_load_local(fo);
+    g_push_rax();
+    load_sym(fsi3);              # rax = 行长度（外层登记的变量）
+    g_pop_rcx();
+    g_sub();
+    g_cmp_rax_0();
+    emit_jcc(0x8d, end);
+    emit_jmp(bdy);
+    place_label(stp);
+    g_load_local(fo);
+    ops3(0x48, 0x83, 0xc0); emit1(1);
+    g_store_local(fo);
+    emit_jmp(chk);
+    place_label(bdy);
+    # x = row[_fi]（ptr 标量步长）
+    load_sym(rsym);              # rax = row 指针值
+    g_push_rax();
+    g_load_local(fo);
+    if ty_size(etp) == 1 {
+        g_mul_imm(1);
+    } else {
+        g_mul_imm(ty_size(etp));
+    }
+    g_pop_rcx();
+    g_add();
+    if ty_kind(etp) == 0 { ops3(0x48, 0x8b, 0x00); }
+    g_store_local(xo);
+    parse_block(d + 1);
+    emit_jmp(stp);
+    place_label(end);
+    sym_pop_scope(d);
+    sv(K_DEPTH, d - 1);
+    loop_pop();
+    return 0;
+}
+
 # v1.1070: for x in arr { BODY } —— 数组遍历糖。
 # 进入时 tok=元素变量名(x)，peek_in_kw 已确认其后是 'in'。
 # 发射：_fi=0; chk: _fi-n>=0→end; x=a[_fi]; BODY; _fi++; jmp chk
@@ -1983,7 +2064,7 @@ fn parse_for_in(vname: i64) -> i64 {
     let at: i64 = sym_type(asym);
     # kind3=数组变量；ptr(数组)=嵌套行的行指针（parse_for_in 自身产生）
     if ty_kind(at) == 4 {
-        if ty_kind(ty_a(at)) != 3 { return err_at2("for-in: right side must be an array", gv(K_LINE), gv(K_COL)); }
+        if ty_kind(ty_a(at)) != 3 { return parse_for_in_ptr(vname, tokbuf()); }
         at = ty_a(at);   # 解包：elem=行类型
     } else {
         if ty_kind(at) != 3 { return err_at2("for-in: right side must be an array", gv(K_LINE), gv(K_COL)); }
@@ -2013,9 +2094,24 @@ fn parse_for_in(vname: i64) -> i64 {
     # 标量步长索引（ptr 目标必须是标量，否则行内索引跨整行）
     let xty: i64 = elem_type(at);
     if ty_kind(xty) == 3 {
+        let rowlen: i64 = ty_b(xty);    # v1.1090: 行长度（改 xty 前取）
         let e3: i64 = xty;
         while ty_kind(e3) == 3 { e3 = elem_type(e3); }
         xty = ty_ptr(e3);
+        # v1.1090: 同时登记行长度变量 _fl_<depth>（内维编译期知），
+        # 供内层 for v in row 用作遍历上界
+        let fbuf2: i64 = heap + O_SCAL + 5500;
+        memcpy(fbuf2, "_fl_");
+        store8(fbuf2 + 4, 48 + gv(K_DEPTH));
+        store8(fbuf2 + 5, 0);
+        if sym_dup(fbuf2) < 0 {
+            let f2o: i64 = gv(K_CUROFF);
+            sv(K_CUROFF, f2o - 8);
+            let f2id: i64 = sym_add(fbuf2, 1, f2o, 0);
+            store64(heap + O_STY + f2id * 8, ty_int());
+            g_movabs_rax(rowlen);
+            g_store_local(f2o);
+        }
     }
     store64(heap + O_STY + xid * 8, xty);
     dbg_var(vname, xo, gv(K_LINE), xty);
