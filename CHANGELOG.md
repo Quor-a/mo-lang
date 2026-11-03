@@ -1,3 +1,13 @@
+## 1.1102.0
+- match 表达式支持字符串模式（语句版 v1.1099 逻辑移植 parse_match_expr：
+  SWSTR 标记 + g_str_eq 比较链 + r11 判别串保值）。
+- 🔴 存量 bug 修复：mt_scan 数字/enum/const 模式分支不写 SWSTR[n]=0 ——
+  上一函数留下字符串标记会让本函数的数字 match 误走字符串比较链
+  （g_str_eq 对整数指针解引用 → SIGSEGV）。探针 pth/pti 实证。
+- 🔴 简化：let 推断 / typed let 的 match 右值特判块已删，统一走通用
+  parse_expr（primary 集成）——旧特判遇 `match …} * 2` 后缀运算符报
+  syntax error（探针 pt8/pt4 实证）。
+
 ## 1.1101.0
 - match 表达式任意位置内嵌：`return f() + match c { ... };` 等（parse_primary 集成，
   借栈顶临时槽，结束后还原 CUROFF；'match' 已声明为变量名时兼容 tests/294）。

@@ -123,3 +123,8 @@ let a: [HALF] i64;              # const 作数组长度
 - `match` 可出现在任意表达式位置（return f() + match …、嵌套等）。
 - 修复：推断 let 与 typed let 混用撞槽（v1.1083 起既有 bug）。
 - 限制：match 表达式的字符串模式未支持（语句版支持）；臂值表达式臂需逗号分隔。
+
+### v1.1102.0 match 表达式字符串模式 + SWSTR 残留修复
+- match 表达式（任意位置）现支持字符串模式，与语句版语义一致。
+- 修复 mt_scan 数字模式不清 SWSTR 的跨函数残留（SIGSEGV）。
+- let 右值 match 特判统一收敛到 parse_expr/primary 单一入口。

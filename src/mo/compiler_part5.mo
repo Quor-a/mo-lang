@@ -1272,21 +1272,9 @@ fn parse_let() -> i64 {
         let bo2: i64 = gv(K_CUROFF);
         sv(K_CUROFF, bo2 - 8);
         next_token();             # 吃 '='
-        # v1.1100: match 表达式 —— 右值直接发射到本变量的槽
-        if gv(K_TKIND) == 1 && streq(tokbuf(), "match") == 1 {
-            let mh: i64 = 0 - 1;
-            let mty: i64 = 0;
-            # 先按普通推断处理：match 值类型 i64（模式/臂值均为整数）
-            # 发射后再声明变量。结果槽 = bo2 - 8。
-            if parse_match_expr(bo2 - 8) != 0 { return -1; }
-            expect(";");
-            # 与普通推断路径统一：CUROFF 留已用槽顶，下个声明从 CUROFF-8 分配
-            sv(K_CUROFF, bo2 - 16);
-            let mid: i64 = sym_add(scratch2(), 1, bo2 - 8, 0);
-            store64(heap + O_STY + mid * 8, ty_int());
-            dbg_var(scratch2(), bo2 - 8, dcln, ty_int());
-            return 0;
-        }
+        # v1.1102: match 右值走通用 parse_expr（primary 集成），无需特判。
+        # 旧探测块把 match 发射后直接 expect(";")，遇到 `match …} * 2` 之类
+        # 后续运算符直接 syntax error —— 已删，探针 pt8 实证。
         parse_expr();
         expect(";");
         let ity: i64 = R_ETY;
@@ -1811,18 +1799,8 @@ fn parse_let() -> i64 {
         }
     }
     expect("=");
-    # v1.1100: match 表达式右值 —— 结果槽即变量槽（CUROFF-8）
-    if gv(K_TKIND) == 1 && streq(tokbuf(), "match") == 1 {
-        let moff: i64 = gv(K_CUROFF);   # 槽约定与原路径一致：存 CUROFF，声明后 CUROFF-=8
-        if parse_match_expr(moff) != 0 { return -1; }
-        expect(";");
-        sv(K_CUROFF, moff - 8);
-        if sym_dup(scratch2()) >= 0 { return err_atp("duplicate definition", gv(K_PLINE), gv(K_PCOL), gv(K_PPOS)); }
-        let mid2: i64 = sym_add(scratch2(), 1, moff, 0);
-        store64(heap + O_STY + mid2 * 8, vt);
-        dbg_var(scratch2(), moff, dcln, vt);
-        return 0;
-    }
+    # v1.1102: match 右值走通用 parse_expr（primary 集成），无特判（旧特判
+    # 遇 `let b: i64 = match …} + 1;` 之类后续运算符会 syntax error）。
     parse_expr();
     expect(";");
     let off: i64 = gv(K_CUROFF);
@@ -2988,6 +2966,7 @@ fn mt_scan(vals: i64) -> i64 {
         if gv(K_TKIND) == 2 {
             if n >= 128 { return 0 - 1; }
             store64(vals + n * 8, gv(K_TIVAL));
+            store64(heap + SWSTR + n * 8, 0);   # v1.1102: 🔴 清残留（上一函数的字符串模式标记会让本函数数字 match 误走 g_str_eq 链，pth/pti 探针实证）
             next_token();
             n = n + 1;
         } else {
@@ -3188,11 +3167,31 @@ fn parse_match_expr(hs_off: i64) -> i64 {
     # primary 调用方已消费 'match'；语句/let 路由未消费 —— 探测式越过
     if streq(tokbuf(), "match") == 1 { next_token(); }
     parse_expr();                       # 判别值 → rax
-    i = 0;
-    while i < n {
-        emit1(0x48); emit1(0x3d); emit4(load64(vals + i * 8));   # cmp rax, imm32
-        emit_jcc(0x84, load64(lbls + i * 8));                    # je
-        i = i + 1;
+    # v1.1102: 字符串模式（抄语句版 v1.1099）——任一字符串模式则全部必须为字符串
+    let msws: i64 = 0;
+    let mq: i64 = 0;
+    while mq < n {
+        if load64(heap + SWSTR + mq * 8) == 1 { msws = 1; }
+        mq = mq + 1;
+    }
+    if msws == 1 {
+        ops3(0x49, 0x89, 0xc3);                    # mov r11, rax —— 判别串保值
+        i = 0;
+        while i < n {
+            ops3(0x4c, 0x89, 0xd9);                # mov rcx, r11
+            g_movabs_rax(load64(vals + i * 8));    # movabs rax, 模式串地址
+            g_str_eq(1);
+            ops2(0x85, 0xc0);                      # test eax, eax
+            emit_jcc(0x85, load64(lbls + i * 8));  # jne → 臂
+            i = i + 1;
+        }
+    } else {
+        i = 0;
+        while i < n {
+            emit1(0x48); emit1(0x3d); emit4(load64(vals + i * 8));   # cmp rax, imm32
+            emit_jcc(0x84, load64(lbls + i * 8));                    # je
+            i = i + 1;
+        }
     }
     i = 0;
     emit_jmp(dflt);
@@ -3225,10 +3224,14 @@ fn parse_match_expr(hs_off: i64) -> i64 {
         }
         accept(",");                        # 臂间逗号（首臂无害）
         place_label(load64(lbls + i * 8));
-        if sw_const(heap + O_SWC) == 0 {
-            sv(K_DEPTH, d - 1);
-            store64(heap + O_SWTOP, base);
-            return err_atp("match: 模式必须是编译期常量", gv(K_PLINE), gv(K_PCOL), gv(K_PPOS));
+        if load64(heap + SWSTR + i * 8) == 1 {
+            next_token();                   # v1.1102: 字符串模式（值已在 scan 录入）
+        } else {
+            if sw_const(heap + O_SWC) == 0 {
+                sv(K_DEPTH, d - 1);
+                store64(heap + O_SWTOP, base);
+                return err_atp("match: 模式必须是编译期常量", gv(K_PLINE), gv(K_PCOL), gv(K_PPOS));
+            }
         }
         expect("=>");
         # v1.1100: 臂值 = 表达式 或 { expr }（单表达式块）
