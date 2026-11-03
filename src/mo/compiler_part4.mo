@@ -560,7 +560,17 @@ fn field_chain(ty0: i64) -> i64 {
     while ty_kind(ty) == 3 {
         ty = elem_type(ty);
     }
+    let stepped: i64 = 0;
     while tok_is(".") == 1 {
+        # v1.1094: 上一段取到的字段是 ptr→struct 且链继续 —— 解引用。
+        # （首段前的基址由 load_sym/lea 准备好，不加此步。）
+        if stepped == 1 {
+            if ty_kind(ty) == 4 {
+                if ty_kind(ty_a(ty)) == 2 {
+                    g_load_at();
+                }
+            }
+        }
         next_token();
         if gv(K_TKIND) != 1 { return syntax_error(); }
         memcpy(scratch1(), tokbuf());
@@ -592,6 +602,7 @@ fn field_chain(ty0: i64) -> i64 {
             g_add();
         }
         ty = st_field_type(si, fi);
+        stepped = 1;
     }
     return ty;
 }
@@ -1244,9 +1255,6 @@ fn try_parse_type() -> i64 {
                     } else {
                         # v1.1057: enum 名作类型（等价 i64）
                         let enm: i64 = intern(tokbuf());
-                        syscall(1, 2, "E?\n", 3, 0, 0, 0);
-                        syscall(1, 2, heap + O_NAMES + enm, strlen(heap + O_NAMES + enm), 0, 0, 0);
-                        syscall(1, 2, "\n", 1, 0, 0, 0);
                         if enum_type_exists(enm) == 1 {
                             next_token();
                             t = ty_int();
@@ -1268,9 +1276,15 @@ fn try_parse_type() -> i64 {
                             else {
                                 if tok_is("ptr") == 1 { next_token(); et = ty_ptr(parse_ptr_target()); }   # v1.1043: [N] ptr [i64]
                                 else {
+                                if tok_is("[") == 1 {
+                                    # v1.1094: 嵌套数组类型 [[N] T] —— 递归走本函数
+                                    et = try_parse_type();
+                                }
+                                else {
                                 if gv(K_TKIND) == 1 {
                                     let si2: i64 = st_lookup(tokbuf());
                                     if si2 >= 0 { next_token(); et = ty_struct(si2); }
+                                }
                                 }
                                 }
                             }

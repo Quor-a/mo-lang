@@ -4831,6 +4831,12 @@ expect("]");
                     }
                     ft = ty_array(et, an);
                 } else {
+                if tok_is("ptr") == 1 {
+                    # v1.1094: 字段可为指针类型（含 struct 自引用链表）——
+                    # Node 在 st_add 时已登记，自引用 ptr Node 可解析。
+                    next_token();
+                    ft = ty_ptr(parse_ptr_target());
+                } else {
                 if gv(K_TKIND) == 1 {
                     let sub: i64 = st_lookup(tokbuf());
                     if sub >= 0 {
@@ -4841,6 +4847,7 @@ expect("]");
                     }
                 } else {
                     return err_at2("expected a type", gv(K_LINE), gv(K_COL));
+                }
                 }
                 }
             }

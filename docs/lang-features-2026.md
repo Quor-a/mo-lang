@@ -92,3 +92,6 @@ let a: [HALF] i64;              # const 作数组长度
 
 - **自举性能修复**（v1.1093）：编译 21.8s → 0.13s。根因：探测回滚 set_pos 清 K_CPOS，
   advance_lc 每 token 从头重扫（O(n²)）。新增 set_back 供探测回滚使用；emit4/8 直写。
+
+- **指针字段与链表**（v1.1094）：struct 字段可为 `ptr T`（自引用）；链式访问
+  `p.next.v` 中间 ptr 段自动解引用；try_parse_type 支持嵌套数组 `[[N] T]`。

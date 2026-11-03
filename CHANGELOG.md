@@ -1,3 +1,7 @@
+## 1.1094.0
+- struct 字段支持指针类型（含自引用链表：`struct Node { v: i64; next: ptr Node; }`）。
+- 链式指针字段访问修复：`p.next.v`、`a.next.next.v`（中间 ptr 段自动解引用）。
+- try_parse_type 支持嵌套数组类型 `[[N] T]`；删除 enum 类型分支残留调试输出。
 ## 1.1093.0
 - 编译器自举性能：21.8s → 0.13s（约 170 倍）。根因是 set_pos 探测回滚把 K_CPOS 清零，
   之后每次 next_token 的 advance_lc 都从 0 重扫源码（O(n²)）。新增 set_back 回滚
