@@ -84,3 +84,4 @@ let a: [HALF] i64;              # const 作数组长度
 - **二维 for-in 步长修复**（v1.1085）：行 stride 非 2 次幂（如 24）时 for-in 元素寻址由 shl 改 imul —— 此前第二轮 row 从 m[0][2] 起步。
 - **for-in 行索引**（v1.1086）：`for v in m[1] { ... }` —— 遍历二维数组的第 i 行（常量行索引，基址 += i*行stride）。
 - **数组形参**（v1.1087）：`fn sum(a: [3] i64)` —— 一维数组形参按 ptr(元素) 传入，a[i] 标量步长；长度不随参数传递。
+- **推断 let + struct 返回值**（v1.1088）：`let p = mk();` —— struct 函数返回值（rax/rdx 两字寄存器）正确落槽；字面量/struct 变量 RHS（rax=地址）走块拷，由 R_SADDR 区分。

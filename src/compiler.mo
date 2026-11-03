@@ -7277,17 +7277,42 @@ fn parse_let() -> i64 {
         if ty_kind(ity) == 0 || ty_kind(ity) == 4 || ty_kind(ity) == 10 {
             g_store_local(bo2 - isz);
         } else {
-            # 数组/struct 值：rax=地址 → 块拷贝
-            ops3(0x48, 0x89, 0xc6);      # mov rsi, rax
-            g_lea_local(bo2 - isz);      # rax = 目的
-            let nw5: i64 = isz / 8;
-            let w5: i64 = 0;
-            while w5 < nw5 {
-                ops3(0x48, 0x8b, 0x1e);  # mov rbx, [rsi]
-                ops3(0x48, 0x89, 0x18);  # mov [rax], rbx
-                ops4(0x48, 0x83, 0xc0, 0x08);
-                ops4(0x48, 0x83, 0xc6, 0x08);
-                w5 = w5 + 1;
+            if ty_kind(ity) == 2 {
+                if R_SADDR == 1 {
+                    # 字面量/struct 变量：rax=对象地址 → 块拷
+                    ops3(0x48, 0x89, 0xc6);      # mov rsi, rax
+                    g_lea_local(bo2 - isz);
+                    let nw6: i64 = isz / 8;
+                    let w6: i64 = 0;
+                    while w6 < nw6 {
+                        ops3(0x48, 0x8b, 0x1e);
+                        ops3(0x48, 0x89, 0x18);
+                        ops4(0x48, 0x83, 0xc0, 0x08);
+                        ops4(0x48, 0x83, 0xc6, 0x08);
+                        w6 = w6 + 1;
+                    }
+                    R_SADDR = 0;
+                } else {
+                    # v1.1088: struct **返回值**走两字寄存器（rax=x, rdx=y）
+                    g_store_local(bo2 - isz);
+                    if st_words(ty_si(ity)) == 2 {
+                        ops3(0x48, 0x89, 0xd0);      # mov rax, rdx
+                        g_store_local(bo2 - isz + 8);
+                    }
+                }
+            } else {
+                # 数组值：rax=地址 → 块拷贝
+                ops3(0x48, 0x89, 0xc6);      # mov rsi, rax
+                g_lea_local(bo2 - isz);      # rax = 目的
+                let nw5: i64 = isz / 8;
+                let w5: i64 = 0;
+                while w5 < nw5 {
+                    ops3(0x48, 0x8b, 0x1e);  # mov rbx, [rsi]
+                    ops3(0x48, 0x89, 0x18);  # mov [rax], rbx
+                    ops4(0x48, 0x83, 0xc0, 0x08);
+                    ops4(0x48, 0x83, 0xc6, 0x08);
+                    w5 = w5 + 1;
+                }
             }
         }
         return 0;
