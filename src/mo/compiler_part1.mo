@@ -180,6 +180,9 @@ var FSTICKY: i64 = 0;       # 浮点字面量：被截掉的低位里是否有�
 #    其实 **O_SCAL 是一个大区域**（7357408 ~ O_STN 8388608，约 1MB），
 #    enum 数组落在它**内部**，把 scratch / 槽区之后的内容冲掉了。
 #    真正的空档在 O_MSYM(8608192+4096) 之后、O_SU(9000000) 之前。
+var O_CFF:   i64 = 8882600;   # v1.1112: sym sid → 是否 const fn（1 字节/sym）
+var O_CFB:   i64 = 8888000;   # v1.1112: sym sid → 体起/体止 token 位置（2 槽/sym）
+var O_CFA:   i64 = 8900000;   # v1.1112: const fn 求值参数槽（每参 24B：名 16B + 值 8B）
 var O_ENAME: i64 = 8700000;    # 512 × 8 = 4096
 var O_ECNAME: i64 = 8704096;
 var O_EVAL: i64 = 8708192;

@@ -1,3 +1,18 @@
+## 1.1112.0 - 2026-11-03
+
+### Added
+- **const fn（编译期折叠）**：`const fn sq(x: i64) -> i64 { return x * x; }` —— 调用点
+  `sq(4)` 在编译期求值为 16，发射 `movabs rax, 16`，零运行时开销。支持：单参数、
+  体为 `return <算术表达式>;`、参数/字面量/`+ - * / %`/括号、const fn 调 const fn（递归折叠）。
+  实现链：predeclare 扫描 `const fn` 行（否则 'const' 跳行会漏登记）→ parse_const 记录
+  体范围 O_CFB + 标记 O_CFF → 调用点（parse_call）折叠 cfn_eval 解释求值。
+
+### Fixed
+- 🔴 **K_POS 语义坑（token 末+1 而非起点）**：const fn 体范围 cbs 必须存 K_TOKPOS
+  （token 起点）而非 K_POS，否则 set_pos(cbs) 从体首 token 之后开始 lex，
+  `return` 被跳过 → rv=0。同类：parse_call 折叠的 sb9 须在 expect(")") 前记录
+  （')' 的 K_POS），否则 set_back(sb9) 重读到下一个 token → 假 syntax error。
+
 ## 1.1111.0 - 2026-11-03
 
 ### Fixed

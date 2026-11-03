@@ -1681,7 +1681,19 @@ fn parse_primary() -> i64 {
                 func_addr(fsy);
                 return 0;
             }
-            # v1.1049: 裸 enum 成员作表达式 —— enum_value 兜底（编译期常量）
+            # v1.1112: const fn 调用点折叠 —— 名(常量实参) → 编译期值
+            if tok_is("(") == 1 {
+                let rs9: i64 = sym_lookup_func(scratch1());
+                if rs9 >= 0 && load8(heap + O_CFF + rs9) == 1 && load64(heap + O_CFB + rs9 * 16) > 0 {
+                    next_token();
+                    let ca: i64 = const_expr();
+                    expect(")");
+                    g_movabs_rax(cfn_eval(rs9, ca));
+                    R_ETY = ty_int();
+                    return 0;
+                }
+            }
+# v1.1049: 裸 enum 成员作表达式 —— enum_value 兜底（编译期常量）
             let ev: i64 = enum_value(scratch1());
             if ev >= 0 {
                 g_movabs_rax(load64(heap + O_EVAL + ev * 8));
@@ -2856,6 +2868,22 @@ fn parse_call() -> i64 {
     CE_P = gv(K_PPOS);
     CE_C = gv(K_PCOL);
     CE_L = gv(K_PLINE);
+    # v1.1112: const fn 折叠 —— sym 命中 O_CFF → 名(常量实参) → 编译期 movabs
+    {
+        let rs9: i64 = sym_lookup_func(cscratch());
+        if rs9 >= 0 && load8(heap + O_CFF + rs9) == 1 && load64(heap + O_CFB + rs9 * 16) > 0 {
+            next_token();
+            let ca: i64 = const_expr();
+            let sb9: i64 = gv(K_POS);
+            expect(")");                 # ')' 后位置（cfn_eval 恢复后再校正一次）
+            g_movabs_rax(cfn_eval(rs9, ca));
+            set_back(sb9);
+            R_ETY = ty_int();
+            R_SADDR = 0;
+            CALLD = CALLD - 1;
+            return 0;
+        }
+    }
     expect("(");
     if streq(cscratch(), "len") == 1 { return parse_len(); }
     # print(f"...") / sfmt(dst, f"...") —— 插值字符串特判

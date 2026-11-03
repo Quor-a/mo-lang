@@ -180,6 +180,9 @@ var FSTICKY: i64 = 0;       # 浮点字面量：被截掉的低位里是否有�
 #    其实 **O_SCAL 是一个大区域**（7357408 ~ O_STN 8388608，约 1MB），
 #    enum 数组落在它**内部**，把 scratch / 槽区之后的内容冲掉了。
 #    真正的空档在 O_MSYM(8608192+4096) 之后、O_SU(9000000) 之前。
+var O_CFF:   i64 = 8882600;   # v1.1112: sym sid → 是否 const fn（1 字节/sym）
+var O_CFB:   i64 = 8888000;   # v1.1112: sym sid → 体起/体止 token 位置（2 槽/sym）
+var O_CFA:   i64 = 8900000;   # v1.1112: const fn 求值参数槽（每参 24B：名 16B + 值 8B）
 var O_ENAME: i64 = 8700000;    # 512 × 8 = 4096
 var O_ECNAME: i64 = 8704096;
 var O_EVAL: i64 = 8708192;
@@ -4611,7 +4614,19 @@ fn parse_primary() -> i64 {
                 func_addr(fsy);
                 return 0;
             }
-            # v1.1049: 裸 enum 成员作表达式 —— enum_value 兜底（编译期常量）
+            # v1.1112: const fn 调用点折叠 —— 名(常量实参) → 编译期值
+            if tok_is("(") == 1 {
+                let rs9: i64 = sym_lookup_func(scratch1());
+                if rs9 >= 0 && load8(heap + O_CFF + rs9) == 1 && load64(heap + O_CFB + rs9 * 16) > 0 {
+                    next_token();
+                    let ca: i64 = const_expr();
+                    expect(")");
+                    g_movabs_rax(cfn_eval(rs9, ca));
+                    R_ETY = ty_int();
+                    return 0;
+                }
+            }
+# v1.1049: 裸 enum 成员作表达式 —— enum_value 兜底（编译期常量）
             let ev: i64 = enum_value(scratch1());
             if ev >= 0 {
                 g_movabs_rax(load64(heap + O_EVAL + ev * 8));
@@ -5786,6 +5801,22 @@ fn parse_call() -> i64 {
     CE_P = gv(K_PPOS);
     CE_C = gv(K_PCOL);
     CE_L = gv(K_PLINE);
+    # v1.1112: const fn 折叠 —— sym 命中 O_CFF → 名(常量实参) → 编译期 movabs
+    {
+        let rs9: i64 = sym_lookup_func(cscratch());
+        if rs9 >= 0 && load8(heap + O_CFF + rs9) == 1 && load64(heap + O_CFB + rs9 * 16) > 0 {
+            next_token();
+            let ca: i64 = const_expr();
+            let sb9: i64 = gv(K_POS);
+            expect(")");                 # ')' 后位置（cfn_eval 恢复后再校正一次）
+            g_movabs_rax(cfn_eval(rs9, ca));
+            set_back(sb9);
+            R_ETY = ty_int();
+            R_SADDR = 0;
+            CALLD = CALLD - 1;
+            return 0;
+        }
+    }
     expect("(");
     if streq(cscratch(), "len") == 1 { return parse_len(); }
     # print(f"...") / sfmt(dst, f"...") —— 插值字符串特判
@@ -10099,6 +10130,48 @@ fn parse_i64_list() -> i64 {
 # 只支持 + - * / 与括号的整数常量表达式（字面量与已定义 const）。
 fn parse_const() -> i64 {
     next_token();
+    # v1.1112: const fn —— 编译期可折叠函数（单参数 i64，体仅字面量/参数/算术）
+    if tok_is("fn") == 1 {
+        # v1.1112: const fn —— predeclare 已登记 sym；此处记 body 范围 + O_CFF 标记
+        next_token();
+        if gv(K_TKIND) != 1 { return syntax_error(); }
+        let ssid: i64 = sym_lookup_func(tokbuf());
+
+        if ssid < 0 { return err_at2("const fn: not predeclared", gv(K_LINE), gv(K_COL)); }
+        next_token();
+        expect("(");
+        if gv(K_TKIND) != 1 { return syntax_error(); }
+        # 参数名内容 → O_CFA[0]（单参数；名字 16B + 值 8B）
+        let cp9: i64 = heap + O_CFA;
+        let cn9: i64 = tokbuf();
+        let ci9b: i64 = 0;
+        while ci9b < 16 {
+            if load8(cn9 + ci9b) == 0 { break; }
+            store8(cp9 + ci9b, load8(cn9 + ci9b));
+            ci9b = ci9b + 1;
+        }
+        store8(cp9 + ci9b, 0);
+        next_token();
+        expect(":");
+        expect("i64");
+        expect(")");
+        if accept("->") == 1 { expect("i64"); }
+        expect("{");
+        let cbs: i64 = gv(K_TOKPOS);   # v1.1112: 体首 token 起点字节数（K_POS=token 末+1，set_pos 须用起点）
+        let cd9: i64 = 1;
+        while cd9 > 0 {
+            if gv(K_TKIND) == 0 { return syntax_error(); }
+            if tok_is("{") == 1 { cd9 = cd9 + 1; }
+            else { if tok_is("}") == 1 { cd9 = cd9 - 1; if cd9 == 0 { break; } } }
+            next_token();
+        }
+        next_token();
+        store64(heap + O_CFB + ssid * 16, cbs);
+        store64(heap + O_CFB + ssid * 16 + 8, gv(K_POS));   # '}' 后字节偏移
+        store8(heap + O_CFF + ssid, 1);
+        accept(";");
+        return 0;
+    }
     memcpy(scratch2(), tokbuf());
     next_token();
     expect(":");
@@ -10168,7 +10241,112 @@ fn const_dup_check() -> i64 {
 
 # 常量表达式求值：递归下降，一层乘除一层加减一层原子。
 # 原子 = 数字字面量 | ( expr ) | 已定义的 const 名（kind 4，O_SCV 取值）。
+# v1.1112: const fn 编译期求值——名 id 与参数值给入，重入 token 流解释函数体（仅 return expr）
+fn cfn_eval(fid: i64, arg: i64) -> i64 {
+    let cbs: i64 = load64(heap + O_CFB + fid * 16);
+    let cbe: i64 = load64(heap + O_CFB + fid * 16 + 8);
+    # 保存扫描位置（恢复用 set_back 重读 token，保证 tokbuf 一致）
+    let sv_tk: i64 = gv(K_POS);
+    let sv_ln: i64 = gv(K_LINE);
+    let sv_cl: i64 = gv(K_CPOS);
+    # 参数值 → O_CFA+16（名内容在 O_CFA[0..16)，声明时写入）
+    store64(heap + O_CFA + 16, arg);
+    # 跳到函数体（set_pos 重读 token → tokbuf 同步）
+    sv(K_LINE, 1);
+    sv(K_CPOS, 0);
+    set_pos(cbs);
+    let rv: i64 = 0;
+    while gv(K_POS) < cbe {
+        if tok_is("return") == 1 {
+            next_token();
+            rv = cfn_expr(0);
+        } else {
+            next_token();
+        }
+    }
+    # 恢复（set_back 重读 token）
+    sv(K_LINE, sv_ln);
+    sv(K_CPOS, sv_cl);
+    set_back(sv_tk);
+    return rv;
+}
+
+# cfn 表达式求值（递归下降；支持 参数/数字/() 一元- + - * / %）
+fn cfn_atom() -> i64 {
+    if tok_is("(") == 1 {
+        next_token();
+        let v: i64 = cfn_expr(0);
+        expect(")");
+        return v;
+    }
+    if tok_is("-") == 1 {
+        next_token();
+        return 0 - cfn_atom();
+    }
+    if gv(K_TKIND) == 2 {
+        let v: i64 = gv(K_TIVAL);
+        next_token();
+        return v;
+    }
+    # 参数名（O_CFA[0..16) 名内容, [16] 值）；其它标识符若是 const fn 调用 → 递归折叠
+    if gv(K_TKIND) == 1 {
+        if streq(tokbuf(), heap + O_CFA) == 1 {
+            next_token();
+            return load64(heap + O_CFA + 16);
+        }
+        let nid9: i64 = sym_lookup_func(tokbuf());
+        if nid9 >= 0 && load8(heap + O_CFF + nid9) == 1 && load64(heap + O_CFB + nid9 * 16) > 0 {
+            next_token();
+            expect("(");
+            let na9: i64 = cfn_expr(0);
+            expect(")");
+            return cfn_eval(nid9, na9);
+        }
+        return err_at2("const fn: undefined name", gv(K_LINE), gv(K_COL));
+    }
+    return err_at2("const fn: unsupported token in body", gv(K_LINE), gv(K_COL));
+}
+
+fn cfn_term() -> i64 {
+    let v: i64 = cfn_atom();
+    while tok_is("*") == 1 || tok_is("/") == 1 || tok_is("%") == 1 {
+        if tok_is("*") == 1 {
+            next_token();
+            v = v * cfn_atom();
+        } else {
+            if tok_is("/") == 1 {
+                next_token();
+                v = v / cfn_atom();
+            } else {
+                next_token();
+                v = v % cfn_atom();
+            }
+        }
+    }
+    return v;
+}
+
+fn cfn_expr(depth: i64) -> i64 {
+    let ev: i64 = cfn_term();
+    return ev;
+}
+
 fn const_atom() -> i64 {
+    # v1.1112: const fn 调用点折叠 —— 名(常量实参)
+    if gv(K_TKIND) == 1 {
+        let csid: i64 = sym_lookup_func(tokbuf());
+        if csid >= 0 && load8(heap + O_CFF + csid) == 1 && load64(heap + O_CFB + csid * 16) > 0 {
+            memcpy(scratch3(), tokbuf());
+            next_token();
+            if tok_is("(") == 1 {
+                next_token();
+                let ca: i64 = const_expr();
+                expect(")");
+                return cfn_eval(csid, ca);
+            }
+            err_at2("const fn used as value", gv(K_LINE), gv(K_COL));
+        }
+    }
     # 一元负号/正号（v1.976）
     if tok_is("-") == 1 {
         next_token();
@@ -11173,7 +11351,14 @@ fn predeclare() -> i64 {
                     p = next_line(p);
                 }
             } else {
-                p = next_line(p);
+                # v1.1112: 'const fn' 行 — 不跳行, 前进 1 字节让内层 'fn ' 扫描命中
+                let pk9: i64 = p;
+                while sbyte(pk9) == 32 || sbyte(pk9) == 9 { pk9 = pk9 + 1; }
+                if sbyte(pk9) == 99 && sbyte(pk9+1) == 111 && sbyte(pk9+2) == 110 && sbyte(pk9+3) == 115 && sbyte(pk9+4) == 116 && sbyte(pk9+5) == 32 && sbyte(pk9+6) == 102 && sbyte(pk9+7) == 110 {
+                    p = pk9 + 6;
+                } else {
+                    p = next_line(p);
+                }
             }
         }
     }
@@ -13418,6 +13603,14 @@ fn main() -> i64 {
     sv(K_NDV, 0);
     sv(K_NDF, 0);
     sv(K_CURFN, 0);
+    # v1.1112: const fn 表清零（堆初值非零，O_CFF 残留会误触发折叠）
+    let czc: i64 = 0;
+    while czc < 5000 {
+        store8(heap + O_CFF + czc, 0);
+        store64(heap + O_CFB + czc * 16, 0);
+        store64(heap + O_CFB + czc * 16 + 8, 0);
+        czc = czc + 1;
+    }
     let ai: i64 = 1;
     while ai < argc() {
         let a: i64 = argv(ai);
