@@ -4518,6 +4518,12 @@ fn parse_primary() -> i64 {
             store64(heap + O_SU + sy * 8, 1);
         }
         if sy < 0 {
+            # v1.1083: 裸函数名作表达式 —— let f = add; / f 作为值
+            let fsy: i64 = sym_lookup_func(scratch1());
+            if fsy >= 0 {
+                func_addr(fsy);
+                return 0;
+            }
             # v1.1049: 裸 enum 成员作表达式 —— enum_value 兜底（编译期常量）
             let ev: i64 = enum_value(scratch1());
             if ev >= 0 {
@@ -7253,6 +7259,39 @@ fn parse_let() -> i64 {
     }
     memcpy(scratch2(), tokbuf());
     next_token();
+    # v1.1083: 无类型推断 let f = add; —— 从 RHS 表达式类型推
+    if tok_is("=") == 1 {
+        if sym_dup(scratch2()) >= 0 { return err_atp("duplicate definition", gv(K_PLINE), gv(K_PCOL), gv(K_PPOS)); }
+        let bo2: i64 = gv(K_CUROFF);
+        sv(K_CUROFF, bo2 - 8);
+        next_token();             # 吃 '='
+        parse_expr();
+        expect(";");
+        let ity: i64 = R_ETY;
+        let isz: i64 = ty_size(ity);
+        if isz < 8 { isz = 8; }
+        sv(K_CUROFF, bo2 - isz);
+        let iid: i64 = sym_add(scratch2(), 1, bo2 - isz, 0);
+        store64(heap + O_STY + iid * 8, ity);
+        dbg_var(scratch2(), bo2 - isz, dcln, ity);
+        if ty_kind(ity) == 0 || ty_kind(ity) == 4 || ty_kind(ity) == 10 {
+            g_store_local(bo2 - isz);
+        } else {
+            # 数组/struct 值：rax=地址 → 块拷贝
+            ops3(0x48, 0x89, 0xc6);      # mov rsi, rax
+            g_lea_local(bo2 - isz);      # rax = 目的
+            let nw5: i64 = isz / 8;
+            let w5: i64 = 0;
+            while w5 < nw5 {
+                ops3(0x48, 0x8b, 0x1e);  # mov rbx, [rsi]
+                ops3(0x48, 0x89, 0x18);  # mov [rax], rbx
+                ops4(0x48, 0x83, 0xc0, 0x08);
+                ops4(0x48, 0x83, 0xc6, 0x08);
+                w5 = w5 + 1;
+            }
+        }
+        return 0;
+    }
     expect(":");
     # f64 局部变量：与 i64 同样占 8 字节栈槽，只是 R_ETY 标记为浮点，
     # 于是后续算术/比较会自动走 SSE。

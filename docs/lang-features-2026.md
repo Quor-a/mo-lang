@@ -79,3 +79,4 @@ let a: [HALF] i64;              # const 作数组长度
 - **len() 扩展**（v1.1080）：`len(str)`（运行时 strlen，需 import "str.mo"）、`len(多维数组)` = 最外维元素个数。
 - **struct 解构**（v1.1081）：`let P { x, y } = r;` —— 字段名按任意顺序逐一 load 到新栈槽（标量字段 load/store；数组/嵌套字段块拷贝）。
 - **嵌套解构**（v1.1082）：`let [[x, y], [z, w]] = m;` —— 子元素逐一 load 到新栈槽（子名按列表平铺，meta 记 start/end）。
+- **无类型推断 let**（v1.1083）：`let f = add;` —— 省略 `: 类型`，从 RHS 推断（标量/指针/函数地址）；裸函数名可作表达式值。

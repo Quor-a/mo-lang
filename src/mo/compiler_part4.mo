@@ -1635,6 +1635,12 @@ fn parse_primary() -> i64 {
             store64(heap + O_SU + sy * 8, 1);
         }
         if sy < 0 {
+            # v1.1083: 裸函数名作表达式 —— let f = add; / f 作为值
+            let fsy: i64 = sym_lookup_func(scratch1());
+            if fsy >= 0 {
+                func_addr(fsy);
+                return 0;
+            }
             # v1.1049: 裸 enum 成员作表达式 —— enum_value 兜底（编译期常量）
             let ev: i64 = enum_value(scratch1());
             if ev >= 0 {
