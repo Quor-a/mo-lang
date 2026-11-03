@@ -7963,7 +7963,20 @@ fn parse_for_in(vname: i64) -> i64 {
     } else {
         if ty_kind(at) != 3 { return err_at2("for-in: right side must be an array", gv(K_LINE), gv(K_COL)); }
     }
+    # v1.1086: RHS 支持 m[i] 行索引 —— 遍历第 i 行（长度=内维，编译期知）
+    let rowoff: i64 = 0;
+    let rowidx: i64 = 0;
     next_token();            # 吃数组名（无括号形式；'(' 已在老路径由 accept 兜底）
+    if tok_is("[") == 1 {
+        next_token();
+        if gv(K_TKIND) != 2 { return err_at2("for-in: row index must be a constant", gv(K_LINE), gv(K_COL)); }
+        rowidx = gv(K_TIVAL);
+        next_token();
+        expect("]");
+        if ty_kind(ty_a(at)) != 3 { return err_at2("for-in: right side must be a 2-D array", gv(K_LINE), gv(K_COL)); }
+        at = ty_a(at);       # 降一层：遍历行内元素
+        rowoff = rowidx * ty_size(at);
+    }
     let d: i64 = gv(K_DEPTH) + 1;
     sv(K_DEPTH, d);
     # 元素变量 x
@@ -8019,6 +8032,10 @@ fn parse_for_in(vname: i64) -> i64 {
     # body 前置段：x = arr[_fi]
     place_label(bdy);
     load_sym(asym);           # 数组退化首地址（kind3 → lea/movabs）
+    if rowoff > 0 {
+        g_movabs_rcx(rowoff);
+        g_add_rax_rcx();       # m[i]：基址 += i*行stride
+    }
     g_push_rax();
     g_load_local(fo);
     # 步长 = 元素大小。v1.1085 修复：**不能只对 2 次幂用移位** ——
