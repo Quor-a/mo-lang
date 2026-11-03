@@ -2923,9 +2923,32 @@ fn parse_return() -> i64 {
         expect(";");
         let as2: i64 = sym_lookup(an2);
         if as2 < 0 { return undef_err(an2); }
-        # v1.1089: 局部数组返回悬垂（帧已弹出）—— 硬错，必须返回全局/静态数组
+        # v1.1089→v1.1096: 局部数组返回改为**拷入隐藏全局缓冲**再返回地址。
+        # 之前硬错（悬垂）。缓冲在数据段预留一次（K_RBOFF 记偏移，-1 未分配），
+        # 容量上限 8KB（1000×8）。注意：两次这类调用之间上一次结果会被覆盖，
+        # 调用方应立即消费（拷出/取元素）。
         if sym_kind(as2) == 1 {
-            return err_at2("array return: local array would dangle; return a global array", gv(K_LINE), gv(K_COL));
+            let asz: i64 = ty_size(sym_type(as2));
+            if asz > 8192 { return err_at2("array return: local array too large (8KB limit)", gv(K_LINE), gv(K_COL)); }
+            let rbo: i64 = gv(K_RBOFF);
+            if rbo < 0 {
+                data_align(16);
+                rbo = gv(K_DLEN);
+                let pad: i64 = 0;
+                while pad < 8192 {
+                    dquad(0);
+                    pad += 1;
+                }
+                sv(K_RBOFF, rbo);
+            }
+            # rax = &local; rdi = dst; rsi = src; 拷 asz/8 字
+            g_addr_sym_rax(as2);
+            ops3(0x48, 0x89, 0xc6);            # mov rsi, rax（源=局部数组）
+            g_movabs_rax(268435456 + rbo);     # rax = 目的（缓冲）
+            g_copy_words(asz / 8);
+            g_movabs_rax(268435456 + rbo);     # 返回缓冲地址
+            g_epilogue();
+            return 0;
         }
         g_addr_sym_rax(as2);
         g_epilogue();
@@ -6452,6 +6475,7 @@ fn main() -> i64 {
     sv(K_COL, 1);
     sv(K_CPOS, 0);
     sv(K_SRCBASE, O_SRC);
+    sv(K_RBOFF, 0 - 1);   # v1.1096: 返回值缓冲未分配
     # 文件名表下标 0 是**主文件**，import 从 1 起（compile_file 里 +1）。
     # 所以这里必须是 1 而不是 0 —— 否则第一个 import 也拿到下标 0，
     # 与主文件撞号，两个文件的行号会混在同一条目下。
