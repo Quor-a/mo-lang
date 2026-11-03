@@ -1,3 +1,9 @@
+## 1.1111.0 - 2026-11-03
+
+### Fixed
+- **struct 形参 return 按值拷贝**：`fn f(x: T) -> T { return x; }` 此前返回的是调用方对象地址（0x10000070 垃圾值）——根因：形参 `x: T` 是引用语义（ty_ptr(ty_struct)，this 指针惯例），槽内容=调用方地址；parse_return 把槽内容直接当对象基址。修法：形参符号记 O_SP=1（struct 或 ptr(struct) 形参），return 时先 `mov rax,[rax]` 解引用一层再按 rax/rdx 拷贝。
+- t295 入库（1 字段与 2 字段 rax:rdx 均验证）
+
 ## 1.1110.0 - 2026-11-03
 
 ### Added

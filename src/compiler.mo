@@ -9872,7 +9872,11 @@ fn parse_return() -> i64 {
         expect(";");
         let rs: i64 = sym_lookup(rn);
         if rs < 0 { return undef_err(rn); }
-        g_addr_sym_rax(rs);                # rax = &obj
+        g_addr_sym_rax(rs);                # rax = &obj（或 &形参槽）
+        # v1.1111: struct 形参槽内容 = 调用方对象地址 —— 解引用一层
+        if load64(heap + O_SP + rs * 8) == 1 {
+            ops2(0x48, 0x8b); emit1(0x00); # mov rax, [rax]
+        }
         ops3(0x48, 0x89, 0xc6);            # mov rsi, rax
         ops3(0x48, 0x8b, 0x06);            # mov rax, [rsi]
         if nf2 == 2 {
@@ -10903,6 +10907,8 @@ fn parse_func() -> i64 {
         if sym_dup(scratch1()) >= 0 { return err_atp("duplicate definition", gv(K_PLINE), gv(K_PCOL), gv(K_PPOS)); }
         let pid: i64 = sym_add(scratch1(), 1, off, 0);
         store64(heap + O_STY + pid * 8, pt);
+        # v1.1111: struct 形参 = 引用语义（槽内存调用方对象地址）—— return 按值拷贝时须解引用一层
+        if ty_kind(pt) == 2 || (ty_kind(pt) == 4 && ty_kind(ty_a(pt)) == 2) { store64(heap + O_SP + pid * 8, 1); }
         # v1.1039: 形参名登记（命名实参用）：PNMT[fid*256 + pidx*8] = 名字地址
         store64(PNMT + fsi * 256 + nb * 8, heap + O_NAMES + intern(scratch1()));
         # -g：形参也要登记成变量，否则调试器在被调用函数里 p <参数名>
