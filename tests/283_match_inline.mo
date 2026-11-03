@@ -1,4 +1,4 @@
-# expect 230
+# expect: 230
 import "io.mo";
 fn f(c: i64) -> i64 {
     return match c { 1 => 5, 2 => 6, _ => 0 } + 1;
