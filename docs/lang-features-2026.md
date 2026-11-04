@@ -192,3 +192,6 @@ verify_bootstrap.sh 重写为两层验证：seed（Stage0 语言子集）冒烟 
 
 ### v1.1119 — `not in` 运算符
 `x not in arr` / `s not in pat`：`not in` 整体探测（非 in 时 set_back 回滚），对 `in` 结果取反。与 `in` 同优先级。
+
+### v1.1120 — f64 数组 + `in` 全类型
+`[N] f64` 声明与 `[1.5, 2.5]` 字面量初始化（编译期 IEEE754 位模式）；`x in arr` 扩展 byte（1 字节零扩展步进）与 f64（ucomisd，NaN 与 == 一致）元素；`not in` 同步。
