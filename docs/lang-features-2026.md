@@ -216,3 +216,6 @@ str.mo 新增 substr(s,start,len) 与 trim(s)（alloc 堆分配，需 mem.mo）�
 
 ### v1.1127 — 调用结果下标
 `f(x)[i]` 直接索引调用结果；链式 `f()[i][j]` 支持。
+
+### v1.1128 — 全局 var f64
+`var X: f64 = …;` 编译期位模式初始化（负号/const 表达式支持）。

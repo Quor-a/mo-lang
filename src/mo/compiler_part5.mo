@@ -4713,6 +4713,10 @@ fn parse_global() -> i64 {
         if accept("i64") == 1 {
             vt = ty_int();
         } else {
+            if accept("f64") == 1 {
+                # v1.1128: 全局 f64 var —— 字面量按 f64_bits 落数据段位模式
+                vt = ty_float();
+            } else {
             if accept("byte") == 1 {
                 vt = ty_byte();
             } else {
@@ -4728,6 +4732,7 @@ fn parse_global() -> i64 {
                 } else {
                     return err_atp("expected a type", gv(K_PLINE), gv(K_PCOL), gv(K_PPOS));
                 }
+            }
             }
         }
     }
@@ -4747,7 +4752,16 @@ fn parse_global() -> i64 {
         return 0;
     }
     let v: i64 = gv(K_TIVAL);
+    # v1.1128: 负号（f64 位模式由 f64_bits(neg=1) 处理；整数取负）
+    let gneg: i64 = 0;
+    if accept("-") == 1 { gneg = 1; }
     if gv(K_TKIND) == 2 {
+        # v1.1128: f64 字面量 → IEEE754 位模式（负号已含于 bits）
+        if gv(K_TFLT) == 1 && ty_kind(vt) == 6 {
+            v = f64_bits(gv(K_TFDIG), gv(K_TFDIGN), FSTICKY, gneg);
+        } else {
+            if gneg == 1 { v = 0 - gv(K_TIVAL); }
+        }
         next_token();
     } else {
         if gv(K_TKIND) == 1 {
@@ -4757,6 +4771,7 @@ fn parse_global() -> i64 {
             if gcsi >= 0 {
                 if load64(heap + O_SK + gcsi * 8) == 4 {
                     v = const_expr();
+                    if gneg == 1 { v = 0 - v; }
                 } else {
                     return syntax_error();
                 }
@@ -4764,6 +4779,7 @@ fn parse_global() -> i64 {
                 let ge: i64 = enum_value(tokbuf());
                 if ge >= 0 {
                     v = const_expr();
+                    if gneg == 1 { v = 0 - v; }
                 } else {
                     return syntax_error();
                 }
