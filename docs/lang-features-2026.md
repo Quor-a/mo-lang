@@ -207,3 +207,6 @@ verify_bootstrap.sh 重写为两层验证：seed（Stage0 语言子集）冒烟 
 
 ### v1.1124 — `for-in` 字符串
 `for c in <str 表达式>` 逐字节迭代；`break`/`continue`/嵌套全支持。
+
+### v1.1125 — `as` 类型转换
+`x as T` 显式转型：f64↔整数、ptr↔i64；可连续链式。

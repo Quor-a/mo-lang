@@ -1,3 +1,8 @@
+## [1.1125.0] — `as` 类型转换表达式
+
+- `x as T`：f64→整数（cvttsd2si 截断）、整数→f64（cvtsi2sd）、ptr↔i64/byte 同宽重解释；`as` 链可连续（parse_rel 入口循环）。
+- 优先级：高于比较（`x as i64 == 2` 自然成立），低于算术。
+
 ## [1.1124.0] — `for-in` 遍历字符串
 
 - `for c in "abc"` / `for c in strvar`：逐字节迭代（c 为字节值 i64），`break`/`continue`/嵌套全支持。

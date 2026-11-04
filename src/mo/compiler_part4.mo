@@ -991,6 +991,27 @@ fn parse_eq() -> i64 {
 
 fn parse_rel() -> i64 {
     parse_shift();
+    # v1.1125: `x as T` 类型转换（f64<->i64、byte、ptr；同宽=无操作）
+    while tok_is("as") == 1 {
+        next_token();
+        let ft: i64 = parse_ret_type();
+        if ft < 0 { return err_atp("as: expected a type", gv(K_PLINE), gv(K_PCOL), gv(K_PPOS)); }
+        let fk: i64 = ty_kind(R_ETY);
+        let tk2: i64 = ty_kind(ft);
+        if fk == 6 && tk2 != 6 {
+            g_f2i_rax();                     # f64 → 整数（截断）
+            R_ETY = ty_int();
+        } else {
+            if fk != 6 && tk2 == 6 {
+                ops3(0x48, 0x89, 0xc1);      # mov rcx, rax
+                g_i2f_rcx();                 # 结果在 rcx
+                ops3(0x48, 0x89, 0xc8);      # mov rax, rcx
+                R_ETY = ty_float();
+            } else {
+                R_ETY = ft;                  # 同宽重解释（ptr<->i64/byte）
+            }
+        }
+    }
     let lt: i64 = R_ETY;
     while 1 {
         if accept("<") == 1 {
