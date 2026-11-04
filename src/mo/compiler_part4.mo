@@ -1753,6 +1753,58 @@ fn parse_primary() -> i64 {
             if ty_kind(R_ETY) == 2 {
                 if peek_expr_method() == 1 { return parse_chain_method(); }
             }
+            # v1.1127: 调用结果下标 f(x)[i] —— rax=基址，按 R_ETY 元素宽索引
+            if tok_is("[") == 1 {
+                let bt: i64 = R_ETY;
+                let et: i64 = 0;
+                if ty_kind(bt) == 3 { et = elem_type(bt); } else { et = ty_byte(); }
+                next_token();                    # 吃 '['
+                g_push_rax();
+                parse_expr();
+                expect("]");
+                let ets: i64 = ty_size(et);
+                if ets > 1 {
+                    g_movabs_rdx(ets);
+                    g_imul_rdx();
+                }
+                g_pop_rcx();
+                g_add();
+                if ty_kind(et) == 3 {
+                    R_ETY = et;                  # 子数组：rax=地址
+                } else {
+                    if ty_kind(et) == 2 {
+                        R_ETY = et;              # struct：rax=地址
+                    } else {
+                        if ty_size(et) == 1 { g_load_at_b(); } else { g_load_at(); }
+                        R_ETY = et;
+                    }
+                }
+                # 允许继续链式：f(x)[i][j] / f(x)[i].field 由上层/后缀处理
+                if tok_is("[") == 1 {
+                    while tok_is("[") == 1 {
+                        let et2: i64 = 0;
+                        if ty_kind(R_ETY) == 3 { et2 = elem_type(R_ETY); } else { et2 = ty_byte(); }
+                        next_token();
+                        g_push_rax();
+                        parse_expr();
+                        expect("]");
+                        let es2: i64 = ty_size(et2);
+                        if es2 > 1 {
+                            g_movabs_rdx(es2);
+                            g_imul_rdx();
+                        }
+                        g_pop_rcx();
+                        g_add();
+                        if ty_kind(et2) == 3 || ty_kind(et2) == 2 {
+                            R_ETY = et2;
+                        } else {
+                            if ty_size(et2) == 1 { g_load_at_b(); } else { g_load_at(); }
+                            R_ETY = et2;
+                        }
+                    }
+                }
+                return 0;
+            }
             return rc;
         }
         let sy: i64 = sym_lookup(scratch1());

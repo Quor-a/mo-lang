@@ -1,3 +1,8 @@
+## [1.1127.0] — 调用结果下标 `f(x)[i]`
+
+- 函数调用结果直接下标（ptr/str 字节、数组元素、子数组/struct 地址语义），支持链式 `f()[i][j]`。
+- 实现：parse_call 返回后探测 `[`，按 R_ETY 元素宽索引（复用字段数组逻辑）。
+
 ## [1.1126.0] — lib/str.mo：`substr` / `trim`
 
 - `substr(s, start, len) -> ptr`：子串堆拷贝（alloc，需 `import "mem.mo"`；内部自动 heap_ready/heap_init）。

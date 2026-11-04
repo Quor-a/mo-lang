@@ -213,3 +213,6 @@ verify_bootstrap.sh 重写为两层验证：seed（Stage0 语言子集）冒烟 
 
 ### v1.1126 — lib: substr / trim
 str.mo 新增 substr(s,start,len) 与 trim(s)（alloc 堆分配，需 mem.mo）。
+
+### v1.1127 — 调用结果下标
+`f(x)[i]` 直接索引调用结果；链式 `f()[i][j]` 支持。
