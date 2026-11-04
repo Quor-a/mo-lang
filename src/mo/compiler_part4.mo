@@ -1890,6 +1890,106 @@ fn parse_primary() -> i64 {
             return undef_err(scratch1());
         }
         if tok_is("[") == 1 {
+            # v1.1137: 切片探测 s[a..b]（先常量端；str/byte 数组均 OK）
+            # 词法探测: [ CONST '.' '.' CONST ']' —— 5 token 内定性
+            if ty_kind(sym_type(sy)) == 10 || ty_kind(sym_type(sy)) == 3 {
+                let sb0: i64 = gv(K_TOKPOS);
+                let sc0: i64 = gv(K_CLEN);
+                let so0: i64 = gv(K_CUROFF);
+                let sl0: i64 = gv(K_LAST);
+                next_token();
+                let sa: i64 = 0 - 1;
+                let sbv: i64 = 0 - 1;
+                let ok3: i64 = 1;
+                if gv(K_TKIND) == 2 && gv(K_TFLT) == 0 {
+                    sa = gv(K_TIVAL);
+                    next_token();
+                    if tok_is("..") == 1 {
+                        next_token();
+                        if gv(K_TKIND) == 2 && gv(K_TFLT) == 0 {
+                            sbv = gv(K_TIVAL);
+                            next_token();
+                            if tok_is("]") == 0 { ok3 = 0; }
+                        } else { ok3 = 0; }
+                    } else { ok3 = 0; }
+                } else { ok3 = 0; }
+                if ok3 == 1 && (sa < 0 || sbv < sa) { ok3 = 0; }
+                # 类型检查：仅 str / byte 数组
+                if ok3 == 1 {
+                    let sst: i64 = sym_type(sy);
+                    if ty_kind(sst) == 3 && ty_kind(elem_type(sst)) != 5 { ok3 = 0; }
+                    if ty_kind(sst) != 10 && ty_kind(sst) != 3 { ok3 = 0; }
+                }
+                if ok3 != 1 {
+                    # 任一失败 → 回退重扫（'[' 重新吃）
+                    sv(K_CLEN, sc0);
+                    sv(K_CUROFF, so0);
+                    sv(K_LAST, sl0);
+                    set_back(sb0);
+                } else {
+                    next_token();    # 吃 ']'
+                }
+                if ok3 == 1 {
+                    let slen: i64 = sbv - sa;
+                    if slen > 1024 { return err_atp("slice too large (1024 max)", gv(K_PLINE), gv(K_PCOL), gv(K_PPOS)); }
+                    # 轮转槽: 8 槽 × ~1KB, 编译期计数递增
+                    let sidx: i64 = gv(K_SLIC) % 8;
+                    sv(K_SLIC, gv(K_SLIC) + 1);
+                    # 发射: rdi=dst, rsi=src, rdx=len → 内联拷贝循环
+                    spill_cache();
+                    # rax = 源地址 = 符号地址 + sa
+                    # str 变量的**值**是地址（load）；byte 数组变量所在
+                    # 地址就是基址（lea/movabs）
+                    if ty_kind(sym_type(sy)) == 10 { load_sym(sy); }
+                    else {
+                        if sym_kind(sy) == 1 { g_lea_local(sym_addr(sy)); }
+                        else { g_movabs_rax(sym_addr(sy)); }
+                    }
+                    if sa > 0 {
+                        g_push_rax();
+                        g_movabs_rcx(sa);
+                        g_pop_rax();
+                        g_add();
+                    }
+                    # 切片区惰性预留
+                    if gv(K_SLBASE) < 0 {
+                        data_align(16);
+                        let sbse: i64 = gv(K_DLEN);
+                        let sp4: i64 = 0;
+                        while sp4 < 1038 { dquad(0); sp4 = sp4 + 1; }   # 1038×8=8304B（8 槽 ×1040）
+                        sv(K_SLBASE, sbse);
+                    }
+                    let sdst: i64 = gv(K_SLBASE) + sidx * 1040;
+                    ops2(0x49, 0xba);           # movabs r10, dst
+                    emit4(268435456 + sdst);
+                    emit4(0);
+                    g_movabs_rcx(slen);          # rcx = len
+                    ops3(0x48, 0x85, 0xc9);      # test rcx,rcx（movabs 不设标志！）
+                    let lp: i64 = new_label();
+                    let dn: i64 = new_label();
+                    emit_jcc(0x84, dn);          # je done (rcx==0)
+                    place_label(lp);
+                    ops3(0x44, 0x8a, 0x18);      # mov r11b, [rax]（al 会毁源指针！）
+                    ops3(0x45, 0x88, 0x1a);      # mov [r10], r11b
+                    ops3(0x48, 0xff, 0xc0);      # inc rax
+                    ops3(0x49, 0xff, 0xc2);      # inc r10
+                    ops3(0x48, 0xff, 0xc9);      # dec rcx
+                    emit_jcc(0x85, lp);          # jnz lp (rcx!=0 继续拷)
+                    place_label(dn);
+                    # 尾 \0
+                    ops2(0x30, 0xc0);            # xor al, al
+                    ops3(0x41, 0x88, 0x02);      # mov [r10], al
+                    g_movabs_rax(268435456 + sdst);
+                    sv(K_LAST, 0);
+                    R_ETY = ty_str();
+                    return 0;
+                }
+                # 回退四件套
+                sv(K_CLEN, sc0);
+                sv(K_CUROFF, so0);
+                sv(K_LAST, sl0);
+                set_back(sb0);
+            }
             index_addr(sy);
             let e2: i64 = elem_type(sym_type(sy));
             if tok_is(".") == 1 {
