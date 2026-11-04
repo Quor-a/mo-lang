@@ -1537,6 +1537,10 @@ fn parse_let() -> i64 {
         if tok_is("i64") == 1 {
             next_token();
         } else {
+            if tok_is("f64") == 1 {
+                et = ty_float();
+                next_token();
+            } else {
             if tok_is("byte") == 1 {
                 et = ty_byte();
                 next_token();
@@ -1562,6 +1566,7 @@ fn parse_let() -> i64 {
                     }
                 } else {
                     return err_at2("expected a type", gv(K_LINE), gv(K_COL));
+                }
                 }
                 }
             }
@@ -1595,7 +1600,7 @@ fn parse_let() -> i64 {
         }
         if accept("=") == 1 {
             # v1.1050: kind 3 且 elem 是数组 = 二维数组初始化，放行
-            if ty_kind(et) != 0 { if ty_kind(et) != 5 { if ty_kind(et) != 4 { if ty_kind(et) != 3 { if ty_kind(elem_type(et)) != 3 { return err_at2("cannot init a struct array this way", gv(K_LINE), gv(K_COL)); } } } } }   # v1.1019: kind 4 = ptr 数组字面量（&fn 表）; v1.1050: 二维放行
+            if ty_kind(et) != 0 { if ty_kind(et) != 5 { if ty_kind(et) != 4 { if ty_kind(et) != 3 { if ty_kind(et) != 6 { if ty_kind(elem_type(et)) != 3 { return err_at2("cannot init a struct array this way", gv(K_LINE), gv(K_COL)); } } } } } }   # v1.1019: kind 4 = ptr 数组字面量（&fn 表）; v1.1050: 二维放行
             # v1.1079: 非字面量 RHS —— 仅当「函数调用」返回数组
             # （rax = 数组地址）。标量 0 清零初始化等仍走字面量填 0 路径。
             let arrcall: i64 = 0;
@@ -3940,8 +3945,15 @@ fn parse_i64_list() -> i64 {
             v = ta;
         } else {
         if gv(K_TKIND) == 2 {
-            v = gv(K_TIVAL);
-            next_token();
+            # v1.1120: f64 literal element -> IEEE754 bits in O_LSTV
+            if gv(K_TFLT) == 1 {
+                v = f64_bits(gv(K_TFDIG), gv(K_TFDIGN), FSTICKY, neg);
+                neg = 0;
+                next_token();
+            } else {
+                v = gv(K_TIVAL);
+                next_token();
+            }
         } else {
             if gv(K_TKIND) == 1 {
                 # const/enum 成员（v1.985）：const_atom 消费名字，
@@ -4481,6 +4493,10 @@ fn parse_global() -> i64 {
         if tok_is("i64") == 1 {
             next_token();
         } else {
+            if tok_is("f64") == 1 {
+                et = ty_float();
+                next_token();
+            } else {
             if tok_is("byte") == 1 {
                 et = ty_byte();
                 next_token();
@@ -4506,6 +4522,7 @@ fn parse_global() -> i64 {
                     }
                 } else {
                     return err_at2("expected a type", gv(K_LINE), gv(K_COL));
+                }
                 }
                 }
             }

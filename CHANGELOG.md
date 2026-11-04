@@ -1,3 +1,9 @@
+## [1.1120.0] — f64 数组（声明+字面量初始化）与 `in` 全类型扩展
+
+- **f64 数组**：`[N] f64` 声明此前被悄悄当成前向 struct 预注册（假类型）——try_parse_type 与 parse_let/var 数组元素类型分支补 f64；数组字面量 f64 元素经 f64_bits 编译期转 IEEE754 位模式存 O_LSTV（负号进 f64_bits，不再二次取反）；var 数组初始化放行 kind 6。
+- **`in` 全类型**：`x in arr` 现支持 i64 / byte / f64 数组（byte 零扩展 1 字节步进加载；f64 movq→xmm ucomisd+sete，NaN 语义与 == 一致）；`not in` 同步。
+- 排查插曲：patch 锚点在相似结构（let/var/struct 字段三处同构闭合）被 replace_all 误伤——commit 前编译验证拦下，精确锚定重打。
+
 ## [1.1119.0] — `not in` 运算符
 
 - `x not in arr` / `s not in pat`：`not in` 作为整体探测（parse_eq 前置 not 分支，非 in 时 set_back 回滚），结果对 `in` 取反（xor rax,1）。

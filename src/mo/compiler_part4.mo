@@ -797,14 +797,30 @@ fn g_struct_eq(n: i64, invert: i64) -> i64 {
 
 # v1.1118: `x in arr`（标量 in 定长 i64 数组）—— 展开循环逐元素比较。
 # rcx=待查值, rax=数组首地址, n=元素个数。结果 rax=1/0。
-fn g_arr_in(n: i64) -> i64 {
+fn g_arr_in(n: i64, mode: i64) -> i64 {
     sv(K_LAST, 0);
     ops3(0x49, 0xc7, 0xc3); emit4(0);        # mov r11, 0（found=0）
     let i: i64 = 0;
     while i < n {
         let o: i64 = i * 8;
-        ops3(0x48, 0x8b, 0x90); emit4(o);    # mov rdx, [rax+o]
-        ops3(0x48, 0x39, 0xd1);              # cmp rcx, rdx
+        if mode == 1 {
+            # byte 元素：零扩展加载 1 字节（步进 1）
+            o = i;
+            emit1(0x48); emit1(0x0f); emit1(0xb6); emit1(0x90); emit4(o);   # movzx rdx, byte [rax+o]
+            ops3(0x48, 0x39, 0xd1);              # cmp rcx, rdx
+        } else {
+            if mode == 2 {
+                # f64 元素：movq 进 xmm 后 ucomisd+sete（NaN 与 == 语义一致）
+                o = i * 8;
+                ops3(0x48, 0x8b, 0x90); emit4(o);    # mov rdx, [rax+o]
+                emit1(0x66); emit1(0x48); emit1(0x0f); emit1(0x6e); emit1(0xd1);   # movq xmm2, rcx
+                emit1(0x66); emit1(0x48); emit1(0x0f); emit1(0x6e); emit1(0xda);   # movq xmm3, rdx
+                emit1(0x66); emit1(0x0f); emit1(0x2e); emit1(0xd3);                # ucomisd xmm2, xmm3
+            } else {
+                ops3(0x48, 0x8b, 0x90); emit4(o);    # mov rdx, [rax+o]
+                ops3(0x48, 0x39, 0xd1);              # cmp rcx, rdx
+            }
+        }
         emit1(0x41); emit1(0x0f); emit1(0x94); emit1(0xc2);   # sete r10b
         ops3(0x45, 0x08, 0xd3);              # or r11b, r10b
         i = i + 1;
@@ -830,8 +846,9 @@ fn parse_eq() -> i64 {
         }
         if tok_is("in") == 1 {
             if ty_kind(lt) != 0 {
-                # 非 int 左值维持 v1.1075 str in str 路径
-                if ty_kind(lt) != 10 { return err_atp("'in': left side must be a string or integer", gv(K_PLINE), gv(K_PCOL), gv(K_PPOS)); }
+                if ty_kind(lt) != 10 {
+                    if ty_kind(lt) != 6 { return err_atp("'in': left side must be a string, integer or f64", gv(K_PLINE), gv(K_PCOL), gv(K_PPOS)); }
+                }
             }
             next_token();               # 吃 in
             g_push_rax();               # 左入栈（rcx=左）
@@ -845,9 +862,14 @@ fn parse_eq() -> i64 {
                 if ty_kind(it) != 3 { return err_atp("'in': right side must be an array", gv(K_PLINE), gv(K_PCOL), gv(K_PPOS)); }
                 let el: i64 = ty_ta(it);
                 let n: i64 = ty_tb(it);
-                if ty_kind(el) != 0 { return err_atp("'in': array element must be i64", gv(K_PLINE), gv(K_PCOL), gv(K_PPOS)); }
+                let em: i64 = 0;
+                if ty_kind(el) == 5 { em = 1; } else {
+                    if ty_kind(el) == 6 { em = 2; } else {
+                        if ty_kind(el) != 0 { return err_atp("'in': array element must be i64, byte or f64", gv(K_PLINE), gv(K_PCOL), gv(K_PPOS)); }
+                    }
+                }
                 g_pop_rcx();
-                g_arr_in(n);
+                g_arr_in(n, em);
             }
             if nin == 1 { emit1(0x48); emit1(0x83); emit1(0xf0); emit1(0x01); }   # xor rax,1（not in 取反）
             R_ETY = ty_int();
@@ -1323,6 +1345,8 @@ fn try_parse_type() -> i64 {
                         let et: i64 = -1;
                         if tok_is("i64") == 1 { next_token(); et = ty_int(); }
                         else {
+                            if tok_is("f64") == 1 { next_token(); et = ty_float(); }
+                            else {
                             if tok_is("byte") == 1 { next_token(); et = ty_byte(); }
                             else {
                                 if tok_is("ptr") == 1 { next_token(); et = ty_ptr(parse_ptr_target()); }   # v1.1043: [N] ptr [i64]
@@ -1335,6 +1359,7 @@ fn try_parse_type() -> i64 {
                                 if gv(K_TKIND) == 1 {
                                     let si2: i64 = st_lookup(tokbuf());
                                     if si2 >= 0 { next_token(); et = ty_struct(si2); }
+                                }
                                 }
                                 }
                                 }
