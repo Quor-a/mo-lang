@@ -11536,7 +11536,17 @@ fn parse_arr_ret() -> i64 {
     if gv(K_TKIND) == 2 { n = gv(K_TIVAL); }
     next_token();
     expect("]");
+    # v1.1135: 多维 [N][M]… T —— 内层递归收集
     let et: i64 = -1;
+    if tok_is("[") == 1 {
+        let inner: i64 = parse_arr_ret();   # 递归解析 [M] T
+        if inner >= 0 && n > 0 {
+            et = ty_array(inner, n);
+            return et;
+        }
+        set_back(back);
+        return -1;
+    }
     if tok_is("i64") == 1 { next_token(); et = ty_int(); }
     else {
         if tok_is("byte") == 1 { next_token(); et = ty_byte(); }
