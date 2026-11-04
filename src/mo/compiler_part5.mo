@@ -393,6 +393,104 @@ fn parse_nested_fn() -> i64 {
     return 0;
 }
 
+# v1.1129/1130: 多重赋值 —— firstname=首目标名缓冲；firstidx=-1 纯变量 /
+# >=0 首目标常量下标值（零发射，midxc 标记）；目标收集中常量下标同此。
+fn parse_multi_assign(firstname: i64, firstidx: i64) -> i64 {
+
+            let mns: [8] i64;
+            let midx: [8] i64;
+            let midxc: [8] i64;
+            let mnt: [8] i64;
+            let mnc: i64 = 0;
+            let msy: i64 = sym_lookup(firstname);
+            if msy < 0 { return undef_err(firstname); }
+            mns[0] = msy;
+            mnt[0] = sym_type(msy);
+            if ty_kind(mnt[0]) == 2 { return err_at2("multi-assign: element must be scalar", gv(K_LINE), gv(K_COL)); }
+            midx[0] = firstidx;
+            if firstidx < 0 { midxc[0] = 0; } else { midxc[0] = 1; }
+            mnc = 1;
+            while tok_is(",") == 1 {
+                if mnc >= 8 { return err_at2("multi-assign: too many targets (max 8)", gv(K_LINE), gv(K_COL)); }
+                next_token();                    # 吃 ','
+                if gv(K_TKIND) != 1 { return syntax_error(); }
+                memcpy(scratch3(), tokbuf());
+                let msy2: i64 = sym_lookup(scratch3());
+                if msy2 < 0 { return undef_err(scratch3()); }
+                mns[mnc] = msy2;
+                mnt[mnc] = sym_type(msy2);
+                if ty_kind(mnt[mnc]) == 2 { return err_at2("multi-assign: element must be scalar", gv(K_LINE), gv(K_COL)); }
+                midx[mnc] = 0 - 1;
+                midxc[mnc] = 0;
+                next_token();
+                if tok_is("[") == 1 {
+                    if ty_kind(mnt[mnc]) != 3 && ty_kind(mnt[mnc]) != 4 { return err_at2("multi-assign: subscript on non-array", gv(K_LINE), gv(K_COL)); }
+                    next_token();
+                    if gv(K_TKIND) == 2 {
+                        midx[mnc] = gv(K_TIVAL);   # 常量下标：零发射
+                        midxc[mnc] = 1;
+                        next_token();              # 吃常量，再 expect("]")
+                    } else {
+                        let mio2: i64 = gv(K_CUROFF);
+                        sv(K_CUROFF, mio2 - 8);
+                        parse_expr();
+                        spill_cache();
+                        g_store_local(mio2);
+                        midx[mnc] = mio2;
+                    }
+                    expect("]");
+                }
+                mnc = mnc + 1;
+            }
+            expect("=");
+            # 右值全部求值到临时槽（先于任何写入）
+            let mri: i64 = 0;
+            let mrv: [8] i64;
+            while mri < mnc {
+                let mto: i64 = gv(K_CUROFF);
+                sv(K_CUROFF, mto - 8);
+                parse_expr();
+                spill_cache();
+                g_store_local(mto);
+                mrv[mri] = mto;
+                mri = mri + 1;
+                if mri < mnc { expect(","); }
+            }
+            expect(";");
+            # 逐个写入
+            mri = 0;
+            while mri < mnc {
+                if midx[mri] < 0 {
+                    g_load_local(mrv[mri]);
+                    spill_cache();
+                    R_SYM = mns[mri];
+                    store_sym(R_SYM);
+                } else {
+                    g_addr_sym_rax(mns[mri]);
+                    g_push_rax();
+                    if midxc[mri] == 1 { g_movabs_rax(midx[mri]); }
+                    else { g_load_local(midx[mri]); }
+                    let mesz: i64 = ty_size(elem_type(mnt[mri]));
+                    if mesz > 1 {
+                        g_movabs_rdx(mesz);
+                        g_imul_rdx();
+                    }
+                    g_pop_rcx();
+                    g_add();
+                    ops3(0x48, 0x89, 0xc1);
+                    g_load_local(mrv[mri]);
+                    if mesz == 1 {
+                        ops2(0x88, 0x01);        # mov [rcx], al
+                    } else {
+                        ops3(0x48, 0x89, 0x01);  # mov [rcx], rax
+                    }
+                }
+                mri = mri + 1;
+            }
+            return 0;
+    return 0;
+}
+
 fn parse_stmt() -> i64 {
     dbg_mark();
     # v1.1047: 裸块语句 { ... }（case 体花括号等）—— 复用 parse_block
@@ -451,59 +549,27 @@ fn parse_stmt() -> i64 {
             store_sym(R_SYM);
             return 0;
         }
-        # v1.1129: 多重赋值 a, b = e1, e2 —— 先全部右值求值到临时槽，
-        # 再逐个写入左边（避免 a, b = b, a 顺序污染）。
-        if tok_is(",") == 1 {
-            let mna: i64 = heap + O_SCAL + 4400;
-            memcpy(mna, scratch2());
-            let mns: [8] i64;
-            let mno: [8] i64;
-            let mnt: [8] i64;
-            let mnc: i64 = 0;
-            let msy: i64 = sym_lookup(mna);
-            if msy < 0 { return undef_err(mna); }
-            mns[0] = msy;
-            mnt[0] = sym_type(msy);
-            if ty_kind(mnt[0]) == 3 || ty_kind(mnt[0]) == 2 { return err_at2("multi-assign: element must be scalar", gv(K_LINE), gv(K_COL)); }
-            mnc = 1;
-            while tok_is(",") == 1 {
-                if mnc >= 8 { return err_at2("multi-assign: too many targets (max 8)", gv(K_LINE), gv(K_COL)); }
-                next_token();                    # 吃 ','
-                if gv(K_TKIND) != 1 { return syntax_error(); }
-                memcpy(scratch3(), tokbuf());
-                let msy2: i64 = sym_lookup(scratch3());
-                if msy2 < 0 { return undef_err(scratch3()); }
-                mns[mnc] = msy2;
-                mnt[mnc] = sym_type(msy2);
-                if ty_kind(mnt[mnc]) == 3 || ty_kind(mnt[mnc]) == 2 { return err_at2("multi-assign: element must be scalar", gv(K_LINE), gv(K_COL)); }
-                mnc = mnc + 1;
+        # v1.1130: 多重赋值探测（下标左值版）—— 名字后 ',' / '['＋','；
+        # 🔴 set_back 用 K_POS（token 起点，1119 not-in 教训）；
+        # 🔴 仅常量下标走探测（非常量下标 parse_expr 有发射副作用，回退不了）。
+        if tok_is(",") == 1 { return parse_multi_assign(scratch2(), 0 - 1); }
+        # 🔴 K_TOKPOS=当前 token(dst) 起点 — 必须在 next_token 前取！
+        let mp2: i64 = gv(K_TOKPOS);
+        if tok_is("[") == 1 {
+            next_token();
+            if gv(K_TKIND) == 2 {
+                let piv: i64 = gv(K_TIVAL);
                 next_token();
+                if tok_is("]") != 1 { set_back(mp2); }
+                else {
+                next_token();   # 吃 ']'
+                if tok_is(",") == 1 {
+                    # 🔴 常量下标零发射：值直接作参数传（firstidx>=0 语义）
+                    return parse_multi_assign(scratch2(), piv);
+                }
+                }
             }
-            expect("=");
-            # 右值全部求值到临时槽（先于任何写入）
-            let mri: i64 = 0;
-            let mrv: [8] i64;
-            while mri < mnc {
-                let mto: i64 = gv(K_CUROFF);
-                sv(K_CUROFF, mto - 8);
-                parse_expr();
-                spill_cache();
-                g_store_local(mto);
-                mrv[mri] = mto;
-                mri = mri + 1;
-                if mri < mnc { expect(","); }
-            }
-            expect(";");
-            # 逐个写入
-            mri = 0;
-            while mri < mnc {
-                g_load_local(mrv[mri]);
-                spill_cache();
-                R_SYM = mns[mri];
-                store_sym(R_SYM);
-                mri = mri + 1;
-            }
-            return 0;
+            set_back(mp2);
         }
         # obj.method(args) 作为**语句**：r.set(5, 6);
         #
