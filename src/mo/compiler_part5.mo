@@ -460,7 +460,7 @@ fn parse_multi_assign(firstname: i64, firstidx: i64) -> i64 {
             # 逐个写入
             mri = 0;
             while mri < mnc {
-                if midx[mri] < 0 {
+                if midx[mri] == -1 {   # 🔴 槽偏移也是负数！-1 才是"无下标"
                     g_load_local(mrv[mri]);
                     spill_cache();
                     R_SYM = mns[mri];
@@ -556,6 +556,7 @@ fn parse_stmt() -> i64 {
         # 🔴 K_TOKPOS=当前 token(dst) 起点 — 必须在 next_token 前取！
         let mp2: i64 = gv(K_TOKPOS);
         if tok_is("[") == 1 {
+            # 常量下标快速路（零发射）
             next_token();
             if gv(K_TKIND) == 2 {
                 let piv: i64 = gv(K_TIVAL);
@@ -564,12 +565,33 @@ fn parse_stmt() -> i64 {
                 else {
                 next_token();   # 吃 ']'
                 if tok_is(",") == 1 {
-                    # 🔴 常量下标零发射：值直接作参数传（firstidx>=0 语义）
                     return parse_multi_assign(scratch2(), piv);
                 }
                 }
+                set_back(mp2);
+            } else {
+                # 🔴 表达式下标：parse_expr 有发射副作用 —— 探测失败须回退
+                # 发射缓冲（K_CLEN）、栈槽（K_CUROFF）与 K_LAST 缓存。
+                let clen0: i64 = gv(K_CLEN);
+                let co0: i64 = gv(K_CUROFF);
+                let last0: i64 = gv(K_LAST);
+                let mio: i64 = gv(K_CUROFF);
+                sv(K_CUROFF, mio - 8);
+                parse_expr();
+                spill_cache();
+                sv(K_LAST, 0);
+                g_store_local(mio);
+                if tok_is("]") == 1 {
+                    next_token();
+                    if tok_is(",") == 1 {
+                        return parse_multi_assign(scratch2(), mio);
+                    }
+                }
+                set_back(mp2);
+                sv(K_CLEN, clen0);
+                sv(K_CUROFF, co0);
+                sv(K_LAST, last0);
             }
-            set_back(mp2);
         }
         # obj.method(args) 作为**语句**：r.set(5, 6);
         #
