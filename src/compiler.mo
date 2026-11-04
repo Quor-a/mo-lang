@@ -14379,7 +14379,7 @@ fn main() -> i64 {
         write_all(ofd, heap + O_ZERO, sh - cur);
         write_all(ofd, DBG + O_SHDR, 448);
         syscall(3, ofd, 0, 0, 0, 0, 0);
-        return 0;
+        if had_err > 0 { return 1; }   # 🔴 v1.1133: OBJ 路径与简单路径一致
     }
     write_all(ofd, heap + O_ELF, 176);
     write_all(ofd, heap + O_CODE, gv(K_CLEN));

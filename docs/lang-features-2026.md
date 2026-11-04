@@ -231,3 +231,6 @@ str.mo 新增 substr(s,start,len) 与 trim(s)（alloc 堆分配，需 mem.mo）�
 
 ### v1.1132 — 多重赋值 struct 字段左值
 `p.x, p.y = p.y, p.x;` 与混合形式；字段偏移/类型编译期零发射。
+
+### v1.1133 — 退出码一致化
+OBJ 写盘路径补 had_err>0 → rc=1（简单路径已有）。
