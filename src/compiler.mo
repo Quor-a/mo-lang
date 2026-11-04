@@ -8534,6 +8534,90 @@ fn parse_range_for(vname: i64) -> i64 {
 # 进入时 tok=元素变量名(x)，peek_in_kw 已确认其后是 'in'。
 # 发射：_fi=0; chk: _fi-n>=0→end; x=a[_fi]; BODY; _fi++; jmp chk
 # v1 限制：in 右侧必须是数组变量名（不支持任意表达式）。
+# v1.1124: for c in <str expr> —— 逐字节迭代。表达式求值一次存槽 so，
+# strlen 存槽 no；循环 _fi: c = movzx byte [so+_fi]。
+fn parse_for_in_str(vname: i64) -> i64 {
+    # 先声明槽再求值（表达式可能用调用，不能占着 CUROFF 未注册状态）——
+    # 但 parse_expr 期间 CUROFF 会为调用临时变量下移，先求值再开槽会覆盖；
+    # 安全顺序：先求值到 rax → 用 spill 区？不行，跨 body 存活需局部槽。
+    # 做法：先开 so/no/_fi 三个槽并注册符号，再 parse_expr 求值（表达式
+    # 中间产生的临时都在更深处，不冲突）。
+    let d: i64 = gv(K_DEPTH) + 1;
+    sv(K_DEPTH, d);
+    if sym_dup(vname) >= 0 { return err_atp("duplicate definition", gv(K_PLINE), gv(K_PCOL), gv(K_PPOS)); }
+    let xo: i64 = gv(K_CUROFF);
+    sv(K_CUROFF, xo - 8);
+    let xid: i64 = sym_add(vname, 1, xo, 0);
+    store64(heap + O_STY + xid * 8, ty_int());
+    dbg_var(vname, xo, gv(K_LINE), ty_int());
+    let ibuf: i64 = heap + O_SCAL + 5600;
+    memcpy(ibuf, "_fi_");
+    store8(ibuf + 4, 48 + gv(K_DEPTH));
+    store8(ibuf + 5, 0);
+    if sym_dup(ibuf) >= 0 { return err_atp("duplicate definition", gv(K_PLINE), gv(K_PCOL), gv(K_PPOS)); }
+    let fo: i64 = gv(K_CUROFF);
+    sv(K_CUROFF, fo - 8);
+    let fid: i64 = sym_add(ibuf, 1, fo, 0);
+    store64(heap + O_STY + fid * 8, ty_int());
+    dbg_var(ibuf, fo, gv(K_LINE), ty_int());
+    let so: i64 = gv(K_CUROFF);
+    sv(K_CUROFF, so - 8);
+    # 表达式求值 → so
+    if parse_expr() != 0 { return -1; }
+    if ty_kind(R_ETY) != 10 && ty_kind(R_ETY) != 4 { return err_at2("for-in: right side must be a string", gv(K_LINE), gv(K_COL)); }
+    accept(")");                 # 括号形式吃 ')'；无括号形式无 ')'
+    g_store_local(so);
+    # no = strlen(so)
+    let no: i64 = gv(K_CUROFF);
+    sv(K_CUROFF, no - 8);
+    g_load_local(so);
+    ops3(0x48, 0x89, 0xc7);          # mov rdi, rax
+    let slsym: i64 = sym_lookup_func("strlen");
+    if slsym < 0 { return err_at2("for-in str: import \"str.mo\" first", gv(K_LINE), gv(K_COL)); }
+    emit_call_patch(slsym);
+    CALLD = CALLD - 1;
+    g_store_local(no);
+    # _fi = 0
+    g_movabs_rax(0);
+    g_store_local(fo);
+    let chk: i64 = new_label();
+    let end: i64 = new_label();
+    let stp: i64 = new_label();
+    let bdy: i64 = new_label();
+    loop_push(chk, end, stp);
+    place_label(chk);
+    # cond: _fi >= no → end
+    g_load_local(fo);
+    g_push_rax();
+    g_load_local(no);
+    g_pop_rcx();
+    g_sub();
+    g_cmp_rax_0();
+    emit_jcc(0x8d, end);
+    emit_jmp(bdy);
+    place_label(stp);
+    g_load_local(fo);
+    ops3(0x48, 0x83, 0xc0); emit1(1);
+    g_store_local(fo);
+    emit_jmp(chk);
+    place_label(bdy);
+    # c = movzx byte [so + _fi]
+    g_load_local(so);
+    g_push_rax();
+    g_load_local(fo);
+    g_pop_rcx();
+    g_add();
+    emit1(0x48); emit1(0x0f); emit1(0xb6); emit1(0x00);   # movzx rax, byte [rax]
+    g_store_local(xo);
+    parse_block(d + 1);
+    emit_jmp(stp);
+    place_label(end);
+    sym_pop_scope(d);
+    sv(K_DEPTH, d - 1);
+    loop_pop();
+    return 0;
+}
+
 fn parse_for_in(vname: i64) -> i64 {
     next_token();            # 吃 'in'（x 名已在 vname 独立缓冲）
     # v1.1095: range 形式 for i in A..B { BODY } —— 变量 i 走 A..B-1
@@ -8553,10 +8637,18 @@ fn parse_for_in(vname: i64) -> i64 {
             return parse_range_for(vname);
         }
     }
+    # v1.1124: for c in <str> —— str 字面量等表达式按字节迭代
+    if gv(K_TKIND) == 3 {
+        return parse_for_in_str(vname);
+    }
     if gv(K_TKIND) != 1 { return err_at2("for-in: expected array variable", gv(K_LINE), gv(K_COL)); }
     let asym: i64 = sym_lookup(tokbuf());
     if asym < 0 { return undef_err(tokbuf()); }
     let at: i64 = sym_type(asym);
+    # v1.1124: str 变量 → 字节迭代
+    if ty_kind(at) == 10 {
+        return parse_for_in_str(vname);
+    }
     # kind3=数组变量；ptr(数组)=嵌套行的行指针（parse_for_in 自身产生）
     if ty_kind(at) == 4 {
         if ty_kind(ty_a(at)) != 3 { return parse_for_in_ptr(vname, tokbuf()); }

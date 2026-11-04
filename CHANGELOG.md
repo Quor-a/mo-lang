@@ -1,3 +1,8 @@
+## [1.1124.0] — `for-in` 遍历字符串
+
+- `for c in "abc"` / `for c in strvar`：逐字节迭代（c 为字节值 i64），`break`/`continue`/嵌套全支持。
+- 实现：parse_for_in_str——表达式求值一次存槽 + strlen 存槽 + `_fi` 索引循环；str 字面量（TKIND 3）与 str 类型变量（kind 10）分派进入，ptr 变量保持嵌套行语义不变。
+
 ## [1.1123.0] — `len()` 通用化：任意字符串表达式
 
 - `len(<expr>)`：非标识符实参（字面量 / 调用 / 下标等任意 str/ptr 表达式）走通用路径——parse_expr 求值 → strlen。此前仅支持 str 变量与数组。

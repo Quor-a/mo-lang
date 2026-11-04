@@ -204,3 +204,6 @@ verify_bootstrap.sh 重写为两层验证：seed（Stage0 语言子集）冒烟 
 
 ### v1.1123 — `len()` 通用化
 `len()` 接受任意字符串表达式（字面量、调用、ptr 变量），不再限于 str 变量与数组。
+
+### v1.1124 — `for-in` 字符串
+`for c in <str 表达式>` 逐字节迭代；`break`/`continue`/嵌套全支持。
