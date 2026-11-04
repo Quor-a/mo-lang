@@ -4880,6 +4880,12 @@ fn parse_primary() -> i64 {
                         } else { ok3 = 0; }
                     } else { ok3 = 0; }
                 } else { ok3 = 0; }
+                # v1.1139: 负切片端从尾数（仅编译期已知长度的 byte 数组）
+                if ok3 == 1 && ty_kind(sym_type(sy)) == 3 {
+                    let sln0: i64 = ty_b(sym_type(sy));
+                    if sa < 0 { sa = sln0 + sa; }
+                    if sbv < 0 { sbv = sln0 + sbv; }
+                }
                 if ok3 == 1 && (sa < 0 || sbv < sa) { ok3 = 0; }
                 # 类型检查：仅 str / byte 数组
                 if ok3 == 1 {
@@ -4993,6 +4999,20 @@ fn parse_primary() -> i64 {
                     ops3(0x49, 0x89, 0xc1);          # mov r9, rax (end)
                     g_pop_rax();                     # rax = start
                     ops3(0x49, 0x89, 0xc4);          # mov r12, rax (start)
+                    # v1.1139: 负端从尾数（运行时；len 编译期已知）
+                    if ty_kind(sty8) == 3 {
+                        let sln8: i64 = ty_b(sty8);
+                        ops3(0x49, 0x83, 0xfc); emit1(0);  # cmp r12, 0
+                        let s1a: i64 = new_label();
+                        emit_jcc(0x89, s1a);               # jns
+                        ops3(0x49, 0x81, 0xc4); emit4(sln8);  # add r12, len
+                        place_label(s1a);
+                        ops3(0x49, 0x83, 0xf9); emit1(0);  # cmp r9, 0
+                        let s1b: i64 = new_label();
+                        emit_jcc(0x89, s1b);
+                        ops3(0x49, 0x81, 0xc1); emit4(sln8);  # add r9, len
+                        place_label(s1b);
+                    }
                     ops3(0x4c, 0x89, 0xe1);          # mov rcx, r12
                     ops3(0x4c, 0x29, 0xc9);          # sub rcx, r9
                     ops3(0x48, 0xf7, 0xd9);          # neg rcx → len
@@ -5287,10 +5307,14 @@ fn index_addr(s: i64) -> i64 {
             cidx = iv;
             if k == 3 {
                 let ne: i64 = ty_b(st);
+                # v1.1139: 负常量下标从尾数：a[-1] = a[len-1]
                 if iv < 0 {
-                    return err_atp("index out of bounds: negative constant index", gv(K_PLINE), gv(K_PCOL), gv(K_PPOS));
+                    cidx = ne + iv;
+                    if cidx < 0 {
+                        return err_atp("index out of bounds: negative constant index out of range", gv(K_PLINE), gv(K_PCOL), gv(K_PPOS));
+                    }
                 }
-                if iv >= ne {
+                if cidx >= ne {
                     return err_atp("index out of bounds: constant index >= array length", gv(K_PLINE), gv(K_PCOL), gv(K_PPOS));
                 }
             }
@@ -5307,6 +5331,16 @@ fn index_addr(s: i64) -> i64 {
         if cidx < 0 {
             let ne: i64 = ty_b(st);
             if ne <= 2147483647 {
+                # v1.1139: 负下标从尾数（运行时）：idx<0 → idx+=len
+                ops2(0x48, 0x83); emit1(0xf8); emit1(0x00);   # cmp rax, 0
+                let sk9: i64 = new_label();
+                emit_jcc(0x89, sk9);                            # jns skip
+                if ne <= 127 {
+                    ops3(0x48, 0x83, 0xc0); emit1(ne);          # add rax, imm8
+                } else {
+                    ops2(0x48, 0x05); emit4(ne);                # add rax, imm32
+                }
+                place_label(sk9);
                 ops2(0x48, 0x3d);
                 emit4(ne);
                 emit_jcc(0x83, panic_label());
