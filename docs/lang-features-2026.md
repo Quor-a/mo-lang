@@ -228,3 +228,6 @@ str.mo 新增 substr(s,start,len) 与 trim(s)（alloc 堆分配，需 mem.mo）�
 
 ### v1.1131 — 多重赋值变量下标
 `m[i], m[j] = m[j], m[i];`：探测失败回退发射缓冲/槽/K_LAST。无下标判定用 midx==-1（槽偏移同为负）。
+
+### v1.1132 — 多重赋值 struct 字段左值
+`p.x, p.y = p.y, p.x;` 与混合形式；字段偏移/类型编译期零发射。

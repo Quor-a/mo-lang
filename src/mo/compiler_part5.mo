@@ -395,19 +395,22 @@ fn parse_nested_fn() -> i64 {
 
 # v1.1129/1130: 多重赋值 —— firstname=首目标名缓冲；firstidx=-1 纯变量 /
 # >=0 首目标常量下标值（零发射，midxc 标记）；目标收集中常量下标同此。
-fn parse_multi_assign(firstname: i64, firstidx: i64) -> i64 {
+fn parse_multi_assign(firstname: i64, firstidx: i64, firstoff: i64, firstfty: i64) -> i64 {
 
             let mns: [8] i64;
             let midx: [8] i64;
             let midxc: [8] i64;
+            let moff: [8] i64;
             let mnt: [8] i64;
             let mnc: i64 = 0;
             let msy: i64 = sym_lookup(firstname);
             if msy < 0 { return undef_err(firstname); }
             mns[0] = msy;
             mnt[0] = sym_type(msy);
+            if firstoff >= 0 { mnt[0] = firstfty; }
             if ty_kind(mnt[0]) == 2 { return err_at2("multi-assign: element must be scalar", gv(K_LINE), gv(K_COL)); }
             midx[0] = firstidx;
+            moff[0] = firstoff;
             if firstidx < 0 { midxc[0] = 0; } else { midxc[0] = 1; }
             mnc = 1;
             while tok_is(",") == 1 {
@@ -415,6 +418,25 @@ fn parse_multi_assign(firstname: i64, firstidx: i64) -> i64 {
                 next_token();                    # 吃 ','
                 if gv(K_TKIND) != 1 { return syntax_error(); }
                 memcpy(scratch3(), tokbuf());
+                next_token();
+                if tok_is(".") == 1 {
+                    # 字段目标 p.y（字段偏移=编译期常量，零发射）
+                    next_token();                # 吃 '.'
+                    if gv(K_TKIND) != 1 { return syntax_error(); }
+                    memcpy(scratch1(), tokbuf());
+                    let f2i: i64 = st_field(ty_si(sym_type(mns[mnc - 1])), scratch1());
+                    if f2i < 0 { return err_at2("multi-assign: unknown field", gv(K_LINE), gv(K_COL)); }
+                    let fo2: i64 = st_field_off(ty_si(sym_type(mns[mnc - 1])), f2i);
+                    mns[mnc] = mns[mnc - 1];
+                    mnt[mnc] = st_field_type(ty_si(sym_type(mns[mnc - 1])), f2i);
+                    moff[mnc] = fo2;
+                    midx[mnc] = 0 - 1;
+                    midxc[mnc] = 0;
+                    mnc = mnc + 1;
+                    next_token();
+                    continue;
+                }
+                set_back(gv(K_PPOS));   # 非 '.'：回名字重走标量收集（K_PPOS=名字起点）
                 let msy2: i64 = sym_lookup(scratch3());
                 if msy2 < 0 { return undef_err(scratch3()); }
                 mns[mnc] = msy2;
@@ -422,6 +444,7 @@ fn parse_multi_assign(firstname: i64, firstidx: i64) -> i64 {
                 if ty_kind(mnt[mnc]) == 2 { return err_at2("multi-assign: element must be scalar", gv(K_LINE), gv(K_COL)); }
                 midx[mnc] = 0 - 1;
                 midxc[mnc] = 0;
+                moff[mnc] = 0 - 1;
                 next_token();
                 if tok_is("[") == 1 {
                     if ty_kind(mnt[mnc]) != 3 && ty_kind(mnt[mnc]) != 4 { return err_at2("multi-assign: subscript on non-array", gv(K_LINE), gv(K_COL)); }
@@ -460,7 +483,16 @@ fn parse_multi_assign(firstname: i64, firstidx: i64) -> i64 {
             # 逐个写入
             mri = 0;
             while mri < mnc {
-                if midx[mri] == -1 {   # 🔴 槽偏移也是负数！-1 才是"无下标"
+                if moff[mri] >= 0 {
+                    # struct 字段目标：rax=字段地址，再存右值
+                    g_addr_sym_rax(mns[mri]);
+                    g_movabs_rcx(moff[mri]);
+                    sv(K_LAST, 0);   # 🔴 防折叠回退 movabs（try_fold_rhs 教训）
+                    g_add();   # 🔴 g_add = add rax, rcx（不是 rdx！）
+                    ops3(0x48, 0x89, 0xc1);
+                    g_load_local(mrv[mri]);
+                    ops3(0x48, 0x89, 0x01);   # mov [rcx], rax（地址在 rcx）
+                } else if midx[mri] == -1 {   # 🔴 槽偏移也是负数！-1 才是"无下标"
                     g_load_local(mrv[mri]);
                     spill_cache();
                     R_SYM = mns[mri];
@@ -552,7 +584,28 @@ fn parse_stmt() -> i64 {
         # v1.1130: 多重赋值探测（下标左值版）—— 名字后 ',' / '['＋','；
         # 🔴 set_back 用 K_POS（token 起点，1119 not-in 教训）；
         # 🔴 仅常量下标走探测（非常量下标 parse_expr 有发射副作用，回退不了）。
-        if tok_is(",") == 1 { return parse_multi_assign(scratch2(), 0 - 1); }
+        if tok_is(",") == 1 { return parse_multi_assign(scratch2(), 0 - 1, 0 - 1, 0); }
+        if tok_is(".") == 1 {
+            # p.x, … 字段首目标探测（纯词法，名字已在 scratch2）
+            let mp3: i64 = gv(K_TOKPOS);
+            next_token();                    # 吃 '.'
+            if gv(K_TKIND) == 1 {
+                memcpy(scratch3(), tokbuf());
+                next_token();
+                if tok_is(",") == 1 {
+                    let fsy: i64 = sym_lookup(scratch2());
+                    if fsy >= 0 {
+                        let fst: i64 = ty_si(sym_type(fsy));
+                        let f0i: i64 = st_field(fst, scratch3());
+                        if f0i >= 0 {
+                            let fo0: i64 = st_field_off(fst, f0i);
+                            return parse_multi_assign(scratch2(), 0 - 1, fo0, st_field_type(fst, f0i));
+                        }
+                    }
+                }
+            }
+            set_back(mp3);
+        }
         # 🔴 K_TOKPOS=当前 token(dst) 起点 — 必须在 next_token 前取！
         let mp2: i64 = gv(K_TOKPOS);
         if tok_is("[") == 1 {
@@ -565,7 +618,7 @@ fn parse_stmt() -> i64 {
                 else {
                 next_token();   # 吃 ']'
                 if tok_is(",") == 1 {
-                    return parse_multi_assign(scratch2(), piv);
+                    return parse_multi_assign(scratch2(), piv, 0 - 1, 0);
                 }
                 }
                 set_back(mp2);
@@ -584,7 +637,7 @@ fn parse_stmt() -> i64 {
                 if tok_is("]") == 1 {
                     next_token();
                     if tok_is(",") == 1 {
-                        return parse_multi_assign(scratch2(), mio);
+                        return parse_multi_assign(scratch2(), mio, 0 - 1, 0);
                     }
                 }
                 set_back(mp2);

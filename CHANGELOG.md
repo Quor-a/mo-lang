@@ -6,6 +6,11 @@
 
 - 多重赋值左值支持数组下标（常量下标零发射探测；常量值直接参数传递）。
 
+## [1.1132.0] — 多重赋值 struct 字段左值
+
+- `p.x, p.y = p.y, p.x;`（字段偏移/类型编译期查表零发射）；混合 `p.x, a = a, p.x;` 支持。
+- 🔴 g_add = `add rax, rcx`（不是 rdx）——偏移用 g_movabs_rcx + sv(K_LAST,0) 防折叠回退；字段写入 `mov [rcx], rax`=48 89 01；st_field 首参=struct 表 idx（ty_si(sym_type(sym))），返回字段下标（再 st_field_off/Type）。
+
 ## [1.1131.0] — 多重赋值变量/表达式下标
 
 - `m[i], m[j] = m[j], m[i];` 变量/表达式下标多重赋值：探测带发射副作用（下标求值），失败路径回退 K_CLEN（发射缓冲）+ K_CUROFF（栈槽）+ K_LAST + set_back(K_TOKPOS)。
