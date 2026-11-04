@@ -234,3 +234,6 @@ str.mo 新增 substr(s,start,len) 与 trim(s)（alloc 堆分配，需 mem.mo）�
 
 ### v1.1133 — 退出码一致化
 OBJ 写盘路径补 had_err>0 → rc=1（简单路径已有）。
+
+### v1.1134 — 数组字面量 return
+`return [1, 2, 3];`（i64/byte）；顺修 byte 数组返回拷贝越界写（逐字节化）。

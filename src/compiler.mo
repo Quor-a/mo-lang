@@ -8216,7 +8216,25 @@ fn parse_let() -> i64 {
                 g_lea_local(off);                 # rax = 目的（新数组槽）—— g_copy_words 约定 rax=目的游标 rsi=源
                 spill_cache();
                 emit1(0x5e);                      # pop rsi = 源
-                g_copy_words(ty_size(ty_array(et, n)) / 8);
+                if ty_size(ty_array(et, n)) < 8 {
+                            # 🔴 v1.1134: byte 数组（<8B）逐字节拷——
+                            # word 拷会越界写相邻槽（r 覆盖实证）
+                            let bsz4: i64 = ty_size(ty_array(et, n));
+                            g_lea_local(off);
+                            ops3(0x49, 0x89, 0xc3);   # mov r11, rax（目的）
+                            # 源在 rsi（返回的缓冲地址）
+                            ops3(0x49, 0x89, 0xf2);   # mov r10, rsi
+                            let bi4: i64 = 0;
+                            while bi4 < bsz4 {
+                                ops3(0x41, 0x8a, 0x42);  # mov al, [r10+i]
+                                emit1(bi4);
+                                ops3(0x41, 0x88, 0x43);  # mov [r11+i], al
+                                emit1(bi4);
+                                bi4 = bi4 + 1;
+                            }
+                        } else {
+                            g_copy_words(ty_size(ty_array(et, n)) / 8);
+                        }
                 return 0;
             }
             let lcnt2: i64 = 0 - 1;
@@ -10465,6 +10483,52 @@ fn parse_return() -> i64 {
     }
     if ty_kind(CUR_RET) == 3 {
         # v1.1079: 数组返回 —— rax = 数组变量地址（调用方按地址用）
+        if tok_is("[") == 1 {
+            # v1.1134: 数组字面量 return —— 逐元素求值写入 RBOFF 缓冲
+            next_token();                      # 吃 '['
+            let asz3: i64 = ty_size(CUR_RET);
+            if asz3 > 8192 { return err_at2("array return: local array too large (8KB limit)", gv(K_LINE), gv(K_COL)); }
+            let rbo3: i64 = gv(K_RBOFF);
+            if rbo3 < 0 {
+                data_align(16);
+                rbo3 = gv(K_DLEN);
+                let pad3: i64 = 0;
+                while pad3 < 8192 {
+                    dquad(0);
+                    pad3 = pad3 + 1;
+                }
+                sv(K_RBOFF, rbo3);
+            }
+            let esz3: i64 = ty_size(elem_type(CUR_RET));
+            # movabs r10, imm64 = 49 BA + imm64（缓冲地址，little-endian）
+            ops2(0x49, 0xba);
+            emit4(268435456 + rbo3);
+            emit4(0);   # 0x10000000 + rbo3（与 1096 缓冲约定一致）
+            let eo3: i64 = 0;
+            let ei3: i64 = 0;
+            while tok_is("]") != 1 {
+                parse_expr();
+                spill_cache();
+                sv(K_LAST, 0);
+                if esz3 == 1 {
+                    # mov [r10+ei3], al — 44 88 42 disp8? r10+disp: 44 88 42 dd
+                    ops3(0x41, 0x88, 0x42);   # mov [r10+disp8], al（REX.B）
+                    emit1(eo3);
+                } else {
+                    # mov [r10+ei3], rax — 49 89 42 dd
+                    ops3(0x49, 0x89, 0x42);
+                    emit1(eo3);
+                }
+                eo3 = eo3 + esz3;
+                ei3 = ei3 + 1;
+                if tok_is(",") == 1 { next_token(); }
+            }
+            next_token();                      # 吃 ']'
+            expect(";");
+            g_movabs_rax(268435456 + rbo3);
+            g_epilogue();
+            return 0;
+        }
         if gv(K_TKIND) != 1 {
             return err_atp("array return: expected a variable", gv(K_PLINE), gv(K_PCOL), gv(K_PPOS));
         }
