@@ -198,3 +198,6 @@ verify_bootstrap.sh 重写为两层验证：seed（Stage0 语言子集）冒烟 
 
 ### v1.1121 — `in` 扩展 str/ptr 数组
 `s in names`（names 为 `[N] ptr`）：运行时逐元素内容比较（复用 g_str_cmp）。至此 `in` 覆盖 i64/byte/f64/str 全元素类型，`not in` 同步。
+
+### v1.1122 — `in` 多维数组 + f64 字面量整数化修复
+`x in m`（多维数组）等价 in 全部铺平元素。修复：数组字面量叶子（含一维）f64 未转 IEEE754 位模式而整数化——v1.1120/1121 的 `[3] f64` 字面量实际存整数。

@@ -895,6 +895,11 @@ fn parse_eq() -> i64 {
                 if ty_kind(it) != 3 { return err_atp("'in': right side must be an array", gv(K_PLINE), gv(K_PCOL), gv(K_PPOS)); }
                 let el: i64 = ty_ta(it);
                 let n: i64 = ty_tb(it);
+                if ty_kind(el) == 3 {
+                    # 二维（或更高维，行主铺平连续内存）→ 等价 in 全部 prod 元素
+                    n = ty_size(it) / 8;
+                    el = elem_type(el);
+                }
                 let em: i64 = 0;
                 if ty_kind(el) == 5 { em = 1; } else {
                     if ty_kind(el) == 6 { em = 2; } else {

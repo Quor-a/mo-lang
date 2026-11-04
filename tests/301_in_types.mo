@@ -1,4 +1,4 @@
-# expect: 47
+# expect: 45
 import "io.mo";
 
 fn main() -> i64 {

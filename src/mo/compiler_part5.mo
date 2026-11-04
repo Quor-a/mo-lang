@@ -1669,7 +1669,14 @@ fn parse_let() -> i64 {
                             let lv: i64 = 0;
                             let negv: i64 = 0;
                             if accept("-") == 1 { negv = 1; }
-                            if gv(K_TKIND) == 2 { lv = gv(K_TIVAL); next_token(); }
+                            if gv(K_TKIND) == 2 {
+                                # v1.1122: f64 叶子 → IEEE754 位模式（neg 已含于 f64_bits）
+                                if gv(K_TFLT) == 1 {
+                                    lv = f64_bits(gv(K_TFDIG), gv(K_TFDIGN), FSTICKY, negv);
+                                    negv = 0;
+                                } else { lv = gv(K_TIVAL); }
+                                next_token();
+                            }
                             else {
                                 if gv(K_TKIND) == 1 {
                                     let csi3: i64 = sym_lookup(tokbuf());
