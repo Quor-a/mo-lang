@@ -3764,6 +3764,33 @@ fn g_struct_eq(n: i64, invert: i64) -> i64 {
 # rcx=待查值, rax=数组首地址, n=元素个数。结果 rax=1/0。
 fn g_arr_in(n: i64, mode: i64) -> i64 {
     sv(K_LAST, 0);
+    if mode == 3 {
+        # v1.1121: str/ptr 元素（s in str_arr）—— 运行时双循环，复用 g_str_cmp。
+        # r12=数组基址, r13=元素下标, rsi=needle 副本（rcx 会被 g_str_cmp 破坏）。
+        ops3(0x49, 0x89, 0xc4);                  # mov r12, rax
+        ops2(0x48, 0x89); emit1(0xce);           # mov rsi, rcx
+        ops3(0x49, 0xc7, 0xc5); emit4(0);        # mov r13, 0
+        ops3(0x49, 0xc7, 0xc3); emit4(0);        # mov r11, 0
+        let lout: i64 = new_label();
+        let lmiss: i64 = new_label();
+        let ldone: i64 = new_label();
+        place_label(lout);
+        emit1(0x49); emit1(0x81); emit1(0xfd); emit4(n);      # cmp r13, n
+        emit_jcc(0x8d, ldone);                                # jge ldone
+        emit1(0x4b); emit1(0x8b); emit1(0x04); emit1(0xec);   # mov rax, [r12+r13*8] (hay)
+        ops2(0x48, 0x89); emit1(0xf1);                        # mov rcx, rsi (needle)
+        g_str_cmp(0x94);                                      # sete al（内容相等）
+        emit1(0x84); emit1(0xc0);                             # test al, al
+        emit_jcc(0x84, lmiss);                                # je lmiss（不等→下一个）
+        ops3(0x49, 0xc7, 0xc3); emit4(1);                     # mov r11, 1
+        emit_jmp(ldone);
+        place_label(lmiss);
+        ops3(0x49, 0xff, 0xc5);                  # inc r13
+        emit_jmp(lout);
+        place_label(ldone);
+        emit1(0x49); emit1(0x0f); emit1(0xb6); emit1(0xc3);   # movzx rax, r11b
+        return 0;
+    }
     ops3(0x49, 0xc7, 0xc3); emit4(0);        # mov r11, 0（found=0）
     let i: i64 = 0;
     while i < n {
@@ -3820,9 +3847,15 @@ fn parse_eq() -> i64 {
             parse_rel();
             let it: i64 = R_ETY;
             if ty_kind(lt) == 10 {
-                if ty_kind(it) != 10 { return err_atp("'in': right side must be a string", gv(K_PLINE), gv(K_PCOL), gv(K_PPOS)); }
-                g_pop_rcx();
-                g_str_in();
+                if ty_kind(it) == 3 {
+                    if ty_kind(ty_ta(it)) != 4 { return err_atp("'in': right side array elements must be str/ptr", gv(K_PLINE), gv(K_PCOL), gv(K_PPOS)); }
+                    g_pop_rcx();
+                    g_arr_in(ty_tb(it), 3);
+                } else {
+                    if ty_kind(it) != 10 { return err_atp("'in': right side must be a string or str array", gv(K_PLINE), gv(K_PCOL), gv(K_PPOS)); }
+                    g_pop_rcx();
+                    g_str_in();
+                }
             } else {
                 if ty_kind(it) != 3 { return err_atp("'in': right side must be an array", gv(K_PLINE), gv(K_PCOL), gv(K_PPOS)); }
                 let el: i64 = ty_ta(it);
@@ -3830,7 +3863,9 @@ fn parse_eq() -> i64 {
                 let em: i64 = 0;
                 if ty_kind(el) == 5 { em = 1; } else {
                     if ty_kind(el) == 6 { em = 2; } else {
-                        if ty_kind(el) != 0 { return err_atp("'in': array element must be i64, byte or f64", gv(K_PLINE), gv(K_PCOL), gv(K_PPOS)); }
+                        if ty_kind(el) == 4 { em = 3; } else {
+                            if ty_kind(el) != 0 { return err_atp("'in': array element must be i64, byte, f64 or ptr", gv(K_PLINE), gv(K_PCOL), gv(K_PPOS)); }
+                        }
                     }
                 }
                 g_pop_rcx();

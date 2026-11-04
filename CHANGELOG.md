@@ -1,3 +1,9 @@
+## [1.1121.0] — `in` 扩展 str/ptr 数组
+
+- `s in str_arr`（str 左值 in `[N] ptr` 数组）：运行时双循环（r12=基址 r13=下标 rsi=needle 副本），逐元素复用 g_str_cmp 内容比较；`not in` 同步。
+- 🔴 编码坑：`mov r12, rax` 误编为 `4c 89 c4`（REX.R/B 错位 → 实际解码为 `mov r8, rsp` 段错误）——正确为 `49 89 c4`。r12 作 rm 必须 REX.B 而非 REX.R。
+- 复用 g_str_cmp（rcx=needle 会被 inc 破坏 → rsi 存副本每轮重载）。
+
 ## [1.1120.0] — f64 数组（声明+字面量初始化）与 `in` 全类型扩展
 
 - **f64 数组**：`[N] f64` 声明此前被悄悄当成前向 struct 预注册（假类型）——try_parse_type 与 parse_let/var 数组元素类型分支补 f64；数组字面量 f64 元素经 f64_bits 编译期转 IEEE754 位模式存 O_LSTV（负号进 f64_bits，不再二次取反）；var 数组初始化放行 kind 6。
