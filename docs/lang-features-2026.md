@@ -219,3 +219,6 @@ str.mo 新增 substr(s,start,len) 与 trim(s)（alloc 堆分配，需 mem.mo）�
 
 ### v1.1128 — 全局 var f64
 `var X: f64 = …;` 编译期位模式初始化（负号/const 表达式支持）。
+
+### v1.1129 — 多重赋值
+`a, b = b, a`（最多 8 个标量）；右值先全求值再写入。

@@ -6848,6 +6848,60 @@ fn parse_stmt() -> i64 {
             store_sym(R_SYM);
             return 0;
         }
+        # v1.1129: 多重赋值 a, b = e1, e2 —— 先全部右值求值到临时槽，
+        # 再逐个写入左边（避免 a, b = b, a 顺序污染）。
+        if tok_is(",") == 1 {
+            let mna: i64 = heap + O_SCAL + 4400;
+            memcpy(mna, scratch2());
+            let mns: [8] i64;
+            let mno: [8] i64;
+            let mnt: [8] i64;
+            let mnc: i64 = 0;
+            let msy: i64 = sym_lookup(mna);
+            if msy < 0 { return undef_err(mna); }
+            mns[0] = msy;
+            mnt[0] = sym_type(msy);
+            if ty_kind(mnt[0]) == 3 || ty_kind(mnt[0]) == 2 { return err_at2("multi-assign: element must be scalar", gv(K_LINE), gv(K_COL)); }
+            mnc = 1;
+            while tok_is(",") == 1 {
+                if mnc >= 8 { return err_at2("multi-assign: too many targets (max 8)", gv(K_LINE), gv(K_COL)); }
+                next_token();                    # 吃 ','
+                if gv(K_TKIND) != 1 { return syntax_error(); }
+                memcpy(scratch3(), tokbuf());
+                let msy2: i64 = sym_lookup(scratch3());
+                if msy2 < 0 { return undef_err(scratch3()); }
+                mns[mnc] = msy2;
+                mnt[mnc] = sym_type(msy2);
+                if ty_kind(mnt[mnc]) == 3 || ty_kind(mnt[mnc]) == 2 { return err_at2("multi-assign: element must be scalar", gv(K_LINE), gv(K_COL)); }
+                mnc = mnc + 1;
+                next_token();
+            }
+            expect("=");
+            # 右值全部求值到临时槽（先于任何写入）
+            let mri: i64 = 0;
+            let mrv: [8] i64;
+            while mri < mnc {
+                let mto: i64 = gv(K_CUROFF);
+                sv(K_CUROFF, mto - 8);
+                parse_expr();
+                spill_cache();
+                g_store_local(mto);
+                mrv[mri] = mto;
+                mri = mri + 1;
+                if mri < mnc { expect(","); }
+            }
+            expect(";");
+            # 逐个写入
+            mri = 0;
+            while mri < mnc {
+                g_load_local(mrv[mri]);
+                spill_cache();
+                R_SYM = mns[mri];
+                store_sym(R_SYM);
+                mri = mri + 1;
+            }
+            return 0;
+        }
         # obj.method(args) 作为**语句**：r.set(5, 6);
         #
         # ⚠️ 必须在 parse_primary 之外（语句层）处理。
