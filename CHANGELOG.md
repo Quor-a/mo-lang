@@ -1,3 +1,9 @@
+## [1.1123.0] — `len()` 通用化：任意字符串表达式
+
+- `len(<expr>)`：非标识符实参（字面量 / 调用 / 下标等任意 str/ptr 表达式）走通用路径——parse_expr 求值 → strlen。此前仅支持 str 变量与数组。
+- `len(s)` 放行 ptr 类型（str 字面量赋给 ptr 变量、ptr 数组元素等场景）。
+- `len("hello")`、`len(f(x))`、`len("")` 全支持。
+
 ## [1.1122.0] — `in` 支持多维数组；修复 f64 数组字面量整数化 bug
 
 - `x in m`（m 为 `[N1][N2]…` 多维数组）：行主铺平内存连续 → 等价 in 全部 prod 元素（n=ty_size/8，el 取 elem_type(elem_type)；i64/byte/f64 元素全支持，`not in` 同步）。

@@ -2924,12 +2924,42 @@ fn emit_lit_struct(si: i64) -> i64 {
 }
 
 fn parse_len() -> i64 {
-    if gv(K_TKIND) != 1 { return syntax_error(); }
+    # v1.1123: len(<任意 str 表达式>) —— 非标识符（字面量/调用/下标等）走
+    # 通用路径：parse_expr 求值到 rax → strlen。标识符仍走变量槽路径（数组/str）。
+    if gv(K_TKIND) != 1 {
+        if parse_expr() != 0 { return -1; }
+        if ty_kind(R_ETY) != 10 && ty_kind(R_ETY) != 4 { return err_at2("len: argument must be an array or str", gv(K_LINE), gv(K_COL)); }
+        expect(")");
+        spill_cache();
+        ops3(0x48, 0x89, 0xc7);          # mov rdi, rax
+        let slsym2: i64 = sym_lookup_func("strlen");
+        if slsym2 < 0 { return err_at2("len(str): import \"str.mo\" first", gv(K_LINE), gv(K_COL)); }
+        emit_call_patch(slsym2);
+        R_ETY = ty_int();
+        R_SADDR = 0;
+        CALLD = CALLD - 1;
+        return 0;
+    }
     let lsy: i64 = sym_lookup(tokbuf());
-    if lsy < 0 { return err_at2("len: undefined variable", gv(K_LINE), gv(K_COL)); }
+    if lsy < 0 {
+        # 标识符但非变量（如函数名 len(f(x))）——通用表达式路径
+        if parse_expr() != 0 { return -1; }
+        if ty_kind(R_ETY) != 10 && ty_kind(R_ETY) != 4 { return err_at2("len: argument must be an array or str", gv(K_LINE), gv(K_COL)); }
+        expect(")");
+        spill_cache();
+        ops3(0x48, 0x89, 0xc7);
+        let slsym3: i64 = sym_lookup_func("strlen");
+        if slsym3 < 0 { return err_at2("len(str): import \"str.mo\" first", gv(K_LINE), gv(K_COL)); }
+        emit_call_patch(slsym3);
+        R_ETY = ty_int();
+        R_SADDR = 0;
+        CALLD = CALLD - 1;
+        return 0;
+    }
     let lt2: i64 = sym_type(lsy);
     # v1.1080: len(str) —— 运行时 strlen（lib/str.mo）
-    if ty_kind(lt2) == 10 {
+    if ty_kind(lt2) == 10 || ty_kind(lt2) == 4 {
+        # v1.1123: ptr（str 字面量/数组元素）同样按字符串长度处理
         next_token();
         expect(")");
         # rax = 字符串指针（str 变量槽里存的就是指针）
