@@ -195,3 +195,6 @@ verify_bootstrap.sh 重写为两层验证：seed（Stage0 语言子集）冒烟 
 
 ### v1.1120 — f64 数组 + `in` 全类型
 `[N] f64` 声明与 `[1.5, 2.5]` 字面量初始化（编译期 IEEE754 位模式）；`x in arr` 扩展 byte（1 字节零扩展步进）与 f64（ucomisd，NaN 与 == 一致）元素；`not in` 同步。
+
+### v1.1121 — `in` 扩展 str/ptr 数组
+`s in names`（names 为 `[N] ptr`）：运行时逐元素内容比较（复用 g_str_cmp）。至此 `in` 覆盖 i64/byte/f64/str 全元素类型，`not in` 同步。
