@@ -1,3 +1,9 @@
+## [1.1126.0] — lib/str.mo：`substr` / `trim`
+
+- `substr(s, start, len) -> ptr`：子串堆拷贝（alloc，需 `import "mem.mo"`；内部自动 heap_ready/heap_init）。
+- `trim(s) -> ptr`：去除两端空白（空格/\t/\r/\n）。
+- 🔴 探测发现语法缺口：`f(x)[i]` 调用结果下标暂不支持（需中间变量），列入后续版本。
+
 ## [1.1125.0] — `as` 类型转换表达式
 
 - `x as T`：f64→整数（cvttsd2si 截断）、整数→f64（cvtsi2sd）、ptr↔i64/byte 同宽重解释；`as` 链可连续（parse_rel 入口循环）。

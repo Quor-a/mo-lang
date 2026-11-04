@@ -591,3 +591,36 @@ fn str_ncmp(a: ptr, b: ptr, n: i64) -> i64 {
     }
     return 1;
 }
+
+# v1.1126: 子串 —— 返回 s[start .. start+ln) 的拷贝（alloc 堆分配，
+# 需 import "mem.mo"；分配失败返回 0）
+fn substr(s: ptr, start: i64, ln: i64) -> ptr {
+    if heap_ready() == 0 { heap_init(); }
+    let buf: ptr = alloc(ln + 1);
+    if buf == 0 { return 0; }
+    let i: i64 = 0;
+    while i < ln {
+        buf[i] = s[start + i];
+        i = i + 1;
+    }
+    buf[ln] = 0;
+    return buf;
+}
+
+# 去两端空白（空格/\t/\r/\n）
+fn trim(s: ptr) -> ptr {
+    let b: i64 = 0;
+    let e: i64 = strlen(s);
+    while b < e {
+        let c: i64 = s[b];
+        if c != 32 && c != 9 && c != 10 && c != 13 { break; }
+        b = b + 1;
+    }
+    e = e - 1;
+    while e >= b {
+        let c2: i64 = s[e];
+        if c2 != 32 && c2 != 9 && c2 != 10 && c2 != 13 { break; }
+        e = e - 1;
+    }
+    return substr(s, b, e - b + 1);
+}

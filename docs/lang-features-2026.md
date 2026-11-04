@@ -210,3 +210,6 @@ verify_bootstrap.sh 重写为两层验证：seed（Stage0 语言子集）冒烟 
 
 ### v1.1125 — `as` 类型转换
 `x as T` 显式转型：f64↔整数、ptr↔i64；可连续链式。
+
+### v1.1126 — lib: substr / trim
+str.mo 新增 substr(s,start,len) 与 trim(s)（alloc 堆分配，需 mem.mo）。
