@@ -4875,7 +4875,12 @@ fn parse_primary() -> i64 {
             }
             # 元素宽度决定加载宽度：byte 元素必须按 1 字节零扩展，
             # 否则 s[i] 会一次读进 8 个字节。
-            if ty_kind(e2) == 5 { g_load_at_b(); } else { g_load_at(); }
+            # v1.1136: 🔴 多维 a[i][j] —— index_addr 已消化全部 '['，
+            # load 宽度必须看**最内层**元素类型（e2 是内层数组时 8B
+            # load 会把整行读进来）
+            let e2f: i64 = e2;
+            while ty_kind(e2f) == 3 { e2f = elem_type(e2f); }
+            if ty_kind(e2f) == 5 { g_load_at_b(); } else { g_load_at(); }
             R_ETY = e2;
             # v1.1020: 数组元素函数指针调用 t[0](args)
             # rax 已是函数地址；push 保存，解析实参 push，逆序弹进寄存器
@@ -8381,8 +8386,18 @@ fn parse_let() -> i64 {
                 # v1.1066: 嵌套字面量铺平按 word 步进（esz 是整行大小）
                 # v1.1097: byte 数组例外 —— 叶子本就逐字节，step 保持 esz=1
                 let step: i64 = esz;
-                if lcnt2 <= 0 - 65536 && esz > 1 { step = 8; }
-                if ty_kind(et) == 5 { g_store_local_b(off + k * step); }
+                if lcnt2 <= 0 - 65536 {
+                    # 🔴 v1.1136: 铺平步长=最内层元素宽（et 是内层数组时
+                    # esz=行大小 → 越界写毁栈；byte 嵌套尤其致命）
+                    let stept: i64 = et;
+                    while ty_kind(stept) == 3 { stept = elem_type(stept); }
+                    step = ty_size(stept);
+                }
+                # v1.1136: 🔴 铺平时 et 可能是内层数组（kind3）——字节判定
+                # 要看最内层元素类型，否则 g_store_local 8B/元素写越界毁栈
+                let leafk: i64 = ty_kind(et);
+                if leafk == 3 { leafk = ty_kind(elem_type(et)); }
+                if leafk == 5 { g_store_local_b(off + k * step); }
                 else { g_store_local(off + k * step); }
                 k = k + 1;
             }
@@ -10500,11 +10515,92 @@ fn parse_return() -> i64 {
                 sv(K_RBOFF, rbo3);
             }
             let esz3: i64 = ty_size(elem_type(CUR_RET));
+            # v1.1136: 嵌套字面量 return [[..],[..]] —— 先铺平收集
+            # （数据段临时区 0x10010000 起，同 1066 思路），再统一发射
+            let eo3: i64 = 0;
+                        if tok_is("[") == 1 {
+                # 铺平收集: 值存数据段 FLAT 区 (编译期常量直接算;
+                # 表达式元素: 递归不敢 —— 限制: 嵌套 return 仅常量元素)
+                let rt3: i64 = CUR_RET;
+                let et3: i64 = elem_type(rt3);
+                while ty_kind(et3) == 3 { et3 = elem_type(et3); }   # 最内元素类型
+                let lew3: i64 = ty_size(et3);                        # 叶子宽
+                let disp3: i64 = gv(K_DLEN);                         # FLAT 区基偏移
+                # 递归铺平（显式栈）
+                let cnt3: i64 = 0;
+                # 用 O_LSTV 区 (64+wp) 暂存叶子值 —— 1066 同区, 安全:
+                let sp3: i64 = heap + O_LSTV + 64 * 8;
+                let w3: i64 = 0;      # 叶子计数
+                let stk3: i64 = heap + O_LSTV;   # 深度栈: [0]=剩余逗号计数? 简化: 存未吃 ']'
+                let d3: i64 = 0;
+                # 入第一层
+                store64(stk3 + d3 * 8, 0);
+                d3 = d3 + 1;
+                let bad3: i64 = 0;
+                while d3 > 0 {
+                    if tok_is("[") == 1 {
+                        next_token();
+                        store64(stk3 + d3 * 8, 0);
+                        d3 = d3 + 1;
+                    } else {
+                        if tok_is("]") == 1 {
+                            next_token();
+                            d3 = d3 - 1;
+                            if d3 > 0 {
+                                if tok_is(",") == 1 { next_token(); }
+                                else { if tok_is("]") != 1 { bad3 = 1; } }
+                            }
+                        } else {
+                            if tok_is("-") == 1 {
+                                next_token();
+                                if gv(K_TKIND) == 2 {
+                                    if w3 < 4096 { store64(sp3 + w3 * 8, 0 - gv(K_TIVAL)); }
+                                    w3 = w3 + 1;
+                                    next_token();
+                                } else { bad3 = 1; }
+                            } else {
+                                if gv(K_TKIND) == 2 {
+                                    if w3 < 4096 { store64(sp3 + w3 * 8, gv(K_TIVAL)); }
+                                    w3 = w3 + 1;
+                                    next_token();
+                                } else { bad3 = 1; }
+                            }
+                            if tok_is(",") == 1 { next_token(); }
+                        }
+                    }
+                    if bad3 == 1 { break; }
+                }
+                if bad3 == 1 || d3 != 0 { return err_at2("nested array literal return: only constant elements supported", gv(K_LINE), gv(K_COL)); }
+                # 发射: 逐叶子 store 到 r10 缓冲
+                ops2(0x49, 0xba);
+                emit4(268435456 + rbo3);
+                emit4(0);
+                let k3: i64 = 0;
+                while k3 < w3 {
+                    let cv3: i64 = load64(sp3 + k3 * 8);
+                    if lew3 == 1 {
+                        g_movabs_rax(cv3);
+                        ops3(0x41, 0x88, 0x42);
+                        emit1(eo3);
+                    } else {
+                        g_movabs_rax(cv3);
+                        ops3(0x49, 0x89, 0x42);
+                        emit1(eo3);
+                    }
+                    eo3 = eo3 + lew3;
+                    k3 = k3 + 1;
+                }
+                sv(K_LAST, 0);
+                expect(";");
+                g_movabs_rax(268435456 + rbo3);
+                g_epilogue();
+                return 0;
+            }
             # movabs r10, imm64 = 49 BA + imm64（缓冲地址，little-endian）
             ops2(0x49, 0xba);
             emit4(268435456 + rbo3);
             emit4(0);   # 0x10000000 + rbo3（与 1096 缓冲约定一致）
-            let eo3: i64 = 0;
+            eo3 = 0;
             let ei3: i64 = 0;
             while tok_is("]") != 1 {
                 parse_expr();

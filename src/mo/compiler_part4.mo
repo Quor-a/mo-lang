@@ -1910,7 +1910,12 @@ fn parse_primary() -> i64 {
             }
             # 元素宽度决定加载宽度：byte 元素必须按 1 字节零扩展，
             # 否则 s[i] 会一次读进 8 个字节。
-            if ty_kind(e2) == 5 { g_load_at_b(); } else { g_load_at(); }
+            # v1.1136: 🔴 多维 a[i][j] —— index_addr 已消化全部 '['，
+            # load 宽度必须看**最内层**元素类型（e2 是内层数组时 8B
+            # load 会把整行读进来）
+            let e2f: i64 = e2;
+            while ty_kind(e2f) == 3 { e2f = elem_type(e2f); }
+            if ty_kind(e2f) == 5 { g_load_at_b(); } else { g_load_at(); }
             R_ETY = e2;
             # v1.1020: 数组元素函数指针调用 t[0](args)
             # rax 已是函数地址；push 保存，解析实参 push，逆序弹进寄存器
