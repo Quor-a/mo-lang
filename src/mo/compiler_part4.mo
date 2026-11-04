@@ -1990,7 +1990,85 @@ fn parse_primary() -> i64 {
                 sv(K_LAST, sl0);
                 set_back(sb0);
             }
-            index_addr(sy);
+                                    # v1.1138: 变量/表达式端切片 s[i..j]
+            # 两端 parse_expr（值入临时槽），运行时循环拷进轮转槽
+            let sty8: i64 = sym_type(sy);
+            if ty_kind(sty8) == 10 || (ty_kind(sty8) == 3 && ty_kind(elem_type(sty8)) == 5) {
+                let vb0: i64 = gv(K_TOKPOS);
+                let vc0: i64 = gv(K_CLEN);
+                let vo0: i64 = gv(K_CUROFF);
+                let vl0: i64 = gv(K_LAST);
+                let vcx0: i64 = gv(K_CRBX);
+                let vok: i64 = 1;
+                next_token();          # 吃 '['
+                spill_cache();
+                parse_expr();          # rax = start
+                g_push_rax();
+                if tok_is("..") == 0 { vok = 0; }
+                if vok == 1 {
+                    next_token();      # 吃 '..'
+                    spill_cache();
+                    parse_expr();      # rax = end
+                    if tok_is("]") == 0 { vok = 0; }
+                }
+                if vok == 1 {
+                    next_token();      # 吃 ']'
+                    if gv(K_SLBASE) < 0 {
+                        data_align(16);
+                        let sbse8: i64 = gv(K_DLEN);
+                        let sp8: i64 = 0;
+                        while sp8 < 1038 { dquad(0); sp8 = sp8 + 1; }
+                        sv(K_SLBASE, sbse8);
+                    }
+                    let sidx8: i64 = gv(K_SLIC) % 8;
+                    sv(K_SLIC, gv(K_SLIC) + 1);
+                    let sdst8: i64 = gv(K_SLBASE) + sidx8 * 1040;
+                    ops3(0x49, 0x89, 0xc1);          # mov r9, rax (end)
+                    g_pop_rax();                     # rax = start
+                    ops3(0x49, 0x89, 0xc4);          # mov r12, rax (start)
+                    ops3(0x4c, 0x89, 0xe1);          # mov rcx, r12
+                    ops3(0x4c, 0x29, 0xc9);          # sub rcx, r9
+                    ops3(0x48, 0xf7, 0xd9);          # neg rcx → len
+                    ops3(0x48, 0x81, 0xf9); emit4(1024);   # cmp rcx, 1024
+                    emit_jcc(0x87, panic_label());   # ja（无符号, 负=巨 ✓）
+                    # 源地址 rax = 基址 + start
+                    if ty_kind(sty8) == 10 { load_sym(sy); }
+                    else {
+                        if sym_kind(sy) == 1 { g_lea_local(sym_addr(sy)); }
+                        else { g_movabs_rax(sym_addr(sy)); }
+                    }
+                    ops3(0x4c, 0x01, 0xe0);          # add rax, r12
+                    ops2(0x49, 0xba);                # movabs r10, dst
+                    emit4(268435456 + sdst8);
+                    emit4(0);
+                    ops3(0x48, 0x85, 0xc9);          # test rcx,rcx
+                    let lp8: i64 = new_label();
+                    let dn8: i64 = new_label();
+                    emit_jcc(0x84, dn8);             # je done
+                    place_label(lp8);
+                    ops3(0x44, 0x8a, 0x18);          # mov r11b, [rax]
+                    ops3(0x45, 0x88, 0x1a);          # mov [r10], r11b
+                    ops3(0x48, 0xff, 0xc0);          # inc rax
+                    ops3(0x49, 0xff, 0xc2);          # inc r10
+                    ops3(0x48, 0xff, 0xc9);          # dec rcx
+                    emit_jcc(0x85, lp8);             # jnz loop
+                    place_label(dn8);
+                    ops2(0x30, 0xc0);                # xor al,al
+                    ops3(0x41, 0x88, 0x02);          # mov [r10], al
+                    g_movabs_rax(268435456 + sdst8);
+                    sv(K_LAST, 0);
+                    R_ETY = ty_str();
+                    return 0;
+                }
+                # 失败 → 回退重扫（K_CRBX 被 spill 清了 —— 左值缓存
+                # 的 push 字节已随 CLEN 回退撤销，标志必须恢复）
+                sv(K_CRBX, vcx0);
+                sv(K_CLEN, vc0);
+                sv(K_CUROFF, vo0);
+                sv(K_LAST, vl0);
+                set_back(vb0);
+            }
+index_addr(sy);
             let e2: i64 = elem_type(sym_type(sy));
             if tok_is(".") == 1 {
                 let ft: i64 = field_chain(e2);
