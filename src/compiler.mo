@@ -12922,6 +12922,12 @@ fn compile_file(path: i64) -> i64 {
     let s_base: i64 = gv(K_SRCBASE);
     let s_cf: i64 = gv(K_CURFILE);
     let s_in: i64 = INPATH;
+    # v1.1145: 🔴 行列状态也必须保存/恢复 —— 此前漏了 K_LINE/K_COL/
+    # K_CPOS，import 递归编译返回后 K_LINE 停在库文件末行，主文件
+    # 的所有 dbg_mark 行号全部错（ztS 实证：6 行文件全映射 610）。
+    let s_ln: i64 = gv(K_LINE);
+    let s_col: i64 = gv(K_COL);
+    let s_cpos: i64 = gv(K_CPOS);
 
     let k: i64 = gv(K_NFILE);
     if k >= 32 { return die("too many imported files (limit 32)\n"); }
@@ -12958,6 +12964,9 @@ fn compile_file(path: i64) -> i64 {
     sv(K_SRCBASE, s_base);
     sv(K_SRCLEN, s_srclen);
     sv(K_CURFILE, s_cf);
+    sv(K_LINE, s_ln);
+    sv(K_COL, s_col);
+    sv(K_CPOS, s_cpos);
     INPATH = s_in;
     set_back(s_tok);
     if en1 > en0 {

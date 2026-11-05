@@ -1,3 +1,8 @@
+## v1.1146.0
+
+- 🔴 DWARF 行号表修复：compile_file 恢复段漏恢复 K_LINE/K_COL/K_CPOS —— import 递归编译返回后 K_LINE 停在库文件末行，**主文件所有语句的行号全部错**（ztS 实证：6 行文件全映射 610；gdb 断点/变量查看形同虚设）。补三槽保存/恢复后：`break 文件:行` 精确命中、`print p` 显示 `{x=3, y=4}`、struct 类型 DIE + 变量 fbreg 全链可用（dwmo -l 校验：主文件 4 记录、覆盖率 99%、0 异常）
+- DWARF 基础（局部/全局变量/形参 DIE、struct 类型 DIE、.debug_frame CFI、dwmo 自包含校验器）为早期版本既有，本轮打通行号最后一环
+
 ## v1.1145.0
 
 - match 穷尽性静态检查：判别式为 enum variant（隐式 struct 名含 `$`）时，臂集合必须覆盖该 enum 全部数据变体 tag（EVST 反查 evi → EV_E 同名集合）；缺臂报编译错误 `match: 未穷尽`；守卫臂/绑定模式臂不算覆盖；`_` 通配臂豁免（O_SWDFT 标记）；源自社区调研项③后半
