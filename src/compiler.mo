@@ -58,6 +58,7 @@ var O_GAB: i64 = 88271872;   # instantiate 实参类型名：tidx*32
 var O_GBC: i64 = 88272896;   # 每个类型参数的 bound 个数：gidx*128 + tidx*8
 var O_GBB: i64 = 88276992;   # bound 的 interface 索引：gidx*512 + tidx*128 + bidx*8
 var O_BMSG: i64 = 88293376;   # 错误消息拼接缓冲
+var O_RUNA:  i64 = 88900000; # v1.1148 run 实参表 (2KB)
 var O_GENBUF: i64 = 89000000;  # 展开出的临时源码（1MB）
 var O_IFMB: i64 = 10010496;   # 接口方法名字符串缓冲：ifidx*512 + midx*32
 # ---- 泛型 trait bound ----
@@ -249,6 +250,8 @@ var K_COL:   i64 = 184;
 var K_CPOS:  i64 = 192;
 var K_PLINE: i64 = 200;
 var K_PCOL:  i64 = 208;
+var K_RUN:    i64 = 2496;   # v1.1148 run 模式标记
+var K_NRUNA:  i64 = 2504;   # v1.1148 run 实参数
 var K_SRCBASE: i64 = 216;
 var K_NFILE: i64 = 224;
 var K_NSTR:  i64 = 232;
@@ -15134,6 +15137,8 @@ fn main() -> i64 {
     let outpath: i64 = "out.elf";
     let npath: i64 = 0;
     sv(K_DBG, 0);
+    sv(K_RUN, 0);
+    sv(K_NRUNA, 0);
     sv(K_NDV, 0);
     sv(K_NDF, 0);
     sv(K_CURFN, 0);
@@ -15168,7 +15173,19 @@ fn main() -> i64 {
                                 inpath = a;
                                 npath = 1;
                             } else {
-                                outpath = a;
+                                # v1.1148: `moc prog.mo run args...` 一体化 CLI
+                                if streq(a, "run") == 1 && gv(K_RUN) == 0 {
+                                    sv(K_RUN, 1);
+                                    outpath = "/tmp/mo_run.elf";
+                                } else {
+                                    if gv(K_RUN) == 1 {
+                                        let ra: i64 = gv(K_NRUNA);
+                                        store64(heap + O_RUNA + ra * 8, a);
+                                        sv(K_NRUNA, ra + 1);
+                                    } else {
+                                        outpath = a;
+                                    }
+                                }
                             }
                         }
                     }
@@ -15366,6 +15383,27 @@ fn main() -> i64 {
     syscall(3, ofd, 0, 0, 0, 0, 0);
     # 有语法错误（elf 已生成）：退出码 1
     if had_err > 0 { return 1; }
+    # v1.1148: run 模式 —— chmod +x 后 fork+execve，把退出码原样返回
+    if gv(K_RUN) == 1 {
+        syscall(90, "/tmp/mo_run.elf", 493, 0, 0, 0, 0);   # chmod 0755
+        # argv: [elf, 用户实参..., 0] —— 拼在 O_RUNA 高位区
+        let ab: i64 = heap + O_RUNA + 2048;                 # argv 数组区 (表本体 1024 项在前)
+        store64(ab, "/tmp/mo_run.elf");
+        let ri: i64 = 0;
+        while ri < gv(K_NRUNA) {
+            store64(ab + (ri + 1) * 8, load64(heap + O_RUNA + ri * 8));
+            ri = ri + 1;
+        }
+        store64(ab + (gv(K_NRUNA) + 1) * 8, 0);
+        let pid: i64 = syscall(57, 0, 0, 0, 0, 0, 0);       # fork
+        if pid == 0 {
+            syscall(59, "/tmp/mo_run.elf", ab, 0, 0, 0, 0); # execve
+            syscall(60, 127, 0, 0, 0, 0, 0);                # exec 失败
+        }
+        let st: i64 = 0;
+        syscall(61, pid, &st, 0, 0, 0, 0);                  # wait4
+        return (st >> 8) % 256;
+    }
     return 0;
 }
 

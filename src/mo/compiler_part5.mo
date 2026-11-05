@@ -8364,6 +8364,8 @@ fn main() -> i64 {
     let outpath: i64 = "out.elf";
     let npath: i64 = 0;
     sv(K_DBG, 0);
+    sv(K_RUN, 0);
+    sv(K_NRUNA, 0);
     sv(K_NDV, 0);
     sv(K_NDF, 0);
     sv(K_CURFN, 0);
@@ -8398,7 +8400,19 @@ fn main() -> i64 {
                                 inpath = a;
                                 npath = 1;
                             } else {
-                                outpath = a;
+                                # v1.1148: `moc prog.mo run args...` 一体化 CLI
+                                if streq(a, "run") == 1 && gv(K_RUN) == 0 {
+                                    sv(K_RUN, 1);
+                                    outpath = "/tmp/mo_run.elf";
+                                } else {
+                                    if gv(K_RUN) == 1 {
+                                        let ra: i64 = gv(K_NRUNA);
+                                        store64(heap + O_RUNA + ra * 8, a);
+                                        sv(K_NRUNA, ra + 1);
+                                    } else {
+                                        outpath = a;
+                                    }
+                                }
                             }
                         }
                     }
@@ -8596,6 +8610,27 @@ fn main() -> i64 {
     syscall(3, ofd, 0, 0, 0, 0, 0);
     # 有语法错误（elf 已生成）：退出码 1
     if had_err > 0 { return 1; }
+    # v1.1148: run 模式 —— chmod +x 后 fork+execve，把退出码原样返回
+    if gv(K_RUN) == 1 {
+        syscall(90, "/tmp/mo_run.elf", 493, 0, 0, 0, 0);   # chmod 0755
+        # argv: [elf, 用户实参..., 0] —— 拼在 O_RUNA 高位区
+        let ab: i64 = heap + O_RUNA + 2048;                 # argv 数组区 (表本体 1024 项在前)
+        store64(ab, "/tmp/mo_run.elf");
+        let ri: i64 = 0;
+        while ri < gv(K_NRUNA) {
+            store64(ab + (ri + 1) * 8, load64(heap + O_RUNA + ri * 8));
+            ri = ri + 1;
+        }
+        store64(ab + (gv(K_NRUNA) + 1) * 8, 0);
+        let pid: i64 = syscall(57, 0, 0, 0, 0, 0, 0);       # fork
+        if pid == 0 {
+            syscall(59, "/tmp/mo_run.elf", ab, 0, 0, 0, 0); # execve
+            syscall(60, 127, 0, 0, 0, 0, 0);                # exec 失败
+        }
+        let st: i64 = 0;
+        syscall(61, pid, &st, 0, 0, 0, 0);                  # wait4
+        return (st >> 8) % 256;
+    }
     return 0;
 }
 

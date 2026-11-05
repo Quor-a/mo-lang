@@ -1,3 +1,10 @@
+## v1.1148.0
+
+- 一体化 CLI：`moc prog.mo run [args...]` —— 编译到 /tmp/mo_run.elf + chmod + fork/execve，实参经 argc()/argv() 原样透传，子进程退出码即 moc 退出码（exec 失败 127，与 shell 一致）
+- 🔴 K_RUN 槽选低段（712）被编译中段临时写覆盖 → run 分支永不执行（strace 无 chmod 实锤）；改用扫描确认的 2496/2504
+- 🔴 K_RUN/K_NRUNA 必须在 main 开头清零（brk 堆初值非零）
+- tests/329_run_cli.mo（argc 基线 1/3 双模式）+ docs/run-cli.md
+
 ## v1.1147.0
 
 - 🔴 真 bug（v1.1144 引入）：enum 变体绑定臂 `A(x)` 漏配 O_SWGL 守卫标签 —— SWGL 仅在表达式守卫臂（SWG[i]==1）分配，绑定臂（SWVB[i]!=0）未设 SWG → SWGL[i]=0 → 发射段 `emit_jmp(0)` + 匹配点 `place_label(0)` 二次覆盖 label 0（import 库函数最先分配的 label，如 strlen 的 loop head）→ 库函数循环回跳 jmp 飞到 match 段（ztB 实证：strlen 返回 9 = B 臂 ret 地址）。修复：SWGL 分配条件扩为 `SWG[i]==1 || SWVB[i]!=0`（match 语句+表达式两处）

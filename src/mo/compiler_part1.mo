@@ -58,6 +58,7 @@ var O_GAB: i64 = 88271872;   # instantiate 实参类型名：tidx*32
 var O_GBC: i64 = 88272896;   # 每个类型参数的 bound 个数：gidx*128 + tidx*8
 var O_GBB: i64 = 88276992;   # bound 的 interface 索引：gidx*512 + tidx*128 + bidx*8
 var O_BMSG: i64 = 88293376;   # 错误消息拼接缓冲
+var O_RUNA:  i64 = 88900000; # v1.1148 run 实参表 (2KB)
 var O_GENBUF: i64 = 89000000;  # 展开出的临时源码（1MB）
 var O_IFMB: i64 = 10010496;   # 接口方法名字符串缓冲：ifidx*512 + midx*32
 # ---- 泛型 trait bound ----
@@ -249,6 +250,8 @@ var K_COL:   i64 = 184;
 var K_CPOS:  i64 = 192;
 var K_PLINE: i64 = 200;
 var K_PCOL:  i64 = 208;
+var K_RUN:    i64 = 2496;   # v1.1148 run 模式标记
+var K_NRUNA:  i64 = 2504;   # v1.1148 run 实参数
 var K_SRCBASE: i64 = 216;
 var K_NFILE: i64 = 224;
 var K_NSTR:  i64 = 232;
