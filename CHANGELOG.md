@@ -1,3 +1,9 @@
+## v1.1149.0
+
+- match 区间臂：`match x { 90..100 => ..., 60..89 => ..., _ => ... }` —— 闭区间 [lo, hi]，语句与表达式两种形式；发射 cmp lo/jl + cmp hi/jg + jmp 臂；区间臂豁免重复模式检测、不算穷尽覆盖；O_SWRG/O_SWRH 表（8842000/8843000）
+- 🔴 模式第二遍（臂循环）必须吃掉 `lo .. hi` 三个 token（此前空豁免把模式 token 留在流里 → expect("=>") 报错）；sw_const 豁免只加在循环变量为 i 的三处（match 语句/表达式/switch case），mt_scan 内 struct 字段两处保持原样（该上下文无 i）
+- tests/330_range_match.mo（4 区间 + 表达式版 + default）
+
 ## v1.1148.0
 
 - 一体化 CLI：`moc prog.mo run [args...]` —— 编译到 /tmp/mo_run.elf + chmod + fork/execve，实参经 argc()/argv() 原样透传，子进程退出码即 moc 退出码（exec 失败 127，与 shell 一致）

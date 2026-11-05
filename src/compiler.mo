@@ -9639,6 +9639,8 @@ var O_SWSM:  i64 = 8773000;   # v1.1103: match struct 模式区。每臂 64 槽�
                               #   128 臂 × 64 槽 × 8 = 65536 字节（至 8838536）。
 var O_SWSN:  i64 = 8839000;   # v1.1103: struct 模式结构体类型（ty_struct 值，n*8，128 项）
 var O_SWVB:  i64 = 8840000;   # v1.1107: 守卫臂绑定名 intern id（n*8，128 项）
+var O_SWRG:  i64 = 8842000;   # v1.1149: 区间臂标记 (n*8, 128 项)
+var O_SWRH:  i64 = 8843000;   # v1.1149: 区间臂上界 (n*8, 128 项)
 var O_SWSB:  i64 = 8840000;   # v1.1104: struct 模式字段**绑定名**（intern id，臂×31；0=常量比较）
 
 # 读一个编译期常量写入 *out：整数字面量 / 前导负号 / enum 常量。
@@ -9992,7 +9994,9 @@ fn parse_switch() -> i64 {
                 if load64(heap + SWSTR + i * 8) != 1 { return sw_fail("switch: 字符串与整数 case 不能混用", base); }
                 next_token();
             } else {
-                if sw_const(heap + O_SWC) == 0 {
+                if load64(heap + O_SWRG + i * 8) == 1 {
+                next_token(); next_token(); next_token();   # v1.1149: 吃 lo .. hi（模式已在 scan 收录）
+            } else if sw_const(heap + O_SWC) == 0 {
                     return sw_fail("switch: case 必须是编译期常量", base);
                 }
             }
@@ -10170,7 +10174,16 @@ fn mt_scan(vals: i64) -> i64 {
             if n >= 128 { return 0 - 1; }
             store64(vals + n * 8, gv(K_TIVAL));
             store64(heap + SWSTR + n * 8, 0);   # v1.1102: 🔴 清残留（上一函数的字符串模式标记会让本函数数字 match 误走 g_str_eq 链，pth/pti 探针实证）
+            store64(heap + O_SWRG + n * 8, 0);
             next_token();
+            # v1.1149: 区间臂 `lo..hi` —— 闭区间 [lo, hi]
+            if tok_is("..") == 1 {
+                next_token();
+                if gv(K_TKIND) != 2 { return 0 - 2; }
+                store64(heap + O_SWRG + n * 8, 1);
+                store64(heap + O_SWRH + n * 8, gv(K_TIVAL));
+                next_token();
+            }
             n = n + 1;
         } else {
         if gv(K_TKIND) == 1 {
@@ -10487,6 +10500,7 @@ fn parse_match() -> i64 {
     while cz < 128 {
         store64(heap + O_SWG + cz * 8, 0);
         store64(heap + O_SWVB + cz * 8, 0);
+        store64(heap + O_SWRG + cz * 8, 0);
         store64(heap + SWSTR + cz * 8, 0);
         store64(heap + O_SWSN + cz * 8, 0);
         cz = cz + 1;
@@ -10502,7 +10516,7 @@ fn parse_match() -> i64 {
         if load64(heap + O_SWG + qi * 8) == 1 { qi = qi + 1; continue; }   # 守卫臂豁免
         let qj: i64 = 0;
         while qj < qi {
-            if load64(vals + qi * 8) == load64(vals + qj * 8) && load64(heap + O_SWSN + qi * 8) != 1 && load64(heap + O_SWSN + qj * 8) != 1 && load64(heap + O_SWG + qi * 8) != 1 && load64(heap + O_SWG + qj * 8) != 1 {
+            if load64(vals + qi * 8) == load64(vals + qj * 8) && load64(heap + O_SWSN + qi * 8) != 1 && load64(heap + O_SWSN + qj * 8) != 1 && load64(heap + O_SWG + qi * 8) != 1 && load64(heap + O_SWG + qj * 8) != 1 && load64(heap + O_SWRG + qi * 8) != 1 && load64(heap + O_SWRG + qj * 8) != 1 {
                 store64(heap + O_SWTOP, base);
                 return err_atp("match: duplicate pattern value", gv(K_PLINE), gv(K_PCOL), gv(K_PPOS));
             }
@@ -10610,6 +10624,20 @@ fn parse_match() -> i64 {
                 i = i + 1;
                 continue;
             }
+            # v1.1149: 区间臂 —— cmp lo / jl 下一臂, cmp hi / jg 下一臂, jmp 臂
+            if load64(heap + O_SWRG + i * 8) == 1 {
+                emit1(0x48); emit1(0x3d); emit4(load64(vals + i * 8));    # cmp rax, lo
+                let rgl: i64 = new_label();
+                emit_jcc(0x8c, rgl);                                      # jl 下一臂
+                emit1(0x48); emit1(0x3d); emit4(load64(heap + O_SWRH + i * 8));  # cmp rax, hi
+                let rgh: i64 = new_label();
+                emit_jcc(0x8f, rgh);                                      # jg 下一臂
+                emit_jmp(load64(lbls + i * 8));                           # 命中
+                place_label(rgl);
+                place_label(rgh);
+                i = i + 1;
+                continue;
+            }
             emit1(0x48); emit1(0x3d); emit4(load64(vals + i * 8));   # cmp rax, imm32
             if load64(heap + O_SWG + i * 8) == 1 {
                 emit_jcc(0x84, load64(heap + O_SWGL + i * 8));       # je 守卫检查点
@@ -10711,7 +10739,9 @@ fn parse_match() -> i64 {
                 store64(heap + O_STY + wbid * 8, ty_int());
                 next_token();               # 吃绑定名
             } else {
-            if sw_const(heap + O_SWC) == 0 {
+            if load64(heap + O_SWRG + i * 8) == 1 {
+                next_token(); next_token(); next_token();   # v1.1149: 吃 lo .. hi（模式已在 scan 收录）
+            } else if sw_const(heap + O_SWC) == 0 {
                 loop_pop();
                 store64(heap + O_SWTOP, base);
                 return err_atp("match: 模式必须是编译期常量", gv(K_PLINE), gv(K_PCOL), gv(K_PPOS));
@@ -10790,6 +10820,7 @@ fn parse_match_expr(hs_off: i64) -> i64 {
     while cz < 128 {
         store64(heap + O_SWG + cz * 8, 0);
         store64(heap + O_SWVB + cz * 8, 0);
+        store64(heap + O_SWRG + cz * 8, 0);
         store64(heap + SWSTR + cz * 8, 0);
         store64(heap + O_SWSN + cz * 8, 0);
         cz = cz + 1;
@@ -10804,7 +10835,7 @@ fn parse_match_expr(hs_off: i64) -> i64 {
     while qi < n {
         let qj: i64 = 0;
         while qj < qi {
-            if load64(vals + qi * 8) == load64(vals + qj * 8) && load64(heap + O_SWSN + qi * 8) != 1 && load64(heap + O_SWSN + qj * 8) != 1 && load64(heap + O_SWG + qi * 8) != 1 && load64(heap + O_SWG + qj * 8) != 1 {
+            if load64(vals + qi * 8) == load64(vals + qj * 8) && load64(heap + O_SWSN + qi * 8) != 1 && load64(heap + O_SWSN + qj * 8) != 1 && load64(heap + O_SWG + qi * 8) != 1 && load64(heap + O_SWG + qj * 8) != 1 && load64(heap + O_SWRG + qi * 8) != 1 && load64(heap + O_SWRG + qj * 8) != 1 {
                 store64(heap + O_SWTOP, base);
                 return err_atp("match: duplicate pattern value", gv(K_PLINE), gv(K_PCOL), gv(K_PPOS));
             }
@@ -10895,6 +10926,20 @@ fn parse_match_expr(hs_off: i64) -> i64 {
             if load64(heap + O_SWVB + i * 8) != 0 {
                 emit_jmp(load64(heap + O_SWGL + i * 8));
             } else {
+            # v1.1149: 区间臂
+            if load64(heap + O_SWRG + i * 8) == 1 {
+                emit1(0x48); emit1(0x3d); emit4(load64(vals + i * 8));
+                let rgl2: i64 = new_label();
+                emit_jcc(0x8c, rgl2);
+                emit1(0x48); emit1(0x3d); emit4(load64(heap + O_SWRH + i * 8));
+                let rgh2: i64 = new_label();
+                emit_jcc(0x8f, rgh2);
+                emit_jmp(load64(lbls + i * 8));
+                place_label(rgl2);
+                place_label(rgh2);
+                i = i + 1;
+                continue;
+            }
             emit1(0x48); emit1(0x3d); emit4(load64(vals + i * 8));   # cmp rax, imm32
             if load64(heap + O_SWG + i * 8) == 1 { emit_jcc(0x84, load64(heap + O_SWGL + i * 8)); }
             else { emit_jcc(0x84, load64(lbls + i * 8)); }
@@ -10995,7 +11040,9 @@ fn parse_match_expr(hs_off: i64) -> i64 {
                     store64(heap + O_STY + vbid * 8, ty_int());
                     next_token();               # 吃绑定名
                 } else {
-                if sw_const(heap + O_SWC) == 0 {
+                if load64(heap + O_SWRG + i * 8) == 1 {
+                next_token(); next_token(); next_token();   # v1.1149: 吃 lo .. hi（模式已在 scan 收录）
+            } else if sw_const(heap + O_SWC) == 0 {
                     sv(K_DEPTH, d - 1);
                     store64(heap + O_SWTOP, base);
                     return err_atp("match: 模式必须是编译期常量", gv(K_PLINE), gv(K_PCOL), gv(K_PPOS));
