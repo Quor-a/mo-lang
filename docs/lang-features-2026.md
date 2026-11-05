@@ -280,3 +280,31 @@ r._1;     # 4.0
 - 字段类型支持 i64 / f64 / byte / bool / str / ptr / 已定义 struct。
 - 构造表达式生成数据段静态对象；`let x = S.V(...)` 按块拷贝到局部。
 - 无数据变体（`Circle;`）仍按普通枚举常量返回 int（v1.1051 语义不变）。
+
+
+## v1.1143 — `?` 错误传播
+
+```mo
+fn risky(x: i64) -> i64 {
+    if x < 0 { return x; }   # 负值 = 错误码
+    return x * 2;
+}
+fn work(x: i64) -> i64 {
+    defer { print("cleanup\n"); }
+    let a = risky(x)?;       # <0 就地重放 defer 并返回错误码
+    return a;
+}
+```
+
+- 约定：错误码为负 i64；`expr?` 仅可用于返回 i64 的函数。
+- `?` 触发时按 LIFO 重放本函数已登记的 defer，再以错误码返回。
+- defer 支持块形式 `defer { ... }` 与单语句形式 `defer stmt;`。
+
+### `?` 错误传播（v1.1075 引入；v1.1143 修复 defer 重放）
+`expr?`：expr 求值结果 <0（i64 约定错误码）时，跳到函数尾错误出口，重放 defer 并以错误码返回。
+- v1.1143 修复：错误出口此前不重放 defer（DFTH 已被 parse_return 清零）——parse_return 改 keep、错误出口条件发射重放。
+```mo
+fn risky(x: i64) -> i64 { if x < 0 { return 0 - 1; } return x * 2; }
+fn main() -> i64 { let a = risky(-1)?; return 99; }  # main 返回 -1
+```
+- defer 块形式 `defer { ... }` 一并修复（旧版只扫 `;`，块体会吞掉后续语句）。

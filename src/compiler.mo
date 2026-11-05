@@ -3672,8 +3672,6 @@ fn parse_expr() -> i64 {
     return 0;
 }
 
-# v1.1069: 三元 `cond ? a : b`。进入时 cond 已求值在 rax。
-# 两分支各求值不落栈，跳转汇合处 rax 即选中值（a 分支 jmp 越过 b）。
 fn parse_ternary() -> i64 {
     let lelse: i64 = new_label();
     let lend: i64 = new_label();
@@ -4462,6 +4460,10 @@ fn parse_alignof() -> i64 {
     return 0;
 }
 
+# v1.1143: `expr?` —— expr 求值后 rax<0 则当前函数立即以
+# 该错误码返回（跳到函数尾 O_ERRLAB 错误出口，重放 defer）。
+# 约定：错误码为负 i64（err 系函数返回负值）。仅当当前函数
+# 返回类型为 i64 时可用。
 fn parse_unary() -> i64 {
     if tok_is("sizeof") == 1 { next_token(); return parse_sizeof(); }
     if tok_is("alignof") == 1 { next_token(); return parse_alignof(); }
@@ -7316,11 +7318,47 @@ fn parse_stmt() -> i64 {
         }
         next_token();                  # 吃 'defer'
         let ds0: i64 = gv(K_TOKPOS);   # defer 体起点
-        # 扫到深度 0 的 ';'（跳过字符串/花括号内）
+        # v1.1143: 块形式 `defer { ... }` —— 扫到匹配的 '}' 即止
+        #（不带分号）。旧逻辑只认 ';'，会一直吞到下一行语句的
+        # 分号，把后续语句整个吞掉（z53 实证：let a=5 消失）。
+        let blk0: i64 = 0;
+        if gv(K_TKIND) == 4 && sbyte(gv(K_TOKPOS)) == 123 { blk0 = 1; }
+
         let q0: i64 = gv(K_POS);
         let n0: i64 = gv(K_SRCLEN);
         let dep0: i64 = 0;
         let go0: i64 = 1;
+        if blk0 == 1 {
+            q0 = gv(K_TOKPOS) + 1;   # '{' 之后开始扫
+            # 块形式：{...}（初始 '{' 深度 1，遇到回到 0 的 '}' 停）
+            dep0 = 1;
+            q0 = q0 + 1;
+            while go0 == 1 {
+                if q0 >= n0 { go0 = 0; }
+                else {
+                    let c0: i64 = sbyte(q0);
+                    if c0 == 34 {
+                        q0 = q0 + 1;
+                        while q0 < n0 {
+                            if sbyte(q0) == 92 { q0 = q0 + 1; }
+                            else {
+                                if sbyte(q0) == 34 { break; }
+                            }
+                            q0 = q0 + 1;
+                        }
+                    } else {
+                        if c0 == 40 || c0 == 91 || c0 == 123 { dep0 = dep0 + 1; }
+                        else {
+                            if c0 == 41 || c0 == 93 || c0 == 125 {
+                                dep0 = dep0 - 1;
+                                if dep0 == 0 { q0 = q0 + 1; go0 = 0; }
+                            }
+                        }
+                    }
+                    if go0 == 1 { q0 = q0 + 1; }
+                }
+            }
+        } else {
         while go0 == 1 {
             if q0 >= n0 { go0 = 0; }
             else {
@@ -7346,7 +7384,8 @@ fn parse_stmt() -> i64 {
                 q0 = q0 + 1;
             }
         }
-        # q0 现在指向 ';' 之后一个字节 = 区间端
+        }
+        # q0 现在指向 ';' 之后一个字节（块形式 = '}' 之后）= 区间端
         DFTS[DFTH] = ds0;
         DFTE[DFTH] = q0;
         DFTH = DFTH + 1;
@@ -10839,6 +10878,35 @@ fn run_defers() -> i64 {
     return 0;
 }
 
+fn run_defers_keep() -> i64 {
+    if DFTH == 0 { return 0; }
+    # 🔴 重放会推进词法状态（重放语句吃自己的 ';' 后继续），
+    # 而调用方（parse_block 循环）还要从**原位置**继续解析 ——
+    # 不恢复的话 let/return 会被二次解析（duplicate definition）。
+    # K_POS 保存的是"当前 token 已消费完、下一 token 起点"，
+    # 恢复后 next_token 重扫即可（tokbuf 随之恢复）。
+    let sp0: i64 = gv(K_TOKPOS);   # 当前 token 起点（K_POS 已指向下一 token）
+    emit1(0x52);                     # push rdx
+    emit1(0x50);                     # push rax
+    let sd0: i64 = DFTH;
+    # v1.1143: keep 版不清 DFTH —— `?` 就地重放与正常 return 的
+    # 清零重放运行时互斥（走 `?` 出口就不会再走 return 路径）。
+    let di0: i64 = sd0 - 1;
+    while di0 >= 0 {
+        sv(K_POS, DFTS[di0]);
+        sv(K_TOKPOS, DFTS[di0]);
+        next_token();
+        parse_stmt();
+        di0 = di0 - 1;
+    }
+    sv(K_POS, sp0);
+    sv(K_TOKPOS, sp0);
+    next_token();
+    emit1(0x58);                     # pop rax
+    emit1(0x5a);                     # pop rdx
+    return 0;
+}
+
 fn parse_return() -> i64 {
     sv(K_HASRET, 1);
     if tok_is(";") == 1 {
@@ -10896,7 +10964,7 @@ fn parse_return() -> i64 {
                         ops3(0x48, 0x8b, 0x56);     # mov rdx, [rsi+8]
                         emit1(8);
                     }
-                    run_defers();
+                    run_defers_keep();
         g_epilogue();
                     return 0;
                 } else {
@@ -10924,7 +10992,7 @@ fn parse_return() -> i64 {
             ops3(0x48, 0x8b, 0x56);        # mov rdx, [rsi+8]
             emit1(8);
         }
-        run_defers();
+        run_defers_keep();
         g_epilogue();
         return 0;
     }
@@ -11025,7 +11093,7 @@ fn parse_return() -> i64 {
                 sv(K_LAST, 0);
                 expect(";");
                 g_movabs_rax(268435456 + rbo3);
-                run_defers();
+                run_defers_keep();
         g_epilogue();
                 return 0;
             }
@@ -11055,7 +11123,7 @@ fn parse_return() -> i64 {
             next_token();                      # 吃 ']'
             expect(";");
             g_movabs_rax(268435456 + rbo3);
-            run_defers();
+            run_defers_keep();
         g_epilogue();
             return 0;
         }
@@ -11092,18 +11160,18 @@ fn parse_return() -> i64 {
             g_movabs_rax(268435456 + rbo);     # rax = 目的（缓冲）
             g_copy_words(asz / 8);
             g_movabs_rax(268435456 + rbo);     # 返回缓冲地址
-            run_defers();
+            run_defers_keep();
         g_epilogue();
             return 0;
         }
         g_addr_sym_rax(as2);
-        run_defers();
+        run_defers_keep();
         g_epilogue();
         return 0;
     }
     parse_expr();
     expect(";");
-    run_defers();
+    run_defers_keep();
         g_epilogue();
     return 0;
 }
@@ -12377,8 +12445,15 @@ fn parse_func() -> i64 {
     # 直接走标准尾声即可（与正常 return 共用同一份尾声代码）。
     # 必须放在 g_epilogue **之前** —— 放在之后就成了跳到 ret 后面。
     let el2: i64 = load64(heap + O_ERRLAB);
-    if el2 >= 0 { place_label(el2); }
-    run_defers();
+    if el2 >= 0 {
+        place_label(el2);
+        # v1.1143: `?` 的 jl 跳到此 —— 重放 defer（此时 moc 
+        # 运行时 DFTH 完整：parse_return 已改用 keep 不清）。
+        # 仅在有 `?` 的函数发射 —— 无 `?` 时正常 return 的 
+        # keep 重放已覆盖（无条件发射会二次重放，符号表状态
+        # 在尾声阶段出问题：z58 'x' undefined 实证）。
+        run_defers();
+    }
     g_epilogue();
     # -g：回填本函数的 high_pc（当前代码末尾）
     if gv(K_DBG) == 1 {
@@ -16391,3 +16466,4 @@ fn parse_component() -> i64 {
     next_token();
     return 0;
 }
+

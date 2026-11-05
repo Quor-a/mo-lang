@@ -682,8 +682,6 @@ fn parse_expr() -> i64 {
     return 0;
 }
 
-# v1.1069: 三元 `cond ? a : b`。进入时 cond 已求值在 rax。
-# 两分支各求值不落栈，跳转汇合处 rax 即选中值（a 分支 jmp 越过 b）。
 fn parse_ternary() -> i64 {
     let lelse: i64 = new_label();
     let lend: i64 = new_label();
@@ -1472,6 +1470,10 @@ fn parse_alignof() -> i64 {
     return 0;
 }
 
+# v1.1143: `expr?` —— expr 求值后 rax<0 则当前函数立即以
+# 该错误码返回（跳到函数尾 O_ERRLAB 错误出口，重放 defer）。
+# 约定：错误码为负 i64（err 系函数返回负值）。仅当当前函数
+# 返回类型为 i64 时可用。
 fn parse_unary() -> i64 {
     if tok_is("sizeof") == 1 { next_token(); return parse_sizeof(); }
     if tok_is("alignof") == 1 { next_token(); return parse_alignof(); }

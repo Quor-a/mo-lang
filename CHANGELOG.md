@@ -1,3 +1,10 @@
+## v1.1143.0
+
+- `?` 错误传播运算符：`expr?` 求值结果 <0 时就地重放 defer 并以该错误码返回（仅限返回 i64 的函数）；源自社区调研项①（Rust `?` 共识）
+- defer 块形式 `defer { ... }` 修复：旧逻辑只认 `;`，块形式会把后续语句整个吞进 defer 体（z53 实证）
+- `?` 错误路径 defer 重放修复：`?` 的 jl 汇合段此前发射为空（body 编译完时 moc 运行时 DFTH 已被 parse_return 清零）→ parse_return 改用 run_defers_keep（不清 DFTH），汇合段仅在含 `?` 的函数发射 run_defers 清零版（无条件发射会二次重放致符号表错乱，z58 实证）
+- 🔴 `?` 二义消解：v1.1075 既有实现（parse_primary 内 emit_err_propagate + O_ERRLAB 汇合段）——本轮曾重复实现后回滚，教训：patch 前先 grep 全部实现点（不清 DFTH），否则同一函数正常 return 的 defer 重放被清空丢失（z51 实证）
+
 ## v1.1142.0
 
 - enum 带数据变体（tagged union 构造）：`enum S { Circle(f64); Rect(f64, f64); }`（变体 ';' 分隔）；每个数据变体注册隐式 struct "Enum$Variant"={tag:i64;_0:...}；构造 `S.Circle(2.5)` 生成静态对象（tag 编译期 + 字段运行时 store，槽位 dquad 预留），支持 i64/f64/byte/bool/str/ptr/struct 字段；字段访问 `x._0`/`x.tag`；源自社区调研项③（tagged union）
