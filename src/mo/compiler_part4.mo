@@ -1673,6 +1673,8 @@ fn parse_primary() -> i64 {
                     # 下一个对象叠在运行时字段上（z47 实证 r.tag 读到 2.5）
                     let zq: i64 = 0;
                     let zw: i64 = st_words(vsi2) - 1;
+                    if zw == 0 { return err_atp("ZW0", gv(K_PLINE), gv(K_PCOL), gv(K_PPOS)); }
+                    if zw > 4 { return err_atp("ZWBIG", gv(K_PLINE), gv(K_PCOL), gv(K_PPOS)); }
                     while zq < zw { dquad(0); zq = zq + 1; }
                     let nf2: i64 = load64(heap + EV_N + evf * 8);
                     let fi3: i64 = 0;

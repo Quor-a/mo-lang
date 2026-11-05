@@ -1,3 +1,9 @@
+## v1.1144.0
+
+- enum 变体模式 match（tagged union 穷尽绑定）：`match v { Circle(r) => ..., Rect(w,h) => ... }`——数据变体臂直接绑定 payload 字段（i64/双绑定/函数形参 enum/多臂混合全支持）；臂内绑定 slot1 起（slot0=tag），发射复用 struct 模式通道；源自社区调研项③
+- 🔴 三大教训：intern() 不去重（跨表名字比较必须逐字节 ev_streq）；EV 表 EV_E=枚举名/EV_C=变体名（v1.1142 注释与命名相反，按实况修正）；新增 K_ 槽必须先正则扫全部 `var K_\w+: i64 = N;` 占用表（K_SLA/K_SLL 初版 392/400→448/456 两度撞 K_NLM/K_TFLT/K_SHSTRLEN/K_CRBX 缓存协议槽 → strlen 恒返 9 → 终定 696/704）
+- str 字面量去重池（lex_string）：O_STRS 内查重命中复用旧地址；mt_scan 跳臂体时记录/回滚 K_DLEN/K_NSTR 防臂体 str 双登记覆盖
+
 ## v1.1143.0
 
 - `?` 错误传播运算符：`expr?` 求值结果 <0 时就地重放 defer 并以该错误码返回（仅限返回 i64 的函数）；源自社区调研项①（Rust `?` 共识）

@@ -308,3 +308,7 @@ fn risky(x: i64) -> i64 { if x < 0 { return 0 - 1; } return x * 2; }
 fn main() -> i64 { let a = risky(-1)?; return 99; }  # main 返回 -1
 ```
 - defer 块形式 `defer { ... }` 一并修复（旧版只扫 `;`，块体会吞掉后续语句）。
+
+### v1.1144.0 enum 变体模式 match
+
+数据变体（v1.1142）的臂绑定：`match v { Circle(r) => ..., Rect(w, h) => ... }`——臂首名是数据变体时绑定 payload 字段到臂内变量（slot0=tag、slot1 起为绑定），无数据变体臂仍按常量比较。混合多臂、函数形参 enum、双绑定均支持。穷尽性静态检查未做，缺失臂运行时走 panic。

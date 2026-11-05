@@ -3507,6 +3507,61 @@ fn mt_scan(vals: i64) -> i64 {
             if gv(K_TKIND) == 1 && streq(tokbuf(), "_") != 1 {
                 memcpy(scratch1(), tokbuf());
             }
+            # v1.1144: tagged-union 变体模式 `Circle(r, s) =>` ——
+            # 未定义标识符 + EV 表命中 → 变体模式：tag 项 (off=0,
+            # val=EV_TAG) + 绑定项 (_0.._n-1, val=-1)，复用 struct
+            # 模式发射与臂内绑定机制。
+            # v1.1144: 变体名 (EV 命中) + '(' → 变体模式。
+            # 🔴 不能要求 enum_value<0：数据变体名已注册 enum 常量
+            # （值=tag），sw_const 会吃掉名字致 '(' 悬空。
+            # 🔴 词法前瞻 '(' 判定，不匹配则回退（哨兵 pk3）。
+            if gv(K_TKIND) == 1 && streq(tokbuf(), "_") != 1 && ev_lookup(tokbuf()) >= 0 {
+                let pk3: i64 = gv(K_TOKPOS);
+                memcpy(scratch3(), tokbuf());   # 变体名
+                next_token();
+                if tok_is("(") == 0 { set_back(pk3); }
+                if tok_is("(") != 0 {
+                let evi: i64 = ev_lookup(scratch3());
+                next_token();
+                # 拼隐式 struct 名 "Enum$Variant" → vsi
+                let enmp: i64 = heap + O_NAMES + load64(heap + EV_E + evi * 8);   # enum 名（EV_E）
+                let sname2: i64 = heap + O_SCAL + 21000;
+                memcpy(sname2, enmp);
+                let sl2: i64 = 0;
+                while load8(sname2 + sl2) != 0 { sl2 = sl2 + 1; }
+                store8(sname2 + sl2, 36);       # '$'
+                memcpy(sname2 + sl2 + 1, scratch3());
+                let vsi2: i64 = st_lookup(sname2);
+                if vsi2 < 0 { return 0 - 2; }
+                let smbase2: i64 = n * 64;
+                store64(heap + O_SWSM + (smbase2 + 0) * 8, vsi2);
+                store64(vals + n * 8, 0);
+                store64(heap + SWSTR + n * 8, 0);
+                # slot0 = tag 比较项
+                store64(heap + O_SWSB + (smbase2 / 64 * 31 + 0) * 8, 0);
+                store64(heap + O_SWSM + (smbase2 + 2 + 0 * 2) * 8, 0);          # tag off=0
+                store64(heap + O_SWSM + (smbase2 + 3 + 0 * 2) * 8, load64(heap + EV_TAG + evi * 8));
+                let cnt2: i64 = 1;
+                while tok_is(")") == 0 {
+                    if gv(K_TKIND) != 1 { return 0 - 2; }
+                    memcpy(scratch3(), tokbuf());   # 绑定名
+                    store64(heap + O_SWSB + (smbase2 / 64 * 31 + cnt2) * 8, intern(scratch3()));
+                    store64(heap + O_SWSM + (smbase2 + 2 + cnt2 * 2) * 8, st_field_off(vsi2, cnt2));   # _0=字段 1 (tag=字段 0) → fidx=cnt2
+                    store64(heap + O_SWSM + (smbase2 + 3 + cnt2 * 2) * 8, 0 - 1);   # 绑定
+                    next_token();
+                    if accept(",") == 0 {
+                        if tok_is(")") == 0 { return 0 - 2; }
+                    }
+                    cnt2 = cnt2 + 1;
+                }
+                next_token();                    # 吃 ')'
+                store64(heap + O_SWSM + (smbase2 + 1) * 8, cnt2);
+                store64(heap + O_SWSN + n * 8, 1);
+                n = n + 1;
+                continue;
+                }    # '(' 前瞻命中分支尾
+                set_back(pk3);
+            }
             if gv(K_TKIND) == 1 && streq(tokbuf(), "_") != 1 && sym_lookup(scratch1()) < 0 && enum_value(scratch1()) < 0 {
                 memcpy(scratch3(), tokbuf());
                 store64(heap + O_SWVB + n * 8, intern(scratch3()));
@@ -3537,6 +3592,32 @@ fn mt_scan(vals: i64) -> i64 {
         }
     }
     return n;
+}
+
+
+# v1.1144: EV 表条目名（O_NAMES 偏移）与字符串逐字节比较
+fn ev_streq(np: i64, s: i64) -> i64 {
+    let p: i64 = heap + O_NAMES + np;
+    let i: i64 = 0;
+    while load8(p + i) != 0 {
+        if load8(p + i) != load8(s + i) { return 0; }
+        i = i + 1;
+    }
+    if load8(s + i) != 0 { return 0; }
+    return 1;
+}
+
+# v1.1144: 按变体名查 EV 表 → evi（未命中 -1）
+# 🔴 intern 不去重（每次复制新副本返新偏移）——不能用指针比较，
+# 必须逐字节比较。
+fn ev_lookup(name: i64) -> i64 {
+    let i: i64 = 0;
+    while i < load64(heap + EVCNT) {
+        # 🔴 EV_E=enum 名、EV_C=变体名（v1.1142 命名互换）——查变体名用 EV_C
+        if ev_streq(load64(heap + EV_C + i * 8), name) == 1 { return i; }
+        i = i + 1;
+    }
+    return 0 - 1;
 }
 
 fn parse_match() -> i64 {
@@ -3715,7 +3796,21 @@ fn parse_match() -> i64 {
             # （scan 顺序 = O_SWSB/O_SWSM cnt 顺序，逐 token 重放对多层嵌套太脆弱，弃用）
             let smbi: i64 = i * 64;
             let smn2: i64 = load64(heap + O_SWSM + (smbi + 1) * 8);
-            next_token();               # struct 名
+            # v1.1144: 变体模式 walk = `Variant(b1, b2)`（无 '{}'）
+            let pk9: i64 = gv(K_TOKPOS);
+            next_token();               # 名（变体或 struct）
+            let isvp2: i64 = 0;
+            if tok_is("(") == 1 { isvp2 = 1; } else { set_back(pk9); next_token(); }   # 回退后重吃名
+            if isvp2 == 1 {
+                next_token();           # 吃 '('
+                # 绑定名逐个吃（slot1.. 与 scan 顺序一致）
+                let smk3: i64 = 1;
+                while smk3 < smn2 {
+                    next_token();       # 绑定名
+                    if smk3 < smn2 - 1 { expect(","); } else { expect(")"); }
+                    smk3 = smk3 + 1;
+                }
+            } else {
             expect("{");
             let sd9: i64 = 1;
             next_token();
@@ -3726,6 +3821,7 @@ fn parse_match() -> i64 {
                 next_token();
             }
             next_token();               # 吃模式收尾 '}'
+            }    # v1.1144 变体/struct 二分尾
             let smk2: i64 = 0;
             while smk2 < smn2 {
                 let bvid: i64 = load64(heap + O_SWSB + ((smbi/64) * 31 + smk2) * 8);

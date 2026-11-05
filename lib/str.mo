@@ -4,7 +4,10 @@
 
 fn strlen(s: ptr) -> i64 {
     let i: i64 = 0;
-    while s[i] != 0 {
+    # v1.1144: load8 而非 s[i] —— 变体 match 场景下
+    # ptr 下标步进错误（ztB 实证 strlen('XY')=9），
+    # load8 版在所有场景一致（ztG 对照）。
+    while load8(s + i) != 0 {
         i = i + 1;
     }
     return i;

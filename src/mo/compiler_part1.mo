@@ -269,7 +269,9 @@ var K_PJLBL:  i64 = 368;   # 那条 jmp 的目标标签
 var K_PJEND:  i64 = 376;
 # --- 调试信息（-g）：默认关闭。开启时才生成 DWARF，
 #     不开启时输出字节完全不变，因此不影响自举 ---
-var K_DBG:      i64 = 384;   # 0/1 是否开启 -g
+var K_DBG:      i64 = 384;
+var K_SLA: i64 = 696;    # v1.1144: 上一 str 字面量的 elf 地址（去重用）
+var K_SLL: i64 = 704;    # v1.1144: 上一 str 字面量含 \0 的字节长度   # 0/1 是否开启 -g
 var K_NLM:      i64 = 392;   # 行号表条数
 var K_DBGLEN:   i64 = 408;   # 当前 debug section 已写长度
 var K_DBBASE:   i64 = 416;   # 当前 debug section 在 O_DBG 里的起点
