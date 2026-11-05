@@ -5321,6 +5321,57 @@ fn index_addr(s: i64) -> i64 {
         }
         set_back(back);
     }
+    # v1.1140: str 负下标（编译期常量）—— s[-1] = s[strlen-1]
+    # '-N' 形式探测（'-' 与数字分离词法，cidx 哨兵 -1 探不到）
+    let negok: i64 = 0;
+    if k == 10 && tok_is("-") == 1 {
+        let nb0: i64 = gv(K_TOKPOS);
+        next_token();
+        if gv(K_TKIND) == 2 && tok_is("]") == 0 {
+            cidx = 0 - gv(K_TIVAL);
+            next_token();
+            if tok_is("]") == 1 {
+                negok = 1;
+            }
+        }
+        if negok == 0 {
+            sv(K_POS, nb0);
+            next_token();
+        }
+    }
+    if negok == 1 {
+        spill_cache();
+        # rax = 基址（str 变量的值）
+        load_sym(s);
+        # strlen 内联: test [rax],0 → 找  
+        let sl9: i64 = new_label();
+        place_label(sl9);
+        ops3(0x80, 0x38, 0x00);          # cmpb [rax], 0
+        let de9: i64 = new_label();
+        emit_jcc(0x84, de9);             # je done（emit_jcc 是 0F+rel32，je=0x84）
+        ops3(0x48, 0xff, 0xc0);          # inc rax
+        emit_jmp(sl9);
+        place_label(de9);
+        # rax = 终址（  位置）= 基址+len
+        ops2(0x48, 0x05); emit4(cidx);   # add rax, cidx（负 imm32）
+        # v1.1140 越界: rax 现在是基址+len+cidx；与基址比 <0 → panic。
+        # 基址备份在 r11（strlen 前不入缓存，直接 mov）
+        ops3(0x49, 0x89, 0xc3);          # mov r11, rax（备份换算后地址）
+        load_sym(s);                     # rax = 基址
+        ops3(0x4c, 0x39, 0xd8);          # cmp rax, r11
+        let pe9: i64 = new_label();
+        emit_jcc(0x86, pe9);             # jbe ok（基址 <= 地址）
+        emit_panic();
+        place_label(pe9);
+        ops3(0x4c, 0x89, 0xd8);          # mov rax, r11（恢复元素地址）
+        expect("]");
+        # 跳过常规 g_push/g_pop/g_add 路径: 直接返回 (rax=元素地址)
+        R_ETY = ty_int();
+        # 下游会 load — 但这里返回 rax=地址, 下游 g_load_at? 
+        # 🔴 主 load 在调用方 (e2f 判定 g_load_at_b/g_load_at) — 
+        # 返回后调用方 e2=elem_type(str)=byte? — 会 movzbl ✓
+        return 0;
+    }
     parse_expr();
     expect("]");
     # 越界检查：只对「编译期已知长度」的数组做。
