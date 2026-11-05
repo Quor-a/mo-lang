@@ -1,3 +1,9 @@
+## v1.1145.0
+
+- match 穷尽性静态检查：判别式为 enum variant（隐式 struct 名含 `$`）时，臂集合必须覆盖该 enum 全部数据变体 tag（EVST 反查 evi → EV_E 同名集合）；缺臂报编译错误 `match: 未穷尽`；守卫臂/绑定模式臂不算覆盖；`_` 通配臂豁免（O_SWDFT 标记）；源自社区调研项③后半
+- 🔴 O_SWVB 与 O_SWSB 同址（v1.1107/1104 既有）——struct 臂的 SWSB 绑定名槽会被误读成绑定臂标记，穷尽检查中 struct 臂判定必须放在绑定臂检查之前
+- 🔴 ev_streq 第二参是**地址**：EV_E 槽存的是 O_NAMES 偏移，传入前必须 `heap + O_NAMES +`
+
 ## v1.1144.0
 
 - enum 变体模式 match（tagged union 穷尽绑定）：`match v { Circle(r) => ..., Rect(w,h) => ... }`——数据变体臂直接绑定 payload 字段（i64/双绑定/函数形参 enum/多臂混合全支持）；臂内绑定 slot1 起（slot0=tag），发射复用 struct 模式通道；源自社区调研项③

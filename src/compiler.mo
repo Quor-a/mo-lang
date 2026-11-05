@@ -9610,6 +9610,7 @@ var O_SWL:   i64 = 8760000;   # case 标签号，同上
 var O_SWTOP: i64 = 8768000;   # 下一个 switch 的基址（栈式分配）
 var O_SWC:   i64 = 8768008;   # sw_const 的输出槽
 var O_SWNB:  i64 = 8768100;   # sw_const 的名字缓冲（64 字节）
+var O_SWDFT: i64 = 8769000;   # v1.1144: match 是否有 _ 通配臂（穷尽豁免）
 var SWSTR:   i64 = 8770000;   # v1.1047: case 是否字符串（n*8，128 项）
 var O_SWG:   i64 = 8771000;   # v1.1099: match 臂是否带守卫 if（n*8，128 项）
 var O_SWGL:  i64 = 8772000;   # v1.1099: 守卫臂的匹配点标签（n*8，128 项）
@@ -10155,7 +10156,7 @@ fn mt_scan(vals: i64) -> i64 {
         } else {
         if gv(K_TKIND) == 1 {
             # _ = default 不收；数字/enum/const 模式 sw_const 折叠
-            if streq(tokbuf(), "_") == 1 { next_token(); continue; }
+            if streq(tokbuf(), "_") == 1 { next_token(); store64(heap + O_SWDFT, 1); continue; }
             # v1.1103: struct 模式 —— `P { x: 1; y: 2; }`（P 是 struct 名）
             if st_lookup(tokbuf()) >= 0 {
                 let smbase: i64 = n * 64;
@@ -10349,6 +10350,83 @@ fn mt_scan(vals: i64) -> i64 {
 }
 
 
+# v1.1144: 穷尽性静态检查 —— 判别式是 enum variant struct（名含 '$'）时，
+# 臂集合必须覆盖该 enum 的全部数据/无数据变体（变体臂收 tag；无数据变体
+# 常量臂 vals=tag 同样收）；守卫臂/绑定模式臂不算覆盖；缺臂报编译错误。
+fn mt_exhaust(vals: i64, n: i64) -> i64 {
+    if load64(heap + O_SWDFT) == 1 { return 0; }   # _ 通配臂 = 穷尽豁免
+    let et: i64 = R_ETY;
+    if et < 0 { return 0; }
+    if ty_kind(et) != 2 { return 0; }
+    let vsi: i64 = ty_si(et);
+    if vsi < 0 { return 0; }
+    # struct 名含 '$' 才是 variant struct
+    let nmp: i64 = st_name(vsi);
+    let dl: i64 = 0 - 1;
+    let z: i64 = 0;
+    while load8(nmp + z) != 0 {
+        if load8(nmp + z) == 36 { dl = z; }
+        z = z + 1;
+    }
+    if dl < 0 { return 0; }
+    # enum 名 = 前缀（scratch3）
+    let enp: i64 = heap + O_SCAL + 23000;
+    let e2: i64 = 0;
+    while e2 < dl {
+        store8(enp + e2, load8(nmp + e2));
+        e2 = e2 + 1;
+    }
+    store8(enp + dl, 0);
+    # 收集臂覆盖 tag：seen[t]=1
+    let seen: i64 = heap + O_SCAL + 24000;
+    let cz: i64 = 0;
+    while cz < 64 {
+        store64(seen + cz * 8, 0);
+        cz = cz + 1;
+    }
+    let i: i64 = 0;
+    while i < n {
+        if load64(heap + O_SWG + i * 8) == 1 { i = i + 1; continue; }   # 守卫臂不算
+        if load64(heap + O_SWSN + i * 8) == 1 {
+            # struct/变体模式臂：slot0 val = tag
+            let sm: i64 = i * 64;
+            let tv: i64 = load64(heap + O_SWSM + (sm + 3) * 8);
+            if tv >= 0 && tv < 64 { store64(seen + tv * 8, 1); }
+        } else {
+            # 🔴 O_SWVB 与 O_SWSB 同址（v1.1107/1104 既有）——struct 臂的
+            # 绑定名槽会被误读成绑定臂标记，故绑定臂检查必须放在
+            # struct 臂之后。
+            if load64(heap + O_SWVB + i * 8) != 0 { i = i + 1; continue; }
+            let tv: i64 = load64(vals + i * 8);
+            if tv >= 0 && tv < 64 { store64(seen + tv * 8, 1); }
+        }
+        i = i + 1;
+    }
+    # 🔴 v1.1144: 用 EVST 反查（vsi → evi）——EV_E 名字比较对 '$' 前缀
+    # scratch 缓冲不可靠，EVST 存的就是变体隐式 struct si，直接命中。
+    let evi0: i64 = 0 - 1;
+    let ei: i64 = 0;
+    while ei < load64(heap + EVCNT) {
+        if load64(heap + EVST + ei * 8) == vsi { evi0 = ei; }
+        ei = ei + 1;
+    }
+    if evi0 < 0 { return 0; }
+    let miss: i64 = 0 - 1;
+    let ej: i64 = 0;
+    while ej < load64(heap + EVCNT) {
+        if ev_streq(load64(heap + EV_E + ej * 8), heap + O_NAMES + load64(heap + EV_E + evi0 * 8)) == 1 {
+            let tg: i64 = load64(heap + EV_TAG + ej * 8);
+            if tg >= 0 && tg < 64 && load64(seen + tg * 8) == 0 { miss = tg; }
+        }
+        ej = ej + 1;
+    }
+    if miss >= 0 {
+        return err_atp("match: 未穷尽——缺少该 enum 的某变体臂（或用 _ 通配）", gv(K_PLINE), gv(K_PCOL), gv(K_PPOS));
+    }
+    return 0;
+}
+
+
 # v1.1144: EV 表条目名（O_NAMES 偏移）与字符串逐字节比较
 fn ev_streq(np: i64, s: i64) -> i64 {
     let p: i64 = heap + O_NAMES + np;
@@ -10383,6 +10461,7 @@ fn parse_match() -> i64 {
     let vals: i64 = heap + O_SWV + base * 8;
     let lbls: i64 = heap + O_SWL + base * 8;
     let save: i64 = gv(K_TOKPOS);
+    store64(heap + O_SWDFT, 0);
     # v1.1107: 🔴 清跨 match 残留（SWG/SWVB/SWSTR/SWSN 是全局 n 槽，上一 match 的
     # 标记会让本 match 误走守卫/字符串/struct 路径——c 探针实证）
     let cz: i64 = 0;
@@ -10436,6 +10515,8 @@ fn parse_match() -> i64 {
         sv(K_CUROFF, vboff);
         g_store_local(vboff);
     }
+    # v1.1144: 穷尽性检查（仅判别式为 enum variant struct 时生效）
+    mt_exhaust(vals, n);
     # v1.1099: 混合约束（同 switch）—— 任一字符串模式则全部必须为字符串
     let msws: i64 = 0;
     let mq: i64 = 0;
