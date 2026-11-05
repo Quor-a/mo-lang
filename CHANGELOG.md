@@ -1,3 +1,9 @@
+## v1.1147.0
+
+- 🔴 真 bug（v1.1144 引入）：enum 变体绑定臂 `A(x)` 漏配 O_SWGL 守卫标签 —— SWGL 仅在表达式守卫臂（SWG[i]==1）分配，绑定臂（SWVB[i]!=0）未设 SWG → SWGL[i]=0 → 发射段 `emit_jmp(0)` + 匹配点 `place_label(0)` 二次覆盖 label 0（import 库函数最先分配的 label，如 strlen 的 loop head）→ 库函数循环回跳 jmp 飞到 match 段（ztB 实证：strlen 返回 9 = B 臂 ret 地址）。修复：SWGL 分配条件扩为 `SWG[i]==1 || SWVB[i]!=0`（match 语句+表达式两处）
+- 回归 t330：match 变体臂 + import strlen 交叉（str.mo s[i] 版）— 期望 5
+- 定位手段沉淀：PL-DUP 探针（place_label 时 O_LB 已非零 = 二次 place）一击命中
+
 ## v1.1146.0
 
 - 🔴 DWARF 行号表修复：compile_file 恢复段漏恢复 K_LINE/K_COL/K_CPOS —— import 递归编译返回后 K_LINE 停在库文件末行，**主文件所有语句的行号全部错**（ztS 实证：6 行文件全映射 610；gdb 断点/变量查看形同虚设）。补三槽保存/恢复后：`break 文件:行` 精确命中、`print p` 显示 `{x=3, y=4}`、struct 类型 DIE + 变量 fbreg 全链可用（dwmo -l 校验：主文件 4 记录、覆盖率 99%、0 异常）
