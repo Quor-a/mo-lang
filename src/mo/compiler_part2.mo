@@ -1602,6 +1602,22 @@ fn place_label(l: i64) -> i64 {
         }
     }
     store64(heap + O_LB + l * 8, gv(K_CLEN));
+    # v1.1146: 🔴 即时回填 —— gen 尾全局回填循环对库函数 while 回跳
+    # 存在目标错位（strlen jmp → match 臂尾实证），此处 place 时就把
+    # 所有挂在本 label 上的 jmp/jcc 立即回填，全局循环回填同一值幂等。
+    let ba: i64 = gv(K_CLEN);
+    let qi: i64 = 0;
+    while qi < gv(K_NJMP) {
+        if load64(heap + O_JL + qi * 8) == l {
+            let qp: i64 = load64(heap + O_JP + qi * 8);
+            let qr: i64 = ba - qp - 4;
+            store8(heap + O_CODE + qp, qr & 255);
+            store8(heap + O_CODE + qp + 1, (qr >> 8) & 255);
+            store8(heap + O_CODE + qp + 2, (qr >> 16) & 255);
+            store8(heap + O_CODE + qp + 3, (qr >> 24) & 255);
+        }
+        qi = qi + 1;
+    }
     return 0;
 }
 

@@ -3743,7 +3743,8 @@ fn parse_match() -> i64 {
     let i: i64 = 0;
     while i < n {
         store64(lbls + i * 8, new_label());
-        if load64(heap + O_SWG + i * 8) == 1 { store64(heap + O_SWGL + i * 8, new_label()); }
+        # v1.1147: 变体绑定臂也需要守卫标签（此前漏配 → place(0) 覆盖 label 0）
+        if load64(heap + O_SWG + i * 8) == 1 || load64(heap + O_SWVB + i * 8) != 0 { store64(heap + O_SWGL + i * 8, new_label()); }
         i = i + 1;
     }
     next_token();                       # 越过 'match'（路由是探测式，不消费）
@@ -4044,7 +4045,8 @@ fn parse_match_expr(hs_off: i64) -> i64 {
     let i: i64 = 0;
     while i < n {
         store64(lbls + i * 8, new_label());
-        if load64(heap + O_SWG + i * 8) == 1 { store64(heap + O_SWGL + i * 8, new_label()); }
+        # v1.1147: 变体绑定臂也需要守卫标签（此前漏配 → place(0) 覆盖 label 0）
+        if load64(heap + O_SWG + i * 8) == 1 || load64(heap + O_SWVB + i * 8) != 0 { store64(heap + O_SWGL + i * 8, new_label()); }
         i = i + 1;
     }
     # primary 调用方已消费 'match'；语句/let 路由未消费 —— 探测式越过
@@ -7352,6 +7354,7 @@ fn resolve_all() -> i64 {
         }
         i = i + 1;
     }
+    if gv(K_NJMP) > 10000 { err_atp("NJMP-BIG", gv(K_PLINE), gv(K_PCOL), gv(K_PPOS)); }
     i = 0;
     while i < gv(K_NJMP) {
         let p: i64 = load64(heap + O_JP + i * 8);
