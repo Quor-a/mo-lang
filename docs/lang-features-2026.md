@@ -260,3 +260,23 @@ OBJ 写盘路径补 had_err>0 → rc=1（简单路径已有）。
 ### v1.1141 defer
 
 `defer <stmt>;` 登记到函数级表（≤64 条），每个 return 点与函数尾按 **LIFO** 重放；返回值由 push/pop 保护。defer 体在重放时才编译发射。嵌套块退出不触发（函数级语义，同 Go）。
+
+
+## v1.1142 — enum 带数据变体（tagged union 构造）
+
+```mo
+enum Shape {
+    Circle(f64);
+    Rect(f64, f64);
+}
+let c = Shape.Circle(2.5);
+let r = Shape.Rect(3.0, 4.0);
+r.tag;    # 1（变体序号，0 起）
+r._0;     # 3.0（第 1 个数据字段）
+r._1;     # 4.0
+```
+
+- 变体以 `;` 分隔；每个数据变体自动注册隐式 struct `Shape$Rect`，布局 `{ tag: i64; _0: T0; _1: T1; ... }`。
+- 字段类型支持 i64 / f64 / byte / bool / str / ptr / 已定义 struct。
+- 构造表达式生成数据段静态对象；`let x = S.V(...)` 按块拷贝到局部。
+- 无数据变体（`Circle;`）仍按普通枚举常量返回 int（v1.1051 语义不变）。

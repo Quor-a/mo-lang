@@ -1,3 +1,8 @@
+## v1.1142.0
+
+- enum 带数据变体（tagged union 构造）：`enum S { Circle(f64); Rect(f64, f64); }`（变体 ';' 分隔）；每个数据变体注册隐式 struct "Enum$Variant"={tag:i64;_0:...}；构造 `S.Circle(2.5)` 生成静态对象（tag 编译期 + 字段运行时 store，槽位 dquad 预留），支持 i64/f64/byte/bool/str/ptr/struct 字段；字段访问 `x._0`/`x.tag`；源自社区调研项③（tagged union）
+- 🔴 O_STFLD si 上限 62 未扩（本版靠现有余量）；无数据变体在混合 enum 中仍返回 int 常量（tag 对象后续版本）
+
 ## v1.1141.0
 
 - defer 语句：函数退出（每个 return 点与函数尾）按 LIFO 重放 defer 体；返回值 rax/rdx push/pop 保护；源自 HN/Reddit 2025 社区调研（Zig defer/Go defer 共识）

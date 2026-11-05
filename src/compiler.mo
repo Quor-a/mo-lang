@@ -77,7 +77,9 @@ var O_STRS: i64 = 29360128;   # O_FILES 之后留 16MB：32 个文件 × 512KB
 var O_STN: i64 = 8388608;    # 结构体名（intern 偏移）
 var O_STF: i64 = 8388864;    # 字段个数
 var O_STFLD: i64 = 8389120;    # 字段名 id：idx = si*32 + fi
-var O_STFT: i64 = 8404992;    # 字段类型 id：0=i64，>=1 为结构体索引+1
+# v1.1142: 扩容 62→256 个 struct（62*32=1984 项只到 8404992，
+# enum 变体隐式 struct 让 st 数突破 62 → O_STFLD 写穿 O_STFT 崩溃）
+var O_STFT: i64 = 8454656;    # 8389120 + 256*32*8 = 8454656
 var O_STY: i64 = 8420864;    # 变量类型：0=i64/数组，>=1 为结构体索引+1
 var O_IMP: i64 = 8437760;    # 已导入文件路径（intern 偏移），用于去重与环检测
 # 类型表：最多 512 个类型
@@ -195,6 +197,21 @@ var O_EVAL: i64 = 8708192;
 #    1800/3000 ...），**没有分配器**，选哪个都可能踩到别人。
 #    调试时为此付出过整轮代价。计数这种"全局标量"用独立地址最稳。
 var O_ECNT: i64 = 8712288;
+# v1.1142: enum 变体数据表（tagged union）—— 带 '(' 字段的变体
+#   EV_E   变体所属 enum 名（intern 偏移）
+#   EV_C   变体名（intern 偏移）
+#   EV_T   字段类型（每变体最多 8 个，ty 编码连续存 8 槽）
+#   EV_N   字段数
+#   EV_TAG tag 值（每个 enum 内独立计数，含无数据变体）
+#   EVCNT  已登记带数据变体数
+#   EVST   变体隐式 struct 的 st 索引（-1 = 未注册）
+var EV_E:   i64 = 8950000;    # 256 × 8
+var EV_C:   i64 = 8952048;
+var EV_T:   i64 = 8954096;    # 256 × 8 × 8 = 16384
+var EV_N:   i64 = 8970480;
+var EV_TAG: i64 = 8971504;
+var EVST:   i64 = 8972528;
+var EVCNT:  i64 = 8973552;    # 计数槽（运行时 load/store）
 # 当前函数的"错误出口"标签号（-1 = 尚未分配）。同样用独立地址。
 var O_ERRLAB: i64 = 8712304;
 # 数组字面量 [1,2,3] 的元素值（最多 512 个）。放在 O_ENAME 区之后。
@@ -4619,6 +4636,64 @@ fn parse_primary() -> i64 {
                     next_token();
                     g_movabs_rax(load64(heap + O_EVAL + ei * 8));
                     R_ETY = ty_int();
+                    return 0;
+                }
+                # v1.1142: 带数据变体构造 Enum.Variant(expr, ...)
+                let evn: i64 = load64(heap + EVCNT);
+                let evi2: i64 = 0;
+                let evf: i64 = 0 - 1;
+                while evi2 < evn {
+                    if streq(heap + O_NAMES + load64(heap + EV_E + evi2 * 8), scratch1()) == 1 {
+                        if streq(heap + O_NAMES + load64(heap + EV_C + evi2 * 8), tokbuf()) == 1 { evf = evi2; }
+                    }
+                    evi2 = evi2 + 1;
+                }
+                if evf >= 0 {
+                    next_token();        # 吃变体名
+                    expect("(");
+                    let vsi2: i64 = load64(heap + EVST + evf * 8);
+                    # 数据段静态对象：编译期分配，tag 常量填 0
+                    data_align(8);
+                    let obj: i64 = 268435456 + gv(K_DLEN);
+                    dquad(load64(heap + EV_TAG + evf * 8));
+                    # 🔴 对象槽位预留：f64/str 字段是运行时 store，
+                    # 编译期 DLEN 只前进 dquad 的字节 —— 不预留会把
+                    # 下一个对象叠在运行时字段上（z47 实证 r.tag 读到 2.5）
+                    let zq: i64 = 0;
+                    let zw: i64 = st_words(vsi2) - 1;
+                    while zq < zw { dquad(0); zq = zq + 1; }
+                    let nf2: i64 = load64(heap + EV_N + evf * 8);
+                    let fi3: i64 = 0;
+                    # 字段求值 → store 到对象 (跳过 tag 的 8B)
+                    spill_cache();
+                    while fi3 < nf2 {
+                        parse_expr();
+                        spill_cache();
+                        let ft3: i64 = load64(heap + EV_T + evf * 64 + fi3 * 8);
+                        let off3: i64 = obj + st_field_off(vsi2, fi3 + 1);
+                        if ty_kind(ft3) == 6 {
+                            # f64 → movq rax, xmm0（位模式）→ store
+                            g_movabs_rcx(off3);
+                            ops3(0x48, 0x89, 0x01);   # mov [rcx], rax
+                        } else {
+                            if ty_kind(ft3) == 5 {
+                                g_movabs_rcx(off3);
+                                ops3(0x48, 0x88, 0x01);   # mov [rcx], al
+                            } else {
+                                g_movabs_rcx(off3);
+                                ops3(0x48, 0x89, 0x01);   # mov [rcx], rax
+                            }
+                        }
+                        sv(K_LAST, 0);
+                        fi3 = fi3 + 1;
+                        if fi3 < nf2 {
+                            if accept(",") == 0 { return err_atp("expected ',' in variant args", gv(K_PLINE), gv(K_PCOL), gv(K_PPOS)); }
+                        }
+                    }
+                    expect(")");
+                    g_movabs_rax(obj);
+                    R_ETY = ty_struct(vsi2);
+                    R_SADDR = 1;
                     return 0;
                 }
             }
@@ -12874,8 +12949,75 @@ fn parse_enum() -> i64 {
                 }
             }
         }
-        enum_add_const(ebuf, cbuf, auto);
-        auto = auto + 1;
+        # v1.1142: 带数据变体 Variant(f64, i64) —— 登记变体数据表
+        # + 注册隐式 struct "Enum$Variant" { tag: i64; _0: T0; ... }
+        if tok_is("(") == 1 {
+            next_token();
+            let evi: i64 = load64(heap + EVCNT);
+            if evi >= 256 { return err_atp("too many data variants (limit 256)", gv(K_PLINE), gv(K_PCOL), gv(K_PPOS)); }
+            store64(heap + EV_E + evi * 8, intern(ebuf));
+            store64(heap + EV_C + evi * 8, intern(cbuf));
+            store64(heap + EV_TAG + evi * 8, auto);
+            # 隐式 struct：tag 字段 + _0.._n 数据字段
+            let sname: i64 = heap + O_SCAL + 20000;
+            memcpy(sname, ebuf);
+            let slen: i64 = 0;
+            while load8(sname + slen) != 0 { slen = slen + 1; }
+            store8(sname + slen, 36);        # '$'
+            memcpy(sname + slen + 1, cbuf);
+            let vsi: i64 = st_add(sname);
+            st_add_field(vsi, heap + O_NAMES + intern("tag"), ty_int());
+            let nf: i64 = 0;
+            let ftypes: i64 = EV_T + evi * 64;
+            while tok_is(")") == 0 {
+                let ft2: i64 = ty_int();
+                if tok_is("i64") == 1 { next_token(); }
+                else {
+                    if tok_is("f64") == 1 { ft2 = ty_float(); next_token(); }
+                    else {
+                        if tok_is("byte") == 1 { ft2 = ty_byte(); next_token(); }
+                        else {
+                            if tok_is("str") == 1 { ft2 = ty_str(); next_token(); }
+                            else {
+                                if tok_is("bool") == 1 { ft2 = ty_bool(); next_token(); }
+                                else {
+                                    if tok_is("ptr") == 1 { next_token(); ft2 = ty_ptr(parse_ptr_target()); }
+                                    else {
+                                        if gv(K_TKIND) == 1 {
+                                            let fs: i64 = st_lookup(tokbuf());
+                                            if fs < 0 { return err_atp("unknown variant field type", gv(K_PLINE), gv(K_PCOL), gv(K_PPOS)); }
+                                            ft2 = ty_struct(fs);
+                                            next_token();
+                                        } else {
+                                            return err_atp("expected a type in variant", gv(K_PLINE), gv(K_PCOL), gv(K_PPOS));
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+                if nf >= 8 { return err_atp("too many variant fields (max 8)", gv(K_PLINE), gv(K_PCOL), gv(K_PPOS)); }
+                store64(heap + ftypes + nf * 8, ft2);
+                let fname: i64 = heap + O_SCAL + 21000 + nf * 16;
+                store8(fname, 95);           # '_'
+                store8(fname + 1, 48 + nf);  # '0'+nf
+                store8(fname + 2, 0);
+                st_add_field(vsi, fname, ft2);
+                nf = nf + 1;
+                if accept(",") == 0 {
+                    if tok_is(")") == 0 { return err_atp("expected ',' or ')' in variant", gv(K_PLINE), gv(K_PCOL), gv(K_PPOS)); }
+                }
+            }
+            next_token();                    # 吃 ')'
+            store64(heap + EV_N + evi * 8, nf);
+            store64(heap + EVST + evi * 8, vsi);
+            store64(heap + EVCNT, evi + 1);
+            auto = auto + 1;
+        } else {
+            enum_add_const(ebuf, cbuf, auto);
+            auto = auto + 1;
+        }
         if accept(";") == 0 {
             if tok_is("}") == 0 { return err_atp("expected ';' in enum", gv(K_PLINE), gv(K_PCOL), gv(K_PPOS)); }
         }

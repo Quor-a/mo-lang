@@ -1648,6 +1648,64 @@ fn parse_primary() -> i64 {
                     R_ETY = ty_int();
                     return 0;
                 }
+                # v1.1142: 带数据变体构造 Enum.Variant(expr, ...)
+                let evn: i64 = load64(heap + EVCNT);
+                let evi2: i64 = 0;
+                let evf: i64 = 0 - 1;
+                while evi2 < evn {
+                    if streq(heap + O_NAMES + load64(heap + EV_E + evi2 * 8), scratch1()) == 1 {
+                        if streq(heap + O_NAMES + load64(heap + EV_C + evi2 * 8), tokbuf()) == 1 { evf = evi2; }
+                    }
+                    evi2 = evi2 + 1;
+                }
+                if evf >= 0 {
+                    next_token();        # 吃变体名
+                    expect("(");
+                    let vsi2: i64 = load64(heap + EVST + evf * 8);
+                    # 数据段静态对象：编译期分配，tag 常量填 0
+                    data_align(8);
+                    let obj: i64 = 268435456 + gv(K_DLEN);
+                    dquad(load64(heap + EV_TAG + evf * 8));
+                    # 🔴 对象槽位预留：f64/str 字段是运行时 store，
+                    # 编译期 DLEN 只前进 dquad 的字节 —— 不预留会把
+                    # 下一个对象叠在运行时字段上（z47 实证 r.tag 读到 2.5）
+                    let zq: i64 = 0;
+                    let zw: i64 = st_words(vsi2) - 1;
+                    while zq < zw { dquad(0); zq = zq + 1; }
+                    let nf2: i64 = load64(heap + EV_N + evf * 8);
+                    let fi3: i64 = 0;
+                    # 字段求值 → store 到对象 (跳过 tag 的 8B)
+                    spill_cache();
+                    while fi3 < nf2 {
+                        parse_expr();
+                        spill_cache();
+                        let ft3: i64 = load64(heap + EV_T + evf * 64 + fi3 * 8);
+                        let off3: i64 = obj + st_field_off(vsi2, fi3 + 1);
+                        if ty_kind(ft3) == 6 {
+                            # f64 → movq rax, xmm0（位模式）→ store
+                            g_movabs_rcx(off3);
+                            ops3(0x48, 0x89, 0x01);   # mov [rcx], rax
+                        } else {
+                            if ty_kind(ft3) == 5 {
+                                g_movabs_rcx(off3);
+                                ops3(0x48, 0x88, 0x01);   # mov [rcx], al
+                            } else {
+                                g_movabs_rcx(off3);
+                                ops3(0x48, 0x89, 0x01);   # mov [rcx], rax
+                            }
+                        }
+                        sv(K_LAST, 0);
+                        fi3 = fi3 + 1;
+                        if fi3 < nf2 {
+                            if accept(",") == 0 { return err_atp("expected ',' in variant args", gv(K_PLINE), gv(K_PCOL), gv(K_PPOS)); }
+                        }
+                    }
+                    expect(")");
+                    g_movabs_rax(obj);
+                    R_ETY = ty_struct(vsi2);
+                    R_SADDR = 1;
+                    return 0;
+                }
             }
             set_back(save);              # 不是 enum：回退，走字段/方法路径
         }

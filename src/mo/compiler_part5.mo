@@ -6201,8 +6201,75 @@ fn parse_enum() -> i64 {
                 }
             }
         }
-        enum_add_const(ebuf, cbuf, auto);
-        auto = auto + 1;
+        # v1.1142: 带数据变体 Variant(f64, i64) —— 登记变体数据表
+        # + 注册隐式 struct "Enum$Variant" { tag: i64; _0: T0; ... }
+        if tok_is("(") == 1 {
+            next_token();
+            let evi: i64 = load64(heap + EVCNT);
+            if evi >= 256 { return err_atp("too many data variants (limit 256)", gv(K_PLINE), gv(K_PCOL), gv(K_PPOS)); }
+            store64(heap + EV_E + evi * 8, intern(ebuf));
+            store64(heap + EV_C + evi * 8, intern(cbuf));
+            store64(heap + EV_TAG + evi * 8, auto);
+            # 隐式 struct：tag 字段 + _0.._n 数据字段
+            let sname: i64 = heap + O_SCAL + 20000;
+            memcpy(sname, ebuf);
+            let slen: i64 = 0;
+            while load8(sname + slen) != 0 { slen = slen + 1; }
+            store8(sname + slen, 36);        # '$'
+            memcpy(sname + slen + 1, cbuf);
+            let vsi: i64 = st_add(sname);
+            st_add_field(vsi, heap + O_NAMES + intern("tag"), ty_int());
+            let nf: i64 = 0;
+            let ftypes: i64 = EV_T + evi * 64;
+            while tok_is(")") == 0 {
+                let ft2: i64 = ty_int();
+                if tok_is("i64") == 1 { next_token(); }
+                else {
+                    if tok_is("f64") == 1 { ft2 = ty_float(); next_token(); }
+                    else {
+                        if tok_is("byte") == 1 { ft2 = ty_byte(); next_token(); }
+                        else {
+                            if tok_is("str") == 1 { ft2 = ty_str(); next_token(); }
+                            else {
+                                if tok_is("bool") == 1 { ft2 = ty_bool(); next_token(); }
+                                else {
+                                    if tok_is("ptr") == 1 { next_token(); ft2 = ty_ptr(parse_ptr_target()); }
+                                    else {
+                                        if gv(K_TKIND) == 1 {
+                                            let fs: i64 = st_lookup(tokbuf());
+                                            if fs < 0 { return err_atp("unknown variant field type", gv(K_PLINE), gv(K_PCOL), gv(K_PPOS)); }
+                                            ft2 = ty_struct(fs);
+                                            next_token();
+                                        } else {
+                                            return err_atp("expected a type in variant", gv(K_PLINE), gv(K_PCOL), gv(K_PPOS));
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+                if nf >= 8 { return err_atp("too many variant fields (max 8)", gv(K_PLINE), gv(K_PCOL), gv(K_PPOS)); }
+                store64(heap + ftypes + nf * 8, ft2);
+                let fname: i64 = heap + O_SCAL + 21000 + nf * 16;
+                store8(fname, 95);           # '_'
+                store8(fname + 1, 48 + nf);  # '0'+nf
+                store8(fname + 2, 0);
+                st_add_field(vsi, fname, ft2);
+                nf = nf + 1;
+                if accept(",") == 0 {
+                    if tok_is(")") == 0 { return err_atp("expected ',' or ')' in variant", gv(K_PLINE), gv(K_PCOL), gv(K_PPOS)); }
+                }
+            }
+            next_token();                    # 吃 ')'
+            store64(heap + EV_N + evi * 8, nf);
+            store64(heap + EVST + evi * 8, vsi);
+            store64(heap + EVCNT, evi + 1);
+            auto = auto + 1;
+        } else {
+            enum_add_const(ebuf, cbuf, auto);
+            auto = auto + 1;
+        }
         if accept(";") == 0 {
             if tok_is("}") == 0 { return err_atp("expected ';' in enum", gv(K_PLINE), gv(K_PCOL), gv(K_PPOS)); }
         }
