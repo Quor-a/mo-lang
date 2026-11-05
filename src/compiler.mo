@@ -252,6 +252,7 @@ var K_PLINE: i64 = 200;
 var K_PCOL:  i64 = 208;
 var K_RUN:    i64 = 2496;   # v1.1148 run 模式标记
 var K_NRUNA:  i64 = 2504;   # v1.1148 run 实参数
+var K_EIM:    i64 = 2512;   # v1.1150 enum impl 方法名前缀 (intern 偏移, 0=off)
 var K_SRCBASE: i64 = 216;
 var K_NFILE: i64 = 224;
 var K_NSTR:  i64 = 232;
@@ -5797,7 +5798,40 @@ fn parse_expr_method(osym: i64) -> i64 {
                 # 特例别名：contains → strstr
                 if streq(mname, "contains") == 1 { ff = sym_lookup_func("strstr"); }
             }
-        }        if ff < 0 { return err_atp("not a class value", gv(K_PLINE), gv(K_PCOL), gv(K_PPOS)); }
+        }
+        # v1.1150: 方法体内的 self（ty=i64 enum 形参）——.method 走
+        # enum 方法调度（K_EIM 提供 enum 名；this=变量地址）
+        if ff < 0 && gv(K_EIM) != 0 {
+            let enm3: i64 = heap + O_NAMES + gv(K_EIM);
+            let fsym3: i64 = find_method_sym(enm3, mname);
+            if fsym3 >= 0 {
+                load_sym(osym);
+                g_push_rax();
+                let na3: i64 = 1;
+                while tok_is(")") == 0 {
+                    parse_expr();
+                    g_push_rax();
+                    na3 = na3 + 1;
+                    if accept(",") == 0 {
+                        if tok_is(")") == 0 { return syntax_error(); }
+                    }
+                }
+                expect(")");
+                if na3 > NARGS_MAX { return err_atp("too many arguments", gv(K_PLINE), gv(K_PCOL), gv(K_PPOS)); }
+                if na3 > 6 { arg_spill(na3); }
+                if na3 >= 6 { g_pop_r9(); }
+                if na3 >= 5 { g_pop_r8(); }
+                if na3 >= 4 { g_pop_rcx(); }
+                if na3 >= 3 { g_pop_rdx(); }
+                if na3 >= 2 { g_pop_rsi(); }
+                g_pop_rdi();
+                emit_call_patch(fsym3);
+                if na3 > 6 { arg_cleanup(na3); }
+                R_ETY = ty_int();
+                return 0;
+            }
+        }
+        if ff < 0 { return err_atp("not a class value", gv(K_PLINE), gv(K_PCOL), gv(K_PPOS)); }
         load_sym(osym);
         g_push_rax();
         let na: i64 = 1;
@@ -5832,6 +5866,23 @@ fn parse_expr_method(osym: i64) -> i64 {
         if midx < 0 { return err_atp("no such interface method", gv(K_PLINE), gv(K_PCOL), gv(K_PPOS)); }
     } else {
         fsym = find_method_sym(st_name(ci), mname);
+        # v1.1150: enum 值的 ty 是隐式 variant struct "Enum$Variant" ——
+        # 方法挂在 enum 名上，'$' 前缀重查
+        if fsym < 0 {
+            let snm: i64 = st_name(ci);
+            let dl2: i64 = 0 - 1;
+            let z2: i64 = 0;
+            while load8(snm + z2) != 0 {
+                if load8(snm + z2) == 36 { dl2 = z2; }
+                z2 = z2 + 1;
+            }
+            if dl2 >= 0 {
+                let enp: i64 = heap + O_SCAL + 27000;
+                memcpy(enp, snm);
+                store8(enp + dl2, 0);
+                fsym = find_method_sym(enp, mname);
+            }
+        }
         if fsym < 0 { return err_atp("no such method", gv(K_PLINE), gv(K_PCOL), gv(K_PPOS)); }
     }
 
@@ -12418,6 +12469,13 @@ fn parse_arr_ret() -> i64 {
 fn parse_func() -> i64 {
     next_token();
     memcpy(scratch2(), tokbuf());
+    # v1.1150: enum impl 块内 —— 方法名拼前缀 EnumName_
+    if gv(K_EIM) != 0 {
+        let em: i64 = heap + O_SCAL + 26000;
+        memcpy(em, heap + O_NAMES + gv(K_EIM));
+        scat3(em, em, "_", scratch2());
+        memcpy(scratch2(), em);
+    }
     next_token();
     # 方法定义：fn Class.method(...)。函数名整体 intern 成 "Class.method"，
     # 于是它与普通函数共用同一套符号表 / 回填机制，不需要单独的调用通路。
@@ -12507,8 +12565,28 @@ fn parse_func() -> i64 {
     while tok_is(")") == 0 {
         memcpy(scratch1(), tokbuf());
         next_token();
-        expect(":");
+        # v1.1150: enum impl 方法的 self —— 无类型注解；注入该 enum
+        # 第一个数据变体的隐式 struct ty（tag 在 offset 0，match 可判别）
+        let eimself: i64 = 0;
+        if gv(K_EIM) != 0 && streq(scratch1(), "self") == 1 && tok_is(":") == 0 {
+            eimself = 1;
+            let evn0: i64 = load64(heap + EVCNT);
+            let evi0: i64 = 0;
+            while evi0 < evn0 {
+                if ev_streq(load64(heap + EV_E + evi0 * 8), heap + O_NAMES + gv(K_EIM)) == 1 {
+                    store64(heap + O_SCAL + 28000, load64(heap + EVST + evi0 * 8));
+                    evi0 = evn0;
+                } else {
+                evi0 = evi0 + 1;
+                }
+            }
+        }
         let pt: i64 = ty_int();
+        if eimself == 1 {
+            # 与 `self: EnumName` 注解等价（v1.1057: enum 形参 = i64）
+            pt = ty_int();
+        } else {
+        expect(":");
         if accept("str") == 1 {
             pt = ty_str();
         } else {
@@ -12579,6 +12657,7 @@ fn parse_func() -> i64 {
             }
         }
         }
+        }   # v1.1150: eimself==0 分支闭合（enum impl self 无类型解析）
         let off: i64 = gv(K_CUROFF);
         sv(K_CUROFF, off - 8);
         if sym_dup(scratch1()) >= 0 { return err_atp("duplicate definition", gv(K_PLINE), gv(K_PCOL), gv(K_PPOS)); }
@@ -13548,13 +13627,32 @@ fn parse_impl() -> i64 {
     if gv(K_TKIND) != 1 { return syntax_error(); }
     memcpy(heap + O_SCAL + 1728, tokbuf());
     next_token();
+    # v1.1150: `impl Enum { fn m(self) ... }` —— enum impl 方法块
+    #（无 'for'；名称是已注册 enum 名）
+    if tok_is("{") == 1 {
+        let evn9: i64 = load64(heap + EVCNT);
+        let evi9: i64 = 0;
+        let isen9: i64 = 0;
+        while evi9 < evn9 {
+            if ev_streq(load64(heap + EV_E + evi9 * 8), heap + O_NAMES + intern(heap + O_SCAL + 1728)) == 1 { isen9 = 1; }
+            evi9 = evi9 + 1;
+        }
+        if isen9 == 1 {
+            sv(K_EIM, intern(heap + O_SCAL + 1728));
+            next_token();                       # 吃 '{'
+            while tok_is("}") == 0 { parse_stmt(); }
+            next_token();
+            sv(K_EIM, 0);
+            return 0;
+        }
+        return syntax_error();
+    }
     if tok_is("for") == 0 { return syntax_error(); }
     next_token();
     if gv(K_TKIND) != 1 { return syntax_error(); }
     memcpy(heap + O_SCAL + 1792, tokbuf());
     next_token();
     let k: i64 = if_lookup(heap + O_SCAL + 1728);
-    if k < 0 { return err_at2("unknown interface", gv(K_LINE), gv(K_COL)); }
     let nm: i64 = load64(heap + O_IFNM + k * 8);
     # 分配 vtable 全局数组（8 字节对齐 —— 不对齐会让 futex/原子操作直接失败）
     while (gv(K_DLEN) & 7) != 0 { dbyte(0); }
@@ -15186,6 +15284,7 @@ fn main() -> i64 {
     sv(K_DBG, 0);
     sv(K_RUN, 0);
     sv(K_NRUNA, 0);
+    sv(K_EIM, 0);
     sv(K_NDV, 0);
     sv(K_NDF, 0);
     sv(K_CURFN, 0);

@@ -1,3 +1,6 @@
+## v1.1150.0
+- enum impl 方法：`impl Enum { fn m(self, ...) ... }`，方法调用 `value.method(args)`；方法体内 `self.method()` 链式可用；self 语义等价 enum 形参（i64 tag+data）。
+
 ## v1.1149.0
 
 - match 区间臂：`match x { 90..100 => ..., 60..89 => ..., _ => ... }` —— 闭区间 [lo, hi]，语句与表达式两种形式；发射 cmp lo/jl + cmp hi/jg + jmp 臂；区间臂豁免重复模式检测、不算穷尽覆盖；O_SWRG/O_SWRH 表（8842000/8843000）

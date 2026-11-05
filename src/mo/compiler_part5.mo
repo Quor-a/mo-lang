@@ -5645,6 +5645,13 @@ fn parse_arr_ret() -> i64 {
 fn parse_func() -> i64 {
     next_token();
     memcpy(scratch2(), tokbuf());
+    # v1.1150: enum impl 块内 —— 方法名拼前缀 EnumName_
+    if gv(K_EIM) != 0 {
+        let em: i64 = heap + O_SCAL + 26000;
+        memcpy(em, heap + O_NAMES + gv(K_EIM));
+        scat3(em, em, "_", scratch2());
+        memcpy(scratch2(), em);
+    }
     next_token();
     # 方法定义：fn Class.method(...)。函数名整体 intern 成 "Class.method"，
     # 于是它与普通函数共用同一套符号表 / 回填机制，不需要单独的调用通路。
@@ -5734,8 +5741,28 @@ fn parse_func() -> i64 {
     while tok_is(")") == 0 {
         memcpy(scratch1(), tokbuf());
         next_token();
-        expect(":");
+        # v1.1150: enum impl 方法的 self —— 无类型注解；注入该 enum
+        # 第一个数据变体的隐式 struct ty（tag 在 offset 0，match 可判别）
+        let eimself: i64 = 0;
+        if gv(K_EIM) != 0 && streq(scratch1(), "self") == 1 && tok_is(":") == 0 {
+            eimself = 1;
+            let evn0: i64 = load64(heap + EVCNT);
+            let evi0: i64 = 0;
+            while evi0 < evn0 {
+                if ev_streq(load64(heap + EV_E + evi0 * 8), heap + O_NAMES + gv(K_EIM)) == 1 {
+                    store64(heap + O_SCAL + 28000, load64(heap + EVST + evi0 * 8));
+                    evi0 = evn0;
+                } else {
+                evi0 = evi0 + 1;
+                }
+            }
+        }
         let pt: i64 = ty_int();
+        if eimself == 1 {
+            # 与 `self: EnumName` 注解等价（v1.1057: enum 形参 = i64）
+            pt = ty_int();
+        } else {
+        expect(":");
         if accept("str") == 1 {
             pt = ty_str();
         } else {
@@ -5806,6 +5833,7 @@ fn parse_func() -> i64 {
             }
         }
         }
+        }   # v1.1150: eimself==0 分支闭合（enum impl self 无类型解析）
         let off: i64 = gv(K_CUROFF);
         sv(K_CUROFF, off - 8);
         if sym_dup(scratch1()) >= 0 { return err_atp("duplicate definition", gv(K_PLINE), gv(K_PCOL), gv(K_PPOS)); }
@@ -6775,13 +6803,32 @@ fn parse_impl() -> i64 {
     if gv(K_TKIND) != 1 { return syntax_error(); }
     memcpy(heap + O_SCAL + 1728, tokbuf());
     next_token();
+    # v1.1150: `impl Enum { fn m(self) ... }` —— enum impl 方法块
+    #（无 'for'；名称是已注册 enum 名）
+    if tok_is("{") == 1 {
+        let evn9: i64 = load64(heap + EVCNT);
+        let evi9: i64 = 0;
+        let isen9: i64 = 0;
+        while evi9 < evn9 {
+            if ev_streq(load64(heap + EV_E + evi9 * 8), heap + O_NAMES + intern(heap + O_SCAL + 1728)) == 1 { isen9 = 1; }
+            evi9 = evi9 + 1;
+        }
+        if isen9 == 1 {
+            sv(K_EIM, intern(heap + O_SCAL + 1728));
+            next_token();                       # 吃 '{'
+            while tok_is("}") == 0 { parse_stmt(); }
+            next_token();
+            sv(K_EIM, 0);
+            return 0;
+        }
+        return syntax_error();
+    }
     if tok_is("for") == 0 { return syntax_error(); }
     next_token();
     if gv(K_TKIND) != 1 { return syntax_error(); }
     memcpy(heap + O_SCAL + 1792, tokbuf());
     next_token();
     let k: i64 = if_lookup(heap + O_SCAL + 1728);
-    if k < 0 { return err_at2("unknown interface", gv(K_LINE), gv(K_COL)); }
     let nm: i64 = load64(heap + O_IFNM + k * 8);
     # 分配 vtable 全局数组（8 字节对齐 —— 不对齐会让 futex/原子操作直接失败）
     while (gv(K_DLEN) & 7) != 0 { dbyte(0); }
@@ -8413,6 +8460,7 @@ fn main() -> i64 {
     sv(K_DBG, 0);
     sv(K_RUN, 0);
     sv(K_NRUNA, 0);
+    sv(K_EIM, 0);
     sv(K_NDV, 0);
     sv(K_NDF, 0);
     sv(K_CURFN, 0);

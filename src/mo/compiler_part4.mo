@@ -2786,7 +2786,40 @@ fn parse_expr_method(osym: i64) -> i64 {
                 # 特例别名：contains → strstr
                 if streq(mname, "contains") == 1 { ff = sym_lookup_func("strstr"); }
             }
-        }        if ff < 0 { return err_atp("not a class value", gv(K_PLINE), gv(K_PCOL), gv(K_PPOS)); }
+        }
+        # v1.1150: 方法体内的 self（ty=i64 enum 形参）——.method 走
+        # enum 方法调度（K_EIM 提供 enum 名；this=变量地址）
+        if ff < 0 && gv(K_EIM) != 0 {
+            let enm3: i64 = heap + O_NAMES + gv(K_EIM);
+            let fsym3: i64 = find_method_sym(enm3, mname);
+            if fsym3 >= 0 {
+                load_sym(osym);
+                g_push_rax();
+                let na3: i64 = 1;
+                while tok_is(")") == 0 {
+                    parse_expr();
+                    g_push_rax();
+                    na3 = na3 + 1;
+                    if accept(",") == 0 {
+                        if tok_is(")") == 0 { return syntax_error(); }
+                    }
+                }
+                expect(")");
+                if na3 > NARGS_MAX { return err_atp("too many arguments", gv(K_PLINE), gv(K_PCOL), gv(K_PPOS)); }
+                if na3 > 6 { arg_spill(na3); }
+                if na3 >= 6 { g_pop_r9(); }
+                if na3 >= 5 { g_pop_r8(); }
+                if na3 >= 4 { g_pop_rcx(); }
+                if na3 >= 3 { g_pop_rdx(); }
+                if na3 >= 2 { g_pop_rsi(); }
+                g_pop_rdi();
+                emit_call_patch(fsym3);
+                if na3 > 6 { arg_cleanup(na3); }
+                R_ETY = ty_int();
+                return 0;
+            }
+        }
+        if ff < 0 { return err_atp("not a class value", gv(K_PLINE), gv(K_PCOL), gv(K_PPOS)); }
         load_sym(osym);
         g_push_rax();
         let na: i64 = 1;
@@ -2821,6 +2854,23 @@ fn parse_expr_method(osym: i64) -> i64 {
         if midx < 0 { return err_atp("no such interface method", gv(K_PLINE), gv(K_PCOL), gv(K_PPOS)); }
     } else {
         fsym = find_method_sym(st_name(ci), mname);
+        # v1.1150: enum 值的 ty 是隐式 variant struct "Enum$Variant" ——
+        # 方法挂在 enum 名上，'$' 前缀重查
+        if fsym < 0 {
+            let snm: i64 = st_name(ci);
+            let dl2: i64 = 0 - 1;
+            let z2: i64 = 0;
+            while load8(snm + z2) != 0 {
+                if load8(snm + z2) == 36 { dl2 = z2; }
+                z2 = z2 + 1;
+            }
+            if dl2 >= 0 {
+                let enp: i64 = heap + O_SCAL + 27000;
+                memcpy(enp, snm);
+                store8(enp + dl2, 0);
+                fsym = find_method_sym(enp, mname);
+            }
+        }
         if fsym < 0 { return err_atp("no such method", gv(K_PLINE), gv(K_PCOL), gv(K_PPOS)); }
     }
 
