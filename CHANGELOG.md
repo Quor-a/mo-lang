@@ -1,7 +1,21 @@
+# 变更记录
+
+## v1.1153.0
+- **enum 形参值语义修复**（跨函数双数据变体值传递）：`enum_type_exists`
+  改为同时扫描 O_ENAME（简单 enum 常量表）与 EV_E（带数据变体表）。
+  此前带数据 enum 名查不到 → 被 v1.1110 前向注册成 struct（引用语义），
+  `fn f(s: Sh)` 形参槽存地址而非值，函数内 `s + 1` / `print_i64(s)` /
+  match 取数据再算术全错。现在 `s: Sh` 等价 i64（v1.1057 设计），
+  值按 i64 传递。新增 tests/333_enum_param_value.mo（双数据变体
+  跨函数 match 取数据 + 算术，输出 69/RC=6）。
+- 已知限制：无。
+
 ## v1.1152.0
 - enum 判别式的数字/区间臂按 tag 匹配：`match c { 0 => ..., 1..3 => ... }`（此前 rax 是 variant struct 指针，数字/区间臂永不命中）。
 - 区间臂 `lo..hi` 参与 enum 穷尽性检查（覆盖 [lo,hi] 闭区间内全部变体 tag）。
-- 已知限制（既有）：跨函数传递双数据变体 enum 实参时 match 不命中（单数据变体正常；局部判别式正常）。
+## v1.1152.0
+- enum 判别式的数字/区间臂按 tag 匹配：`match c { 0 => ..., 1..3 => ... }`（此前 rax 是 variant struct 指针，数字/区间臂永不命中）。
+- 区间臂 `lo..hi` 参与 enum 穷尽性检查（覆盖 [lo,hi] 闭区间内全部变体 tag）。
 
 ## v1.1150.0
 - enum impl 方法：`impl Enum { fn m(self, ...) ... }`，方法调用 `value.method(args)`；方法体内 `self.method()` 链式可用；self 语义等价 enum 形参（i64 tag+data）。

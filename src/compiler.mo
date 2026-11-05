@@ -4357,11 +4357,21 @@ fn func_addr(sy: i64) -> i64 {
 # v1.1057: enum 名作类型 let c: Color = RED; —— enum 是常量命名空间，
 # 类型层面等价 i64。扫描 O_ECNT 表判断该名字是否为已声明 enum。
 fn enum_type_exists(nm: i64) -> i64 {
+    # v1.1153: 同时查老 enum 常量表（简单 enum，parse_enum 经
+    # enum_add_const 填 O_ENAME/O_ECNT）与新 tagged-union 表
+    #（带数据变体，填 EV_E/EVCNT）。之前只查一张表会漏另一类：
+    # O_ENAME 版漏带数据 enum（跨函数值用被当前向 struct），
+    # EV_E 版漏简单 enum（235/236 类型注解回归）。
     let i: i64 = 0;
     while i < load64(heap + O_ECNT) {
         # 🔴 intern 不查重：同名两次 intern 偏移不同，必须比内容
         if streq(heap + O_NAMES + load64(heap + O_ENAME + i * 8), heap + O_NAMES + nm) == 1 { return 1; }
         i = i + 1;
+    }
+    let j: i64 = 0;
+    while j < load64(heap + EVCNT) {
+        if streq(heap + O_NAMES + load64(heap + EV_E + j * 8), heap + O_NAMES + nm) == 1 { return 1; }
+        j = j + 1;
     }
     return 0;
 }
