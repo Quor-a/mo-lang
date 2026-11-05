@@ -1,3 +1,7 @@
+## v1.1141.0
+
+- defer 语句：函数退出（每个 return 点与函数尾）按 LIFO 重放 defer 体；返回值 rax/rdx push/pop 保护；源自 HN/Reddit 2025 社区调研（Zig defer/Go defer 共识）
+
 ## v1.1140.0
 
 - str 负下标 s[-N]：运行时 strlen 换算（内联扫描 0），s[-1]=s[len-1]；越界（|N|>len）运行时 panic

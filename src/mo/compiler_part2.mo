@@ -1373,6 +1373,12 @@ fn prof_emit_leave() -> i64 {
     return 0;
 }
 
+# v1.1141: defer 表 —— 每函数收集 defer 语句的 token 区间，
+# return 点与函数末尾按 LIFO 重放。区间是 [start, end)（分号后）。
+var DFTS: [64] i64 = 0;
+var DFTE: [64] i64 = 0;
+var DFTH: i64 = 0;
+
 fn g_epilogue() -> i64 {
     # 🔴 只对主文件插桩：库函数（strlen、print…）被调用几百万次，
     #    插上去既污染数据又把程序拖慢到不可信。

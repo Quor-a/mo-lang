@@ -558,6 +558,56 @@ fn parse_stmt() -> i64 {
         if tok_is("=") == 1 { set_back(mpk); }
         else { set_back(mpk); return parse_match(); }
     }
+    # v1.1141: defer 语句 —— 记 token 区间不发射；return/函数尾重放
+    if tok_is("defer") == 1 {
+        if gv(K_DEPTH) == 0 {
+            return err_atp("defer only allowed inside a function", gv(K_PLINE), gv(K_PCOL), gv(K_PPOS));
+        }
+        if DFTH >= 64 {
+            return err_atp("too many defer statements in one function (max 64)", gv(K_PLINE), gv(K_PCOL), gv(K_PPOS));
+        }
+        next_token();                  # 吃 'defer'
+        let ds0: i64 = gv(K_TOKPOS);   # defer 体起点
+        # 扫到深度 0 的 ';'（跳过字符串/花括号内）
+        let q0: i64 = gv(K_POS);
+        let n0: i64 = gv(K_SRCLEN);
+        let dep0: i64 = 0;
+        let go0: i64 = 1;
+        while go0 == 1 {
+            if q0 >= n0 { go0 = 0; }
+            else {
+                let c0: i64 = sbyte(q0);
+                if c0 == 34 {
+                    q0 = q0 + 1;
+                    while q0 < n0 {
+                        if sbyte(q0) == 92 { q0 = q0 + 1; }
+                        else {
+                            if sbyte(q0) == 34 { break; }
+                        }
+                        q0 = q0 + 1;
+                    }
+                } else {
+                    if c0 == 40 || c0 == 91 || c0 == 123 { dep0 = dep0 + 1; }
+                    else {
+                        if c0 == 41 || c0 == 93 || c0 == 125 { dep0 = dep0 - 1; }
+                        else {
+                            if c0 == 59 && dep0 == 0 { go0 = 0; }
+                        }
+                    }
+                }
+                q0 = q0 + 1;
+            }
+        }
+        # q0 现在指向 ';' 之后一个字节 = 区间端
+        DFTS[DFTH] = ds0;
+        DFTE[DFTH] = q0;
+        DFTH = DFTH + 1;
+        # 词法跳过 defer 体到 ';'（含），不发射
+        sv(K_POS, q0);
+        sv(K_TOKPOS, q0);
+        next_token();
+        return 0;
+    }
     if accept("return") == 1 { return parse_return(); }
     # 嵌套函数（闭包）：定义在函数体内，可捕获外层的局部变量
     if tok_is("fn") == 1 { return parse_nested_fn(); }
@@ -4007,6 +4057,40 @@ fn parse_match_expr(hs_off: i64) -> i64 {
 # 当前正在编译的函数的返回类型（parse_func 里设，parse_return 里读）。
 var CUR_RET: i64 = 0;
 
+# v1.1141: defer 重放 —— 在每个 return 的尾声前调用。
+# 返回值已在 rax(/rdx)：push rdx/rax 保护，LIFO 重放 defer 语句，
+# pop 恢复。重放期间 DFTH 清零防嵌套 return 重入。
+# 🔴 不在 g_epilogue 里做：重放会改写词法状态（tokbuf），而
+#    parse_return 的 expect(";") 还要用它 —— defer 分支吞分号后
+#    expect 失败、误吃下一条语句引发 duplicate definition。
+fn run_defers() -> i64 {
+    if DFTH == 0 { return 0; }
+    # 🔴 重放会推进词法状态（重放语句吃自己的 ';' 后继续），
+    # 而调用方（parse_block 循环）还要从**原位置**继续解析 ——
+    # 不恢复的话 let/return 会被二次解析（duplicate definition）。
+    # K_POS 保存的是"当前 token 已消费完、下一 token 起点"，
+    # 恢复后 next_token 重扫即可（tokbuf 随之恢复）。
+    let sp0: i64 = gv(K_TOKPOS);   # 当前 token 起点（K_POS 已指向下一 token）
+    emit1(0x52);                     # push rdx
+    emit1(0x50);                     # push rax
+    let sd0: i64 = DFTH;
+    DFTH = 0;
+    let di0: i64 = sd0 - 1;
+    while di0 >= 0 {
+        sv(K_POS, DFTS[di0]);
+        sv(K_TOKPOS, DFTS[di0]);
+        next_token();
+        parse_stmt();
+        di0 = di0 - 1;
+    }
+    sv(K_POS, sp0);
+    sv(K_TOKPOS, sp0);
+    next_token();
+    emit1(0x58);                     # pop rax
+    emit1(0x5a);                     # pop rdx
+    return 0;
+}
+
 fn parse_return() -> i64 {
     sv(K_HASRET, 1);
     if tok_is(";") == 1 {
@@ -4064,7 +4148,8 @@ fn parse_return() -> i64 {
                         ops3(0x48, 0x8b, 0x56);     # mov rdx, [rsi+8]
                         emit1(8);
                     }
-                    g_epilogue();
+                    run_defers();
+        g_epilogue();
                     return 0;
                 } else {
                     set_back(rsvp);
@@ -4091,6 +4176,7 @@ fn parse_return() -> i64 {
             ops3(0x48, 0x8b, 0x56);        # mov rdx, [rsi+8]
             emit1(8);
         }
+        run_defers();
         g_epilogue();
         return 0;
     }
@@ -4191,7 +4277,8 @@ fn parse_return() -> i64 {
                 sv(K_LAST, 0);
                 expect(";");
                 g_movabs_rax(268435456 + rbo3);
-                g_epilogue();
+                run_defers();
+        g_epilogue();
                 return 0;
             }
             # movabs r10, imm64 = 49 BA + imm64（缓冲地址，little-endian）
@@ -4220,7 +4307,8 @@ fn parse_return() -> i64 {
             next_token();                      # 吃 ']'
             expect(";");
             g_movabs_rax(268435456 + rbo3);
-            g_epilogue();
+            run_defers();
+        g_epilogue();
             return 0;
         }
         if gv(K_TKIND) != 1 {
@@ -4256,16 +4344,19 @@ fn parse_return() -> i64 {
             g_movabs_rax(268435456 + rbo);     # rax = 目的（缓冲）
             g_copy_words(asz / 8);
             g_movabs_rax(268435456 + rbo);     # 返回缓冲地址
-            g_epilogue();
+            run_defers();
+        g_epilogue();
             return 0;
         }
         g_addr_sym_rax(as2);
+        run_defers();
         g_epilogue();
         return 0;
     }
     parse_expr();
     expect(";");
-    g_epilogue();
+    run_defers();
+        g_epilogue();
     return 0;
 }
 
@@ -5274,6 +5365,7 @@ fn parse_func() -> i64 {
     sv(K_DEPTH, 1);
     sv(K_CUROFF, -16);
     store64(heap + O_ERRLAB, 0 - 1);
+    DFTH = 0;                     # v1.1141: defer 表按函数清空
     # -p：入口插桩。
     #
     # 🔴 **根因（1.59.0 那个"死区"）**：插桩代码不能发射在 `let addr` 之前。
@@ -5538,6 +5630,7 @@ fn parse_func() -> i64 {
     # 必须放在 g_epilogue **之前** —— 放在之后就成了跳到 ret 后面。
     let el2: i64 = load64(heap + O_ERRLAB);
     if el2 >= 0 { place_label(el2); }
+    run_defers();
     g_epilogue();
     # -g：回填本函数的 high_pc（当前代码末尾）
     if gv(K_DBG) == 1 {
