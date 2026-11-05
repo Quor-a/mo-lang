@@ -1,3 +1,8 @@
+## v1.1152.0
+- enum 判别式的数字/区间臂按 tag 匹配：`match c { 0 => ..., 1..3 => ... }`（此前 rax 是 variant struct 指针，数字/区间臂永不命中）。
+- 区间臂 `lo..hi` 参与 enum 穷尽性检查（覆盖 [lo,hi] 闭区间内全部变体 tag）。
+- 已知限制（既有）：跨函数传递双数据变体 enum 实参时 match 不命中（单数据变体正常；局部判别式正常）。
+
 ## v1.1150.0
 - enum impl 方法：`impl Enum { fn m(self, ...) ... }`，方法调用 `value.method(args)`；方法体内 `self.method()` 链式可用；self 语义等价 enum 形参（i64 tag+data）。
 

@@ -1,8 +1,8 @@
 # 墨语言 Mo
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
-[![Version](https://img.shields.io/badge/version-1.1150.0-blue.svg)](VERSION)
-[![Tests](https://img.shields.io/badge/tests-476%20passing-brightgreen.svg)](tests/)
+[![Version](https://img.shields.io/badge/version-1.1152.0-blue.svg)](VERSION)
+[![Tests](https://img.shields.io/badge/tests-482%20passing-brightgreen.svg)](tests/)
 
 **一个没有外部依赖、能自己编译自己、还能编译到 ARM64 裸机的完整工具链。**
 编译器 1.5 万行、自举 0.13 秒——改一行代码，立刻知道结果。
@@ -29,6 +29,9 @@
 | **多维数组 / 数组字面量** | `[2][3] i64`、struct 字段数组、len()、for-in、range for `for i in A..B` |
 | **struct 按值** | 字面量全家、按值传参/返回（rax/rdx ABI）、整体赋值、字段默认值 |
 | **错误传播** | `f()?` 链式传播 |
+| **enum impl 方法** | `impl Enum { fn m(self, ...) }`，`value.method(args)` 调用，方法体内 `self.m()` 链式（v1.1150） |
+| **match 区间臂** | `lo..hi` 闭区间（数字与 enum tag 判别式），参与穷尽检查（v1.1149/1152） |
+| **一体化运行** | `moc prog.mo run [args...]` 编译后立即执行，argv 直达（v1.1148） |
 
 完整语言文档在 [`docs/`](docs/)（140 篇），语言特性总览见 [`docs/lang-features-2026.md`](docs/lang-features-2026.md)。
 
@@ -59,6 +62,23 @@ fn main() -> i64 {
 EOF
 ./bin/moc hello.mo hello.elf && ./hello.elf
 ```
+
+## 获取与校验（Release）
+
+每个 [Release](https://github.com/Quor-a/mo-lang/releases) 附带：自举编译器 `moc`（x86-64 Linux）、**完整源码包**（tar.gz/zip）、4 平台演示产物（x86-64/ARM64 Linux、macOS、Windows，经 C 后端交叉编译）、SHA256 校验和与 SSH 签名。
+
+```bash
+# 校验
+sha256sum -c checksums.txt
+# 验签（公钥在仓库 release/SIGNING_KEY.pub）
+ssh-keygen -Y check-novalidate -n mo-release -s checksums.txt.sig < checksums.txt
+# 复现构建
+bash release/build-release.sh <version>
+```
+
+> 平台说明：自举编译器 `moc` 当前生成 x86-64 Linux 原生二进制；
+> **用户程序**经 `mo2x`（Mo→C）+ zig 交叉编译覆盖 x86-64/ARM64 Linux、
+> macOS、Windows x64、WASM（详见 [`docs/cross-compile.md`](docs/cross-compile.md)）。
 
 ## 包管理（mopkg）
 
@@ -178,8 +198,9 @@ src/mo/            拆分的编译器源码（part1~part5，cat 后即 compiler.
 lib/               标准库
 tools/             工具链（fmt、交叉编译、内核模块、安卓等）
 examples/          示例程序（含 registry 服务器）
-tests/             测试套件（247+ 用例）
+tests/             测试套件（482 用例）
 docs/              设计文档与教程
+release/           发布基建（构建/签名/发布脚本 + SIGNING_KEY.pub）
 verify_bootstrap.sh 自举闭环验证脚本
 bin/seed           汇编版编译器
 bin/moc            墨语言版编译器

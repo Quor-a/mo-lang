@@ -3612,6 +3612,24 @@ fn mt_scan(vals: i64) -> i64 {
 # v1.1144: 穷尽性静态检查 —— 判别式是 enum variant struct（名含 '$'）时，
 # 臂集合必须覆盖该 enum 的全部数据/无数据变体（变体臂收 tag；无数据变体
 # 常量臂 vals=tag 同样收）；守卫臂/绑定模式臂不算覆盖；缺臂报编译错误。
+# v1.1152: 判别式是否为 enum variant（R_ETY 的 struct 名含 '$'）。
+# 是 → match 数字/区间臂的比较对象从 rax（variant struct 指针）改为 tag
+#（[rax]，tag 在 offset 0）—— 发射端在数字臂链前 mov rax,[rax] 一次。
+fn mt_is_enum_disc() -> i64 {
+    let et: i64 = R_ETY;
+    if et < 0 { return 0; }
+    if ty_kind(et) != 2 { return 0; }
+    let vsi: i64 = ty_si(et);
+    if vsi < 0 { return 0; }
+    let nmp: i64 = st_name(vsi);
+    let z: i64 = 0;
+    while load8(nmp + z) != 0 {
+        if load8(nmp + z) == 36 { return 1; }
+        z = z + 1;
+    }
+    return 0;
+}
+
 fn mt_exhaust(vals: i64, n: i64) -> i64 {
     if load64(heap + O_SWDFT) == 1 { return 0; }   # _ 通配臂 = 穷尽豁免
     let et: i64 = R_ETY;
@@ -3657,7 +3675,20 @@ fn mt_exhaust(vals: i64, n: i64) -> i64 {
             # struct 臂之后。
             if load64(heap + O_SWVB + i * 8) != 0 { i = i + 1; continue; }
             let tv: i64 = load64(vals + i * 8);
+            # v1.1152: 区间臂 lo..hi 覆盖整段 tag（闭区间）—— 区间臂现在
+            # 真按 tag 匹配（发射端 [rax]），计入穷尽才语义自洽
+            if load64(heap + O_SWRG + i * 8) == 1 {
+                let tv2: i64 = tv;
+                let th2: i64 = load64(heap + O_SWRH + i * 8);
+                if tv2 < 0 { tv2 = 0; }
+                if th2 > 63 { th2 = 63; }
+                while tv2 <= th2 {
+                    store64(seen + tv2 * 8, 1);
+                    tv2 = tv2 + 1;
+                }
+            } else {
             if tv >= 0 && tv < 64 { store64(seen + tv * 8, 1); }
+            }
         }
         i = i + 1;
     }
@@ -3809,6 +3840,9 @@ fn parse_match() -> i64 {
             smq2 = smq2 + 1;
         }
         if smany == 1 { ops3(0x49, 0x89, 0xc3); }    # mov r11, rax
+        # v1.1152: enum variant 判别式（ty 含 '$'）→ 数字/区间臂按 tag 比较：
+        # rax 是 variant struct 指针，解引用一次取 tag（rax = [rax]）
+        if mt_is_enum_disc() == 1 && smany == 0 { ops3(0x48, 0x8b, 0x00); }
         i = 0;
         while i < n {
             if load64(heap + O_SWSN + i * 8) == 1 {
@@ -4118,6 +4152,8 @@ fn parse_match_expr(hs_off: i64) -> i64 {
             smq2 = smq2 + 1;
         }
         if smany == 1 { ops3(0x49, 0x89, 0xc3); }    # mov r11, rax
+        # v1.1152: enum variant 判别式 → 数字/区间臂按 tag 比较（rax=[rax]）
+        if mt_is_enum_disc() == 1 && smany == 0 { ops3(0x48, 0x8b, 0x00); }
         i = 0;
         while i < n {
             if load64(heap + O_SWSN + i * 8) == 1 {
