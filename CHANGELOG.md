@@ -1,5 +1,12 @@
 # 变更记录
 
+## v1.1154.0
+- 全局 enum 变量：`var g: Sh;`（带数据变体）—— `parse_global` 识别 enum 名，
+  登记为 i64 槽；`g = Sh.Circle(5);` 赋值通过 enum 变体构造特判（右侧
+  variant struct 地址直接存槽），与局部 enum 变量一致的地址语义。
+- 新增 tests/334_enum_global.mo（全局/局部/返回 enum 值 + match 变体臂取数据，
+  输出 21/RC=21）。
+
 ## v1.1153.0
 - **enum 形参值语义修复**（跨函数双数据变体值传递）：`enum_type_exists`
   改为同时扫描 O_ENAME（简单 enum 常量表）与 EV_E（带数据变体表）。

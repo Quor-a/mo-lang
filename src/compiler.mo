@@ -7723,6 +7723,27 @@ fn parse_stmt() -> i64 {
                 }
                 return err_atp("cannot assign a struct value: right side must be a variable", gv(K_PLINE), gv(K_PCOL), gv(K_PPOS));
             }
+            # v1.1154: enum 变量赋值 —— 右侧是 enum 变体构造（R_ETY 为
+            # 名含 '$' 的 variant struct，rax=对象地址），左侧是标量槽。
+            # enum 变量采用与局部一致的对象地址语义（变体臂/字段解引用），
+            # 因此允许把地址直接存入标量槽（跳过 ty_compat 的 struct 拒绝）。
+            if ty_kind(lt) != 2 {
+                if R_SADDR == 1 && ty_kind(R_ETY) == 2 {
+                    let evsi: i64 = ty_si(R_ETY);
+                    let evnm: i64 = st_name(evsi);
+                    let hz: i64 = 0;
+                    let has_d: i64 = 0;
+                    while load8(evnm + hz) != 0 {
+                        if load8(evnm + hz) == 36 { has_d = 1; }
+                        hz = hz + 1;
+                    }
+                    if has_d == 1 {
+                        store_sym(R_SYM);
+                        R_ETY = ty_int();
+                        return 0;
+                    }
+                }
+            }
             if ty_compat(lt, R_ETY) == 0 { return err_atp("incompatible assignment", gv(K_PLINE), gv(K_PCOL), gv(K_PPOS)); }
             store_sym(R_SYM);
             return 0;
@@ -12144,6 +12165,27 @@ fn parse_global() -> i64 {
                 }
                 let id: i64 = sym_add(scratch2(), 2, addr, 0);
                 store64(heap + O_STY + id * 8, ty_struct(si));
+                return 0;
+            }
+        } else {
+            # v1.1154: enum 名作全局变量类型（等价 i64，同形参）
+            let genm: i64 = intern(tokbuf());
+            if enum_type_exists(genm) == 1 {
+                next_token();
+                # 全局槽（数据段）
+                data_align(16);
+                let gaddr: i64 = 268435456 + gv(K_DLEN);
+                dquad(0);
+                let gid: i64 = sym_add(scratch2(), 2, gaddr, 0);
+                store64(heap + O_STY + gid * 8, ty_int());
+                if accept("=") == 1 {
+                    parse_expr();
+                    expect(";");
+                    g_movabs_rsi(gaddr);
+                    ops3(0x48, 0x89, 0x06);   # mov [rsi], rax
+                    return 0;
+                }
+                expect(";");
                 return 0;
             }
         }
