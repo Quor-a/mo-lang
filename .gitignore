@@ -28,3 +28,4 @@ mo.lock
 
 # 日志
 *.log
+dist/

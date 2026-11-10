@@ -1,5 +1,17 @@
 # 变更记录
 
+## v1.1156.0
+- **const fn 分支支持**：体内可用 `if` / `else`（任意嵌套）+ 比较运算符
+  `== != < <= > >=`（返回 0/1）。此前 if 块被体扫描静默跳过、只折叠最后
+  return，`max(7,3)` 算错不报错。
+  - `cfn_run(limit)` 递归语句解释器：return 写 CFNRV/CFDONE，嵌套 if/else
+    递归执行，条件假按括号深度跳块，guard>50000 硬退出防死循环；
+  - `cfn_expr` 比较层置于加减之后（`a*2+1 > b` 左值先吃完 `+1`）；
+  - 全局 CFNRV/CFDONE（part1）。
+- 新增 tests/336_constfn_branch.mo（max/min/clamp/sign/grade 嵌套 else +
+  复合算术条件，RC=142）。门禁 487/0。
+- 详见 docs/constfn-branch.md。
+
 ## v1.1155.0
 - **const fn 多参数扩展**：`const fn f(a: i64, b: i64) -> i64`（最多 8 个参数）。
   - 参数名序列存 O_CFA 名区，`O_CFNP` 表记录 fid→名区偏移；

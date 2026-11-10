@@ -5009,6 +5009,71 @@ fn const_dup_check() -> i64 {
 # 常量表达式求值：递归下降，一层乘除一层加减一层原子。
 # 原子 = 数字字面量 | ( expr ) | 已定义的 const 名（kind 4，O_SCV 取值）。
 # v1.1112: const fn 编译期求值——名 id 与参数值给入，重入 token 流解释函数体（仅 return expr）
+fn cfn_run(limit: i64) -> i64 {
+    # v1.1156: const fn 体语句执行器（递归）——支持 if / else 任意嵌套。
+    # limit: 本层块的结束边界（体首层=cbe，嵌套层=递归时记录的 `}` 位置前的边界由
+    #        调用方用深度计数扫描，见下）。返回值写全局 CFNRV，命中 return 后 CFDONE=1。
+    let guard: i64 = 0;
+    while gv(K_POS) < limit && CFDONE == 0 {
+        guard = guard + 1;
+        if guard > 50000 {
+            # 防死循环安全网：正常折叠远达不到此轮数
+            syscall(60, 1, 0, 0, 0, 0, 0);
+        }
+        if tok_is("return") == 1 {
+            next_token();
+            CFNRV = cfn_expr(0);
+            CFDONE = 1;
+        } else {
+            if tok_is("if") == 1 {
+                next_token();
+                let cond: i64 = cfn_expr(0);
+                expect("{");
+                if cond != 0 {
+                    cfn_run(limit);
+                    # 递归返回时已停在 `}` 之后（或 done）
+                    if CFDONE == 0 {
+                        # 跳过刚执行块的收尾 `}`（cfn_run 不消费块尾 `}`——见下方约定：
+                        # 嵌套层调用点先把 `}` 当普通 token 推进）。
+                        # 约定简化：cfn_run 把 `}` 当普通 token next 掉后返回，
+                        # 这里无需额外处理。
+                    }
+                } else {
+                    # 条件假：跳过整个块
+                    let d2: i64 = 1;
+                    while d2 > 0 && gv(K_POS) < limit {
+                        if tok_is("{") == 1 { d2 = d2 + 1; }
+                        else { if tok_is("}") == 1 { d2 = d2 - 1; } }
+                        next_token();
+                    }
+                }
+                if tok_is("else") == 1 && CFDONE == 0 {
+                    next_token();
+                    expect("{");
+                    if cond == 0 {
+                        cfn_run(limit);
+                    } else {
+                        let d4: i64 = 1;
+                        while d4 > 0 && gv(K_POS) < limit {
+                            if tok_is("{") == 1 { d4 = d4 + 1; }
+                            else { if tok_is("}") == 1 { d4 = d4 - 1; } }
+                            next_token();
+                        }
+                    }
+                }
+            } else {
+                if tok_is("}") == 1 {
+                    # 本层块结束：消费 `}` 并返回（调用方的深度由其自身处理）
+                    next_token();
+                    return 0;
+                }
+                next_token();
+            }
+        }
+    }
+    return 0;
+}
+
 fn cfn_eval(fid: i64, abase: i64) -> i64 {
     let cbs: i64 = load64(heap + O_CFB + fid * 16);
     let cbe: i64 = load64(heap + O_CFB + fid * 16 + 8);
@@ -5025,22 +5090,17 @@ fn cfn_eval(fid: i64, abase: i64) -> i64 {
     sv(K_LINE, 1);
     sv(K_CPOS, 0);
     set_pos(cbs);
-    let rv: i64 = 0;
-    while gv(K_POS) < cbe {
-        if tok_is("return") == 1 {
-            next_token();
-            rv = cfn_expr(0);
-        } else {
-            next_token();
-        }
-    }
+    # v1.1156: 递归语句解释器（支持 if/else 任意嵌套，消除 v1.1155 的静默跳过 bug）
+    CFNRV = 0;
+    CFDONE = 0;
+    cfn_run(cbe);
     # 恢复（set_back 重读 token）
     CFCUR = old_cur;
     CFABASE = old_base;
     sv(K_LINE, sv_ln);
     sv(K_CPOS, sv_cl);
     set_back(sv_tk);
-    return rv;
+    return CFNRV;
 }
 
 # cfn 表达式求值（递归下降；支持 参数/数字/() 一元- + - * / %）
@@ -5127,6 +5187,10 @@ fn cfn_term() -> i64 {
 }
 
 fn cfn_expr(depth: i64) -> i64 {
+    # v1.1156: 比较运算符层（优先级最低，返回 0/1）。
+    # 顺序：先乘除（cfn_term）→ 再加减 → 最后比较一次。
+    # 🔴 比较层必须在加减 while 之后：`a * 2 + 1 > b` 的左值要先把
+    #    `+ 1` 吃完，否则比较被静默丢弃（首版踩坑）。
     let ev: i64 = cfn_term();
     while tok_is("+") == 1 || tok_is("-") == 1 {
         if tok_is("+") == 1 {
@@ -5136,6 +5200,23 @@ fn cfn_expr(depth: i64) -> i64 {
             next_token();
             ev = ev - cfn_term();
         }
+    }
+    if tok_is("==") == 1 || tok_is("!=") == 1 || tok_is("<") == 1 || tok_is("<=") == 1 || tok_is(">") == 1 || tok_is(">=") == 1 {
+        let op: i64 = 0;
+        if tok_is("==") == 1 { op = 1; }
+        else { if tok_is("!=") == 1 { op = 2; }
+        else { if tok_is("<") == 1 { op = 3; }
+        else { if tok_is("<=") == 1 { op = 4; }
+        else { if tok_is(">") == 1 { op = 5; } else { op = 6; } } } } }
+        next_token();
+        let rhs: i64 = cfn_expr(0);
+        if op == 1 { if ev == rhs { return 1; } return 0; }
+        if op == 2 { if ev != rhs { return 1; } return 0; }
+        if op == 3 { if ev < rhs { return 1; } return 0; }
+        if op == 4 { if ev <= rhs { return 1; } return 0; }
+        if op == 5 { if ev > rhs { return 1; } return 0; }
+        if ev >= rhs { return 1; }
+        return 0;
     }
     return ev;
 }

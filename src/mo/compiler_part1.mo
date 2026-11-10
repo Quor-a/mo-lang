@@ -202,6 +202,9 @@ var CFCNX:   i64 = 0;
 var CFCUR:   i64 = 0;
 var CFABASE: i64 = 0;
 var CFARGD:  i64 = 0;
+# v1.1156: const fn 体语句解释器状态（cfn_run 用）
+var CFNRV:   i64 = 0;
+var CFDONE:  i64 = 0;
 var O_ENAME: i64 = 8700000;    # 512 × 8 = 4096
 var O_ECNAME: i64 = 8704096;
 var O_EVAL: i64 = 8708192;
