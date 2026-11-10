@@ -188,6 +188,20 @@ var FSTICKY: i64 = 0;       # 浮点字面量：被截掉的低位里是否有�
 var O_CFF:   i64 = 8882600;   # v1.1112: sym sid → 是否 const fn（1 字节/sym）
 var O_CFB:   i64 = 8888000;   # v1.1112: sym sid → 体起/体止 token 位置（2 槽/sym）
 var O_CFA:   i64 = 8900000;   # v1.1112: const fn 求值参数槽（每参 24B：名 16B + 值 8B）
+# v1.1155: const fn 多参数 —— 参数名区 + fid→名区偏移表。
+# 区域划分（O_CFA 8900000 .. O_SU 9000000，共 100KB）：
+#   +0      .. +50000   参数名区（紧凑：每函数 [nargs:8][name:16]×n）
+#   +62000  .. +90000   实参帧（每帧 64B = 8 参 × 8B，按 CFARGD 嵌套）
+var O_CFNP:  i64 = 8950000;   # v1.1155: sym fid → 参数名区偏移+1（0 = 非 const fn）
+# v1.1155: const fn 多参数求值状态（必须在 part4 调用点之前定义）。
+#   CFCNX   参数名区分配游标（相对 O_CFA）
+#   CFCUR   当前正在求值的 const fn fid（cfn_atom 查参数名用）
+#   CFABASE 当前帧实参值基址（绝对地址）
+#   CFARGD  实参帧嵌套偏移（每层 +64）
+var CFCNX:   i64 = 0;
+var CFCUR:   i64 = 0;
+var CFABASE: i64 = 0;
+var CFARGD:  i64 = 0;
 var O_ENAME: i64 = 8700000;    # 512 × 8 = 4096
 var O_ECNAME: i64 = 8704096;
 var O_EVAL: i64 = 8708192;

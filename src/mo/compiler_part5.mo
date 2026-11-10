@@ -4891,20 +4891,36 @@ fn parse_const() -> i64 {
         if ssid < 0 { return err_at2("const fn: not predeclared", gv(K_LINE), gv(K_COL)); }
         next_token();
         expect("(");
-        if gv(K_TKIND) != 1 { return syntax_error(); }
-        # 参数名内容 → O_CFA[0]（单参数；名字 16B + 值 8B）
-        let cp9: i64 = heap + O_CFA;
-        let cn9: i64 = tokbuf();
-        let ci9b: i64 = 0;
-        while ci9b < 16 {
-            if load8(cn9 + ci9b) == 0 { break; }
-            store8(cp9 + ci9b, load8(cn9 + ci9b));
-            ci9b = ci9b + 1;
+        # v1.1155: 多参数 —— 参数名序列紧凑写入 O_CFA 名区：
+        #   [nargs:8][name0:16][name1:16]...
+        let cstart: i64 = CFCNX;
+        let cbase: i64 = heap + O_CFA + cstart;
+        store64(cbase, 0);                 # nargs 占位（末尾回填）
+        CFCNX = CFCNX + 8;
+        let cnargs: i64 = 0;
+        while tok_is(")") == 0 {
+            if gv(K_TKIND) != 1 { return syntax_error(); }
+            if cnargs >= 8 { return err_at2("const fn: too many parameters (max 8)", gv(K_LINE), gv(K_COL)); }
+            let cp9: i64 = heap + O_CFA + CFCNX;
+            let cn9: i64 = tokbuf();
+            let ci9b: i64 = 0;
+            while ci9b < 15 {
+                if load8(cn9 + ci9b) == 0 { break; }
+                store8(cp9 + ci9b, load8(cn9 + ci9b));
+                ci9b = ci9b + 1;
+            }
+            store8(cp9 + ci9b, 0);
+            CFCNX = CFCNX + 16;
+            cnargs = cnargs + 1;
+            next_token();
+            expect(":");
+            expect("i64");
+            if accept(",") == 0 {
+                if tok_is(")") == 0 { return syntax_error(); }
+            }
         }
-        store8(cp9 + ci9b, 0);
-        next_token();
-        expect(":");
-        expect("i64");
+        store64(cbase, cnargs);            # 回填 nargs
+        store64(heap + O_CFNP + ssid * 8, cstart + 1);   # fid → 名区偏移+1
         expect(")");
         if accept("->") == 1 { expect("i64"); }
         expect("{");
@@ -4993,15 +5009,18 @@ fn const_dup_check() -> i64 {
 # 常量表达式求值：递归下降，一层乘除一层加减一层原子。
 # 原子 = 数字字面量 | ( expr ) | 已定义的 const 名（kind 4，O_SCV 取值）。
 # v1.1112: const fn 编译期求值——名 id 与参数值给入，重入 token 流解释函数体（仅 return expr）
-fn cfn_eval(fid: i64, arg: i64) -> i64 {
+fn cfn_eval(fid: i64, abase: i64) -> i64 {
     let cbs: i64 = load64(heap + O_CFB + fid * 16);
     let cbe: i64 = load64(heap + O_CFB + fid * 16 + 8);
     # 保存扫描位置（恢复用 set_back 重读 token，保证 tokbuf 一致）
     let sv_tk: i64 = gv(K_POS);
     let sv_ln: i64 = gv(K_LINE);
     let sv_cl: i64 = gv(K_CPOS);
-    # 参数值 → O_CFA+16（名内容在 O_CFA[0..16)，声明时写入）
-    store64(heap + O_CFA + 16, arg);
+    # v1.1155: 保存/设置求值上下文（实参值由调用方写入 abase 帧）
+    let old_cur: i64 = CFCUR;
+    let old_base: i64 = CFABASE;
+    CFCUR = fid;
+    CFABASE = abase;
     # 跳到函数体（set_pos 重读 token → tokbuf 同步）
     sv(K_LINE, 1);
     sv(K_CPOS, 0);
@@ -5016,6 +5035,8 @@ fn cfn_eval(fid: i64, arg: i64) -> i64 {
         }
     }
     # 恢复（set_back 重读 token）
+    CFCUR = old_cur;
+    CFABASE = old_base;
     sv(K_LINE, sv_ln);
     sv(K_CPOS, sv_cl);
     set_back(sv_tk);
@@ -5024,6 +5045,7 @@ fn cfn_eval(fid: i64, arg: i64) -> i64 {
 
 # cfn 表达式求值（递归下降；支持 参数/数字/() 一元- + - * / %）
 fn cfn_atom() -> i64 {
+
     if tok_is("(") == 1 {
         next_token();
         let v: i64 = cfn_expr(0);
@@ -5039,19 +5061,46 @@ fn cfn_atom() -> i64 {
         next_token();
         return v;
     }
-    # 参数名（O_CFA[0..16) 名内容, [16] 值）；其它标识符若是 const fn 调用 → 递归折叠
+    # v1.1155: 参数名 —— 按 CFCUR 对应的名区表逐个比对（多参数），
+    # 命中第 i 个参数 → 从当前帧 CFABASE + i*8 取实参值。
     if gv(K_TKIND) == 1 {
-        if streq(tokbuf(), heap + O_CFA) == 1 {
-            next_token();
-            return load64(heap + O_CFA + 16);
+        let np1: i64 = load64(heap + O_CFNP + CFCUR * 8);
+        if np1 > 0 {
+            let nbase: i64 = heap + O_CFA + np1 - 1;
+            let nn: i64 = load64(nbase);
+            let pi: i64 = 0;
+            while pi < nn {
+                if streq(tokbuf(), nbase + 8 + pi * 16) == 1 {
+                    next_token();
+                    return load64(CFABASE + pi * 8);
+                }
+                pi = pi + 1;
+            }
         }
+        # 其它标识符若是 const fn 调用 → 递归折叠（实参同法求值到新帧）
         let nid9: i64 = sym_lookup_func(tokbuf());
         if nid9 >= 0 && load8(heap + O_CFF + nid9) == 1 && load64(heap + O_CFB + nid9 * 16) > 0 {
             next_token();
             expect("(");
-            let na9: i64 = cfn_expr(0);
+            let nabase: i64 = heap + O_CFA + 62000 + CFARGD;
+            let oldd: i64 = CFARGD;
+            CFARGD = CFARGD + 64;
+            let nai: i64 = 0;
+            while tok_is(")") == 0 {
+                if nai >= 8 { return err_at2("const fn: too many arguments", gv(K_LINE), gv(K_COL)); }
+                let nav: i64 = cfn_expr(0);
+                store64(nabase + nai * 8, nav);
+                nai = nai + 1;
+                if accept(",") == 0 {
+                    if tok_is(")") == 0 { return err_at2("const fn: expected ',' or ')'", gv(K_LINE), gv(K_COL)); }
+                }
+            }
+            let sbx: i64 = gv(K_POS);
             expect(")");
-            return cfn_eval(nid9, na9);
+            CFARGD = oldd;
+            let cfr: i64 = cfn_eval(nid9, nabase);
+            set_back(sbx);
+            return cfr;
         }
         return err_at2("const fn: undefined name", gv(K_LINE), gv(K_COL));
     }
@@ -5079,6 +5128,15 @@ fn cfn_term() -> i64 {
 
 fn cfn_expr(depth: i64) -> i64 {
     let ev: i64 = cfn_term();
+    while tok_is("+") == 1 || tok_is("-") == 1 {
+        if tok_is("+") == 1 {
+            next_token();
+            ev = ev + cfn_term();
+        } else {
+            next_token();
+            ev = ev - cfn_term();
+        }
+    }
     return ev;
 }
 
@@ -5091,9 +5149,26 @@ fn const_atom() -> i64 {
             next_token();
             if tok_is("(") == 1 {
                 next_token();
-                let ca: i64 = const_expr();
+                # v1.1155: 多实参求值到新帧
+                let cabase: i64 = heap + O_CFA + 62000 + CFARGD;
+                let oldd2: i64 = CFARGD;
+                CFARGD = CFARGD + 64;
+                let cai: i64 = 0;
+                while tok_is(")") == 0 {
+                    if cai >= 8 { return err_at2("const fn: too many arguments", gv(K_LINE), gv(K_COL)); }
+                    let cav: i64 = const_expr();
+                    store64(cabase + cai * 8, cav);
+                    cai = cai + 1;
+                    if accept(",") == 0 {
+                        if tok_is(")") == 0 { return err_at2("const fn: expected ',' or ')'", gv(K_LINE), gv(K_COL)); }
+                    }
+                }
+                let sbz: i64 = gv(K_POS);
                 expect(")");
-                return cfn_eval(csid, ca);
+                CFARGD = oldd2;
+                let cfz: i64 = cfn_eval(csid, cabase);
+                set_back(sbz);
+                return cfz;
             }
             err_at2("const fn used as value", gv(K_LINE), gv(K_COL));
         }

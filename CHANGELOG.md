@@ -1,5 +1,15 @@
 # 变更记录
 
+## v1.1155.0
+- **const fn 多参数扩展**：`const fn f(a: i64, b: i64) -> i64`（最多 8 个参数）。
+  - 参数名序列存 O_CFA 名区，`O_CFNP` 表记录 fid→名区偏移；
+  - 实参求值到独立帧（CFARGD 分层，防嵌套调用覆盖）；
+  - `cfn_eval(fid, abase)` 用帧基址取实参，`cfn_atom` 按当前函数参数表匹配；
+  - `cfn_expr` 新增 `+ -` 支持（原仅 `* / %`），const fn 体现支持完整
+    `+ - * / %` 算术表达式。
+- 新增 tests/335_constfn_multi.mo（多参数、嵌套调用、加减乘除、const 声明
+  内调用，RC=98）。
+
 ## v1.1154.0
 - 全局 enum 变量：`var g: Sh;`（带数据变体）—— `parse_global` 识别 enum 名，
   登记为 i64 槽；`g = Sh.Circle(5);` 赋值通过 enum 变体构造特判（右侧

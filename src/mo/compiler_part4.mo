@@ -3468,14 +3468,28 @@ fn parse_call() -> i64 {
     CE_C = gv(K_PCOL);
     CE_L = gv(K_PLINE);
     # v1.1112: const fn 折叠 —— sym 命中 O_CFF → 名(常量实参) → 编译期 movabs
+    # v1.1155: 多参数 —— 实参逐个求值到独立帧（CFARGD 分层防嵌套覆盖）
     {
         let rs9: i64 = sym_lookup_func(cscratch());
         if rs9 >= 0 && load8(heap + O_CFF + rs9) == 1 && load64(heap + O_CFB + rs9 * 16) > 0 {
             next_token();
-            let ca: i64 = const_expr();
+            let cab: i64 = heap + O_CFA + 62000 + CFARGD;
+            let olda: i64 = CFARGD;
+            CFARGD = CFARGD + 64;
+            let cai2: i64 = 0;
+            while tok_is(")") == 0 {
+                if cai2 >= 8 { return err_at2("const fn: too many arguments", gv(K_LINE), gv(K_COL)); }
+                let cav2: i64 = const_expr();
+                store64(cab + cai2 * 8, cav2);
+                cai2 = cai2 + 1;
+                if accept(",") == 0 {
+                    if tok_is(")") == 0 { return err_at2("const fn: expected ',' or ')'", gv(K_LINE), gv(K_COL)); }
+                }
+            }
             let sb9: i64 = gv(K_POS);
-            expect(")");                 # ')' 后位置（cfn_eval 恢复后再校正一次）
-            g_movabs_rax(cfn_eval(rs9, ca));
+            expect(")");
+            CFARGD = olda;
+            g_movabs_rax(cfn_eval(rs9, cab));
             set_back(sb9);
             R_ETY = ty_int();
             R_SADDR = 0;
