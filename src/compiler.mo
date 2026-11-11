@@ -211,6 +211,8 @@ var O_CFL:   i64 = 8620000;
 var CFLGD:   i64 = 0;   # 局部帧深度（cfn_eval 进出时 ±1）
 # v1.1159: 循环控制（1 = break，2 = continue；0 = 正常）
 var CFBRK:   i64 = 0;
+# v1.1160: 逻辑短路跳过模式（&&/|| 左值已决定结果，右值只吃 token 不求值）
+var CFSK:    i64 = 0;
 var O_ENAME: i64 = 8700000;    # 512 × 8 = 4096
 var O_ECNAME: i64 = 8704096;
 var O_EVAL: i64 = 8708192;
@@ -12235,7 +12237,9 @@ fn cfn_atom() -> i64 {
             }
             let sbx: i64 = gv(K_POS);
             expect(")");
-            let cfr: i64 = cfn_eval(nid9, nabase);
+            # v1.1160: 短路跳过时不真的折叠调用（省递归，也避免被调函数内的除零）
+            let cfr: i64 = 0;
+            if CFSK == 0 { cfr = cfn_eval(nid9, nabase); }
             CFARGD = oldd;
             set_back(sbx);
             return cfr;
@@ -12254,21 +12258,21 @@ fn cfn_term() -> i64 {
         } else {
             if tok_is("/") == 1 {
                 next_token();
-                v = v / cfn_atom();
+                let d: i64 = cfn_atom();
+                # v1.1160: 短路跳过模式下右值不求值 → 除数可能是 0，不能真除
+                if CFSK == 1 { v = 0; } else { v = v / d; }
             } else {
                 next_token();
-                v = v % cfn_atom();
+                let d: i64 = cfn_atom();
+                if CFSK == 1 { v = 0; } else { v = v % d; }
             }
         }
     }
     return v;
 }
 
-fn cfn_expr(depth: i64) -> i64 {
-    # v1.1156: 比较运算符层（优先级最低，返回 0/1）。
-    # 顺序：先乘除（cfn_term）→ 再加减 → 最后比较一次。
-    # 🔴 比较层必须在加减 while 之后：`a * 2 + 1 > b` 的左值要先把
-    #    `+ 1` 吃完，否则比较被静默丢弃（首版踩坑）。
+fn cfn_arith(depth: i64) -> i64 {
+    # v1.1160: 纯算术层（乘除 → 加减），不含比较与逻辑
     let ev: i64 = cfn_term();
     while tok_is("+") == 1 || tok_is("-") == 1 {
         if tok_is("+") == 1 {
@@ -12279,6 +12283,14 @@ fn cfn_expr(depth: i64) -> i64 {
             ev = ev - cfn_term();
         }
     }
+    return ev;
+}
+
+fn cfn_cmp(depth: i64) -> i64 {
+    # v1.1156: 比较层（返回 0/1）。
+    # 🔴 右值必须走 cfn_arith，不能走 cfn_expr：原来右值递归 cfn_expr，
+    #    `a == 0 || b == 0` 会被解析成 `a == (0 || ...)`，整个 || 被右侧吞掉。
+    let ev: i64 = cfn_arith(depth);
     if tok_is("==") == 1 || tok_is("!=") == 1 || tok_is("<") == 1 || tok_is("<=") == 1 || tok_is(">") == 1 || tok_is(">=") == 1 {
         let op: i64 = 0;
         if tok_is("==") == 1 { op = 1; }
@@ -12287,7 +12299,7 @@ fn cfn_expr(depth: i64) -> i64 {
         else { if tok_is("<=") == 1 { op = 4; }
         else { if tok_is(">") == 1 { op = 5; } else { op = 6; } } } } }
         next_token();
-        let rhs: i64 = cfn_expr(0);
+        let rhs: i64 = cfn_arith(depth);
         if op == 1 { if ev == rhs { return 1; } return 0; }
         if op == 2 { if ev != rhs { return 1; } return 0; }
         if op == 3 { if ev < rhs { return 1; } return 0; }
@@ -12297,6 +12309,37 @@ fn cfn_expr(depth: i64) -> i64 {
         return 0;
     }
     return ev;
+}
+
+fn cfn_and(depth: i64) -> i64 {
+    # v1.1160: && 层（比 || 紧）。短路：左值假 → 右值置 CFSK 只吃 token。
+    # 不求值才敢短路 —— `b != 0 && a / b > 1` 在 b=0 时若照常求值会除零。
+    let v: i64 = cfn_cmp(depth);
+    while tok_is("&&") == 1 {
+        next_token();
+        let old: i64 = CFSK;
+        let lz: i64 = 0;
+        if v == 0 { CFSK = 1; lz = 1; }
+        let r: i64 = cfn_cmp(depth);
+        CFSK = old;
+        if lz == 1 { v = 0; } else { if r != 0 { v = 1; } else { v = 0; } }
+    }
+    return v;
+}
+
+fn cfn_expr(depth: i64) -> i64 {
+    # v1.1160: || 层（最松）。短路：左值真 → 右值置 CFSK。
+    let v: i64 = cfn_and(depth);
+    while tok_is("||") == 1 {
+        next_token();
+        let old: i64 = CFSK;
+        let nz: i64 = 0;
+        if v != 0 { CFSK = 1; nz = 1; }
+        let r: i64 = cfn_and(depth);
+        CFSK = old;
+        if nz == 1 { v = 1; } else { if r != 0 { v = 1; } else { v = 0; } }
+    }
+    return v;
 }
 
 fn const_atom() -> i64 {

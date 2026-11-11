@@ -211,6 +211,8 @@ var O_CFL:   i64 = 8620000;
 var CFLGD:   i64 = 0;   # 局部帧深度（cfn_eval 进出时 ±1）
 # v1.1159: 循环控制（1 = break，2 = continue；0 = 正常）
 var CFBRK:   i64 = 0;
+# v1.1160: 逻辑短路跳过模式（&&/|| 左值已决定结果，右值只吃 token 不求值）
+var CFSK:    i64 = 0;
 var O_ENAME: i64 = 8700000;    # 512 × 8 = 4096
 var O_ECNAME: i64 = 8704096;
 var O_EVAL: i64 = 8708192;

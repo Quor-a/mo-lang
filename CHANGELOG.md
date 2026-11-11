@@ -10902,3 +10902,17 @@ aarch64/s390x/ppc64/riscv64 现有构建全部不受影响。
   - 内层循环无需额外栈：内层 while 在自己的处理块里就把标记清零。
 - 新增 tests/338_constfn_break.mo（9 场景，期望值由 Python 模型独立算出，RC=127）。
 - 详见 docs/constfn-break.md。
+
+## v1.1160.0
+- **const fn 逻辑运算符 `&&` / `||` + 短路求值**。
+  - 此前 `&&` / `||` 完全没实现：`if a > 0 && b > 0` 只看左值，右侧整段被丢弃，
+    `f(1,0)` 返回 1；且比较层的右值递归整个 `cfn_expr`，`a == 0 || b == 0` 被解析成
+    `a == (0 || b) == 0`，`pick(7,8)` 返回 0 而非 15；
+  - 拆成四层：`cfn_arith`（乘除/加减）→ `cfn_cmp`（比较，**右值改走 cfn_arith**）→
+    `cfn_and`（&&，紧）→ `cfn_expr`（||，松）；右值改造是“比较吞掉逻辑符”的根治点；
+  - 短路用全局 `CFSK` 跳过模式：右值照常解析消费 token，但 `cfn_term` 不做除法、
+    `cfn_atom` 不执行 `cfn_eval` —— 于是 `b != 0 && a / b > 1` 在 b=0 时不会编译期除零；
+  - `CFSK` 每层保存/恢复，嵌套短路互不污染（同 CFDONE / CFARGD / CFBRK 的约定）。
+- 新增 tests/339_constfn_logic.mo（10 场景，期望值由 Python 模型独立算出，RC=168）。
+- 已知未支持：一元 `!`（`if !(x == 0)` 报语法错），留作后续。
+- 详见 docs/constfn-logic.md。
