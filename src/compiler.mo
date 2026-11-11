@@ -11875,9 +11875,9 @@ fn const_dup_check() -> i64 {
 # 原子 = 数字字面量 | ( expr ) | 已定义的 const 名（kind 4，O_SCV 取值）。
 # v1.1112: const fn 编译期求值——名 id 与参数值给入，重入 token 流解释函数体（仅 return expr）
 fn cfn_run(limit: i64) -> i64 {
-    # v1.1156: const fn 体语句执行器（递归）——支持 if / else 任意嵌套。
-    # limit: 本层块的结束边界（体首层=cbe，嵌套层=递归时记录的 `}` 位置前的边界由
-    #        调用方用深度计数扫描，见下）。返回值写全局 CFNRV，命中 return 后 CFDONE=1。
+    # v1.1157: const fn 体语句执行器（递归）——支持 if / else 任意嵌套。
+    # limit: 本层块末尾 `}` 的字节偏移（set_pos(limit) 将停在块尾 `}` 上）。
+    # 返回值写全局 CFNRV，命中 return 后 CFDONE=1。
     let guard: i64 = 0;
     while gv(K_POS) < limit && CFDONE == 0 {
         guard = guard + 1;
@@ -11894,42 +11894,53 @@ fn cfn_run(limit: i64) -> i64 {
                 next_token();
                 let cond: i64 = cfn_expr(0);
                 expect("{");
+                let bstart: i64 = gv(K_TOKPOS);   # if 块内第一个 token 的起点（expect 已预读）
+                # 扫描本层 if 块尾：从当前 `{` 之后开始，遇到 `}` 则嵌套层数减一，
+                # 计数归零即本层块尾 `}` token（记录其起点 K_TOKPOS）。
+                let dd: i64 = 1;
+                while dd > 0 && gv(K_POS) < limit {
+                    if tok_is("{") == 1 { dd = dd + 1; }
+                    else { if tok_is("}") == 1 { dd = dd - 1; } }
+                    if dd > 0 { next_token(); }
+                }
+                let eend: i64 = gv(K_TOKPOS);   # 本层块尾 `}` token 的起点
                 if cond != 0 {
-                    cfn_run(limit);
-                    # 递归返回时已停在 `}` 之后（或 done）
+                    # 真分支：回到块首，递归执行 if 块（limit=块尾 `}` 起点）
+                    set_pos(bstart);
+                    cfn_run(eend);
                     if CFDONE == 0 {
-                        # 跳过刚执行块的收尾 `}`（cfn_run 不消费块尾 `}`——见下方约定：
-                        # 嵌套层调用点先把 `}` 当普通 token 推进）。
-                        # 约定简化：cfn_run 把 `}` 当普通 token next 掉后返回，
-                        # 这里无需额外处理。
+                        next_token();   # 消费块尾 `}`
                     }
                 } else {
-                    # 条件假：跳过整个块
-                    let d2: i64 = 1;
-                    while d2 > 0 && gv(K_POS) < limit {
-                        if tok_is("{") == 1 { d2 = d2 + 1; }
-                        else { if tok_is("}") == 1 { d2 = d2 - 1; } }
-                        next_token();
-                    }
+                    # 条件假：跳过整个 if 块（含块尾 `}`）
+                    set_pos(eend);
+                    next_token();
                 }
                 if tok_is("else") == 1 && CFDONE == 0 {
                     next_token();
                     expect("{");
+                    let ebstart: i64 = gv(K_TOKPOS);   # else 块内第一个 token 的起点
+                    let d5: i64 = 1;
+                    while d5 > 0 && gv(K_POS) < limit {
+                        if tok_is("{") == 1 { d5 = d5 + 1; }
+                        else { if tok_is("}") == 1 { d5 = d5 - 1; } }
+                        if d5 > 0 { next_token(); }
+                    }
+                    let eend2: i64 = gv(K_TOKPOS);   # else 块尾 `}` token 的起点
                     if cond == 0 {
-                        cfn_run(limit);
-                    } else {
-                        let d4: i64 = 1;
-                        while d4 > 0 && gv(K_POS) < limit {
-                            if tok_is("{") == 1 { d4 = d4 + 1; }
-                            else { if tok_is("}") == 1 { d4 = d4 - 1; } }
-                            next_token();
+                        set_pos(ebstart);
+                        cfn_run(eend2);
+                        if CFDONE == 0 {
+                            next_token();   # 消费 else 块尾 `}`
                         }
+                    } else {
+                        set_pos(eend2);
+                        next_token();
                     }
                 }
             } else {
-                if tok_is("}") == 1 {
-                    # 本层块结束：消费 `}` 并返回（调用方的深度由其自身处理）
-                    next_token();
+                if gv(K_POS) == limit {
+                    # 本层块结束：停在此 `}`，不消费，交给调用方
                     return 0;
                 }
                 next_token();

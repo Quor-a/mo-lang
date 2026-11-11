@@ -10866,3 +10866,13 @@ aarch64/s390x/ppc64/riscv64 现有构建全部不受影响。
 - 🔴 真 bug：全局 var 初值禁表达式（`0 - 1` 语法错）→ 哨兵改 0；HEAD 响应 CL 是假想 body 长度，client 必须跳过 body 读取。
 - E2E（289_regx）：同连接 4 请求（search kw 过滤/全量/pkg fetch/404）+ HEAD 0 body + 静态 MIME + 目录列表含 a.html/b.txt —— x86 与 ARM REG_OK；288 STATIC_OK 回归。
 - tests 232/232。门禁 11/11、sweep 绿。
+
+## v1.1157.0
+
+- **修复 const fn 递归解释器块边界 bug**：`gv(K_POS)` 是 token 结束偏移，`gv(K_TOKPOS)` 才是起点。
+  v1.1156 用 `gv(K_POS)` 记录 if/else 块尾，导致递归进入时 limit 立即满足、if 块被静默跳过。
+- 重写 `cfn_run` 的 if/else 处理：块首/块尾均用 `gv(K_TOKPOS)`（token 起点），
+  递归以块尾 `}` 起点为 limit，真分支 `set_pos(块首)` 后执行，返回后消费 `}`。
+- 自举通过：新编译器编译自身生成 md5 一致的二进制。
+- tests/336_constfn_branch.mo = 142，tests/335_constfn_multi.mo = 98。
+
