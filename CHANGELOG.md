@@ -11013,3 +11013,21 @@ mo2x（C 后端）支持 io.mo 全文 —— print_f64 及依赖 ptr↔i64 隐�
 - `lib/io.mo` 全文经 mo2x → zig x86_64-linux-musl 编译链接通过；`print_f64(3.14159)` 输出 `3.141590`（与 printf %.6f 一致）、`0.5`→`0.500000`、`-2.75`→`-2.750000`
 - 回归：cfreg 3/3、t340s(2449/145)、cf2(18)、md(0) 全绿
 - 测试：`tests/342_print_f64_cbackend.mo`（期望 12，moc 与 mo2x 双链路验证）
+
+## v1.1165.0
+
+### Lambda 表达式（无捕获匿名函数）
+
+对标主流语言史最大缺口：ML(1978) → Scheme → Swift/Kotlin/Rust 标配的
+lambda。Mo 此前函数只能命名 + `&fn` 取址。
+
+- 语法：`let f: ptr = fn(x: i64) -> i64 { return x * 2; };`，
+  可内联作实参 `apply(fn(n: i64) -> i64 { return n + 1; }, 9)`。
+- 实现：`parse_unary` 遇 `fn` → 文本收集到 `O_LAMTXT` 队列（命名
+  `__lambda_N`）+ 前向 `movabs` 占位；`parse_program` 尾部
+  `resolve_lambdas()` 切源基址 `parse_func()` 正常编译并回填
+  （ELF 写立即数 / `-c` 登记 R_X86_64_64 重定位）。
+- 关键点：lambda 名在文本中无 0 结尾，`sym_add` 前须截断到 `(`。
+- 新增 `tests/343_lambda.mo`（期望 64）；`docs/lambda.md`。
+- 局限：体 `{}` 朴素配平（字符串字面量大括号干扰）；无捕获；
+  mo2x 后端暂不支持（v1.1166）。

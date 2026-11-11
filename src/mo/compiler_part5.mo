@@ -9053,6 +9053,7 @@ fn main() -> i64 {
     # 退出码由调用方按 ERR_N 判 1。
     emit_panic();
     resolve_defp();
+    resolve_lambdas();
     resolve_all();
 
     let m: i64 = sym_lookup_func("main");

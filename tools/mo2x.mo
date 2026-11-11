@@ -1072,7 +1072,8 @@ fn emit_primary() -> i64 {
                 outs(")");
                 return 0;
             }
-            if streq(nm, "strlen") == 1 { outs("mo_strlen"); } else { outs(nm); }
+            if is_libc_clash(nm) == 1 { outs("mo_"); }
+            outs(nm);
             outs("(");
             # v1.1164: 查签名表，按形参类型给实参发隐式 cast（ptr↔i64 互传）
             let fi3: i64 = fsg_find(nm);
@@ -2467,6 +2468,21 @@ fn emit_struct() -> i64 {
     return 0;
 }
 
+# v1.1164: 与 libc 同名的 mo 函数 → 发射为 mo_<名>（定义与调用点一致）
+fn is_libc_clash(nm: i64) -> i64 {
+    if streq(nm, "strlen") == 1 { return 1; }
+    if streq(nm, "strcmp") == 1 { return 1; }
+    if streq(nm, "strcpy") == 1 { return 1; }
+    if streq(nm, "strcat") == 1 { return 1; }
+    if streq(nm, "strchr") == 1 { return 1; }
+    if streq(nm, "strstr") == 1 { return 1; }
+    if streq(nm, "memset") == 1 { return 1; }
+    if streq(nm, "memcpy") == 1 { return 1; }
+    if streq(nm, "memcmp") == 1 { return 1; }
+    if streq(nm, "strlen_") == 1 { return 0; }
+    return 0;
+}
+
 # v1.1164: 签名表查找（-1=未注册）
 fn fsg_find(nm: i64) -> i64 {
     let hh: i64 = nm_hash(nm);
@@ -2594,8 +2610,10 @@ fn emit_sig() -> i64 {
         } else { outs("long long "); }
         if ismain == 1 { outs("mo_main"); }
         else {
-            # v1.1164: mo 定义的 strlen 与前导宏 (#define strlen strlen_) 冲突 → mo_strlen
-            if streq(nm, "strlen") == 1 { outs("mo_strlen"); } else { outs(nm); }
+            # v1.1164: mo 定义的 libc 同名函数改 mo_ 前缀 —— strlen 与前导宏冲突；
+            # strcmp 等 windows CRT 头签名冲突（unsigned char* vs char*）。
+            if is_libc_clash(nm) == 1 { outs("mo_"); }
+            outs(nm);
         }
         outs("(");
         outs(&ps);

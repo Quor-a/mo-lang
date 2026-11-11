@@ -60,6 +60,10 @@ var O_GBB: i64 = 88276992;   # bound 的 interface 索引：gidx*512 + tidx*128 
 var O_BMSG: i64 = 88293376;   # 错误消息拼接缓冲
 var O_RUNA:  i64 = 88900000; # v1.1148 run 实参表 (2KB)
 var O_GENBUF: i64 = 89000000;  # 展开出的临时源码（1MB）
+# v1.1165: lambda 表达式 —— 90000000..91000000 是 O_GENBUF 之后的 1MB 空档
+var O_LAMTXT: i64 = 90000000;   # lambda 文本队列：n*16384（"fn __lambda_N(..){..}" 完整源码）
+var NLAM: i64 = 0;              # 已收集的 lambda 数
+var LAMCN: i64 = 0;             # lambda 命名计数（分配 __lambda_N）
 var O_IFMB: i64 = 10010496;   # 接口方法名字符串缓冲：ifidx*512 + midx*32
 # ---- 泛型 trait bound ----
 # 紧接 O_IFMB 之后（10010496 + 32*512 = 10026880），下一个区域是 O_FILES(12582912)，

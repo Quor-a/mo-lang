@@ -1481,7 +1481,151 @@ fn parse_alignof() -> i64 {
 # 该错误码返回（跳到函数尾 O_ERRLAB 错误出口，重放 defer）。
 # 约定：错误码为负 i64（err 系函数返回负值）。仅当当前函数
 # 返回类型为 i64 时可用。
+# ==========================================================================
+#  v1.1165: lambda 表达式（无捕获闭包，对标 ML 1978 → Swift/Kotlin/Rust）
+#
+#  语法（表达式位置）：
+#      let f: ptr = fn(x: i64) -> i64 { return x * 2; };
+#      apply(fn(n: i64) -> i64 { return n + 1; }, 5);
+#
+#  实现（零 AST 架构下的最小侵入方案）：
+#  parse_unary 遇到 "fn" 关键字时，把 lambda 的完整源码文本
+#  （"fn __lambda_N" + 参数表 + 返回类型 + 函数体）从当前源码逐字节
+#  复制到 O_LAMTXT 队列（每条 16KB），然后在表达式位置发射
+#  movabs rax, <前向占位> —— 与 &func 的前向引用同构。
+#  parse_program 主循环结束后 resolve_lambdas() 逐条：
+#  sym_add 登记 __lambda_N → 切 SRCBASE 到文本 → parse_func() 正常
+#  编译（签名/局部变量/return 全部走既有路径）→ 回填占位地址。
+#  局限：函数体内的 {} 按**朴素配平**复制（字符串/字符字面量中的
+#  大括号会干扰配平 —— lambda 体通常不含此类内容，文档记录在案）。
+# ==========================================================================
+
+var LAMFP: i64 = 90500000;   # 占位立即数字段位置队列（O_CODE 偏移）：n*8
+var LAMSY: i64 = 90501000;   # obj 模式下暂存重定位标记：n*8
+
+# 十进制无符号整数写入缓冲 p（LAMCN 很小，无负数），返回写入长度
+fn lam_dec(p: i64, v: i64) -> i64 {
+    if v == 0 { store8(p, 48); return 1; }
+    let n: i64 = 0;
+    let t: i64 = v;
+    while t > 0 { n = n + 1; t = t / 10; }
+    let i: i64 = n - 1;
+    t = v;
+    while t > 0 {
+        store8(p + i, 48 + (t % 10));
+        t = t / 10;
+        i = i - 1;
+    }
+    return n;
+}
+
+# 表达式位置遇到 "fn"：收集 lambda 文本 + 发前向占位
+fn parse_lambda() -> i64 {
+    if NLAM >= 64 { return err_at2("too many lambdas (limit 64)", gv(K_LINE), gv(K_COL)); }
+    next_token();                       # 跳过 'fn'，当前 token = '('，K_TOKPOS = 其起点
+    let st: i64 = gv(K_TOKPOS);
+    let base: i64 = heap + O_LAMTXT + NLAM * 16384;
+    let w: i64 = 0;
+    # 写 "fn __lambda_" 前缀 + 编号
+    memcpy(base, "fn __lambda_");
+    w = 12;
+    w = w + lam_dec(base + w, LAMCN + 1);
+    LAMCN = LAMCN + 1;
+    # 名字后直接跟 '('（不加空格）—— sym_add 名字必须与 parse_func 读到的
+    # 标识符完全一致（"__lambda_1("），带空格会导致查名失败。
+    # 逐字节复制：参数列表 + 可选返回类型 + 函数体（{} 朴素配平）
+    let dep: i64 = 0;
+    let started: i64 = 0;
+    let i2: i64 = st;
+    while 1 == 1 {
+        let c: i64 = sbyte(i2);
+        if c == 0 { return err_at2("unterminated lambda body", gv(K_LINE), gv(K_COL)); }
+        store8(base + w, c);
+        w = w + 1;
+        i2 = i2 + 1;
+        if c == 123 {                   # '{'
+            dep = dep + 1;
+            started = 1;
+        }
+        if c == 125 {                   # '}'
+            dep = dep - 1;
+            if dep == 0 { break; }
+        }
+        if started == 0 {
+            if c == 40 { dep = dep + 1; }   # '(' 体开始前计数
+            if c == 41 { dep = dep - 1; }   # ')' 同上
+        }
+    }
+    sv(K_POS, i2);                      # 越过结尾 '}' 之后
+    next_token();                       # 从新位置读下一个 token（';'）
+    store8(base + w, 10);               # 换行
+    store8(base + w + 1, 0);
+    # 表达式值 = 函数地址：发 movabs rax, <imm64 占位>
+    spill_cache();
+    ops2(0x48, 0xb8);
+    emit8(0);
+    store64(heap + LAMFP + NLAM * 8, gv(K_CLEN) - 8);
+    store64(heap + LAMSY + NLAM * 8, 0);
+    R_ETY = ty_ptr(ty_void());
+    NLAM = NLAM + 1;
+    return 0;
+}
+
+# parse_program 主循环后：逐条编译 lambda 并回填地址
+fn resolve_lambdas() -> i64 {
+    let n = 0;
+    while n < NLAM {
+        let base: i64 = heap + O_LAMTXT + n * 16384;
+        # 🔴 名字必须**单独截断**：文本里 "__lambda_1" 后直接跟 '('（无 0 结尾），
+        #    直接 sym_add(base+3) 会把整段函数文本 intern 成符号名。
+        #    拷到独立缓冲并置 0。O_SCAL+26500 起（避开 26000 的 EIM 缓冲）。
+        let nb: i64 = heap + O_SCAL + 26500;
+        let ni: i64 = 0;
+        while load8(base + 3 + ni) != 40 {          # 拷到 '(' 为止
+            store8(nb + ni, load8(base + 3 + ni));
+            ni = ni + 1;
+        }
+        store8(nb + ni, 0);
+        let sy: i64 = sym_add(nb, 0, 0, 0);
+        let ob: i64 = gv(K_SRCBASE);
+        let ol: i64 = gv(K_SRCLEN);
+        let op: i64 = gv(K_POS);
+        let oln: i64 = gv(K_LINE);
+        let oc: i64 = gv(K_COL);
+        sv(K_SRCBASE, O_LAMTXT + n * 16384);
+        sv(K_SRCLEN, 16384);
+        set_pos(0);
+        parse_func();
+        sv(K_SRCBASE, ob);
+        sv(K_SRCLEN, ol);
+        sv(K_POS, op);
+        sv(K_LINE, oln);
+        sv(K_COL, oc);
+        if gv(K_OBJ) == 1 {
+            # -c 模式：把 lambda 调用点登记为 R_X86_64_64 重定位
+            let k: i64 = gv(K_NXC);
+            if k < 4096 {
+                store64(DBG + O_XC + k * 16, load64(heap + LAMFP + n * 8));
+                store64(DBG + O_XC + k * 16 + 8, sy);
+                store64(DBG + O_XR + k * 8, 1);
+                sv(K_NXC, k + 1);
+            }
+        } else {
+            let p: i64 = load64(heap + LAMFP + n * 8);
+            let a: i64 = sym_addr(sy);
+            let j: i64 = 0;
+            while j < 8 {
+                store8(heap + O_CODE + p + j, (a >> (j * 8)) & 255);
+                j = j + 1;
+            }
+        }
+        n = n + 1;
+    }
+    return 0;
+}
+
 fn parse_unary() -> i64 {
+    if tok_is("fn") == 1 { return parse_lambda(); }
     if tok_is("sizeof") == 1 { next_token(); return parse_sizeof(); }
     if tok_is("alignof") == 1 { next_token(); return parse_alignof(); }
     if accept("&") == 1 { return parse_addr(); }
