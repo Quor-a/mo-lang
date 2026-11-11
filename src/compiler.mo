@@ -209,6 +209,8 @@ var CFDONE:  i64 = 0;
 #   区域取 O_MSYM(8608192+4096) 之后、O_ENAME(8700000) 之前的空档。
 var O_CFL:   i64 = 8620000;
 var CFLGD:   i64 = 0;   # 局部帧深度（cfn_eval 进出时 ±1）
+# v1.1159: 循环控制（1 = break，2 = continue；0 = 正常）
+var CFBRK:   i64 = 0;
 var O_ENAME: i64 = 8700000;    # 512 × 8 = 4096
 var O_ECNAME: i64 = 8704096;
 var O_EVAL: i64 = 8708192;
@@ -11932,7 +11934,7 @@ fn cfn_run(limit: i64) -> i64 {
     # limit: 本层块末尾 `}` 的字节偏移（set_pos(limit) 将停在块尾 `}` 上）。
     # 返回值写全局 CFNRV，命中 return 后 CFDONE=1。
     let guard: i64 = 0;
-    while gv(K_POS) < limit && CFDONE == 0 {
+    while gv(K_POS) < limit && CFDONE == 0 && CFBRK == 0 {
         guard = guard + 1;
         if guard > 50000 {
             # 防死循环安全网：正常折叠远达不到此轮数
@@ -11943,6 +11945,19 @@ fn cfn_run(limit: i64) -> i64 {
             CFNRV = cfn_expr(0);
             CFDONE = 1;
         } else {
+            # v1.1159: break / continue —— 置 CFBRK 让本层块立刻收工，
+            # 由所属 while 决定「跳出」还是「回到条件」。不处理的话这两个词
+            # 会落进标识符兜底分支被静默跳过，循环跑完最后一遍，结果错而不报错。
+            if tok_is("break") == 1 {
+                next_token();
+                accept(";");
+                CFBRK = 1;
+            } else {
+            if tok_is("continue") == 1 {
+                next_token();
+                accept(";");
+                CFBRK = 2;
+            } else {
             if tok_is("if") == 1 {
                 next_token();
                 let cond: i64 = cfn_expr(0);
@@ -12021,7 +12036,19 @@ fn cfn_run(limit: i64) -> i64 {
                             } else {
                                 set_pos(wbs);
                                 cfn_run(wbe);
-                                if CFDONE == 0 { next_token(); }
+                                # v1.1159: 循环体可能因 break/continue 提前收工
+                                if CFBRK == 1 {
+                                    CFBRK = 0;
+                                    set_pos(wbe);      # 跳到块尾 `}` 之后
+                                    next_token();
+                                    wgo = 0;
+                                } else {
+                                    if CFBRK == 2 {
+                                        CFBRK = 0;     # continue：直接回条件
+                                    } else {
+                                        if CFDONE == 0 { next_token(); }
+                                    }
+                                }
                             }
                         }
                     }
@@ -12096,6 +12123,8 @@ fn cfn_run(limit: i64) -> i64 {
             }
         }
     }
+        }
+    }
     return 0;
 }
 
@@ -12120,6 +12149,7 @@ fn cfn_eval(fid: i64, abase: i64) -> i64 {
     # CFNRV/CFDONE；不恢复的话外层 cfn_run 一看到 CFDONE=1 就提前收工。
     let old_rv: i64 = CFNRV;
     let old_dn: i64 = CFDONE;
+    let old_bk: i64 = CFBRK;
     CFNRV = 0;
     CFDONE = 0;
     # v1.1158: 开一层局部变量帧（count 清零）
@@ -12130,6 +12160,7 @@ fn cfn_eval(fid: i64, abase: i64) -> i64 {
     let cf_res: i64 = CFNRV;
     CFNRV = old_rv;
     CFDONE = old_dn;
+    CFBRK = old_bk;
     # 恢复（set_back 重读 token）
     CFCUR = old_cur;
     CFABASE = old_base;

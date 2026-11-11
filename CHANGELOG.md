@@ -10888,3 +10888,17 @@ aarch64/s390x/ppc64/riscv64 现有构建全部不受影响。
   3. 复合赋值落到「未知 token 静默跳过」兜底 → 结果错而不报错。
 - tests/337_constfn_loop.mo = 136（9 场景）。门禁 488/0。自举 md5 一致。
 - 新增 docs/constfn-loop.md。
+
+## v1.1159.0
+- **const fn 循环控制 break / continue**：循环体内可用 `break`（跳出当前 while）与
+  `continue`（回条件判定），可与 if/else、嵌套循环、复合赋值混用。
+  - 此前二者是普通标识符，落进 cfn_run 的兜底分支被静默跳过 ——
+    `first_div(35)` 返回 7（最后一个约数）而非 5，不报错、不告警；
+  - 新增全局 `CFBRK`（0 正常 / 1 break / 2 continue），cfn_run 的块内循环条件加
+    `&& CFBRK == 0`，由所属 while 的处理块消费：break 跳到块尾 `}` 之后（`wgo=0`），
+    continue 清标记直接回条件（位置每轮由 `set_pos(cpos)` 重置，无需手动跳）；
+  - `cfn_eval` 保存/恢复 `CFBRK`，被调函数内部的 break 不污染调用者的循环
+    （与 v1.1158 的 CFDONE/CFARGD 同类隔离）；
+  - 内层循环无需额外栈：内层 while 在自己的处理块里就把标记清零。
+- 新增 tests/338_constfn_break.mo（9 场景，期望值由 Python 模型独立算出，RC=127）。
+- 详见 docs/constfn-break.md。

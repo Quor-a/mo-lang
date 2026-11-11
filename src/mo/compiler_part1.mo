@@ -209,6 +209,8 @@ var CFDONE:  i64 = 0;
 #   区域取 O_MSYM(8608192+4096) 之后、O_ENAME(8700000) 之前的空档。
 var O_CFL:   i64 = 8620000;
 var CFLGD:   i64 = 0;   # 局部帧深度（cfn_eval 进出时 ±1）
+# v1.1159: 循环控制（1 = break，2 = continue；0 = 正常）
+var CFBRK:   i64 = 0;
 var O_ENAME: i64 = 8700000;    # 512 × 8 = 4096
 var O_ECNAME: i64 = 8704096;
 var O_EVAL: i64 = 8708192;
