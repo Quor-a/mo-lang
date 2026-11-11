@@ -87,9 +87,9 @@ var A: [0] i64 = 0;     # error: array length must be a positive constant
 （`[N*2][3]`）。顶层 `const NAME: i64 = <表达式>;` 会被翻译成 C 的
 `enum { NAME = <表达式> };`，从而在 C 侧可见。
 
-限制：**数组长度里不能出现 `const fn` 调用**（mo2x 没有常量求值器，
-C 也不允许函数调用作为数组维度）。此时 mo2x 报
-`数组长度表达式引用了未定义的 const 名`。需要 `const fn` 求值长度时用 `moc`。
+v1.1163 起 mo2x 内置 const fn 解释器，数组长度里的 `const fn` 调用
+（`[fact(5)]`、`[gcd2(48,18)]` 等）直接求值为数字维度，与 moc 语义对齐。
+详见 docs/constfn-eval-cbackend.md。
 
 ### 实现要点（踩过的坑）
 

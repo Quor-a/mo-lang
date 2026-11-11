@@ -10973,3 +10973,24 @@ aarch64/s390x/ppc64/riscv64 现有构建全部不受影响。
   此时明确报错，请用 `moc`。
 
 测试：`tests/340_constexpr_arraylen.mo`（期望 145）。门禁 491/0。
+
+## v1.1163.0
+
+mo2x（C 后端）支持 const fn 求值 —— 数组长度与顶层 const 声明里的
+`const fn` 调用不再报错，与 moc 语义对齐。
+
+### mo2x
+
+- 内置 const fn 解释器：if/else 嵌套、递归、多参数（≤8）、全算术/比较/位运算
+- `[fact(5)]`、`[gcd2(48,18)]`、`[fact(N)+1]`、`[f(4)][2]` 直接求值为数字维度
+- `const K: i64 = <含调用的表达式>;` 求值后 `enum { K = <数值> };`
+- c 目标 syscall 号透传（修 `io.mo` 报"该目标架构暂无 syscall 号表"）
+- 已知边界：体不支持 while/局部变量/break/continue（详见 docs/constfn-eval-cbackend.md）
+
+### 修复（同轮）
+
+- c 目标 `emit_dim_to_cache` 返回栈缓冲的残留问题复查：维度缓存已全局化
+  （v1.1162），本轮回归确认 t_a..t_e/t_m/r1..r4 全部通过
+
+测试：`tests/341_constexpr_arraylen_cbackend.mo`（期望 39，moc 与 mo2x 双链路验证）。
+门禁 492/0。

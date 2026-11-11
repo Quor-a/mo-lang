@@ -156,6 +156,44 @@ var CNSP: [4096] byte = 0;
 var GDIM: [2048] byte = 0;   # 数组维度表达式缓存（全局，勿用局部——返回后栈帧失效）
 var GDIMD: i64 = 0;          # 当前嵌套深度（多维数组各占 512 字节）
 var CNSPP: i64 = 0;
+
+# v1.1163: const fn 求值器（C 后端数组长度 / const 声明用）
+# 独立 token 流，不动主解析上下文。
+var CFSRC: [16384] byte = 0;   # 函数体源码（拼接）
+var CFBO: [512] i64 = 0;       # 函数体在 CFSRC 的起始
+var CFBL: [512] i64 = 0;       # 函数体长度
+var CFN:  [512] i64 = 0;       # 函数名（CNSP 偏移）
+var CFNP: [512] i64 = 0;       # 参数个数
+var CFPA: [4096] i64 = 0;      # 参数名（CNSP 偏移）
+var NCF:  i64 = 0;             # const fn 个数
+var CFARGS: [8] i64 = 0;       # 当前调用实参
+var CFTK: [4096] i64 = 0;      # 体 tokens（kind）
+var CFTS: [4096] i64 = 0;      # 体 tokens（CFSRC 偏移）
+var NCFT: i64 = 0;             # 体 token 数
+var CFI:  i64 = 0;             # 体解释指针
+var CFTI: i64 = 0;             # 主 token 流恢复点（调用后应位于 ')' 之后）
+var CFMODE: i64 = 0;           # 1=正在解释 const fn（嵌套调用时保护）
+var CFBOFF: i64 = 0;             # CFSRC 写入游标
+var CFFI2: [128] i64 = 0;        # 每帧正在执行的 const fn 索引
+var CFTK0: [8192] i64 = 0;      # 所有 const fn 体的 token kind 静态区
+var CFTS0: [8192] i64 = 0;      # 所有 const fn 体的 token 文本偏移（相对 CFSRC）
+var CFBO0: [512] i64 = 0;       # 函数体在 CFTK0 的起始索引
+var CFBL0: [512] i64 = 0;       # 函数体 token 数
+var CFTKP: [8192] i64 = 0;      # 帧 token 池（按深度 512 分段）
+var CFTSP: [8192] i64 = 0;      # 帧 token 池偏移
+var CFBASE: [128] i64 = 0;      # 每帧在 token 池的起点
+var CFNF: [128] i64 = 0;        # 每帧 token 数
+var CFTOK: i64 = 0;             # CFTK0 写入游标
+
+# 解释器帧栈（递归调用）
+var CFNAME: [4096] i64 = 0;   # 参数名（CNSP 偏移），栈式（每帧 512 槽）
+var CFVAL:  [4096] i64 = 0;   # 参数值，栈式（每帧 512 槽）
+var CFFSTART: [128] i64 = 0;  # 每帧在 CFNAME/CFVAL 的起点
+var CFNDEP: i64 = 0;          # 当前帧深度
+var CFSP: [128] i64 = 0;      # 保存主 TI（调用返回点）
+var CFRET: [128] i64 = 0;     # 保存主 CFI（体解释指针）
+var CFNT: [128] i64 = 0;      # 保存主 NCFT
+var CFFID: [128] i64 = 0;     # 保存主 CFFSTART 当前帧起点
 fn cns_find(nm: i64) -> i64 {
     let i: i64 = 0;
     while i < NCNS {
@@ -1372,12 +1410,35 @@ fn emit_dim_to_cache() -> i64 {
     GDIMD = GDIMD + 1;
     let buf: i64 = base;
     let ci: i64 = 0;
+    # 预扫描：长度表达式是否含 const fn 调用？含则整体求值输出数字。
+    let save: i64 = TI;
+    let has_cf: i64 = 0;
+    while TI < NT {
+        if is_op("]") == 1 { break; }
+        if cur_k() == 1 {
+            if cns_find(cur_s()) < 0 && cf_find_fn(cur_s()) >= 0 { has_cf = 1; }
+        }
+        TI = TI + 1;
+    }
+    TI = save;
+    if has_cf == 1 {
+        # 用 cns_expr 求整个长度表达式（支持 const fn 调用），输出十进制数字
+        let v: i64 = cns_expr();
+        expect_op("]");
+        let nb: [24] byte = 0;
+        utoa(v, &nb, 10);
+        let q: i64 = 0;
+        while load8(&nb + q) != 0 { store8(buf + q, load8(&nb + q)); q = q + 1; }
+        store8(buf + q, 0);
+        GDIMD = GDIMD - 1;
+        return base;
+    }
     let first: i64 = 1;
     while TI < NT {
         if is_op("]") == 1 { break; }
         if cur_k() == 1 {
             if cns_find(cur_s()) < 0 {
-                return err("mo2x: 数组长度表达式引用了未定义的 const 名（C 后端不支持 const fn 调用求长度）");
+                return err("mo2x: 数组长度表达式引用了未定义的 const 名");
             }
         }
         if first == 0 {
@@ -2584,6 +2645,83 @@ fn file_size(path: i64) -> i64 {
 }
 
 var NTOT: [64] i64 = 0;
+
+# v1.1163: const fn 体独立 lexer（支持标识符/数字/运算符/注释/括号/分号）
+fn mini_lex(buf: i64, len: i64) -> i64 {
+    let p: i64 = 0;
+    let n: i64 = 0;
+    NCFT = 0;
+    while p < len {
+        let c: i64 = load8(buf + p);
+        if c == 32 || c == 9 || c == 10 || c == 13 { p = p + 1; continue; }
+        if c == 35 {   # '#'
+            while p < len && load8(buf + p) != 10 { p = p + 1; }
+            continue;
+        }
+        if is_alpha(c) == 1 {
+            let q: i64 = 0;
+            while p < len && (is_alpha(load8(buf+p)) == 1 || is_digit_ch(load8(buf+p)) == 1) {
+                store8(&LEXB + q, load8(buf + p)); p = p + 1; q = q + 1;
+            }
+            store8(&LEXB + q, 0);
+            if n < 4096 { CFTK[n] = 1; CFTS[n] = p - q; n = n + 1; }
+            continue;
+        }
+        if is_digit_ch(c) == 1 {
+            let q: i64 = 0;
+            let ishex: i64 = 0;
+            if c == 48 && p + 1 < len && (load8(buf+p+1) == 120 || load8(buf+p+1) == 88) {
+                ishex = 1; p = p + 2;
+            }
+            while p < len {
+                let d: i64 = load8(buf + p);
+                if ishex == 1 { if is_digit_ch(d) == 1 || (d >= 97 && d <= 102) || (d >= 65 && d <= 70) { store8(&LEXB+q, d); q = q + 1; p = p + 1; } else { break; } }
+                else { if is_digit_ch(d) == 1 { store8(&LEXB+q, d); q = q + 1; p = p + 1; } else { break; } }
+            }
+            store8(&LEXB + q, 0);
+            if n < 4096 { CFTK[n] = 2; CFTS[n] = p - q; n = n + 1; }
+            continue;
+        }
+        if c == 34 {   # 字符串字面量（const fn 一般不用，仍支持）
+            let q: i64 = 0;
+            p = p + 1;
+            while p < len && load8(buf+p) != 34 {
+                if load8(buf+p) == 92 && p+1 < len { store8(&LEXB+q, load8(buf+p+1)); q = q + 1; p = p + 2; }
+                else { store8(&LEXB+q, load8(buf+p)); q = q + 1; p = p + 1; }
+            }
+            p = p + 1;
+            store8(&LEXB + q, 0);
+            if n < 4096 { CFTK[n] = 3; CFTS[n] = p - q - 2; n = n + 1; }
+            continue;
+        }
+        # 运算符：长优先
+        let matched: i64 = 0;
+        let k: i64 = 0;
+        while k < NOPS {
+            let oplen: i64 = strlen(OPS[k]);
+            let same: i64 = 1;
+            let t: i64 = 0;
+            while t < oplen {
+                if p + t >= len { same = 0; break; }
+                if load8(buf + p + t) != load8(OPS[k] + t) { same = 0; break; }
+                t = t + 1;
+            }
+            if same == 1 { matched = 1; break; }
+            k = k + 1;
+        }
+        if matched == 1 {
+            if n < 4096 { CFTK[n] = 5; CFTS[n] = p; n = n + 1; }
+            p = p + strlen(OPS[k]);
+            continue;
+        }
+        # 单字符运算符 / 括号 / 分号
+        if n < 4096 { CFTK[n] = 5; CFTS[n] = p; n = n + 1; }
+        p = p + 1;
+    }
+    NCFT = n;
+    return n;
+}
+
 fn load_file(i: i64) -> i64 {
     let n: i64 = read_file(&FP + FILES[i], &SRC, 524287);
     if n < 0 {
@@ -2628,6 +2766,351 @@ fn cns_name_or_err(nm: i64) -> i64 {
 }
 
 
+
+fn cf_cur_k() -> i64 {
+    let base: i64 = CFBASE[CFNDEP - 1];
+    if CFI >= CFNF[CFNDEP - 1] { return 0; }
+    return CFTKP[base + CFI];
+}
+fn cf_cur_s() -> i64 {
+    let base: i64 = CFBASE[CFNDEP - 1];
+    if CFI >= CFNF[CFNDEP - 1] { return 0; }
+    return &CFSRC + CFTSP[base + CFI];
+}
+fn cf_is_op(s: i64) -> i64 {
+    if CFNDEP == 0 { return 0; }
+    if cf_cur_k() != 5 { return 0; }
+    return streq(cf_cur_s(), s);
+}
+fn cf_is_kw(s: i64) -> i64 {
+    if CFNDEP == 0 { return 0; }
+    if cf_cur_k() != 1 { return 0; }
+    return streq(cf_cur_s(), s);
+}
+fn cf_expect_op(s: i64) -> i64 {
+    if cf_is_op(s) == 1 { CFI = CFI + 1; return 0; }
+    return err("mo2x: const fn 体语法错误");
+}
+fn cf_ident() -> i64 {
+    let s: i64 = cf_cur_s();
+    CFI = CFI + 1;
+    return s;
+}
+
+# 参数查找：当前帧的 CFNAME/CFVAL（帧起点 base）
+fn cf_find_arg(nm: i64) -> i64 {
+    let base: i64 = CFBASE[CFNDEP - 1];
+    let np: i64 = CFNP[CFFI2[CFNDEP - 1]];
+    let i: i64 = base;
+    while i < base + np {
+        if streq(&CNSP + CFNAME[i], nm) == 1 { return CFVAL[i]; }
+        i = i + 1;
+    }
+    return 0 - 999999;
+}
+
+fn cf_call_fn(fi: i64, from_main: i64) -> i64 {
+    let na: i64 = CFNP[fi];
+    let vals: [8] i64 = 0;
+    let vi: i64 = 0;
+    while vi < na {
+        if vi > 0 {
+            if from_main == 1 { expect_op(","); } else { cf_expect_op(","); }
+        }
+        if from_main == 1 { vals[vi] = cns_expr(); }
+        else { vals[vi] = cf_expr(); }
+        vi = vi + 1;
+    }
+    if from_main == 1 { expect_op(")"); } else { cf_expect_op(")"); }
+    if CFNDEP >= 128 { return err("mo2x: const fn 嵌套过深"); }
+    let save_i: i64 = CFI;
+    let save_n: i64 = NCFT;
+    let base: i64 = CFNDEP * 512;
+    let k: i64 = 0;
+    while k < CFBL0[fi] && base + k < 8192 {
+        CFTKP[base + k] = CFTK0[CFBO0[fi] + k];
+        CFTSP[base + k] = CFTS0[CFBO0[fi] + k];
+        k = k + 1;
+    }
+    CFBASE[CFNDEP] = base;
+    CFNF[CFNDEP] = CFBL0[fi];
+    CFFI2[CFNDEP] = fi;
+    let pi: i64 = 0;
+    while pi < na {
+        CFNAME[base + pi] = CFPA[fi * 8 + pi];
+        CFVAL[base + pi] = vals[pi];
+        pi = pi + 1;
+    }
+    CFFSTART[CFNDEP] = base;
+    CFNDEP = CFNDEP + 1;
+    CFI = 0;
+    NCFT = CFNF[CFNDEP - 1];
+    let rv: i64 = cf_run_body();
+    CFNDEP = CFNDEP - 1;
+    CFI = save_i;
+    NCFT = save_n;
+    return rv;
+}
+
+fn cf_atom() -> i64 {
+    if cf_is_op("(") == 1 {
+        CFI = CFI + 1;
+        let v: i64 = cf_expr();
+        cf_expect_op(")");
+        return v;
+    }
+    if cf_is_op("-") == 1 { CFI = CFI + 1; return 0 - cf_atom(); }
+    if cf_is_op("+") == 1 { CFI = CFI + 1; return cf_atom(); }
+    if cf_cur_k() == 2 {
+        let v: i64 = atoi(cf_cur_s());
+        CFI = CFI + 1;
+        return v;
+    }
+    if cf_cur_k() == 1 {
+        let nm: i64 = cf_cur_s();
+        let av: i64 = cf_find_arg(nm);
+        if av != 0 - 999999 { CFI = CFI + 1; return av; }
+        let ci: i64 = cns_find(nm);
+        if ci >= 0 { CFI = CFI + 1; return CNSV[ci]; }
+        let fi: i64 = cf_find_fn(nm);
+        if fi >= 0 {
+            CFI = CFI + 1;
+            cf_expect_op("(");
+            return cf_call_fn(fi, 0);
+        }
+        return err("mo2x: const fn 表达式里引用了未知标识符");
+    }
+    return err("mo2x: const fn 表达式里有意外 token");
+}
+
+fn cf_term() -> i64 {
+    let v: i64 = cf_atom();
+    while cf_is_op("*") == 1 || cf_is_op("/") == 1 || cf_is_op("%") == 1 {
+        let op: i64 = 1;
+        if cf_is_op("/") == 1 { op = 2; }
+        if cf_is_op("%") == 1 { op = 3; }
+        CFI = CFI + 1;
+        let r: i64 = cf_atom();
+        if op == 1 { v = v * r; } else { v = v / r; }
+    }
+    return v;
+}
+
+fn cf_expr() -> i64 {
+    let v: i64 = cf_term();
+    while cf_is_op("+") == 1 || cf_is_op("-") == 1 {
+        let op: i64 = 1;
+        if cf_is_op("-") == 1 { op = 2; }
+        CFI = CFI + 1;
+        let r: i64 = cf_term();
+        if op == 1 { v = v + r; } else { v = v - r; }
+    }
+    while cf_is_op("<<") == 1 || cf_is_op(">>") == 1 {
+        let op: i64 = 3;
+        if cf_is_op(">>") == 1 { op = 2; }
+        CFI = CFI + 1;
+        let r: i64 = cf_term();
+        if op == 3 { v = v << r; } else { v = v >> r; }
+    }
+    while cf_is_op("&") == 1 || cf_is_op("|") == 1 || cf_is_op("^") == 1 {
+        let op: i64 = 1;
+        if cf_is_op("|") == 1 { op = 2; }
+        if cf_is_op("^") == 1 { op = 3; }
+        CFI = CFI + 1;
+        let r: i64 = cf_term();
+        if op == 1 { v = v & r; } else { if op == 2 { v = v | r; } else { v = v ^ r; } }
+    }
+    while cf_is_op("==") == 1 || cf_is_op("!=") == 1 || cf_is_op("<") == 1 || cf_is_op("<=") == 1 || cf_is_op(">") == 1 || cf_is_op(">=") == 1 {
+        let cop: i64 = 1;
+        if cf_is_op("!=") == 1 { cop = 2; }
+        if cf_is_op("<") == 1 { cop = 3; }
+        if cf_is_op("<=") == 1 { cop = 4; }
+        if cf_is_op(">") == 1 { cop = 5; }
+        if cf_is_op(">=") == 1 { cop = 6; }
+        CFI = CFI + 1;
+        let r: i64 = cf_expr();
+        let b: i64 = 0;
+        if cop == 1 { if v == r { b = 1; } }
+        if cop == 2 { if v != r { b = 1; } }
+        if cop == 3 { if v < r { b = 1; } }
+        if cop == 4 { if v <= r { b = 1; } }
+        if cop == 5 { if v > r { b = 1; } }
+        if cop == 6 { if v >= r { b = 1; } }
+        v = b;
+    }
+    return v;
+}
+
+fn cf_find_fn(nm: i64) -> i64 {
+    let i: i64 = 0;
+    while i < NCF {
+        if streq(&CNSP + CFN[i], nm) == 1 { return i; }
+        i = i + 1;
+    }
+    return 0 - 1;
+}
+
+fn cf_run_body() -> i64 {
+
+    let guard: i64 = 0;
+    while CFI < NCFT {
+        guard = guard + 1;
+        if guard > 100000 { return err("mo2x: const fn 执行步数超限"); }
+            if cf_is_kw("return") == 1 {
+            CFI = CFI + 1;
+            let v: i64 = cf_expr();
+            return v;
+        }
+        if cf_is_kw("if") == 1 {
+            CFI = CFI + 1;
+            let cond: i64 = cf_expr();
+            cf_expect_op("{");
+            let start: i64 = CFI;
+            let dd: i64 = 1;
+            let endif: i64 = CFI;
+            while CFI < NCFT && dd > 0 {
+                if cf_is_op("{") == 1 { dd = dd + 1; }
+                if cf_is_op("}") == 1 { dd = dd - 1; }
+                if dd == 0 { endif = CFI; }
+                if dd > 0 { CFI = CFI + 1; }
+            }
+            if cond != 0 {
+                CFI = start;
+                let rv: i64 = cf_run_body_until(endif);
+                return rv;
+            } else {
+                CFI = endif + 1;
+                if cf_is_kw("else") == 1 {
+                    CFI = CFI + 1;
+                    cf_expect_op("{");
+                    let s2: i64 = CFI;
+                    let d2: i64 = 1;
+                    let e2: i64 = CFI;
+                    while CFI < NCFT && d2 > 0 {
+                        if cf_is_op("{") == 1 { d2 = d2 + 1; }
+                        if cf_is_op("}") == 1 { d2 = d2 - 1; }
+                        if d2 == 0 { e2 = CFI; }
+                        if d2 > 0 { CFI = CFI + 1; }
+                    }
+                    CFI = s2;
+                    let rv: i64 = cf_run_body_until(e2);
+                    return rv;
+                }
+                continue;   # if 处理完不再走"跳到;"兜底
+            }
+        }
+        while CFI < NCFT && cf_is_op(";") == 0 { CFI = CFI + 1; }
+        if CFI < NCFT { CFI = CFI + 1; }
+    }
+    return 0;
+}
+
+fn cf_run_body_until(limit: i64) -> i64 {
+    let guard: i64 = 0;
+    while CFI < NCFT && CFI <= limit {
+        guard = guard + 1;
+        if guard > 100000 { return err("mo2x: const fn 执行步数超限"); }
+        if cf_is_kw("return") == 1 {
+            CFI = CFI + 1;
+            let v: i64 = cf_expr();
+            return v;
+        }
+        if cf_is_kw("if") == 1 {
+            CFI = CFI + 1;
+            let cond: i64 = cf_expr();
+            cf_expect_op("{");
+            let start: i64 = CFI;
+            let dd: i64 = 1;
+            let endif: i64 = CFI;
+            while CFI < NCFT && dd > 0 {
+                if cf_is_op("{") == 1 { dd = dd + 1; }
+                if cf_is_op("}") == 1 { dd = dd - 1; }
+                if dd == 0 { endif = CFI; }
+                if dd > 0 { CFI = CFI + 1; }
+            }
+            if cond != 0 {
+                CFI = start;
+                let rv: i64 = cf_run_body_until(endif);
+                return rv;
+            } else {
+                CFI = endif + 1;
+                if cf_is_kw("else") == 1 {
+                    CFI = CFI + 1;
+                    cf_expect_op("{");
+                    let s2: i64 = CFI;
+                    let d2: i64 = 1;
+                    let e2: i64 = CFI;
+                    while CFI < NCFT && d2 > 0 {
+                        if cf_is_op("{") == 1 { d2 = d2 + 1; }
+                        if cf_is_op("}") == 1 { d2 = d2 - 1; }
+                        if d2 == 0 { e2 = CFI; }
+                        if d2 > 0 { CFI = CFI + 1; }
+                    }
+                    CFI = s2;
+                    let rv: i64 = cf_run_body_until(e2);
+                    return rv;
+                }
+            }
+        }
+        while CFI < NCFT && cf_is_op(";") == 0 { CFI = CFI + 1; }
+        if CFI < NCFT { CFI = CFI + 1; }
+    }
+    return 0;
+}
+
+fn collect_const_fn() -> i64 {
+    TI = TI + 1;
+    let nm: i64 = ident();
+    expect_op("(");
+    let na: i64 = 0;
+    while is_op(")") == 0 {
+        let pn: i64 = ident();
+        if NCF < 512 && na < 8 {
+            CFPA[NCF * 8 + na] = CNSPP;
+            let q: i64 = 0;
+            while load8(pn + q) != 0 { store8(&CNSP + CNSPP, load8(pn + q)); CNSPP = CNSPP + 1; q = q + 1; }
+            store8(&CNSP + CNSPP, 0); CNSPP = CNSPP + 1;
+        }
+        na = na + 1;
+        expect_op(":");
+        ident();
+        if is_op(",") == 1 { TI = TI + 1; }
+    }
+    expect_op(")");
+    while is_op("{") == 0 && cur_k() != 0 { TI = TI + 1; }
+    expect_op("{");
+    let body_start: i64 = CFTOK;
+    let dd: i64 = 1;
+    while dd > 0 && cur_k() != 0 {
+        if is_op("{") == 1 { dd = dd + 1; }
+        if is_op("}") == 1 { dd = dd - 1; }
+        if dd > 0 {
+            let t: i64 = cur_s();
+            let q: i64 = 0;
+            while load8(t + q) != 0 { store8(&CFSRC + CFBOFF, load8(t + q)); CFBOFF = CFBOFF + 1; q = q + 1; }
+            store8(&CFSRC + CFBOFF, 0); CFBOFF = CFBOFF + 1;
+            if CFTOK < 8192 {
+                CFTK0[CFTOK] = TK[TI];
+                CFTS0[CFTOK] = CFBOFF - q - 1;
+                CFTOK = CFTOK + 1;
+            }
+        }
+        if dd > 0 { TI = TI + 1; }
+    }
+    if NCF < 512 {
+        CFN[NCF] = CNSPP;
+        let q: i64 = 0;
+        while load8(nm + q) != 0 { store8(&CNSP + CNSPP, load8(nm + q)); CNSPP = CNSPP + 1; q = q + 1; }
+        store8(&CNSP + CNSPP, 0); CNSPP = CNSPP + 1;
+        CFNP[NCF] = na;
+        CFBO0[NCF] = body_start;
+        CFBL0[NCF] = CFTOK - body_start;
+        NCF = NCF + 1;
+    }
+    if is_op("}") == 1 { TI = TI + 1; }
+    return 0;
+}
+
 fn cns_atom() -> i64 {
     if is_op("(") == 1 {
         TI = TI + 1;
@@ -2640,9 +3123,15 @@ fn cns_atom() -> i64 {
     if cur_k() == 2 { let v: i64 = atoi(cur_s()); TI = TI + 1; return v; }
     if cur_k() == 1 {
         let i: i64 = cns_find(cur_s());
-        if i < 0 { return err("mo2x: const 表达式引用了未定义/不可求值的标识符"); }
-        TI = TI + 1;
-        return CNSV[i];
+        if i >= 0 { TI = TI + 1; return CNSV[i]; }
+        # const fn 调用：当前 token 是函数名，后面跟 '(' —— 用解释器
+        let fi: i64 = cf_find_fn(cur_s());
+        if fi >= 0 {
+            TI = TI + 1;
+            expect_op("(");
+            return cf_call_fn(fi, 1);
+        }
+        return err("mo2x: const 表达式引用了未定义/不可求值的标识符");
     }
     return err("mo2x: const 表达式里有意外的 token");
 }
@@ -3033,10 +3522,9 @@ fn pass_file(i: i64, kind: i64) -> i64 {
                         continue;
                     }
                 if accept_kw("const") == 1 {
-                    # const fn —— mo2x 无 const fn 求值器，声明按普通函数跳过
+                    # const fn —— 记录函数体文本到 CFSRC，供数组长度求值
                     if cur_k() == 1 && streq(cur_s(), "fn") == 1 {
-                        TI = TI + 1;
-                        skip_balanced();
+                        collect_const_fn();
                         continue;
                     }
                     # const NAME : i64 = <expr> ; —— mo2x 只支持字面量算术（无 const fn 调用）
@@ -3049,29 +3537,14 @@ fn pass_file(i: i64, kind: i64) -> i64 {
                         # 含标识符（const 名引用）→ 递归暂不支持，报错；
                         # 含函数调用 → 报错（mo2x 无 const fn 求值器）。
                         let sv: i64 = TI;
-                        let bad: i64 = 0;
                         let sv_emit: i64 = TI;
-                        while TI < NT {
-                            if is_op(";") == 1 { break; }
-                            if cur_k() == 1 {
-                                if cns_find(cur_s()) < 0 { bad = 2; }
-                            }
-                            if cur_k() == 5 {
-                                if is_op("(") == 1 { bad = 3; }
-                            }
-                            TI = TI + 1;
-                        }
-                        if bad != 0 {
-                            if bad == 3 { return err("mo2x: const 表达式不支持函数调用（无 const fn 求值器）—— 请写字面量算式"); }
-                            return err("mo2x: const 表达式引用了未知标识符");
-                        }
                         TI = sv;
+                        let cval: i64 = 0;
                         if NCNS < 256 {
                             CNSN[NCNS] = CNSPP;
                             let snj: i64 = 0;
                             while load8(cnm + snj) != 0 { store8(&CNSP + CNSPP, load8(cnm + snj)); CNSPP = CNSPP + 1; snj = snj + 1; }
                             store8(&CNSP + CNSPP, 0); CNSPP = CNSPP + 1;
-                            let cval: i64 = 0;
                             # 求值：数字与 + - * / % << >> & | ^ （从左到右，先乘除后加减的近似不实现 ——
                             # 与 moc 语义差别记录在 docs；实际用 C enum 让编译器算，mo2x 只需要
                             # 知道**数组长度够不够**吗？不需要 —— C enum 直接折叠。但 CNSV
@@ -3081,19 +3554,37 @@ fn pass_file(i: i64, kind: i64) -> i64 {
                             NCNS = NCNS + 1;
                         }
                         if is_c_like() == 1 {
+                            # v1.1163: 表达式含 const fn 调用时 enum 直接用**求值结果**（C enum
+                            # 不允许函数调用）；纯算式仍原样 emit（保留可读性）。
                             let sv2: i64 = sv_emit;
                             TI = sv2;
+                            let has_call: i64 = 0;
+                            let sc: i64 = TI;
+                            while TI < NT {
+                                if is_op(";") == 1 { break; }
+                                if cur_k() == 1 && cns_find(cur_s()) < 0 && cf_find_fn(cur_s()) >= 0 { has_call = 1; }
+                                TI = TI + 1;
+                            }
+                            TI = sc;
                             outs("enum { ");
                             outs(cnm);
                             outs(" = ");
-                            let first: i64 = 1;
-                            while TI < NT {
-                                if is_op(";") == 1 { break; }
-                                if first == 0 { outs(" "); }
-                                if cur_k() == 1 { outs(cns_name_or_err(cur_s())); }
-                                else { outs(cur_s()); }
-                                first = 0;
-                                TI = TI + 1;
+                            if has_call == 1 {
+                                let nb2: [24] byte = 0;
+                                utoa(cval, &nb2, 10);
+                                outs(&nb2);
+                                TI = sv;
+                                while TI < NT { if is_op(";") == 1 { break; } TI = TI + 1; }
+                            } else {
+                                let first: i64 = 1;
+                                while TI < NT {
+                                    if is_op(";") == 1 { break; }
+                                    if first == 0 { outs(" "); }
+                                    if cur_k() == 1 { outs(cns_name_or_err(cur_s())); }
+                                    else { outs(cur_s()); }
+                                    first = 0;
+                                    TI = TI + 1;
+                                }
                             }
                             outs(" };");
                             nl();
@@ -3319,6 +3810,7 @@ fn fs_sysno(n: i64) -> i64 {
     FS_ATINS = 0;
     FS_ATTAIL = 0;
     FS_ATVAL = 0 - 100;
+    if TGT == T_C { return n; }            # c 目标：mo_syscall 走 libc，号透传
     if FS_ARCH == 1 { return n; }          # x86-64：源码写的就是它
     if FS_ARCH == 2 { return fs_sysno_generic(n); }
     if FS_ARCH == 3 { return fs_sysno_generic(n); }   # riscv64 同为 asm-generic 表
