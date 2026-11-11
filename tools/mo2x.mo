@@ -782,6 +782,29 @@ fn emit_expr() -> i64 {
 }
 
 var CAST_OPEN: i64 = 0;    # emit_primary 已发 "(long long)("，postfix ']' 后闭合
+# v1.1164: 函数签名注册表 —— 调用点按形参类型发隐式 cast（ptr↔i64 互传在 C 里报错）。
+# 🔴 键是函数名哈希（FNV-1a 数值），不存名字指针：POOL 在跨文件 tokenize 时 PP=0 重置，
+#    绝对地址/偏移都会失效 —— 名字内容被覆盖导致 fsg_find 误命中（io.mo print_f64 的 f64 调用
+#    命中 atoi 槽位就是这个坑）。哈希数值跨文件稳定。
+# FSGH[i]=名哈希, FSGC[i]=参数个数, FSGK[i*8+j]=参数 j kind（0=i64,1=ptr,2=byte,3=f64,4=其他）,
+# FSGR[i]=返回 kind。CURRTK=当前函数返回 kind。
+var FSGH: [512] i64 = 0;
+var FSGC: [256] i64 = 0;
+var FSGK: [4096] i64 = 0;
+var FSGR: [256] i64 = 0;
+var NFSG: i64 = 0;
+var CURRTK: i64 = 4;
+
+fn nm_hash(nm: i64) -> i64 {
+    let h: i64 = 2166136261;
+    let q: i64 = 0;
+    while load8(nm + q) != 0 {
+        h = (h ^ load8(nm + q)) * 16777619;
+        h = h & 268435455;
+        q = q + 1;
+    }
+    return h;
+}
 
 fn emit_primary() -> i64 {
     if cur_k() == 2 {
@@ -1049,13 +1072,24 @@ fn emit_primary() -> i64 {
                 outs(")");
                 return 0;
             }
-            outs(nm);
+            if streq(nm, "strlen") == 1 { outs("mo_strlen"); } else { outs(nm); }
             outs("(");
+            # v1.1164: 查签名表，按形参类型给实参发隐式 cast（ptr↔i64 互传）
+            let fi3: i64 = fsg_find(nm);
+            let ai3: i64 = 0;
             if is_op(")") == 0 {
+                if fi3 >= 0 && FSGK[fi3 * 8 + ai3] == 1 { outs("(unsigned char*)"); }
+                if fi3 >= 0 && FSGK[fi3 * 8 + ai3] == 0 { outs("(long long)("); }
                 emit_expr();
+                if fi3 >= 0 && FSGK[fi3 * 8 + ai3] == 0 { outs(")"); }
+                ai3 = 1;
                 while accept_op(",") == 1 {
                     outs(",");
+                    if fi3 >= 0 && FSGK[fi3 * 8 + ai3] == 1 { outs("(unsigned char*)"); }
+                    if fi3 >= 0 && FSGK[fi3 * 8 + ai3] == 0 { outs("(long long)("); }
                     emit_expr();
+                    if fi3 >= 0 && FSGK[fi3 * 8 + ai3] == 0 { outs(")"); }
+                    ai3 = ai3 + 1;
                 }
             }
             expect_op(")");
@@ -1469,6 +1503,7 @@ fn emit_scalar_or_arr(nm: i64, isarr: i64) -> i64 {
         }
     }
     let t: i64 = ident();
+    LASTTY = t;    # v1.1164: 记录基类型 —— emit_local/emit_global 的隐式 cast 依据
     emit_scalar(t);
     outs(" ");
     outs(nm);
@@ -1820,7 +1855,10 @@ fn emit_stmt() -> i64 {
         }
         outs("return ");
         if is_c_like() == 1 { outs("("); }
+        # v1.1164: i64 返回类型的函数，return 表达式包 (long long) —— 兼容 ptr→i64 隐式返回
+        if is_c_like() == 1 && CURRTK == 0 { outs("(long long)("); }
         emit_expr();
+        if is_c_like() == 1 && CURRTK == 0 { outs(")"); }
         if is_c_like() == 1 { outs(")"); }
         expect_op(";");
         semi();
@@ -2173,6 +2211,16 @@ fn emit_local() -> i64 {
             }
             else {
                 outs(" = (");
+                # v1.1164: 按声明类型补隐式 cast（ptr↔i64 互通）：
+                # `let p: i64 = s+i`（右值 ptr）与 `let buf: ptr = alloc(...)`
+                # （右值 i64）在 C 里都是硬错误 —— 统一补显式转换。
+                # 🔴 LASTTY==0 必须跳过（streq(0,..) 解引用空指针段错误；数组声明路径不设 LASTTY）
+                if LASTTY != 0 {
+                    if streq(LASTTY, "ptr") == 1 || streq(LASTTY, "str") == 1 { outs("(unsigned char*)"); }
+                    else {
+                        if streq(LASTTY, "i64") == 1 { outs("(long long)"); }
+                    }
+                }
                 # `let p: i64 = &arr;` 在 C 系后端原本是**硬错误**：
                 # 用 unsigned char* 初始化 long long 属指针→整数转换。
                 # 而"这块缓冲在哪"恰恰只能通过取地址表达（virtio 描述符
@@ -2270,6 +2318,16 @@ fn emit_global() -> i64 {
             }
             else {
                 outs(" = (");
+                # v1.1164: 按声明类型补隐式 cast（ptr↔i64 互通）：
+                # `let p: i64 = s+i`（右值 ptr）与 `let buf: ptr = alloc(...)`
+                # （右值 i64）在 C 里都是硬错误 —— 统一补显式转换。
+                # 🔴 LASTTY==0 必须跳过（streq(0,..) 解引用空指针段错误；数组声明路径不设 LASTTY）
+                if LASTTY != 0 {
+                    if streq(LASTTY, "ptr") == 1 || streq(LASTTY, "str") == 1 { outs("(unsigned char*)"); }
+                    else {
+                        if streq(LASTTY, "i64") == 1 { outs("(long long)"); }
+                    }
+                }
                 # `let p: i64 = &arr;` 在 C 系后端原本是**硬错误**：
                 # 用 unsigned char* 初始化 long long 属指针→整数转换。
                 # 而"这块缓冲在哪"恰恰只能通过取地址表达（virtio 描述符
@@ -2409,10 +2467,32 @@ fn emit_struct() -> i64 {
     return 0;
 }
 
+# v1.1164: 签名表查找（-1=未注册）
+fn fsg_find(nm: i64) -> i64 {
+    let hh: i64 = nm_hash(nm);
+    let q: i64 = 0;
+    while q < NFSG {
+        if FSGH[q] == hh { return q; }
+        q = q + 1;
+    }
+    return 0 - 1;
+}
+
 # 函数签名
 fn emit_sig() -> i64 {
+    # v1.1164: 签名表查找（0=未注册）—— 先行定义供调用点用
     let nm: i64 = ident();
     expect_op("(");
+    # v1.1164: 注册签名（C 系后端），调用点据此发隐式 cast
+    let reg: i64 = -1;
+    if is_c_like() == 1 && NFSG < 256 {
+        reg = NFSG;
+        FSGH[reg] = nm_hash(nm);
+        FSGC[reg] = 0;
+        let q: i64 = 0;
+        while q < 8 { FSGK[reg * 8 + q] = 4; q = q + 1; }
+        NFSG = NFSG + 1;
+    }
     let first: i64 = 1;
     let ps: [512] byte = 0;
     while is_op(")") == 0 {
@@ -2436,15 +2516,16 @@ fn emit_sig() -> i64 {
         if is_c_like() == 1 {
             if isarr == 1 { skip_brackets(); }
             let t: i64 = ident();
-            if streq(t, "i64") == 1 { strcat(&ps, "long long"); }
+            let tk: i64 = 4;
+            if streq(t, "i64") == 1 { strcat(&ps, "long long"); tk = 0; }
             else {
                 if streq(t, "i32") == 1 { strcat(&ps, "int"); }
                 else {
-                if streq(t, "byte") == 1 { strcat(&ps, "unsigned char"); }
+                if streq(t, "byte") == 1 { strcat(&ps, "unsigned char"); tk = 2; }
                 else {
-                    if streq(t, "ptr") == 1 { strcat(&ps, "unsigned char*"); }
+                    if streq(t, "ptr") == 1 { strcat(&ps, "unsigned char*"); tk = 1; }
                     else {
-                        if streq(t, "f64") == 1 { strcat(&ps, "double"); }
+                        if streq(t, "f64") == 1 { strcat(&ps, "double"); tk = 3; }
                         else {
                             # struct 形参：moc 语义是引用（self.x=… 对调用方可见）。
                             strcat(&ps, "struct "); strcat(&ps, t); strcat(&ps, "_t*");
@@ -2454,6 +2535,10 @@ fn emit_sig() -> i64 {
                     }
                 }
                 }
+            }
+            if reg >= 0 && FSGC[reg] < 8 {
+                FSGK[reg * 8 + FSGC[reg]] = tk;
+                FSGC[reg] = FSGC[reg] + 1;
             }
             strcat(&ps, " ");
             strcat(&ps, pn);
@@ -2470,6 +2555,19 @@ fn emit_sig() -> i64 {
     if cur_k() == 1 { rt = cur_s(); TI = TI + 1; }
     let ismain: i64 = 0;
     if streq(nm, "main") == 1 { ismain = 1; }
+    # v1.1164: 返回类型 kind —— emit return 处按需 cast
+    CURRTK = 0;
+    if rt != 0 {
+        if streq(rt, "ptr") == 1 || streq(rt, "str") == 1 { CURRTK = 1; }
+        else {
+            if streq(rt, "f64") == 1 { CURRTK = 3; }
+            else {
+                if streq(rt, "i64") == 1 { CURRTK = 0; }
+                else { CURRTK = 4; }
+            }
+        }
+    }
+    if reg >= 0 { FSGR[reg] = CURRTK; }
 
     if is_c_like() == 1 {
         if rt != 0 {
@@ -2494,7 +2592,11 @@ fn emit_sig() -> i64 {
                 }
             }
         } else { outs("long long "); }
-        if ismain == 1 { outs("mo_main"); } else { outs(nm); }
+        if ismain == 1 { outs("mo_main"); }
+        else {
+            # v1.1164: mo 定义的 strlen 与前导宏 (#define strlen strlen_) 冲突 → mo_strlen
+            if streq(nm, "strlen") == 1 { outs("mo_strlen"); } else { outs(nm); }
+        }
         outs("(");
         outs(&ps);
         outs(")");
@@ -4291,6 +4393,11 @@ fn emit_header() -> i64 {
         line("#define print_i64 print_i64_");
         line("#define print_nl print_nl_");
         line("#define print_hex print_hex_");
+        # v1.1164: fint/f64 内建（f64↔i64 转换）。LLP64 规则：一律 long long。
+        # (long long)double 向零截断 = cvttsd2si 语义。
+        line("static long long fint(double v){ return (long long)v; }");
+        line("static double f64(long long v){ return (double)v; }");
+        line("long long mo_main(void);");
         return 0;
     }
     if TGT == T_JS {

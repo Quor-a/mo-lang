@@ -10994,3 +10994,22 @@ mo2x（C 后端）支持 const fn 求值 —— 数组长度与顶层 const 声�
 
 测试：`tests/341_constexpr_arraylen_cbackend.mo`（期望 39，moc 与 mo2x 双链路验证）。
 门禁 492/0。
+
+## v1.1164.0
+
+mo2x（C 后端）支持 io.mo 全文 —— print_f64 及依赖 ptr↔i64 隐式转换的库全部可用。
+
+### mo2x
+
+- C 前导补 `fint`/`f64` 内建（`static long long fint(double)`，向零截断 = cvttsd2si 语义；LLP64 规则一律 long long）
+- 函数签名注册表：emit_sig 注册参数/返回类型 kind，调用点按形参类型发隐式 cast（ptr↔i64 互传此前是 C 硬错误）
+  - 🔴 键是函数名 FNV-1a 哈希，不存名字指针：POOL 在跨文件 tokenize 时 PP=0 重置，指针键会误命中（f64 调用命中 atoi 槽位即此坑）
+- let/var 初始化按声明类型补 cast（LASTTY 记录基类型）；🔴 LASTTY==0 必须跳过（streq(0,..) 解引用空指针段错误；数组声明路径不设 LASTTY）
+- mo 定义的 `strlen` 发射为 `mo_strlen`，避开前导 `#define strlen strlen_` 重定义
+- C 前导补 `long long mo_main(void);` 前置声明（库文件单独编译场景）
+
+### 验证
+
+- `lib/io.mo` 全文经 mo2x → zig x86_64-linux-musl 编译链接通过；`print_f64(3.14159)` 输出 `3.141590`（与 printf %.6f 一致）、`0.5`→`0.500000`、`-2.75`→`-2.750000`
+- 回归：cfreg 3/3、t340s(2449/145)、cf2(18)、md(0) 全绿
+- 测试：`tests/342_print_f64_cbackend.mo`（期望 12，moc 与 mo2x 双链路验证）
