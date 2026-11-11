@@ -10931,3 +10931,19 @@ aarch64/s390x/ppc64/riscv64 现有构建全部不受影响。
     打印走 KERNEL32 `WriteFile`，导入表只有 `KERNEL32.dll`（4 KB），
     供缺 UCRT 的系统使用；原 UCRT 版一并保留为 `-ucrt` 命名。
   - 详见 docs/mo2x-llp64.md。
+
+## v1.1162.0
+- **数组长度接受任意常量表达式**。此前 `var A: [N] i64` 的长度位只认整数
+  字面量或已定义的 `const` 名，`[2+3]`、`[10*2]`、`[1<<4]`、`[gcd(48,18)]`
+  一律 `error: syntax error` —— 缓冲区大小没法由常量推导，只能手算写死。
+  - 5 处长度解析点（`parse_let` 首维/内维、`parse_global` 首维/内维、
+    `try_parse_type` 数组类型）统一改走 `const_expr()`，一次支持算术/移位/
+    位运算/比较/逻辑/括号/`const` 名/enum 值/`sizeof`/`alignof`/`const fn` 调用。
+  - 🔴 坑：首版保留「首个 token 是数字就取 `K_TIVAL`」快速路径，于是 `[2+3]`
+    吃掉 `2` 后停在 `+` 上、`expect("]")` 报语法错（位置指向 `+`），
+    而 `[(2+3)]` 因为绕开快速路径反而正常 —— 这个分裂现象是定位线索。
+    删除快速路径即修复。
+  - 长度 `<= 0` 仍是硬错误，报在声明位置。
+  - tests/340_constexpr_arraylen.mo（expect 145，9 个数组覆盖全部形式，
+    期望值由 Python 模型独立计算）；门禁 491/0；自举 md5 一致。
+  - 详见 docs/constexpr-arraylen.md。

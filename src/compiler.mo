@@ -4442,11 +4442,8 @@ fn try_parse_type() -> i64 {
                 } else {
                     if tok_is("[") == 1 {
                         next_token();
-                        let n: i64 = 0;
-                        if gv(K_TKIND) == 2 {
-                            n = gv(K_TIVAL);
-                        }
-                        next_token();
+                        # v1.1162: 数组类型里同样接受常量表达式（统一 const_expr）
+                        let n: i64 = const_expr();
                         expect("]");
                         let et: i64 = -1;
                         if tok_is("i64") == 1 { next_token(); et = ty_int(); }
@@ -8669,41 +8666,19 @@ fn parse_let() -> i64 {
     if tok_is("[") == 1 {
         let n: i64 = 0;
         next_token();
-        if gv(K_TKIND) == 2 {
-            n = gv(K_TIVAL);
-        } else {
-            if gv(K_TKIND) == 1 {
-                # const 名做数组长度（v1.975）；O_SU 标记（v1.1000）
-                let csi: i64 = sym_lookup(tokbuf());
-                if csi >= 0 {
-                    if load64(heap + O_SK + csi * 8) == 4 {
-                        n = load64(heap + O_SCV + csi * 8);
-                        store64(heap + O_SU + csi * 8, 1);
-                    }
-                }
-            }
-        }
-        next_token();
+        # v1.1162: 任意常量表达式做数组长度 —— 数字 / const 名 / const fn 调用 /
+        # 算式（2+3、10*2、1<<4）统一走 const_expr() 编译期求值。
+        # 🔴 不能走 K_TKIND==2 快速路径：[2+3] 会在吃掉 '2' 后停在 '+' 上报语法错。
+        n = const_expr();
         expect("]");
         if n <= 0 { return err_atp("array length must be a positive constant", gv(K_PLINE), gv(K_PCOL), gv(K_PPOS)); }
         # v1.1050 二维 / v1.1058 任意维 —— et 声明前收全部内维到 O_LSTV
         # （[2][3][4] 存 3,4 内维在前），元素类型出来后倒序逐层包装。
         let ndims: i64 = 0;
         while tok_is("[") == 1 {
-            let dimx: i64 = 0 - 1;
+            # v1.1162: 内维同样接受任意常量表达式（统一 const_expr，理由同上）
             next_token();
-            if gv(K_TKIND) == 2 { dimx = gv(K_TIVAL); next_token(); }
-            else {
-                if gv(K_TKIND) == 1 {
-                    let csi2: i64 = sym_lookup(tokbuf());
-                    if csi2 >= 0 {
-                        if load64(heap + O_SK + csi2 * 8) == 4 {
-                            dimx = load64(heap + O_SCV + csi2 * 8);
-                            next_token();
-                        }
-                    }
-                }
-            }
+            let dimx: i64 = const_expr();
             expect("]");
             if dimx <= 0 { return err_atp("array length must be a positive constant", gv(K_PLINE), gv(K_PCOL), gv(K_PPOS)); }
             store64(heap + O_LSTV + ndims * 8, dimx);
@@ -12636,41 +12611,19 @@ fn parse_global() -> i64 {
     if tok_is("[") == 1 {
         let n: i64 = 0;
         next_token();
-        if gv(K_TKIND) == 2 {
-            n = gv(K_TIVAL);
-        } else {
-            if gv(K_TKIND) == 1 {
-                # const 名做数组长度（v1.975）；O_SU 标记（v1.1000）
-                let csi: i64 = sym_lookup(tokbuf());
-                if csi >= 0 {
-                    if load64(heap + O_SK + csi * 8) == 4 {
-                        n = load64(heap + O_SCV + csi * 8);
-                        store64(heap + O_SU + csi * 8, 1);
-                    }
-                }
-            }
-        }
-        next_token();
+        # v1.1162: 任意常量表达式做数组长度 —— 数字 / const 名 / const fn 调用 /
+        # 算式（2+3、10*2、1<<4）统一走 const_expr() 编译期求值。
+        # 🔴 不能走 K_TKIND==2 快速路径：[2+3] 会在吃掉 '2' 后停在 '+' 上报语法错。
+        n = const_expr();
         expect("]");
         if n <= 0 { return err_atp("array length must be a positive constant", gv(K_PLINE), gv(K_PCOL), gv(K_PPOS)); }
         # v1.1050 二维 / v1.1058 任意维 —— et 声明前收全部内维到 O_LSTV
         # （[2][3][4] 存 3,4 内维在前），元素类型出来后倒序逐层包装。
         let ndims: i64 = 0;
         while tok_is("[") == 1 {
-            let dimx: i64 = 0 - 1;
+            # v1.1162: 内维同样接受任意常量表达式（统一 const_expr，理由同上）
             next_token();
-            if gv(K_TKIND) == 2 { dimx = gv(K_TIVAL); next_token(); }
-            else {
-                if gv(K_TKIND) == 1 {
-                    let csi2: i64 = sym_lookup(tokbuf());
-                    if csi2 >= 0 {
-                        if load64(heap + O_SK + csi2 * 8) == 4 {
-                            dimx = load64(heap + O_SCV + csi2 * 8);
-                            next_token();
-                        }
-                    }
-                }
-            }
+            let dimx: i64 = const_expr();
             expect("]");
             if dimx <= 0 { return err_atp("array length must be a positive constant", gv(K_PLINE), gv(K_PCOL), gv(K_PPOS)); }
             store64(heap + O_LSTV + ndims * 8, dimx);

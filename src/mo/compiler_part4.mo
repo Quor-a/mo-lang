@@ -1405,11 +1405,8 @@ fn try_parse_type() -> i64 {
                 } else {
                     if tok_is("[") == 1 {
                         next_token();
-                        let n: i64 = 0;
-                        if gv(K_TKIND) == 2 {
-                            n = gv(K_TIVAL);
-                        }
-                        next_token();
+                        # v1.1162: 数组类型里同样接受常量表达式（统一 const_expr）
+                        let n: i64 = const_expr();
                         expect("]");
                         let et: i64 = -1;
                         if tok_is("i64") == 1 { next_token(); et = ty_int(); }
