@@ -10876,3 +10876,15 @@ aarch64/s390x/ppc64/riscv64 现有构建全部不受影响。
 - 自举通过：新编译器编译自身生成 md5 一致的二进制。
 - tests/336_constfn_branch.mo = 142，tests/335_constfn_multi.mo = 98。
 
+
+## v1.1158.0
+
+- **const fn 支持循环、局部变量与赋值**：`let n: i64 = expr;`（每层 8 个）、
+  `n = expr;`、复合赋值 `+= -= *= /= %=`、`while cond { ... }`（可嵌套、可与 if 混用、
+  循环体内可调用其它 const fn）。
+- 修复 3 个 bug：
+  1. `cfn_eval` 不恢复 `CFDONE` → 循环体内调 const fn 后外层立刻收工，循环只跑一轮；
+  2. 嵌套调用实参帧与外层形参帧同址 → 外层参数被覆盖，`while i <= n` 条件恒真；
+  3. 复合赋值落到「未知 token 静默跳过」兜底 → 结果错而不报错。
+- tests/337_constfn_loop.mo = 136（9 场景）。门禁 488/0。自举 md5 一致。
+- 新增 docs/constfn-loop.md。

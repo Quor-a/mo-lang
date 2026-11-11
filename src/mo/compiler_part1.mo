@@ -205,6 +205,10 @@ var CFARGD:  i64 = 0;
 # v1.1156: const fn 体语句解释器状态（cfn_run 用）
 var CFNRV:   i64 = 0;
 var CFDONE:  i64 = 0;
+# v1.1158: const fn 局部变量帧（每调用一层 256B：count 8B + 8 项 × 24B[名16+值8]）
+#   区域取 O_MSYM(8608192+4096) 之后、O_ENAME(8700000) 之前的空档。
+var O_CFL:   i64 = 8620000;
+var CFLGD:   i64 = 0;   # 局部帧深度（cfn_eval 进出时 ±1）
 var O_ENAME: i64 = 8700000;    # 512 × 8 = 4096
 var O_ECNAME: i64 = 8704096;
 var O_EVAL: i64 = 8708192;

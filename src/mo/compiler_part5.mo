@@ -5009,6 +5009,55 @@ fn const_dup_check() -> i64 {
 # 常量表达式求值：递归下降，一层乘除一层加减一层原子。
 # 原子 = 数字字面量 | ( expr ) | 已定义的 const 名（kind 4，O_SCV 取值）。
 # v1.1112: const fn 编译期求值——名 id 与参数值给入，重入 token 流解释函数体（仅 return expr）
+# v1.1158: const fn 局部变量帧。
+#   布局（每层 256B）：[count:8][entry0:24][entry1:24]...，entry = 名 16B + 值 8B。
+fn cfl_base() -> i64 {
+    return heap + O_CFL + CFLGD * 256;
+}
+
+# 名字暂存区（let/赋值分支把 tokbuf 拷出来，避免被后续 next_token 覆盖）
+fn cfl_tmp() -> i64 {
+    return heap + O_CFL + 2300;
+}
+
+fn cfl_copy(dst: i64, src: i64) -> i64 {
+    let i: i64 = 0;
+    while i < 15 {
+        if load8(src + i) == 0 { break; }
+        store8(dst + i, load8(src + i));
+        i = i + 1;
+    }
+    store8(dst + i, 0);
+    return 0;
+}
+
+# 查找局部变量，命中返回值槽地址，未命中返回 -1
+fn cfl_find(nb: i64) -> i64 {
+    let b: i64 = cfl_base();
+    let n: i64 = load64(b);
+    let i: i64 = 0;
+    while i < n && i < 8 {
+        if streq(nb, b + 8 + i * 24) == 1 {
+            return b + 8 + i * 24 + 16;
+        }
+        i = i + 1;
+    }
+    return 0 - 1;
+}
+
+# 声明局部变量（先以 0 占位，随后由调用方写入初值）
+fn cfl_decl(nb: i64) -> i64 {
+    let b: i64 = cfl_base();
+    let n: i64 = load64(b);
+    if n >= 8 {
+        return err_at2("const fn: too many locals (max 8)", gv(K_LINE), gv(K_COL));
+    }
+    cfl_copy(b + 8 + n * 24, nb);
+    store64(b + 8 + n * 24 + 16, 0);
+    store64(b, n + 1);
+    return 0;
+}
+
 fn cfn_run(limit: i64) -> i64 {
     # v1.1157: const fn 体语句执行器（递归）——支持 if / else 任意嵌套。
     # limit: 本层块末尾 `}` 的字节偏移（set_pos(limit) 将停在块尾 `}` 上）。
@@ -5074,11 +5123,107 @@ fn cfn_run(limit: i64) -> i64 {
                     }
                 }
             } else {
-                if gv(K_POS) == limit {
-                    # 本层块结束：停在此 `}`，不消费，交给调用方
-                    return 0;
+                if tok_is("while") == 1 {
+                    # v1.1158: const fn 编译期循环（条件/块内可引用局部变量）
+                    next_token();
+                    let cpos: i64 = gv(K_TOKPOS);   # 条件首 token 起点（每轮回跳点）
+                    let wgo: i64 = 1;
+                    let wg: i64 = 0;
+                    while wgo == 1 && CFDONE == 0 {
+                        wg = wg + 1;
+                        if wg > 5000 {
+                            wgo = 0;   # 编译期循环上限，防死循环
+                        } else {
+                            set_pos(cpos);
+                            let wc: i64 = cfn_expr(0);
+                            expect("{");
+                            let wbs: i64 = gv(K_TOKPOS);
+                            let wd: i64 = 1;
+                            while wd > 0 && gv(K_POS) < limit {
+                                if tok_is("{") == 1 { wd = wd + 1; }
+                                else { if tok_is("}") == 1 { wd = wd - 1; } }
+                                if wd > 0 { next_token(); }
+                            }
+                            let wbe: i64 = gv(K_TOKPOS);   # 循环块尾 `}` 起点
+                            if wc == 0 {
+                                set_pos(wbe);
+                                next_token();
+                                wgo = 0;
+                            } else {
+                                set_pos(wbs);
+                                cfn_run(wbe);
+                                if CFDONE == 0 { next_token(); }
+                            }
+                        }
+                    }
+                } else {
+                    if tok_is("let") == 1 {
+                        # v1.1158: const fn 局部变量声明 let n: i64 = expr;
+                        next_token();
+                        if gv(K_TKIND) != 1 { return syntax_error(); }
+                        let lname: i64 = cfl_tmp();
+                        cfl_copy(lname, tokbuf());
+                        next_token();
+                        expect(":");
+                        let tg: i64 = 0;
+                        while tok_is("=") == 0 && tg < 64 {
+                            if gv(K_TKIND) == 0 { return syntax_error(); }
+                            next_token();
+                            tg = tg + 1;
+                        }
+                        expect("=");
+                        cfl_decl(lname);
+                        let slot: i64 = cfl_find(lname);
+                        let lv: i64 = cfn_expr(0);
+                        if slot >= 0 { store64(slot, lv); }
+                        accept(";");
+                    } else {
+                        if gv(K_TKIND) == 1 {
+                            # v1.1158: 赋值 name = expr;（先定位槽再求值，避免递归覆盖暂存名）
+                            let aname: i64 = cfl_tmp();
+                            cfl_copy(aname, tokbuf());
+                            let apos: i64 = gv(K_TOKPOS);
+                            next_token();
+                            # v1.1158: 复合赋值（+= -= *= /= %=）—— 不支持的话这些语句
+                            # 会被当成未知 token 静默跳过，算出错误结果还不报错。
+                            let aop: i64 = 0;
+                            if tok_is("+=") == 1 { aop = 1; }
+                            else { if tok_is("-=") == 1 { aop = 2; }
+                            else { if tok_is("*=") == 1 { aop = 3; }
+                            else { if tok_is("/=") == 1 { aop = 4; }
+                            else { if tok_is("%=") == 1 { aop = 5; } } } } }
+                            if tok_is("=") == 1 { aop = 9; }
+                            if aop > 0 {
+                                next_token();
+                                let aslot: i64 = cfl_find(aname);
+                                if aslot < 0 {
+                                    return err_at2("const fn: assignment to non-local", gv(K_LINE), gv(K_COL));
+                                }
+                                let av: i64 = cfn_expr(0);
+                                if aop == 9 {
+                                    store64(aslot, av);
+                                } else {
+                                    let cur: i64 = load64(aslot);
+                                    if aop == 1 { store64(aslot, cur + av); }
+                                    else { if aop == 2 { store64(aslot, cur - av); }
+                                    else { if aop == 3 { store64(aslot, cur * av); }
+                                    else { if aop == 4 { store64(aslot, cur / av); }
+                                    else { store64(aslot, cur % av); } } } }
+                                }
+                                accept(";");
+                            } else {
+                                set_pos(apos);
+                                next_token();
+                            }
+                        } else {
+                            if gv(K_POS) == limit {
+                                # 本层块结束：停在此 `}`，不消费，交给调用方
+                                return 0;
+                            }
+                            next_token();
+                        }
+                    }
                 }
-                next_token();
             }
         }
     }
@@ -5102,16 +5247,27 @@ fn cfn_eval(fid: i64, abase: i64) -> i64 {
     sv(K_CPOS, 0);
     set_pos(cbs);
     # v1.1156: 递归语句解释器（支持 if/else 任意嵌套，消除 v1.1155 的静默跳过 bug）
+    # v1.1158: 保存外层解释器状态 —— 嵌套调用（循环体内调 const fn）会覆盖
+    # CFNRV/CFDONE；不恢复的话外层 cfn_run 一看到 CFDONE=1 就提前收工。
+    let old_rv: i64 = CFNRV;
+    let old_dn: i64 = CFDONE;
     CFNRV = 0;
     CFDONE = 0;
+    # v1.1158: 开一层局部变量帧（count 清零）
+    CFLGD = CFLGD + 1;
+    store64(cfl_base(), 0);
     cfn_run(cbe);
+    CFLGD = CFLGD - 1;
+    let cf_res: i64 = CFNRV;
+    CFNRV = old_rv;
+    CFDONE = old_dn;
     # 恢复（set_back 重读 token）
     CFCUR = old_cur;
     CFABASE = old_base;
     sv(K_LINE, sv_ln);
     sv(K_CPOS, sv_cl);
     set_back(sv_tk);
-    return CFNRV;
+    return cf_res;
 }
 
 # cfn 表达式求值（递归下降；支持 参数/数字/() 一元- + - * / %）
@@ -5135,6 +5291,14 @@ fn cfn_atom() -> i64 {
     # v1.1155: 参数名 —— 按 CFCUR 对应的名区表逐个比对（多参数），
     # 命中第 i 个参数 → 从当前帧 CFABASE + i*8 取实参值。
     if gv(K_TKIND) == 1 {
+        # v1.1158: 局部变量优先于参数（同帧内 let 遮蔽）
+        if CFLGD > 0 {
+            let ls0: i64 = cfl_find(tokbuf());
+            if ls0 >= 0 {
+                next_token();
+                return load64(ls0);
+            }
+        }
         let np1: i64 = load64(heap + O_CFNP + CFCUR * 8);
         if np1 > 0 {
             let nbase: i64 = heap + O_CFA + np1 - 1;
@@ -5153,9 +5317,12 @@ fn cfn_atom() -> i64 {
         if nid9 >= 0 && load8(heap + O_CFF + nid9) == 1 && load64(heap + O_CFB + nid9 * 16) > 0 {
             next_token();
             expect("(");
-            let nabase: i64 = heap + O_CFA + 62000 + CFARGD;
+            # v1.1158: 实参帧必须比**当前帧**更深一层 —— 原来的写法先把 CFARGD
+            # 复位再求值，导致嵌套调用的实参帧与外层函数自身的形参帧同一地址，
+            # 调用一次就把外层参数覆盖掉（循环里调 const fn 时表现为条件恒真）。
             let oldd: i64 = CFARGD;
-            CFARGD = CFARGD + 64;
+            let nabase: i64 = heap + O_CFA + 62000 + oldd + 64;
+            CFARGD = oldd + 64;
             let nai: i64 = 0;
             while tok_is(")") == 0 {
                 if nai >= 8 { return err_at2("const fn: too many arguments", gv(K_LINE), gv(K_COL)); }
@@ -5168,8 +5335,8 @@ fn cfn_atom() -> i64 {
             }
             let sbx: i64 = gv(K_POS);
             expect(")");
-            CFARGD = oldd;
             let cfr: i64 = cfn_eval(nid9, nabase);
+            CFARGD = oldd;
             set_back(sbx);
             return cfr;
         }
