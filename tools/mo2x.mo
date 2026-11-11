@@ -907,7 +907,7 @@ fn emit_primary() -> i64 {
                 outs("(");
                 let firstp: i64 = 1;
                 if streq(nm, "sfmt") == 1 {
-                    outs("MF_P=(long)");
+                    outs("MF_P=(long long)");
                     emit_expr();               # dst 只求值一次
                     accept_op(",");            # 吃掉 dst 与 f-string 之间的逗号
                     firstp = 0;
@@ -3432,14 +3432,17 @@ fn kern_header_aarch64() -> i64 {
 fn emit_mem_macros() -> i64 {
     line("static unsigned char* MF_P;  /* f-string 拼接游标（sfmt 用） */");
     line("#define load8(p)   (*(unsigned char*)(p))");
-    line("#define load64(p)  (*(long*)(p))");
+    # 🔴 v1.1161: 一律用 long long —— Windows x86_64 是 LLP64，long 只有 32 位。
+    # 用 long 的 load64/store64 在 Windows 上读写 4 字节（内存踩坏），
+    # call0..3 把 64 位函数指针截断成 32 位（直接崩）。
+    line("#define load64(p)  (*(long long*)(p))");
     line("#define store8(p,v)  (*(unsigned char*)(p) = (unsigned char)(v))");
-    line("#define store64(p,v) (*(long*)(p) = (long)(v))");
-    line("static long atomic_cas(long* p, long e, long d){ long old_=e; long ok_=__atomic_compare_exchange_n(p,&old_,d,0,5,5); return ok_?1:0; }");
-    line("static long call2(long f, long a, long b){ long (*g)(long,long)=(long(*)(long,long))f; return g(a,b); }");
-    line("static long call0(long f){ long (*g)(void)=(long(*)(void))f; return g(); }");
-    line("static long call1(long f, long a){ long (*g)(long)=(long(*)(long))f; return g(a); }");
-    line("static long call3(long f, long a, long b, long c){ long (*g)(long,long,long)=(long(*)(long,long,long))f; return g(a,b,c); }");
+    line("#define store64(p,v) (*(long long*)(p) = (long long)(v))");
+    line("static long long atomic_cas(long long* p, long long e, long long d){ long long old_=e; long long ok_=__atomic_compare_exchange_n(p,&old_,d,0,5,5); return ok_?1:0; }");
+    line("static long long call2(long long f, long long a, long long b){ long long (*g)(long long,long long)=(long long(*)(long long,long long))f; return g(a,b); }");
+    line("static long long call0(long long f){ long long (*g)(void)=(long long(*)(void))f; return g(); }");
+    line("static long long call1(long long f, long long a){ long long (*g)(long long)=(long long(*)(long long))f; return g(a); }");
+    line("static long long call3(long long f, long long a, long long b, long long c){ long long (*g)(long long,long long,long long)=(long long(*)(long long,long long,long long))f; return g(a,b,c); }");
     return 0;
 }
 
@@ -3538,25 +3541,25 @@ fn emit_header() -> i64 {
         # 所以用预处理器判断，两端都留一份定义。
         line("#if defined(__linux__) && !defined(__wasi__)");
         line("#include <sys/syscall.h>");
-        line("static long mo_syscall(long n,long a,long b,long c,long d,long e,long f){");
+        line("static long long mo_syscall(long long n,long long a,long long b,long long c,long long d,long long e,long long f){");
         line("  return syscall(n,a,b,c,d,e,f);");
         line("}");
         line("#else");
         line("/* 该平台没有 syscall()：WASI / Windows 走这里。");
         line("   返回 -1 而不是静默成功 —— 用了 syscall 的程序应当看得出来。 */");
-        line("static long mo_syscall(long n,long a,long b,long c,long d,long e,long f){");
+        line("static long long mo_syscall(long long n,long long a,long long b,long long c,long long d,long long e,long long f){");
         line("  (void)n;(void)a;(void)b;(void)c;(void)d;(void)e;(void)f; return -1; }");
         line("#endif");
-        line("static long strlen_(unsigned char* s){ long n=0; while(s[n]) n++; return n; }");
+        line("static long long strlen_(unsigned char* s){ long long n=0; while(s[n]) n++; return n; }");
         line("#define strlen strlen_");
         emit_mem_macros();
         # 输出函数由后端提供（printf 版）。
         # 不用 syscall 是因为 WASI 没有 syscall() —— 照搬 io.mo 会链接失败。
         line("#include <stdio.h>");
-        line("static long print_(const unsigned char* s){ return (long)fputs((const char*)s, stdout); }");
-        line("static long print_i64_(long v){ return (long)fprintf(stdout, \"%ld\", v); }");
-        line("static long print_nl_(void){ return (long)fputc('\\n', stdout); }");
-        line("static long print_hex_(long v){ return (long)fprintf(stdout, \"%lx\", v); }");
+        line("static long long print_(const unsigned char* s){ return (long long)fputs((const char*)s, stdout); }");
+        line("static long long print_i64_(long long v){ return (long long)fprintf(stdout, \"%lld\", v); }");
+        line("static long long print_nl_(void){ return (long long)fputc('\\n', stdout); }");
+        line("static long long print_hex_(long long v){ return (long long)fprintf(stdout, \"%llx\", v); }");
         line("#define print print_");
         line("#define print_i64 print_i64_");
         line("#define print_nl print_nl_");

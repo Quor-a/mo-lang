@@ -10916,3 +10916,18 @@ aarch64/s390x/ppc64/riscv64 现有构建全部不受影响。
 - 新增 tests/339_constfn_logic.mo（10 场景，期望值由 Python 模型独立算出，RC=168）。
 - 已知未支持：一元 `!`（`if !(x == 0)` 报语法错），留作后续。
 - 详见 docs/constfn-logic.md。
+
+## v1.1161.0
+- **mo2x C 后端 LLP64 修复：Windows 产物可正常运行**。
+  - 根因：前导用 `long` 承载 Mo 的 `i64`。Linux/macOS 是 LP64（`long`=64 位），
+    Windows x86_64 是 **LLP64（`long`=32 位）** —— 于是 `load64` 只读 4 字节、
+    `store64` 只写 4 字节（踩坏相邻内存）、`call0..3` 把 64 位函数指针截断、
+    `print_i64_` 大数截断。四平台都能编译通过，只有 Windows 带着整套错误语义。
+  - 修法：`emit_mem_macros()` 的 `load64`/`store64`/`atomic_cas`/`call0..3`、
+    C prelude 的 `mo_syscall`/`strlen_`/`print_*` 全部改 `long long`，
+    格式化串改 `%lld`/`%llx`；f-string 游标 `MF_P=(long)` → `(long long)`。
+    freestanding/UEFI 后端的 `register long r0 asm("rax")` 不动（LP64，且需同宽约束）。
+  - 另出**零 CRT 依赖**的 Windows 版本：`-nostdlib` + 自带 `mainCRTStartup`，
+    打印走 KERNEL32 `WriteFile`，导入表只有 `KERNEL32.dll`（4 KB），
+    供缺 UCRT 的系统使用；原 UCRT 版一并保留为 `-ucrt` 命名。
+  - 详见 docs/mo2x-llp64.md。
