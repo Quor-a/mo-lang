@@ -90,6 +90,8 @@ var LASTDIM: i64 = 0;      # 最近一次数组维度
 var LASTTY: i64 = 0;       # 最近一次基类型名
 var BOL: i64 = 1;          # 行首标记（全局变量必须先声明）
 
+
+
 fn raw(s: i64) -> i64 {
     let n: i64 = strlen(s);
     if n > 0 { syscall(1, 1, s, n, 0, 0, 0); }
@@ -142,6 +144,27 @@ var TK: [200000] i64 = 0;
 var TS: [200000] i64 = 0;
 var NT: i64 = 0;
 var TI: i64 = 0;
+
+# v1.1162: 顶层 const 表（mo2x 此前**完全忽略** const 声明 —— token 兜底跳过，
+# 于是 `var A: [N] i64` 里的 N 在 C 里未定义，编译报 use of undeclared identifier）。
+# 🔴 必须定义在**所有使用者之前**（Mo 无前向声明；前向调用会被当成外部符号，
+#    链接到 0 地址，运行时段错误 —— 表现为"输出到一半突然 SIGSEGV"）。
+var CNSN: [256] i64 = 0;    # 名字在 CNSP 池里的偏移（不用 POOL —— 它每轮重写）
+var CNSV: [256] i64 = 0;
+var NCNS: i64 = 0;
+var CNSP: [4096] byte = 0;
+var GDIM: [2048] byte = 0;   # 数组维度表达式缓存（全局，勿用局部——返回后栈帧失效）
+var GDIMD: i64 = 0;          # 当前嵌套深度（多维数组各占 512 字节）
+var CNSPP: i64 = 0;
+fn cns_find(nm: i64) -> i64 {
+    let i: i64 = 0;
+    while i < NCNS {
+        if streq(&CNSP + CNSN[i], nm) == 1 { return i; }
+        i = i + 1;
+    }
+    return 0 - 1;
+}
+
 var LN: i64 = 1;
 
 var OPS: [32] i64 = 0;
@@ -1338,17 +1361,49 @@ fn emit_scalar(t: i64) -> i64 {
 }
 
 # C 用：输出完整声明（含数组维度与变量名）
+# v1.1162: 数组长度支持任意常量表达式（[2+3]、[fact(5)]、[1<<4]…）。
+# C 系后端把长度表达式**原样 emit 进 C 源**，由 C 编译器做常量折叠 ——
+# 不在 mo2x 里求值（mo2x 没有常量求值器，硬造一个必然又窄又错）。
+# emit_dim_to_cache：从当前 token 走到 ']'（吃掉 ']'），把中间 token 原样
+# 拼进 CACHE 缓冲并返回缓存地址。**只走 token，不输出** —— 输出顺序由调用方控制
+# （C 声明是 `T name[dim];`，dim 在名字后面）。
+fn emit_dim_to_cache() -> i64 {
+    let base: i64 = &GDIM + GDIMD * 512;
+    GDIMD = GDIMD + 1;
+    let buf: i64 = base;
+    let ci: i64 = 0;
+    let first: i64 = 1;
+    while TI < NT {
+        if is_op("]") == 1 { break; }
+        if cur_k() == 1 {
+            if cns_find(cur_s()) < 0 {
+                return err("mo2x: 数组长度表达式引用了未定义的 const 名（C 后端不支持 const fn 调用求长度）");
+            }
+        }
+        if first == 0 {
+            store8(buf + ci, 32); ci = ci + 1;
+        }
+        let t: i64 = cur_s();
+        let j: i64 = 0;
+        while load8(t + j) != 0 { store8(buf + ci, load8(t + j)); ci = ci + 1; j = j + 1; }
+        first = 0;
+        TI = TI + 1;
+    }
+    store8(buf + ci, 0);
+    expect_op("]");
+    return base;
+}
+
 fn emit_scalar_or_arr(nm: i64, isarr: i64) -> i64 {
     if isarr == 1 {
         if is_op("[") == 1 {
             TI = TI + 1;
-            let n: i64 = cur_s();
-            TI = TI + 1;
-            expect_op("]");
+            let d1: i64 = emit_dim_to_cache();
             emit_scalar_or_arr(nm, 1);
             outs("[");
-            outs(n);
+            outs(d1);
             outs("]");
+            GDIMD = GDIMD - 1;    # 每层配对减回；不减会让基址一路漂移，写穿 GDIM → 段错误
             return 0;
         }
     }
@@ -1374,9 +1429,24 @@ fn emit_scalar_or_arr(nm: i64, isarr: i64) -> i64 {
 fn consume_type() -> i64 {
     if is_op("[") == 1 {
         TI = TI + 1;
-        let d: i64 = atoi(cur_s());
-        TI = TI + 1;
-        expect_op("]");
+        # v1.1162: 长度位支持任意常量表达式。C 系直接原样 emit；
+        # JS/PY 需要数值 —— 纯数字仍走 atoi，表达式情形记 0
+        # （JS/PY 后端暂不支持常量表达式长度，见 docs/constexpr-arraylen.md）。
+        let d: i64 = 0;
+        let onlynum: i64 = 1;
+        let save: i64 = TI;
+        while TI < NT {
+            if is_op("]") == 1 { break; }
+            if cur_k() != 2 { onlynum = 0; }
+            TI = TI + 1;
+        }
+        TI = save;
+        if onlynum == 1 { d = atoi(cur_s()); TI = TI + 1; expect_op("]"); }
+        else {
+            # 表达式长度：token 全部跳过（C 系不经此处；JS/PY 暂不支持，d=0）
+            while TI < NT { if is_op("]") == 1 { break; } TI = TI + 1; }
+            expect_op("]");
+        }
         let inner: i64 = consume_type();
         return d;
     }
@@ -2542,6 +2612,101 @@ fn load_file(i: i64) -> i64 {
     return 0;
 }
 
+# v1.1162: 顶层 const 表（mo2x 此前**完全忽略** const 声明 —— token 兜底跳过，
+# 于是 `var A: [N] i64` 里的 N 在 C 里未定义，编译报 use of undeclared identifier）。
+# kind==1 轮收集 const 名与值；发射时 const 用 enum（真常量表达式，可用于数组长度），
+# 数组长度里的 const 名替换成名字本身（enum 成员是常量表达式）。
+
+# 编译期 const 求值（mo2x 侧）：+ - * / % << >> & | ^ 比较，const 名引用。
+# 与 moc 的 const_expr 语义对齐（两级优先级 + 位运算 + 比较）。
+fn cns_name_or_err(nm: i64) -> i64 {
+    let i: i64 = cns_find(nm);
+    if i < 0 {
+        return err("mo2x: 常量表达式引用了未定义的 const 名");
+    }
+    return nm;
+}
+
+
+fn cns_atom() -> i64 {
+    if is_op("(") == 1 {
+        TI = TI + 1;
+        let v: i64 = cns_expr();
+        expect_op(")");
+        return v;
+    }
+    if is_op("-") == 1 { TI = TI + 1; return 0 - cns_atom(); }
+    if is_op("+") == 1 { TI = TI + 1; return cns_atom(); }
+    if cur_k() == 2 { let v: i64 = atoi(cur_s()); TI = TI + 1; return v; }
+    if cur_k() == 1 {
+        let i: i64 = cns_find(cur_s());
+        if i < 0 { return err("mo2x: const 表达式引用了未定义/不可求值的标识符"); }
+        TI = TI + 1;
+        return CNSV[i];
+    }
+    return err("mo2x: const 表达式里有意外的 token");
+}
+
+fn cns_term() -> i64 {
+    let v: i64 = cns_atom();
+    while is_op("*") == 1 || is_op("/") == 1 || is_op("%") == 1 {
+        let op: i64 = 1;
+        if is_op("/") == 1 { op = 2; }
+        if is_op("%") == 1 { op = 3; }
+        TI = TI + 1;
+        let r: i64 = cns_atom();
+        if op == 1 { v = v * r; } else { v = v / r; }
+        # % 与 / 同号语义 —— moc 的 % 是 C 语义，对齐
+    }
+    return v;
+}
+
+fn cns_expr() -> i64 {
+    let v: i64 = cns_term();
+    while is_op("+") == 1 || is_op("-") == 1 {
+        let op: i64 = 1;
+        if is_op("-") == 1 { op = 2; }
+        TI = TI + 1;
+        let r: i64 = cns_term();
+        if op == 1 { v = v + r; } else { v = v - r; }
+    }
+    while is_op("<<") == 1 || is_op(">>") == 1 {
+        let op: i64 = 3;
+        if is_op(">>") == 1 { op = 2; }
+        TI = TI + 1;
+        let r: i64 = cns_term();
+        if op == 3 { v = v << r; } else { v = v >> r; }
+    }
+    while is_op("&") == 1 || is_op("|") == 1 || is_op("^") == 1 {
+        let op: i64 = 1;
+        if is_op("|") == 1 { op = 2; }
+        if is_op("^") == 1 { op = 3; }
+        TI = TI + 1;
+        let r: i64 = cns_term();
+        if op == 1 { v = v & r; } else { if op == 2 { v = v | r; } else { v = v ^ r; } }
+    }
+    while is_op("==") == 1 || is_op("!=") == 1 || is_op("<") == 1 || is_op("<=") == 1 || is_op(">") == 1 || is_op(">=") == 1 {
+        let cop: i64 = 1;
+        if is_op("!=") == 1 { cop = 2; }
+        if is_op("<") == 1 { cop = 3; }
+        if is_op("<=") == 1 { cop = 4; }
+        if is_op(">") == 1 { cop = 5; }
+        if is_op(">=") == 1 { cop = 6; }
+        TI = TI + 1;
+        let r: i64 = cns_expr();
+        let b: i64 = 0;
+        if cop == 1 { if v == r { b = 1; } }
+        if cop == 2 { if v != r { b = 1; } }
+        if cop == 3 { if v < r { b = 1; } }
+        if cop == 4 { if v <= r { b = 1; } }
+        if cop == 5 { if v > r { b = 1; } }
+        if cop == 6 { if v >= r { b = 1; } }
+        v = b;
+    }
+    return v;
+}
+
+
 # kind: 0=收集 import + struct  1=var  2=函数签名  3=函数体
 var INS_DONE: i64 = 0;
 fn pass_file(i: i64, kind: i64) -> i64 {
@@ -2867,6 +3032,75 @@ fn pass_file(i: i64, kind: i64) -> i64 {
                         TI = TI + 1;
                         continue;
                     }
+                if accept_kw("const") == 1 {
+                    # const fn —— mo2x 无 const fn 求值器，声明按普通函数跳过
+                    if cur_k() == 1 && streq(cur_s(), "fn") == 1 {
+                        TI = TI + 1;
+                        skip_balanced();
+                        continue;
+                    }
+                    # const NAME : i64 = <expr> ; —— mo2x 只支持字面量算术（无 const fn 调用）
+                    if kind == 1 {
+                        let cnm: i64 = ident();
+                        expect_op(":");
+                        ident();          # i64
+                        expect_op("=");
+                        # 表达式 token 到 ';'：全数字/运算符 → 原样 emit；
+                        # 含标识符（const 名引用）→ 递归暂不支持，报错；
+                        # 含函数调用 → 报错（mo2x 无 const fn 求值器）。
+                        let sv: i64 = TI;
+                        let bad: i64 = 0;
+                        let sv_emit: i64 = TI;
+                        while TI < NT {
+                            if is_op(";") == 1 { break; }
+                            if cur_k() == 1 {
+                                if cns_find(cur_s()) < 0 { bad = 2; }
+                            }
+                            if cur_k() == 5 {
+                                if is_op("(") == 1 { bad = 3; }
+                            }
+                            TI = TI + 1;
+                        }
+                        if bad != 0 {
+                            if bad == 3 { return err("mo2x: const 表达式不支持函数调用（无 const fn 求值器）—— 请写字面量算式"); }
+                            return err("mo2x: const 表达式引用了未知标识符");
+                        }
+                        TI = sv;
+                        if NCNS < 256 {
+                            CNSN[NCNS] = CNSPP;
+                            let snj: i64 = 0;
+                            while load8(cnm + snj) != 0 { store8(&CNSP + CNSPP, load8(cnm + snj)); CNSPP = CNSPP + 1; snj = snj + 1; }
+                            store8(&CNSP + CNSPP, 0); CNSPP = CNSPP + 1;
+                            let cval: i64 = 0;
+                            # 求值：数字与 + - * / % << >> & | ^ （从左到右，先乘除后加减的近似不实现 ——
+                            # 与 moc 语义差别记录在 docs；实际用 C enum 让编译器算，mo2x 只需要
+                            # 知道**数组长度够不够**吗？不需要 —— C enum 直接折叠。但 CNSV
+                            # 用于 JS/PY 的 new Array(dim)。所以这里仍要算 —— 实现左到右两级求值。
+                            cval = cns_expr();
+                            CNSV[NCNS] = cval;
+                            NCNS = NCNS + 1;
+                        }
+                        if is_c_like() == 1 {
+                            let sv2: i64 = sv_emit;
+                            TI = sv2;
+                            outs("enum { ");
+                            outs(cnm);
+                            outs(" = ");
+                            let first: i64 = 1;
+                            while TI < NT {
+                                if is_op(";") == 1 { break; }
+                                if first == 0 { outs(" "); }
+                                if cur_k() == 1 { outs(cns_name_or_err(cur_s())); }
+                                else { outs(cur_s()); }
+                                first = 0;
+                                TI = TI + 1;
+                            }
+                            outs(" };");
+                            nl();
+                        }
+                        expect_op(";");
+                    } else { skip_to_semi(); }
+                } else {
                 if accept_kw("var") == 1 {
                     if kind == 1 {
                         if is_gen() == 1 { g_global(); } else { emit_global(); }
@@ -2939,6 +3173,7 @@ fn pass_file(i: i64, kind: i64) -> i64 {
                 }
             }
             }
+        }
         }
     }
     return 0;
