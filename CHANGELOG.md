@@ -11055,3 +11055,10 @@ lambda。Mo 此前函数只能命名 + `&fn` 取址。
   方法（返回 i64 0/1）；无同名方法时走原逻辑（struct 地址比较）。
 - 新测试 tests/346_op_overload_cmp.mo（期望 19）、tests/347_op_overload_gtge.mo（期望 7）。
 - 详见 docs/op-overload.md。
+
+## 1.1169.0 (2026-11-12)
+
+- 新标准库 lib/ds.mo：set（开放寻址哈希集）、deque（环形双端队列）、
+  pq（二叉小根堆优先队列）、ll（双向链表）、stack —— 全部自动扩容，
+  分配入口 heap_ready/heap_init 惰性初始化。
+- 新测试 tests/348_ds.mo（期望 253 = 16381 mod 256，覆盖五容器含扩容路径）。
