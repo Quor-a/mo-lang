@@ -11040,3 +11040,11 @@ lambda。Mo 此前函数只能命名 + `&fn` 取址。
   丢实参 → 按顶层实参个数发真原型 cast）；t179 现得 42。
 - 新测试 tests/344_lambda_cbackend.mo（期望 64）。
 - 详见 docs/lambda-cbackend.md。
+
+## 1.1167.0 (2026-11-12)
+
+- 结构体运算符重载（moc 侧）：`+`/`-`/`*` 映射 `Class_add`/`Class_sub`/`Class_mul`
+  方法（按现有 Class_method 命名约定），lhs/rhs 自动按地址传参，返回 struct 按值。
+- 完全向后兼容：无同名方法时走原逻辑。
+- 新测试 tests/345_op_overload.mo（期望 85）。已知限制：struct ≤2 words、
+  比较运算符未重载、mo2x 后端不支持。详见 docs/op-overload.md。
