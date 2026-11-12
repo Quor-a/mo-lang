@@ -914,6 +914,14 @@ fn parse_eq() -> i64 {
             lt = R_ETY;
         } else {
         if accept("==") == 1 {
+            # v1.1168: struct 运算符重载（eq）
+            let ovl: i64 = op_try_overload(lt, "eq");
+            if ovl >= 0 {
+                let slot: i64 = op_lhs_to_slot(st_words(ty_si(lt)));
+                parse_op_overload_impl("eq", ovl, slot, st_words(ty_si(lt)), 3);
+                lt = R_ETY;
+                continue;
+            }
             g_push_rax();
             parse_rel();
             let rt: i64 = R_ETY;
@@ -948,6 +956,14 @@ fn parse_eq() -> i64 {
             lt = R_ETY;
         } else {
             if accept("!=") == 1 {
+                # v1.1168: struct 运算符重载（ne）
+                let ovl: i64 = op_try_overload(lt, "ne");
+                if ovl >= 0 {
+                    let slot: i64 = op_lhs_to_slot(st_words(ty_si(lt)));
+                    parse_op_overload_impl("ne", ovl, slot, st_words(ty_si(lt)), 3);
+                    lt = R_ETY;
+                    continue;
+                }
                 g_push_rax();
                 parse_rel();
                 let rt2: i64 = R_ETY;
@@ -1013,6 +1029,14 @@ fn parse_rel() -> i64 {
     let lt: i64 = R_ETY;
     while 1 {
         if accept("<") == 1 {
+            # v1.1168: struct 运算符重载（lt）
+            let ovl: i64 = op_try_overload(lt, "lt");
+            if ovl >= 0 {
+                let slot: i64 = op_lhs_to_slot(st_words(ty_si(lt)));
+                parse_op_overload_impl("lt", ovl, slot, st_words(ty_si(lt)), 2);
+                lt = R_ETY;
+                continue;
+            }
             g_push_rax();
             parse_shift();
             let rt: i64 = R_ETY;
@@ -1026,6 +1050,14 @@ fn parse_rel() -> i64 {
             lt = R_ETY;
         } else {
             if accept("<=") == 1 {
+                # v1.1168: struct 运算符重载（le）
+                let ovl: i64 = op_try_overload(lt, "le");
+                if ovl >= 0 {
+                    let slot: i64 = op_lhs_to_slot(st_words(ty_si(lt)));
+                    parse_op_overload_impl("le", ovl, slot, st_words(ty_si(lt)), 2);
+                    lt = R_ETY;
+                    continue;
+                }
                 g_push_rax();
                 parse_shift();
             let rt: i64 = R_ETY;
@@ -1039,6 +1071,14 @@ fn parse_rel() -> i64 {
             lt = R_ETY;
             } else {
                 if accept(">") == 1 {
+                    # v1.1168: struct 运算符重载（gt）
+                    let ovl: i64 = op_try_overload(lt, "gt");
+                    if ovl >= 0 {
+                        let slot: i64 = op_lhs_to_slot(st_words(ty_si(lt)));
+                        parse_op_overload_impl("gt", ovl, slot, st_words(ty_si(lt)), 2);
+                        lt = R_ETY;
+                        continue;
+                    }
                     g_push_rax();
                     parse_shift();
             let rt: i64 = R_ETY;
@@ -1052,6 +1092,14 @@ fn parse_rel() -> i64 {
             lt = R_ETY;
                 } else {
                     if accept(">=") == 1 {
+                        # v1.1168: struct 运算符重载（ge）
+                        let ovl: i64 = op_try_overload(lt, "ge");
+                        if ovl >= 0 {
+                            let slot: i64 = op_lhs_to_slot(st_words(ty_si(lt)));
+                            parse_op_overload_impl("ge", ovl, slot, st_words(ty_si(lt)), 2);
+                            lt = R_ETY;
+                            continue;
+                        }
                         g_push_rax();
                         parse_shift();
             let rt: i64 = R_ETY;
@@ -1110,7 +1158,11 @@ fn op_overload_fsym(ci: i64, m: i64) -> i64 {
 # rhs_parser: 0=parse_mul（+/mul? mul 需要 parse_unary）—— 简化：kind 参数，
 # 0=parse_mul 1=parse_unary。
 fn parse_op_overload_impl(mname: i64, fsym: i64, lhs_slot: i64, words: i64, kind: i64) -> i64 {
-    if kind == 0 { parse_mul(); } else { parse_unary(); }
+    if kind == 0 { parse_mul(); } else {
+        if kind == 1 { parse_unary(); } else {
+            if kind == 3 { parse_rel(); } else { parse_shift(); }
+        }
+    }
     let rt: i64 = R_ETY;
     if ty_kind(rt) != 2 {
         return err_at2("operator overload: rhs 必须是同类 struct", gv(K_LINE), gv(K_COL));

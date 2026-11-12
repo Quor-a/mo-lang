@@ -11048,3 +11048,10 @@ lambda。Mo 此前函数只能命名 + `&fn` 取址。
 - 完全向后兼容：无同名方法时走原逻辑。
 - 新测试 tests/345_op_overload.mo（期望 85）。已知限制：struct ≤2 words、
   比较运算符未重载、mo2x 后端不支持。详见 docs/op-overload.md。
+
+## 1.1168.0 (2026-11-12)
+
+- 比较运算符重载：`==`/`!=`/`<`/`<=`/`>`/`>=` 映射 `Class_eq/ne/lt/le/gt/ge`
+  方法（返回 i64 0/1）；无同名方法时走原逻辑（struct 地址比较）。
+- 新测试 tests/346_op_overload_cmp.mo（期望 19）、tests/347_op_overload_gtge.mo（期望 7）。
+- 详见 docs/op-overload.md。
