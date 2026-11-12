@@ -11031,3 +11031,12 @@ lambda。Mo 此前函数只能命名 + `&fn` 取址。
 - 新增 `tests/343_lambda.mo`（期望 64）；`docs/lambda.md`。
 - 局限：体 `{}` 朴素配平（字符串字面量大括号干扰）；无捕获；
   mo2x 后端暂不支持（v1.1166）。
+
+## 1.1166.0 (2026-11-12)
+
+- mo2x C 系后端（c/cfs/kern/uefi）支持 lambda 表达式（无捕获闭包），与 moc 侧 v1.1165 语法一致；
+  js/py 目标明确报错。
+- 修复 mo2x C 后端 ptr 变量函数指针调用静默产出坏代码的历史缺口（t179：`((long long(*)(void))f)()`
+  丢实参 → 按顶层实参个数发真原型 cast）；t179 现得 42。
+- 新测试 tests/344_lambda_cbackend.mo（期望 64）。
+- 详见 docs/lambda-cbackend.md。

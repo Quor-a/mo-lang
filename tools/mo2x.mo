@@ -1072,6 +1072,57 @@ fn emit_primary() -> i64 {
                 outs(")");
                 return 0;
             }
+            if ptrv_find(nm) == 1 {
+                # v1.1166: ptr 变量调用 f(args) —— fnptr cast 调用。
+                # 按**顶层**实参个数发对应函数指针原型（0..6 覆盖常用）。
+                # '(' 已由上方统一吃掉 —— TI 直接指第一个实参
+                # 数顶层实参个数（扫描配平）
+                let sv_t: i64 = TI;
+                let dep_t: i64 = 1;
+                let na_t: i64 = 0;
+                let seen: i64 = 0;
+                while dep_t > 0 && TI < NT {
+                    if TK[TI] == 5 {
+                        let s_t: i64 = &POOL + TS[TI];
+                        if streq(s_t, "(") == 1 || streq(s_t, "[") == 1 || streq(s_t, "{") == 1 { dep_t = dep_t + 1; }
+                        else {
+                            if streq(s_t, ")") == 1 || streq(s_t, "]") == 1 || streq(s_t, "}") == 1 {
+                                dep_t = dep_t - 1;
+                                if dep_t == 0 { break; }
+                            }
+                            else {
+                                if streq(s_t, ",") == 1 && dep_t == 1 { na_t = na_t + 1; }
+                            }
+                        }
+                    }
+                    if TK[TI] != 0 { seen = 1; }
+                    TI = TI + 1;
+                }
+                if seen == 1 { na_t = na_t + 1; }   # 逗号数+1（无逗号单实参）
+                TI = sv_t;
+                outs("((long long(*)(");
+                if na_t == 0 { outs("void"); }
+                else {
+                    let pi: i64 = 0;
+                    while pi < na_t {
+                        if pi > 0 { outs(","); }
+                        outs("long long");
+                        pi = pi + 1;
+                    }
+                }
+                outs("))");
+                outs(nm);
+                outs(")(");
+                let ai4: i64 = 0;
+                if is_op(")") == 0 {
+                    emit_expr();
+                    ai4 = 1;
+                    while accept_op(",") == 1 { outs(","); emit_expr(); ai4 = ai4 + 1; }
+                }
+                expect_op(")");
+                outs(")");
+                return 0;
+            }
             if is_libc_clash(nm) == 1 { outs("mo_"); }
             outs(nm);
             outs("(");
@@ -1203,6 +1254,13 @@ fn kern_print_redirect() -> i64 {
 }
 
 fn emit_unary() -> i64 {
+    if is_kw("fn") == 1 {
+        # v1.1166: lambda 表达式（C 系后端）—— 收集 token 文本，
+        # 值 = mo_lambda_N 函数地址；resolve_lambdas 在 footer 前重
+        # tokenize 发声明+定义。非 C 系后端不支持。
+        if is_c_like() == 0 { return err("lambda 仅在 C 系后端支持"); }
+        return collect_lambda();
+    }
     if accept_op("-") == 1 {
         outs("-");
         return emit_unary();
@@ -1284,6 +1342,23 @@ fn clsv_ty(nm: i64) -> i64 {
 
 var BYTEV: [256] i64 = 0;  # byte 基类型变量名（数组/指针）—— 读值需提升 long long
 var NBYTEV: i64 = 0;
+# v1.1166: ptr 变量名表（局部 ptr + ptr 形参）—— 调用点 f(x) 走 fnptr cast
+var PTRV: [256] i64 = 0;
+var NPTRV: i64 = 0;
+fn ptrv_add(nm: i64) -> i64 {
+    if NPTRV >= 256 { return 0; }
+    PTRV[NPTRV] = nm;
+    NPTRV = NPTRV + 1;
+    return 0;
+}
+fn ptrv_find(nm: i64) -> i64 {
+    let i: i64 = 0;
+    while i < NPTRV {
+        if streq(PTRV[i], nm) == 1 { return 1; }
+        i = i + 1;
+    }
+    return 0;
+}
 
 fn bytev_find(nm: i64) -> i64 {
     let i: i64 = 0;
@@ -1509,7 +1584,7 @@ fn emit_scalar_or_arr(nm: i64, isarr: i64) -> i64 {
     outs(" ");
     outs(nm);
     if streq(t, "byte") == 1 { bytev_add(nm); }
-    if streq(t, "ptr") == 1 { bytev_add(nm); }
+    if streq(t, "ptr") == 1 { bytev_add(nm); ptrv_add(nm); }
     if streq(t, "str") == 1 { strv_add(nm); }
     else {
         if streq(t, "i64") == 0 && streq(t, "byte") == 0 && streq(t, "ptr") == 0 && streq(t, "f64") == 0 && streq(t, "i32") == 0 && streq(t, "bool") == 0 {
@@ -2539,7 +2614,7 @@ fn emit_sig() -> i64 {
                 else {
                 if streq(t, "byte") == 1 { strcat(&ps, "unsigned char"); tk = 2; }
                 else {
-                    if streq(t, "ptr") == 1 { strcat(&ps, "unsigned char*"); tk = 1; }
+                    if streq(t, "ptr") == 1 { strcat(&ps, "unsigned char*"); tk = 1; ptrv_add(pn); }
                     else {
                         if streq(t, "f64") == 1 { strcat(&ps, "double"); tk = 3; }
                         else {
@@ -4472,6 +4547,166 @@ fn g_footer() -> i64 {
     return 0;
 }
 
+# ==========================================================================
+#  v1.1166: lambda 表达式（C 系后端）
+#
+#  emit_unary 遇 "fn"（表达式位置）→ collect_lambda()：
+#  把 lambda 的 token 流（'(' 起到配平 '}'）按 token 文本拼接（token 间
+#  加空格防标识符粘连；字符串字面量是 kind3 单 token，其内部 {} 不参与
+#  配平 —— 比 moc 的字节级朴素配平更准）存入 LAMSRC 队列；表达式值 =
+#  "((unsigned char*)mo_lambda_N)"。resolve_lambdas()（emit_footer 前，
+#  此时主文件 token 流已消费完，重载 TK/TS 安全）：把队列文本 memcpy 进
+#  &SRC → tokenize() → 两遍发射（第一遍 emit_sig+";" 做前向声明，第二遍
+#  emit_sig+emit_block_body 做定义）。返回类型统一 long long（ptr/str
+#  兼容；f64 返回会被截断 —— 局限记录在 docs）。
+# ==========================================================================
+
+var LAMSRC: [524288] byte = 0;   # lambda 文本队列：n*8192
+var NLAM: i64 = 0;               # 已收集 lambda 数
+var LAMCN: i64 = 0;              # 命名计数
+
+# v1.1166: prescan —— emit_header 前对已加载文件扫描 lambda（fn 后紧跟 '('）并收集文本。
+# 正文 collect_lambda 与 prescan 同一 token 流同序，故槽位编号天然一致。
+fn prescan_lambdas() -> i64 {
+    if is_c_like() == 0 { return 0; }
+    let f: i64 = 0;
+    while f < NF {
+        load_file(f);
+        let i: i64 = 0;
+        while i < NT - 1 {
+            if TK[i] == 1 && streq(&POOL + TS[i], "fn") == 1 {
+                if TK[i + 1] == 5 && streq(&POOL + TS[i + 1], "(") == 1 {
+                    TI = i + 1;
+                    gather_lambda();
+                    i = TI;
+                    continue;
+                }
+            }
+            i = i + 1;
+        }
+        f = f + 1;
+    }
+    return 0;
+}
+
+# 收集当前 lambda（TI 指 '('）到 LAMSRC[NLAM]，编号 = NLAM+1
+fn gather_lambda() -> i64 {
+    if NLAM >= 64 { return err("too many lambdas (limit 64)"); }
+    let base: i64 = NLAM * 8192;
+    let w: i64 = 0;
+    # 前缀 "fn mo_lambda_N"：resolve 时 emit_sig 的 ident() 需要读到名字
+    memcpy(&LAMSRC + base, "fn mo_lambda_N", 14);   # "fn mo_lambda_N" = 14 字符，N 在 base+13
+    w = 14;
+    store8(&LAMSRC + base + w, 32);
+    w = w + 1;
+    if NLAM + 1 >= 10 {
+        # 两位数编号：覆盖占位 'N'（十进制逐位写）
+        let v: i64 = NLAM + 1;
+        let digs: [8] byte = 0;
+        let dn: i64 = 0;
+        while v > 0 { store8(&digs + dn, 48 + (v % 10)); v = v / 10; dn = dn + 1; }
+        let di: i64 = dn - 1;
+        while di >= 0 {
+            store8(&LAMSRC + base + w, load8(&digs + di));
+            w = w + 1;
+            di = di - 1;
+        }
+    } else {
+        store8(&LAMSRC + base + 13, 48 + NLAM + 1);      # 覆盖占位 'N'（base+13）
+    }
+    let dep: i64 = 0;
+    while 1 == 1 {
+        if TI >= NT { return err("unterminated lambda body"); }
+        let k: i64 = TK[TI];
+        let s: i64 = &POOL + TS[TI];
+        if w > 0 { store8(&LAMSRC + base + w, 32); w = w + 1; }   # token 间空格
+        let q: i64 = 0;
+        while load8(s + q) != 0 {
+            if w >= 8100 { return err("lambda too large (8KB)"); }
+            store8(&LAMSRC + base + w, load8(s + q));
+            w = w + 1;
+            q = q + 1;
+        }
+        if k == 5 {
+            if streq(s, "{") == 1 { dep = dep + 1; }
+            else { if streq(s, "}") == 1 {
+                dep = dep - 1;
+                if dep == 0 { TI = TI + 1; break; }
+            } }
+        }
+        TI = TI + 1;
+    }
+    store8(&LAMSRC + base + w, 10);
+    store8(&LAMSRC + base + w + 1, 0);
+    NLAM = NLAM + 1;
+    return 0;
+}
+
+# 正文：fn 表达式 → 消费序号 + 发函数地址值
+fn collect_lambda() -> i64 {
+    TI = TI + 1;                          # 吃 'fn'，当前 = '('（prescan 已收集文本）
+    let myn: i64 = LAMCN + 1;
+    LAMCN = LAMCN + 1;
+    if LAMCN > NLAM { return err("lambda prescan mismatch"); }
+    # 跳过 lambda 体 token（配平 {}）
+    let dep: i64 = 0;
+    while 1 == 1 {
+        if TI >= NT { return err("unterminated lambda body"); }
+        if TK[TI] == 5 {
+            let s: i64 = &POOL + TS[TI];
+            if streq(s, "{") == 1 { dep = dep + 1; }
+            else { if streq(s, "}") == 1 {
+                dep = dep - 1;
+                if dep == 0 { TI = TI + 1; break; }
+            } }
+        }
+        TI = TI + 1;
+    }
+    # 表达式值 = 函数地址（cast 成 unsigned char* 与既有 ptr 语义一致）
+    outs("((unsigned char*)mo_lambda_");
+    outi(myn);
+    outs(")");
+    return 0;
+}
+
+# v1.1166: lambda 前向声明（使用点在 header 后、定义在文件尾）—— 
+# K&R 无原型声明对任意参数表兼容（gnu17 下合法）。
+fn emit_lambda_decls() -> i64 {
+    if NLAM == 0 { return 0; }
+    let n: i64 = 1;
+    let tot: i64 = NLAM;
+    while n <= tot {
+        # 真原型：tokenize 该 lambda 文本，emit_sig 发 "long long mo_lambda_N(...)"
+        memcpy(&SRC, &LAMSRC + (n - 1) * 8192, 8192);
+        PP = 0;
+        tokenize();
+        TI = TI + 1;
+        outs("static ");
+        emit_sig();
+        line(";");
+        n = n + 1;
+    }
+    return 0;
+}
+
+# footer 前：逐条重 tokenize + 两遍发射（声明 + 定义）
+fn resolve_lambdas() -> i64 {
+    if NLAM == 0 { return 0; }
+    if is_c_like() == 0 { return 0; }
+    let n: i64 = 0;
+    while n < NLAM {
+        memcpy(&SRC, &LAMSRC + n * 8192, 8192);
+        PP = 0;
+        tokenize();
+        TI = TI + 1;                      # 吃 'fn'
+        outs("static ");
+        emit_sig();
+        emit_block_body();
+        n = n + 1;
+    }
+    return 0;
+}
+
 fn emit_footer() -> i64 {
     if TGT == T_UEFI {
         nl();
@@ -5041,7 +5276,9 @@ fn main() -> i64 {
         return 2;
     }
     add_file(argv(1));
+    if is_gen() == 0 { prescan_lambdas(); }   # v1.1166: C 系 —— emit_header 前收集 lambda
     if is_gen() == 1 { g_header(); } else { emit_header(); }
+    if is_gen() == 0 { emit_lambda_decls(); } # 前向声明（K&R 兼容原型）紧跟 header
     let i: i64 = 0;
     while i < NF { pass_file(i, 0); i = i + 1; }
     let j: i64 = 0;
@@ -5050,6 +5287,7 @@ fn main() -> i64 {
     while k < NF { pass_file(k, 2); k = k + 1; }
     let m: i64 = 0;
     while m < NF { pass_file(m, 3); m = m + 1; }
+    resolve_lambdas();
     if is_gen() == 1 { g_footer(); } else { emit_footer(); }
     return 0;
 }
