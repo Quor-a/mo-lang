@@ -664,11 +664,16 @@ fn sym_pop_scope(d: i64) -> i64 {
     let i: i64 = gv(K_NSYM);
     while i > 0 {
         if load64(heap + O_SD + (i - 1) * 8) < d {
+            # v1.1180: 作用域回收的符号下标会被复用 —— 清掉常量传播标记
+            let ci: i64 = i;
+            while ci < gv(K_NSYM) { cprop_clear(ci); ci = ci + 1; }
             sv(K_NSYM, i);
             return 0;
         }
         i = i - 1;
     }
+    let ci0: i64 = 0;
+    while ci0 < gv(K_NSYM) { cprop_clear(ci0); ci0 = ci0 + 1; }   # v1.1180
     sv(K_NSYM, 0);
     return 0;
 }
@@ -1506,6 +1511,7 @@ fn parse_addr() -> i64 {
     let sv: i64 = sym_lookup(scratch1());
     if sv < 0 { return undef_err(scratch1()); }
     if sym_kind(sv) == 1 {
+        cprop_clear(sv);   # v1.1180: &x → 地址逃逸，常量传播失效
         g_lea_local(sym_addr(sv));
     } else {
         g_movabs_rax(sym_addr(sv));

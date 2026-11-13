@@ -1602,6 +1602,7 @@ fn parse_let() -> i64 {
         let iid: i64 = sym_add(scratch2(), 1, bo2 - isz, 0);
         store64(heap + O_STY + iid * 8, ity);
         dbg_var(scratch2(), bo2 - isz, dcln, ity);
+        if gv(K_LAST) == 1 && ty_kind(ity) == 0 { cprop_set(iid, gv(K_LASTV)); }   # v1.1180（store 前读 K_LAST）
         if ty_kind(ity) == 0 || ty_kind(ity) == 4 || ty_kind(ity) == 10 {
             g_store_local(bo2 - isz);
         } else {
@@ -2145,6 +2146,10 @@ fn parse_let() -> i64 {
     let id: i64 = sym_add(scratch2(), 1, off, 0);
     store64(heap + O_STY + id * 8, vt);
     dbg_var(scratch2(), off, dcln, vt);
+    # v1.1180: 常量传播 —— 右值为编译期常量且是 i64 局部 → 记表。
+    # 🔴 必须在 g_store_local 之前读 K_LAST（emit 会清它）。store 照发（保守：
+    # 取址/重赋值等失效点另有处理，这里不省指令只省后续 load）。
+    if gv(K_LAST) == 1 && ty_kind(vt) == 0 { cprop_set(id, gv(K_LASTV)); }
     if ty_kind(vt) == 5 { g_store_local_b(off); }
     else { g_store_local(off); }
     return 0;

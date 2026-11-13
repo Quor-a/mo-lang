@@ -23,6 +23,7 @@ var K_WARN:   i64 = 648;   # 0=关闭未使用变量警告（有误报，见 doc
                           #    K_PROFMAIN(640) 与 K_ESCP(688) 之间，空槽。
 var O_SU: i64 = 9000000;   # 符号是否被读过（未使用检查，见 K_WARN）
 var O_SRT: i64 = 9020000;   # 函数返回类型（O_SU 之后 2 万字节处，够 2048 个符号）
+var O_CPROP: i64 = 9100000;   # v1.1180: 局部常量传播表（每 sym 16B: flag@0 val@8；9020000+20480=9040480 之后空闲，< O_LB 92000000）
 var O_SK: i64 = 6832128;
 var O_SA: i64 = 6848512;
 var O_SP: i64 = 6864896;
@@ -821,6 +822,23 @@ fn elem_size(t: i64) -> i64 {
 # 只由三处置 1（load_sym 的 struct 变量、下标元素、struct 字段），
 # parse_call 末尾置 0（返回值在 rax/rdx）。
 var R_SADDR: i64 = 0;
+
+# v1.1180: 局部常量传播表。flag=1 表示该标量局部当前必为编译期常量 val。
+# 失效点：store_sym（一切赋值/++/--）、parse_addr &（地址逃逸）、sym_pop_scope（下标复用）。
+# 只在 load_sym 的标量读路径消费；捕获/数组/struct/byte 各自的读路径不经此处。
+fn cprop_get(s: i64) -> i64 {
+    if load8(heap + O_CPROP + s * 16) == 1 { return load64(heap + O_CPROP + s * 16 + 8); }
+    return 0;
+}
+fn cprop_set(s: i64, v: i64) -> i64 {
+    store8(heap + O_CPROP + s * 16, 1);
+    store64(heap + O_CPROP + s * 16 + 8, v);
+    return 0;
+}
+fn cprop_clear(s: i64) -> i64 {
+    store8(heap + O_CPROP + s * 16, 0);
+    return 0;
+}
 var RETB: i64 = 0;    # v1.1089: 数组返回暂存区（解决 1079 悬垂）
 
 # ==========================================================================
@@ -3781,11 +3799,16 @@ fn sym_pop_scope(d: i64) -> i64 {
     let i: i64 = gv(K_NSYM);
     while i > 0 {
         if load64(heap + O_SD + (i - 1) * 8) < d {
+            # v1.1180: 作用域回收的符号下标会被复用 —— 清掉常量传播标记
+            let ci: i64 = i;
+            while ci < gv(K_NSYM) { cprop_clear(ci); ci = ci + 1; }
             sv(K_NSYM, i);
             return 0;
         }
         i = i - 1;
     }
+    let ci0: i64 = 0;
+    while ci0 < gv(K_NSYM) { cprop_clear(ci0); ci0 = ci0 + 1; }   # v1.1180
     sv(K_NSYM, 0);
     return 0;
 }
@@ -4623,6 +4646,7 @@ fn parse_addr() -> i64 {
     let sv: i64 = sym_lookup(scratch1());
     if sv < 0 { return undef_err(scratch1()); }
     if sym_kind(sv) == 1 {
+        cprop_clear(sv);   # v1.1180: &x → 地址逃逸，常量传播失效
         g_lea_local(sym_addr(sv));
     } else {
         g_movabs_rax(sym_addr(sv));
@@ -8999,6 +9023,7 @@ fn parse_let() -> i64 {
         let iid: i64 = sym_add(scratch2(), 1, bo2 - isz, 0);
         store64(heap + O_STY + iid * 8, ity);
         dbg_var(scratch2(), bo2 - isz, dcln, ity);
+        if gv(K_LAST) == 1 && ty_kind(ity) == 0 { cprop_set(iid, gv(K_LASTV)); }   # v1.1180（store 前读 K_LAST）
         if ty_kind(ity) == 0 || ty_kind(ity) == 4 || ty_kind(ity) == 10 {
             g_store_local(bo2 - isz);
         } else {
@@ -9542,6 +9567,10 @@ fn parse_let() -> i64 {
     let id: i64 = sym_add(scratch2(), 1, off, 0);
     store64(heap + O_STY + id * 8, vt);
     dbg_var(scratch2(), off, dcln, vt);
+    # v1.1180: 常量传播 —— 右值为编译期常量且是 i64 局部 → 记表。
+    # 🔴 必须在 g_store_local 之前读 K_LAST（emit 会清它）。store 照发（保守：
+    # 取址/重赋值等失效点另有处理，这里不省指令只省后续 load）。
+    if gv(K_LAST) == 1 && ty_kind(vt) == 0 { cprop_set(id, gv(K_LASTV)); }
     if ty_kind(vt) == 5 { g_store_local_b(off); }
     else { g_store_local(off); }
     return 0;

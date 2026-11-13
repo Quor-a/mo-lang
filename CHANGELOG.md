@@ -11141,3 +11141,11 @@ lambda。Mo 此前函数只能命名 + `&fn` 取址。
   - 关键坑：g_pop_rcx 的 emit1(0x59)（pop rcx）会清 K_LAST —— 右常量信息必须从 K_PL/K_PLV/K_PLR 读（g_pop_rcx 在清 K_LAST 前快照）；回退量须含已发射的 pop rcx 1 字节（与 try_fold_rhs 的 -1 同理）
   - 实测：200 项常量加法链 ELF 35081B → 30985B（-4096B，全链折叠为 1 条 mov）
 - 新增 tests/359_fold.mo（14 项：链式/位运算/混合变量不误折叠）；门禁 509/0
+
+## 1.1180.0
+- 第二个优化 pass：局部常量传播（cprop 表，part1 末尾 helper）
+  - `let x: i64 = <纯常量>` 时（parse_expr 后 K_LAST==1，store 前读）登记 x → 常量；typed 与无类型推断两条 let 路径
+  - load_sym 标量读路径消费：命中直接发 movabs rax,v（K_LAST=1 → 与 try_fold_both 链式续折联动）
+  - 失效点全覆盖：store_sym（一切赋值/++/--/捕获写）、parse_addr &（地址逃逸）、sym_pop_scope（作用域回收后符号下标复用）
+  - 不传播 byte/f64/ptr/数组/struct；捕获读路径天然绕开（保守）
+  - 嵌套函数内同样生效；tests/360_cprop.mo 9 项断言（失效/取址/作用域复用/闭包/循环）全过；门禁 510/0；自举 moc2287820B 逐位一致

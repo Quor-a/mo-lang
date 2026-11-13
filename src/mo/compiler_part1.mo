@@ -23,6 +23,7 @@ var K_WARN:   i64 = 648;   # 0=关闭未使用变量警告（有误报，见 doc
                           #    K_PROFMAIN(640) 与 K_ESCP(688) 之间，空槽。
 var O_SU: i64 = 9000000;   # 符号是否被读过（未使用检查，见 K_WARN）
 var O_SRT: i64 = 9020000;   # 函数返回类型（O_SU 之后 2 万字节处，够 2048 个符号）
+var O_CPROP: i64 = 9100000;   # v1.1180: 局部常量传播表（每 sym 16B: flag@0 val@8；9020000+20480=9040480 之后空闲，< O_LB 92000000）
 var O_SK: i64 = 6832128;
 var O_SA: i64 = 6848512;
 var O_SP: i64 = 6864896;
@@ -821,3 +822,20 @@ fn elem_size(t: i64) -> i64 {
 # 只由三处置 1（load_sym 的 struct 变量、下标元素、struct 字段），
 # parse_call 末尾置 0（返回值在 rax/rdx）。
 var R_SADDR: i64 = 0;
+
+# v1.1180: 局部常量传播表。flag=1 表示该标量局部当前必为编译期常量 val。
+# 失效点：store_sym（一切赋值/++/--）、parse_addr &（地址逃逸）、sym_pop_scope（下标复用）。
+# 只在 load_sym 的标量读路径消费；捕获/数组/struct/byte 各自的读路径不经此处。
+fn cprop_get(s: i64) -> i64 {
+    if load8(heap + O_CPROP + s * 16) == 1 { return load64(heap + O_CPROP + s * 16 + 8); }
+    return 0;
+}
+fn cprop_set(s: i64, v: i64) -> i64 {
+    store8(heap + O_CPROP + s * 16, 1);
+    store64(heap + O_CPROP + s * 16 + 8, v);
+    return 0;
+}
+fn cprop_clear(s: i64) -> i64 {
+    store8(heap + O_CPROP + s * 16, 0);
+    return 0;
+}
