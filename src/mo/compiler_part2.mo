@@ -689,6 +689,17 @@ fn g_pop_rcx() -> i64 {
     return 0;
 }
 
+# v1.1181: 双常量比较折叠 —— cc 是 setcc 操作码，返回 0/1 编译期算完
+fn fold_cmp(cc: i64, a: i64, b: i64) -> i64 {
+    if cc == 0x94 { if a == b { return 1; } return 0; }
+    if cc == 0x95 { if a != b { return 1; } return 0; }
+    if cc == 0x9c { if a < b { return 1; } return 0; }
+    if cc == 0x9e { if a <= b { return 1; } return 0; }
+    if cc == 0x9f { if a > b { return 1; } return 0; }
+    if a >= b { return 1; }   # 0x9d setge
+    return 0;
+}
+
 # 右操作数是常量时，回退它的 mov eax,imm32（紧接着的 pop rcx 由调用方重发）。
 # 返回 1 表示已回退，常量值在 K_PLV；返回 0 表示照旧。
 # 上限 2^31-1：立即数形式会做符号扩展，超过就与 mov eax,imm32 的零扩展不等价。

@@ -11149,3 +11149,10 @@ lambda。Mo 此前函数只能命名 + `&fn` 取址。
   - 失效点全覆盖：store_sym（一切赋值/++/--/捕获写）、parse_addr &（地址逃逸）、sym_pop_scope（作用域回收后符号下标复用）
   - 不传播 byte/f64/ptr/数组/struct；捕获读路径天然绕开（保守）
   - 嵌套函数内同样生效；tests/360_cprop.mo 9 项断言（失效/取址/作用域复用/闭包/循环）全过；门禁 510/0；自举 moc2287820B 逐位一致
+
+## 1.1181.0
+- 第三个优化 pass：双常量比较折叠（== != < <= > >= 六运算符）
+  - 两侧均为 i64 编译期常量（含经 cprop 传播的 let 常量）时，比较结果编译期算成 0/1，回退 push+mov+pop 发 movabs
+  - fold_cmp(cc) 映射 setcc 操作码（94/95/9c/9e/9f/9d）
+  - tests/361_cmpfold.mo；门禁 511/0；自举三次逐位一致
+- v1.1180.0 发布：RID 444437371，8 资产 digest 8/8；bundle release/1.1180.0-bundle；守恒删 v1.1178

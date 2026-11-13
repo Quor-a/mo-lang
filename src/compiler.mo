@@ -1530,6 +1530,17 @@ fn g_pop_rcx() -> i64 {
     return 0;
 }
 
+# v1.1181: 双常量比较折叠 —— cc 是 setcc 操作码，返回 0/1 编译期算完
+fn fold_cmp(cc: i64, a: i64, b: i64) -> i64 {
+    if cc == 0x94 { if a == b { return 1; } return 0; }
+    if cc == 0x95 { if a != b { return 1; } return 0; }
+    if cc == 0x9c { if a < b { return 1; } return 0; }
+    if cc == 0x9e { if a <= b { return 1; } return 0; }
+    if cc == 0x9f { if a > b { return 1; } return 0; }
+    if a >= b { return 1; }   # 0x9d setge
+    return 0;
+}
+
 # 右操作数是常量时，回退它的 mov eax,imm32（紧接着的 pop rcx 由调用方重发）。
 # 返回 1 表示已回退，常量值在 K_PLV；返回 0 表示照旧。
 # 上限 2^31-1：立即数形式会做符号扩展，超过就与 mov eax,imm32 的零扩展不等价。
@@ -4066,6 +4077,11 @@ fn parse_eq() -> i64 {
             parse_rel();
             let rt: i64 = R_ETY;
             g_pop_rcx();
+            # v1.1181: 双常量比较折叠（i64 标量）
+            if ty_kind(lt) == 0 && ty_kind(rt) == 0 && try_fold_both() == 2 {
+                g_movabs_rax(fold_cmp(0x94, gv(K_PLLV), gv(K_PLV)));
+                R_ETY = ty_int(); lt = R_ETY; continue;
+            }
             if ty_kind(lt) == 6 { g_cmp_set_f64(0x94); }
             else {
                 if ty_kind(rt) == 6 { g_i2f_rcx(); g_cmp_set_f64(0x94); }
@@ -4108,6 +4124,10 @@ fn parse_eq() -> i64 {
                 parse_rel();
                 let rt2: i64 = R_ETY;
                 g_pop_rcx();
+                if ty_kind(lt) == 0 && ty_kind(rt2) == 0 && try_fold_both() == 2 {
+                    g_movabs_rax(fold_cmp(0x95, gv(K_PLLV), gv(K_PLV)));
+                    R_ETY = ty_int(); lt = R_ETY; continue;
+                }
                 if ty_kind(lt) == 6 { g_cmp_set_f64(0x95); }
                 else {
                     if ty_kind(rt2) == 6 { g_i2f_rcx(); g_cmp_set_f64(0x95); }
@@ -4187,6 +4207,11 @@ g_push_rax();
             parse_shift();
             let rt: i64 = R_ETY;
             g_pop_rcx();
+            # v1.1181: 双常量比较折叠（i64 标量）
+            if ty_kind(lt) == 0 && ty_kind(rt) == 0 && try_fold_both() == 2 {
+                g_movabs_rax(fold_cmp(0x9c, gv(K_PLLV), gv(K_PLV)));
+                R_ETY = ty_int(); lt = R_ETY; continue;
+            }
             if ty_kind(lt) == 6 { g_cmp_set_f64(0x9c); }
             else {
                 if ty_kind(rt) == 6 { g_i2f_rcx(); g_cmp_set_f64(0x9c); }
@@ -4214,6 +4239,11 @@ g_push_rax();
                 parse_shift();
             let rt: i64 = R_ETY;
                 g_pop_rcx();
+            # v1.1181: 双常量比较折叠（i64 标量）
+            if ty_kind(lt) == 0 && ty_kind(rt) == 0 && try_fold_both() == 2 {
+                g_movabs_rax(fold_cmp(0x9e, gv(K_PLLV), gv(K_PLV)));
+                R_ETY = ty_int(); lt = R_ETY; continue;
+            }
                 if ty_kind(lt) == 6 { g_cmp_set_f64(0x9e); }
             else {
                 if ty_kind(rt) == 6 { g_i2f_rcx(); g_cmp_set_f64(0x9e); }
@@ -4241,6 +4271,11 @@ g_push_rax();
                     parse_shift();
             let rt: i64 = R_ETY;
                     g_pop_rcx();
+            # v1.1181: 双常量比较折叠（i64 标量）
+            if ty_kind(lt) == 0 && ty_kind(rt) == 0 && try_fold_both() == 2 {
+                g_movabs_rax(fold_cmp(0x9f, gv(K_PLLV), gv(K_PLV)));
+                R_ETY = ty_int(); lt = R_ETY; continue;
+            }
                     if ty_kind(lt) == 6 { g_cmp_set_f64(0x9f); }
             else {
                 if ty_kind(rt) == 6 { g_i2f_rcx(); g_cmp_set_f64(0x9f); }
@@ -4268,6 +4303,11 @@ g_push_rax();
                         parse_shift();
             let rt: i64 = R_ETY;
                         g_pop_rcx();
+            # v1.1181: 双常量比较折叠（i64 标量）
+            if ty_kind(lt) == 0 && ty_kind(rt) == 0 && try_fold_both() == 2 {
+                g_movabs_rax(fold_cmp(0x9d, gv(K_PLLV), gv(K_PLV)));
+                R_ETY = ty_int(); lt = R_ETY; continue;
+            }
                         if ty_kind(lt) == 6 { g_cmp_set_f64(0x9d); }
             else {
                 if ty_kind(rt) == 6 { g_i2f_rcx(); g_cmp_set_f64(0x9d); }

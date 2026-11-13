@@ -931,6 +931,11 @@ fn parse_eq() -> i64 {
             parse_rel();
             let rt: i64 = R_ETY;
             g_pop_rcx();
+            # v1.1181: 双常量比较折叠（i64 标量）
+            if ty_kind(lt) == 0 && ty_kind(rt) == 0 && try_fold_both() == 2 {
+                g_movabs_rax(fold_cmp(0x94, gv(K_PLLV), gv(K_PLV)));
+                R_ETY = ty_int(); lt = R_ETY; continue;
+            }
             if ty_kind(lt) == 6 { g_cmp_set_f64(0x94); }
             else {
                 if ty_kind(rt) == 6 { g_i2f_rcx(); g_cmp_set_f64(0x94); }
@@ -973,6 +978,10 @@ fn parse_eq() -> i64 {
                 parse_rel();
                 let rt2: i64 = R_ETY;
                 g_pop_rcx();
+                if ty_kind(lt) == 0 && ty_kind(rt2) == 0 && try_fold_both() == 2 {
+                    g_movabs_rax(fold_cmp(0x95, gv(K_PLLV), gv(K_PLV)));
+                    R_ETY = ty_int(); lt = R_ETY; continue;
+                }
                 if ty_kind(lt) == 6 { g_cmp_set_f64(0x95); }
                 else {
                     if ty_kind(rt2) == 6 { g_i2f_rcx(); g_cmp_set_f64(0x95); }
@@ -1052,6 +1061,11 @@ g_push_rax();
             parse_shift();
             let rt: i64 = R_ETY;
             g_pop_rcx();
+            # v1.1181: 双常量比较折叠（i64 标量）
+            if ty_kind(lt) == 0 && ty_kind(rt) == 0 && try_fold_both() == 2 {
+                g_movabs_rax(fold_cmp(0x9c, gv(K_PLLV), gv(K_PLV)));
+                R_ETY = ty_int(); lt = R_ETY; continue;
+            }
             if ty_kind(lt) == 6 { g_cmp_set_f64(0x9c); }
             else {
                 if ty_kind(rt) == 6 { g_i2f_rcx(); g_cmp_set_f64(0x9c); }
@@ -1079,6 +1093,11 @@ g_push_rax();
                 parse_shift();
             let rt: i64 = R_ETY;
                 g_pop_rcx();
+            # v1.1181: 双常量比较折叠（i64 标量）
+            if ty_kind(lt) == 0 && ty_kind(rt) == 0 && try_fold_both() == 2 {
+                g_movabs_rax(fold_cmp(0x9e, gv(K_PLLV), gv(K_PLV)));
+                R_ETY = ty_int(); lt = R_ETY; continue;
+            }
                 if ty_kind(lt) == 6 { g_cmp_set_f64(0x9e); }
             else {
                 if ty_kind(rt) == 6 { g_i2f_rcx(); g_cmp_set_f64(0x9e); }
@@ -1106,6 +1125,11 @@ g_push_rax();
                     parse_shift();
             let rt: i64 = R_ETY;
                     g_pop_rcx();
+            # v1.1181: 双常量比较折叠（i64 标量）
+            if ty_kind(lt) == 0 && ty_kind(rt) == 0 && try_fold_both() == 2 {
+                g_movabs_rax(fold_cmp(0x9f, gv(K_PLLV), gv(K_PLV)));
+                R_ETY = ty_int(); lt = R_ETY; continue;
+            }
                     if ty_kind(lt) == 6 { g_cmp_set_f64(0x9f); }
             else {
                 if ty_kind(rt) == 6 { g_i2f_rcx(); g_cmp_set_f64(0x9f); }
@@ -1133,6 +1157,11 @@ g_push_rax();
                         parse_shift();
             let rt: i64 = R_ETY;
                         g_pop_rcx();
+            # v1.1181: 双常量比较折叠（i64 标量）
+            if ty_kind(lt) == 0 && ty_kind(rt) == 0 && try_fold_both() == 2 {
+                g_movabs_rax(fold_cmp(0x9d, gv(K_PLLV), gv(K_PLV)));
+                R_ETY = ty_int(); lt = R_ETY; continue;
+            }
                         if ty_kind(lt) == 6 { g_cmp_set_f64(0x9d); }
             else {
                 if ty_kind(rt) == 6 { g_i2f_rcx(); g_cmp_set_f64(0x9d); }
