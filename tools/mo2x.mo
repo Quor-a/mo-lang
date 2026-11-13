@@ -3916,6 +3916,7 @@ fn fs_header() -> i64 {
     # skip_clash 让这些调用不再发 mo_ 前缀）
     line("static unsigned char* strcpy(unsigned char* d, unsigned char* s){ long i=0; while(s[i]){ d[i]=s[i]; i++; } d[i]=0; return d; }");
     line("static unsigned char* strcat(unsigned char* d, unsigned char* s){ long i=0,j=0; while(d[i]) i++; while(s[j]){ d[i+j]=s[j]; j++; } d[i+j]=0; return d; }");
+    # v1.1176: panic 内建对齐（moc v1.1175）—— syscall write(2) + exit(1)
     # strcmp：try_strcmp 改写需要。-nostdlib 无 libc，但 lib/str.mo 会带实现；
     # 为不重复定义，前导不提供 strcmp —— 依赖 str.mo 的程序已覆盖，未引 str.mo
     # 而用字符串比较的程序需 import str.mo（响亮报错：undefined reference）。
@@ -3966,6 +3967,7 @@ fn fs_header() -> i64 {
         line("}");
         line("#define MO_WRITE_ 1");
         line("#define MO_EXIT_  60");
+        line("static void panic(const unsigned char* m){ long mn=0; while(m[mn]) mn++; mo_syscall(MO_WRITE_, 2, (long)m, mn, 0, 0, 0); mo_syscall(MO_EXIT_, 1, 0, 0, 0, 0, 0); }");
         emit_fs_print();
         return 0;
     }
@@ -3985,6 +3987,7 @@ fn fs_header() -> i64 {
         # exit：libc 风格程序直接调 exit(code) —— freestanding 无 libc。
         # 必须在 mo_syscall 定义之后（否则隐式声明冲突）。
         line("static void __attribute__((noreturn)) mo_exit(long c){ mo_syscall(94,c,0,0,0,0,0); for(;;){} }");
+        line("static void panic(const unsigned char* m){ long mn=0; while(m[mn]) mn++; mo_syscall(MO_WRITE_, 2, (long)m, mn, 0, 0, 0); mo_syscall(MO_EXIT_, 1, 0, 0, 0, 0, 0); }");
         emit_fs_print();
         return 0;
     }
@@ -4524,6 +4527,9 @@ fn emit_header() -> i64 {
         # (long long)double 向零截断 = cvttsd2si 语义。
         line("static long long fint(double v){ return (long long)v; }");
         line("static double f64(long long v){ return (double)v; }");
+        # v1.1176: panic 内建对齐（moc v1.1175）
+        line("#include <stdlib.h>");
+        line("static void panic(const char* m){ fprintf(stderr, \"%s\", m); exit(1); }");
         line("long long mo_main(void);");
         return 0;
     }

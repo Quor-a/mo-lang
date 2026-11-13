@@ -11111,3 +11111,10 @@ lambda。Mo 此前函数只能命名 + `&fn` 取址。
 - panic("msg") 内建：写 stderr；try 内触发最近 catch（e=2），
   无 try → exit(1)。错误码经数据段 errslot 传递（catch 读取后清零，
   0 视为越界=1）。实参须为字符串字面量。tests/355。
+
+## 1.1176.0 (2026-11-13)
+
+- mo2x 对齐 panic() 内建：C 目标 = fprintf(stderr)+exit(1)；
+  freestanding（x86_64/aarch64）= syscall write(2)+exit(1)（MO_WRITE_/
+  MO_EXIT_ 宏，panic 定义移至 mo_syscall 之后避免隐式声明冲突）。
+  三后端实测 fatal: boom / exit(1)。
