@@ -38,3 +38,18 @@ try {
 
 - v1.1172: 初版（同函数越界恢复）。tests/352 覆盖：正常路径不进
   catch、嵌套内层捕获、外层捕获、循环体内 try。
+
+## panic("msg")（v1.1175）
+
+```mo
+try {
+    if bad { panic("bad state\n"); }
+} catch(e) {
+    # e = 2（panic）；越界 = 1
+}
+```
+
+- 实参须为字符串字面量（编译期已知长度）；写 stderr 后：
+  在 try 内 → 跳最近 catch，e = 2；无 try → exit(1)。
+- 错误码经数据段 errslot 传递（每 try 层一个槽，catch 进入时读取
+  并清零：0 视为越界=1，2=panic）。

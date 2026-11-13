@@ -285,7 +285,8 @@ var K_EIM:    i64 = 2512;   # v1.1150 enum impl 方法名前缀 (intern 偏移, 
 var K_TRYD:   i64 = 2520;   # v1.1172 try 深度（编译期，嵌套 try 层数）
 var K_TRYL0:  i64 = 2528;   # 最内层 try 的 catch 标签 id（-1 = 无）
 var K_TRYSP:  i64 = 2536;   # v1.1172: 已分配的运行时 rsp 保存槽数（数据段）
-var TryLS: [64] i64 = 0;    # v1.1172 编译期 catch 标签栈（TryLS[depth-1] = 当前 catch label）
+var TryLS: [64] i64 = 0;
+var ErrS: [64] i64 = 0;      # v1.1175 每个 try 层的 errcode 槽地址（数据段）    # v1.1172 编译期 catch 标签栈（TryLS[depth-1] = 当前 catch label）
 var K_SRCBASE: i64 = 216;
 var K_NFILE: i64 = 224;
 var K_NSTR:  i64 = 232;

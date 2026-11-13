@@ -285,7 +285,8 @@ var K_EIM:    i64 = 2512;   # v1.1150 enum impl 方法名前缀 (intern 偏移, 
 var K_TRYD:   i64 = 2520;   # v1.1172 try 深度（编译期，嵌套 try 层数）
 var K_TRYL0:  i64 = 2528;   # 最内层 try 的 catch 标签 id（-1 = 无）
 var K_TRYSP:  i64 = 2536;   # v1.1172: 已分配的运行时 rsp 保存槽数（数据段）
-var TryLS: [64] i64 = 0;    # v1.1172 编译期 catch 标签栈（TryLS[depth-1] = 当前 catch label）
+var TryLS: [64] i64 = 0;
+var ErrS: [64] i64 = 0;      # v1.1175 每个 try 层的 errcode 槽地址（数据段）    # v1.1172 编译期 catch 标签栈（TryLS[depth-1] = 当前 catch label）
 var K_SRCBASE: i64 = 216;
 var K_NFILE: i64 = 224;
 var K_NSTR:  i64 = 232;
@@ -5188,7 +5189,37 @@ fn parse_primary() -> i64 {
             #
             # 墨语言没有强制类型转换语法，用**内建函数**表达。
             # x 可以是任意表达式，所以走完整 parse_expr。
-            if streq(scratch1(), "f64") == 1 {
+                        # v1.1175: panic("msg") 内建 —— 写 stderr 后触发 catch（e=2）
+            # 或全局 panic。实参须为字符串字面量（编译期已知长度）。
+            if streq(scratch1(), "panic") == 1 {
+                next_token();                 # 吃 '('
+                if gv(K_TKIND) != 3 {
+                    return err_atp("panic: argument must be a string literal", gv(K_PLINE), gv(K_PCOL), gv(K_PPOS));
+                }
+                let paddr: i64 = gv(K_TIVAL);
+                let plen: i64 = gv(K_NSTR) - gv(K_STROFF) - 1;
+                next_token();                 # 吃字符串
+                expect(")");
+                # write(2, msg, len)
+                ops3(0x48, 0xc7, 0xc0); emit4(1);
+                ops3(0x48, 0xc7, 0xc7); emit4(2);
+                ops2(0x48, 0xbe); emit8(paddr);
+                ops3(0x48, 0xc7, 0xc2); emit4(plen);
+                ops2(0x0f, 0x05);
+                # 错误码 2 → 当前 try 的 errslot；跳最近 catch / 全局 panic
+                let td: i64 = gv(K_TRYD);
+                if td > 0 {
+                    g_movabs_rax(2);
+                    g_movabs_rcx(load64(ErrS + (td - 1) * 8));
+                    ops3(0x48, 0x89, 0x01);
+                    emit_jmp(load64(TryLS + (td - 1) * 8));
+                } else {
+                    emit_jmp(panic_label());
+                }
+                R_ETY = ty_int();
+                return 0;
+            }
+if streq(scratch1(), "f64") == 1 {
                 next_token();
                 parse_expr();
                 expect(")");
@@ -17844,6 +17875,13 @@ fn parse_try() -> i64 {
     let slot: i64 = 268435456 + dl;
     let w: i64 = 0;
     while w < 8 { dbyte(0); w = w + 1; }
+    # v1.1175: errcode 槽（panic 语句写 2；越界写 1）
+    let dl2: i64 = gv(K_DLEN);
+    dl2 = (dl2 + 7) / 8 * 8;
+    sv(K_DLEN, dl2);
+    store64(ErrS + td * 8, 268435456 + dl2);
+    let w2: i64 = 0;
+    while w2 < 8 { dbyte(0); w2 = w2 + 1; }
     next_token();                       # 吃 'try'（调用方已 set_back 回原位）
     # 进入：movabs rax, slot; mov [rax], rsp   （48 b8 imm64 / 48 89 20）
     ops2(0x48, 0xb8); emit8(slot);
@@ -17861,6 +17899,12 @@ fn parse_try() -> i64 {
     # 恢复 rsp：movabs rax, slot; mov rsp, [rax]
     ops2(0x48, 0xb8); emit8(slot);
     ops3(0x48, 0x8b, 0x20);
+    # v1.1175: e = [errslot]（越界路径在检查点跳来时未写 —— 检查点直接
+    # ja，没有机会写 1；所以越界码在 catch 处按 errslot==0 判断？）
+    # 简化：catch 进入时先写 1（越界默认码），panic 路径已写 2 会被覆盖！
+    # → panic 路径必须先恢复 rsp 再比较。改序：恢复 rsp 后，errslot 内容
+    # 即真实错误码（panic 已写 2；越界没写 = 0 → 当 1 处理）。
+    # 发射：rax=[err]; if rax==0 rax=1; e=rax。
     expect("catch");
     # catch(e) 或 catch —— e 可选
     let esym: i64 = 0 - 1;
@@ -17880,10 +17924,22 @@ fn parse_try() -> i64 {
         esym = sym_add(scratch2(), 1, eoff, 0);
         store64(heap + O_STY + esym * 8, ty_int());
     }
-    # 错误码 1 → e：movabs rax, 1; mov [rbp+eoff], rax
+    # v1.1175: e = errslot 内容（0=越界 → 1；2=panic）
     if esym >= 0 {
+        g_movabs_rax(load64(ErrS + td * 8));
+        ops3(0x48, 0x8b, 0x00);        # mov rax,[rax]
+        g_movabs_rcx(1);
+        # if rax==0 → rax=1：cmp/jcc
+        ops3(0x48, 0x83, 0xf8); emit1(0);   # cmp rax,0
+        let lzero: i64 = new_label();
+        emit_jcc(0x85, lzero);         # jne → 已是 2，保持
         g_movabs_rax(1);
+        place_label(lzero);
         g_store_local(eoff);
+        # 清 errslot 归零（防下次 try 复用残留）
+        g_movabs_rax(0);
+        g_movabs_rcx(load64(ErrS + td * 8));
+        ops3(0x48, 0x89, 0x01);
     }
     sv(K_DEPTH, pd);
     parse_block(d);

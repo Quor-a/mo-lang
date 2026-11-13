@@ -11105,3 +11105,9 @@ lambda。Mo 此前函数只能命名 + `&fn` 取址。
   字典序（此前回退地址比较）；`==`/`!=` 仍逐 word（v1.1060）；
   有重载方法优先（v1.1168）。f64 字段按位模式比较。tests/354。
   docs/struct-ordering.md。
+
+## 1.1175.0 (2026-11-13)
+
+- panic("msg") 内建：写 stderr；try 内触发最近 catch（e=2），
+  无 try → exit(1)。错误码经数据段 errslot 传递（catch 读取后清零，
+  0 视为越界=1）。实参须为字符串字面量。tests/355。

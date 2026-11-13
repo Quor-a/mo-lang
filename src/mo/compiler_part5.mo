@@ -10584,6 +10584,13 @@ fn parse_try() -> i64 {
     let slot: i64 = 268435456 + dl;
     let w: i64 = 0;
     while w < 8 { dbyte(0); w = w + 1; }
+    # v1.1175: errcode 槽（panic 语句写 2；越界写 1）
+    let dl2: i64 = gv(K_DLEN);
+    dl2 = (dl2 + 7) / 8 * 8;
+    sv(K_DLEN, dl2);
+    store64(ErrS + td * 8, 268435456 + dl2);
+    let w2: i64 = 0;
+    while w2 < 8 { dbyte(0); w2 = w2 + 1; }
     next_token();                       # 吃 'try'（调用方已 set_back 回原位）
     # 进入：movabs rax, slot; mov [rax], rsp   （48 b8 imm64 / 48 89 20）
     ops2(0x48, 0xb8); emit8(slot);
@@ -10601,6 +10608,12 @@ fn parse_try() -> i64 {
     # 恢复 rsp：movabs rax, slot; mov rsp, [rax]
     ops2(0x48, 0xb8); emit8(slot);
     ops3(0x48, 0x8b, 0x20);
+    # v1.1175: e = [errslot]（越界路径在检查点跳来时未写 —— 检查点直接
+    # ja，没有机会写 1；所以越界码在 catch 处按 errslot==0 判断？）
+    # 简化：catch 进入时先写 1（越界默认码），panic 路径已写 2 会被覆盖！
+    # → panic 路径必须先恢复 rsp 再比较。改序：恢复 rsp 后，errslot 内容
+    # 即真实错误码（panic 已写 2；越界没写 = 0 → 当 1 处理）。
+    # 发射：rax=[err]; if rax==0 rax=1; e=rax。
     expect("catch");
     # catch(e) 或 catch —— e 可选
     let esym: i64 = 0 - 1;
@@ -10620,10 +10633,22 @@ fn parse_try() -> i64 {
         esym = sym_add(scratch2(), 1, eoff, 0);
         store64(heap + O_STY + esym * 8, ty_int());
     }
-    # 错误码 1 → e：movabs rax, 1; mov [rbp+eoff], rax
+    # v1.1175: e = errslot 内容（0=越界 → 1；2=panic）
     if esym >= 0 {
+        g_movabs_rax(load64(ErrS + td * 8));
+        ops3(0x48, 0x8b, 0x00);        # mov rax,[rax]
+        g_movabs_rcx(1);
+        # if rax==0 → rax=1：cmp/jcc
+        ops3(0x48, 0x83, 0xf8); emit1(0);   # cmp rax,0
+        let lzero: i64 = new_label();
+        emit_jcc(0x85, lzero);         # jne → 已是 2，保持
         g_movabs_rax(1);
+        place_label(lzero);
         g_store_local(eoff);
+        # 清 errslot 归零（防下次 try 复用残留）
+        g_movabs_rax(0);
+        g_movabs_rcx(load64(ErrS + td * 8));
+        ops3(0x48, 0x89, 0x01);
     }
     sv(K_DEPTH, pd);
     parse_block(d);

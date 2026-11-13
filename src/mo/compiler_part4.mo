@@ -2143,7 +2143,37 @@ fn parse_primary() -> i64 {
             #
             # 墨语言没有强制类型转换语法，用**内建函数**表达。
             # x 可以是任意表达式，所以走完整 parse_expr。
-            if streq(scratch1(), "f64") == 1 {
+                        # v1.1175: panic("msg") 内建 —— 写 stderr 后触发 catch（e=2）
+            # 或全局 panic。实参须为字符串字面量（编译期已知长度）。
+            if streq(scratch1(), "panic") == 1 {
+                next_token();                 # 吃 '('
+                if gv(K_TKIND) != 3 {
+                    return err_atp("panic: argument must be a string literal", gv(K_PLINE), gv(K_PCOL), gv(K_PPOS));
+                }
+                let paddr: i64 = gv(K_TIVAL);
+                let plen: i64 = gv(K_NSTR) - gv(K_STROFF) - 1;
+                next_token();                 # 吃字符串
+                expect(")");
+                # write(2, msg, len)
+                ops3(0x48, 0xc7, 0xc0); emit4(1);
+                ops3(0x48, 0xc7, 0xc7); emit4(2);
+                ops2(0x48, 0xbe); emit8(paddr);
+                ops3(0x48, 0xc7, 0xc2); emit4(plen);
+                ops2(0x0f, 0x05);
+                # 错误码 2 → 当前 try 的 errslot；跳最近 catch / 全局 panic
+                let td: i64 = gv(K_TRYD);
+                if td > 0 {
+                    g_movabs_rax(2);
+                    g_movabs_rcx(load64(ErrS + (td - 1) * 8));
+                    ops3(0x48, 0x89, 0x01);
+                    emit_jmp(load64(TryLS + (td - 1) * 8));
+                } else {
+                    emit_jmp(panic_label());
+                }
+                R_ETY = ty_int();
+                return 0;
+            }
+if streq(scratch1(), "f64") == 1 {
                 next_token();
                 parse_expr();
                 expect(")");
