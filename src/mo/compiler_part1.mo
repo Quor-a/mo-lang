@@ -297,6 +297,10 @@ var K_NTYPE:  i64 = 264;
 var K_PPOS:   i64 = 272;
 var K_LAST:   i64 = 280;    # 0=无 1=rax 里是刚发的常量 2=rax 里是刚发的 [rbp+off]
 var K_LASTV:  i64 = 288;
+var K_PLL:    i64 = 2544;   # v1.1179: 栈顶 push 的是编译期常量（双常量折叠左操作数）
+var K_PLLV:   i64 = 2552;
+var K_PLLR:   i64 = 2560;   # 该 push imm 的字节数（折叠时回退用）
+var K_NFOLD:  i64 = 2568;   # 调试：try_fold_both 触发次数
 var K_LASTR:  i64 = 296;    # 折叠时要回退的字节数
 var K_HASRET: i64 = 328;
 var K_LDEPTH: i64 = 336;   # 循环标签栈深度

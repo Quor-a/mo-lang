@@ -11133,3 +11133,11 @@ lambda。Mo 此前函数只能命名 + `&fn` 取址。
 - mo2x 全后端对齐：C/WASI=fputs(stderr)；freestanding x86_64/aarch64=
   mo_syscall(MO_WRITE_,2)；kern/uart/uefi 裸机目标降级到 stdout 设备
   （无独立 stderr 概念）。三后端实测 stdout A/B + stderr E1/1234567/-8。
+
+## 1.1179.0
+- 编译器首个跨指令优化 pass：双常量折叠（try_fold_both）
+  - 二元运算 + - * & | ^ 双侧均为编译期常量（左以 push imm 下栈 K_PLL==1、右为 movabs 常量 K_PL==1）时，回退 push+movabs+pop rcx 共 8 字节，直接发射 movabs rax, result —— 编译期算完，省 3 条指令
+  - 结果经 g_movabs_rax 重发，自动重设 K_LAST/K_LASTV/K_LASTR，链式表达式（1+2+3+...+200）全链折叠为单条 mov eax,imm32
+  - 关键坑：g_pop_rcx 的 emit1(0x59)（pop rcx）会清 K_LAST —— 右常量信息必须从 K_PL/K_PLV/K_PLR 读（g_pop_rcx 在清 K_LAST 前快照）；回退量须含已发射的 pop rcx 1 字节（与 try_fold_rhs 的 -1 同理）
+  - 实测：200 项常量加法链 ELF 35081B → 30985B（-4096B，全链折叠为 1 条 mov）
+- 新增 tests/359_fold.mo（14 项：链式/位运算/混合变量不误折叠）；门禁 509/0

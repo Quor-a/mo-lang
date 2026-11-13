@@ -623,6 +623,7 @@ fn g_push_rax() -> i64 {
                 spill_cache();
                 emit1(0x6a);
                 emit1(v & 255);
+                sv(K_PLL, 1); sv(K_PLLV, v); sv(K_PLLR, 2);
                 return 0;
             }
             # push imm32 会符号扩展；v >= 2^31 时与 mov eax,imm32（零扩展）不等价
@@ -631,13 +632,17 @@ fn g_push_rax() -> i64 {
                 spill_cache();
                 emit1(0x68);
                 emit4(v);
+                # v1.1179: 记录栈顶常量（5 字节 push imm32）
+                sv(K_PLL, 1); sv(K_PLLV, v); sv(K_PLLR, 5);
                 return 0;
             }
         }
+        sv(K_PLL, 0);
         spill_cache();
         g_cache_rbx();
         return 0;
     }
+    sv(K_PLL, 0);
     if k == 2 {
         let off: i64 = gv(K_LASTV);
         sv(K_CLEN, gv(K_CLEN) - gv(K_LASTR));
@@ -655,6 +660,7 @@ fn g_push_rax() -> i64 {
         emit4(off);
         return 0;
     }
+    sv(K_PLL, 0);
     spill_cache();
     g_cache_rbx();
     return 0;
@@ -686,6 +692,25 @@ fn g_pop_rcx() -> i64 {
 # 右操作数是常量时，回退它的 mov eax,imm32（紧接着的 pop rcx 由调用方重发）。
 # 返回 1 表示已回退，常量值在 K_PLV；返回 0 表示照旧。
 # 上限 2^31-1：立即数形式会做符号扩展，超过就与 mov eax,imm32 的零扩展不等价。
+# v1.1179: 双常量折叠 —— 左操作数以 push imm 下栈（K_PLL==1）且右操作数也是
+# 编译期常量（K_LAST==1）时，整个运算在编译期算完：
+#   回退右操作数的 movabs（K_LASTR 字节）→ 回退左操作数的 push（K_PLLR 字节）
+#   → movabs rax, result。省掉 push+pop+运算共 3 条指令。
+# 返回 1=已折叠（rax 里是结果，K_LAST 已重置为 1/K_LASTV=结果——后续运算可继续折叠成链）。
+fn try_fold_both() -> i64 {
+    if gv(K_PLL) == 0 { return 0; }
+    # 右常量信息在 g_pop_rcx 时已存入 K_PL（emit1(0x59) 会清 K_LAST，不能读它）
+    if gv(K_PL) != 1 { sv(K_PLL, 0); return 0; }
+    let a: i64 = gv(K_PLLV);
+    let b: i64 = gv(K_PLV);
+    # 回退右常量加载（K_PLR 字节）+ 已发射的 pop rcx(1B)
+    sv(K_CLEN, gv(K_CLEN) - gv(K_PLR) - 1);
+    # 回退左 push（K_PLLR 字节）
+    sv(K_CLEN, gv(K_CLEN) - gv(K_PLLR));
+    sv(K_PLL, 0);
+    sv(K_PL, 0);
+    return 2;   # 2=调用方读 K_PLLV(a)/K_PLV(b) 运算并 movabs
+}
 fn try_fold_rhs() -> i64 {
     if gv(K_PL) == 0 { return 0; }
     if gv(K_PLV) > 2147483647 { sv(K_PL, 0); return 0; }
@@ -722,6 +747,13 @@ fn g_mov_rcx_rbx() -> i64 { ops3(0x48, 0x89, 0xd9); return 0; }
 fn g_mov_rax_rdx() -> i64 { ops3(0x48, 0x89, 0xd0); return 0; }
 
 fn g_add() -> i64 {
+    # v1.1179: 双常量折叠
+    if try_fold_both() == 2 {
+        let fa: i64 = gv(K_PLLV);
+        let fbv: i64 = gv(K_PLV);
+        g_movabs_rax(fa + fbv);
+        return 0;
+    }
     if try_fold_rhs() == 1 {
         emit1(0x58);
         g_imm_g1(0xc0, 0x05);
@@ -731,6 +763,13 @@ fn g_add() -> i64 {
     return 0;
 }
 fn g_and() -> i64 {
+    # v1.1179: 双常量折叠
+    if try_fold_both() == 2 {
+        let fa: i64 = gv(K_PLLV);
+        let fbv: i64 = gv(K_PLV);
+        g_movabs_rax(fa & fbv);
+        return 0;
+    }
     if try_fold_rhs() == 1 {
         emit1(0x58);
         g_imm_g1(0xe0, 0x25);
@@ -740,6 +779,13 @@ fn g_and() -> i64 {
     return 0;
 }
 fn g_or() -> i64 {
+    # v1.1179: 双常量折叠
+    if try_fold_both() == 2 {
+        let fa: i64 = gv(K_PLLV);
+        let fbv: i64 = gv(K_PLV);
+        g_movabs_rax(fa | fbv);
+        return 0;
+    }
     if try_fold_rhs() == 1 {
         emit1(0x58);
         g_imm_g1(0xc8, 0x0d);
@@ -749,6 +795,13 @@ fn g_or() -> i64 {
     return 0;
 }
 fn g_xor() -> i64 {
+    # v1.1179: 双常量折叠
+    if try_fold_both() == 2 {
+        let fa: i64 = gv(K_PLLV);
+        let fbv: i64 = gv(K_PLV);
+        g_movabs_rax(fa ^ fbv);
+        return 0;
+    }
     if try_fold_rhs() == 1 {
         emit1(0x58);
         g_imm_g1(0xf0, 0x35);
@@ -758,6 +811,13 @@ fn g_xor() -> i64 {
     return 0;
 }
 fn g_imul() -> i64 {
+    # v1.1179: 双常量折叠
+    if try_fold_both() == 2 {
+        let fa: i64 = gv(K_PLLV);
+        let fbv: i64 = gv(K_PLV);
+        g_movabs_rax(fa * fbv);
+        return 0;
+    }
     if try_fold_rhs() == 1 {
         emit1(0x58);
         let v: i64 = gv(K_PLV);
@@ -892,6 +952,13 @@ fn g_syscall() -> i64 { ops2(0x0f, 0x05); return 0; }
 
 # rax = rcx - rax
 fn g_sub() -> i64 {
+    # v1.1179: 双常量折叠
+    if try_fold_both() == 2 {
+        let fa: i64 = gv(K_PLLV);
+        let fbv: i64 = gv(K_PLV);
+        g_movabs_rax(fa - fbv);
+        return 0;
+    }
     # v1.1113: 右值为编译期常量时折叠为 sub rax,imm（省 pop rcx + sub + mov 3 条）
     if try_fold_rhs() == 1 {
         emit1(0x58);
