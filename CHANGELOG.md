@@ -11084,3 +11084,10 @@ lambda。Mo 此前函数只能命名 + `&fn` 取址。
   兼容 `## v1.x.y`/`## x.y.z`；unused.py exempt 集合算了从未用上（真 bug）。
 - examples/ffi.mo 改用非 variadic extern（extern 尚不支持 ...），sort.mo 改名
   消除与 lib 的 trim 撞名。make check 全绿。
+
+## 1.1172.0 (2026-11-13)
+
+- try/catch（同函数越界 panic 恢复）：`try { A } catch(e) { B }`；
+  panic_label 在 try 内返回最近 catch 标签（嵌套取最内层），catch 入口
+  从数据段 rsp 槽恢复栈，e = 错误码（越界 = 1）；跨函数 panic 仍走
+  全局 exit（文档 ⚠️）。tests/352。docs/try-catch.md。

@@ -2584,6 +2584,9 @@ index_addr(sy);
 # 生成 a[i] 的地址到 rax（s 为数组符号索引）；进入时当前 token 为 '['
 # 越界处理：所有下标检查跳转到的公共例程标签（按需创建）
 fn panic_label() -> i64 {
+    # v1.1172: try 块内的检查点跳最近 catch（同函数内）；无 try → 全局 panic 例程
+    let td: i64 = gv(K_TRYD);
+    if td > 0 { return load64(TryLS + (td - 1) * 8); }
     let l: i64 = gv(K_PANIC);
     if l < 0 {
         l = new_label();

@@ -282,6 +282,10 @@ var K_PCOL:  i64 = 208;
 var K_RUN:    i64 = 2496;   # v1.1148 run 模式标记
 var K_NRUNA:  i64 = 2504;   # v1.1148 run 实参数
 var K_EIM:    i64 = 2512;   # v1.1150 enum impl 方法名前缀 (intern 偏移, 0=off)
+var K_TRYD:   i64 = 2520;   # v1.1172 try 深度（编译期，嵌套 try 层数）
+var K_TRYL0:  i64 = 2528;   # 最内层 try 的 catch 标签 id（-1 = 无）
+var K_TRYSP:  i64 = 2536;   # v1.1172: 已分配的运行时 rsp 保存槽数（数据段）
+var TryLS: [64] i64 = 0;    # v1.1172 编译期 catch 标签栈（TryLS[depth-1] = 当前 catch label）
 var K_SRCBASE: i64 = 216;
 var K_NFILE: i64 = 224;
 var K_NSTR:  i64 = 232;

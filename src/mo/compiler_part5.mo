@@ -551,6 +551,13 @@ fn parse_stmt() -> i64 {
     # 只在语句起始位置识别 switch，case 等只在 switch 主体里识别。
     # 于是库里那些叫 case 的变量、注释里的 "case" 都不受影响。
     if accept("switch") == 1 { return parse_switch(); }
+    # v1.1172: try/catch —— 上下文关键字：后面跟 '{' 才当语句，否则当标识符
+    if tok_is("try") == 1 {
+        let tkp: i64 = gv(K_TOKPOS);
+        next_token();
+        if tok_is("{") == 1 { set_back(tkp); return parse_try(); }
+        set_back(tkp);
+    }
         if gv(K_TKIND) == 1 && streq(tokbuf(), "match") == 1 {
         # match 是上下文关键字：若后面是 '='（变量赋值）则当标识符放行
         let mpk: i64 = gv(K_TOKPOS);
@@ -10553,3 +10560,73 @@ fn parse_component() -> i64 {
     return 0;
 }
 
+
+
+# ==================== v1.1172: try / catch ====================
+# `try { A } catch(e) { B }` —— 同函数内的越界 panic 恢复。
+# 原理：panic_label() 在 K_TRYD>0 时返回最近 catch 的标签；越界检查点
+# 直接 ja 到 catch。异常路径栈上有未清 push，catch 入口先从数据段槽
+# 恢复 rsp（进入 try 时保存），再把错误码 1 存进 e。
+# ⚠️ 跨函数 panic（被调函数越界）不经过调用者的 catch —— 栈帧未清，
+# 仍走全局 panic 例程 exit(1)。
+fn parse_try() -> i64 {
+    if gv(K_DEPTH) == 0 {
+        return err_atp("try only allowed inside a function", gv(K_PLINE), gv(K_PCOL), gv(K_PPOS));
+    }
+    if gv(K_TRYD) >= 64 {
+        return err_atp("too many nested try (max 64)", gv(K_PLINE), gv(K_PCOL), gv(K_PPOS));
+    }
+    let td: i64 = gv(K_TRYD);
+    # 数据段分配 rsp 保存槽（8B 对齐）
+    let dl: i64 = gv(K_DLEN);
+    dl = (dl + 7) / 8 * 8;
+    sv(K_DLEN, dl);
+    let slot: i64 = 268435456 + dl;
+    let w: i64 = 0;
+    while w < 8 { dbyte(0); w = w + 1; }
+    next_token();                       # 吃 'try'（调用方已 set_back 回原位）
+    # 进入：movabs rax, slot; mov [rax], rsp   （48 b8 imm64 / 48 89 20）
+    ops2(0x48, 0xb8); emit8(slot);
+    ops3(0x48, 0x89, 0x20);
+    # 编译期：压 catch 栈
+    let cl: i64 = new_label();
+    store64(TryLS + td * 8, cl);
+    sv(K_TRYD, td + 1);
+    let d: i64 = gv(K_DEPTH) + 1;
+    parse_block(d);                     # 吃 '{' A '}'
+    sv(K_TRYD, td);
+    let le: i64 = new_label();
+    emit_jmp(le);                       # A 正常结束 → 跳过 catch
+    place_label(cl);
+    # 恢复 rsp：movabs rax, slot; mov rsp, [rax]
+    ops2(0x48, 0xb8); emit8(slot);
+    ops3(0x48, 0x8b, 0x20);
+    expect("catch");
+    # catch(e) 或 catch —— e 可选
+    let esym: i64 = 0 - 1;
+    let eoff: i64 = 0;
+    # e 的作用域 = catch 块：以深度 d 注册，parse_block 的 sym_pop_scope(d) 才会清掉
+    let pd: i64 = gv(K_DEPTH);
+    sv(K_DEPTH, d);
+    if accept("(") == 1 {
+        if gv(K_TKIND) != 1 { return err_atp("catch expects an identifier", gv(K_PLINE), gv(K_PCOL), gv(K_PPOS)); }
+        if sym_dup(tokbuf()) >= 0 { return err_atp("duplicate definition", gv(K_PLINE), gv(K_PCOL), gv(K_PPOS)); }
+        memcpy(scratch2(), tokbuf());
+        next_token();
+        expect(")");
+        let bo: i64 = gv(K_CUROFF);
+        eoff = bo - 8;
+        sv(K_CUROFF, eoff);
+        esym = sym_add(scratch2(), 1, eoff, 0);
+        store64(heap + O_STY + esym * 8, ty_int());
+    }
+    # 错误码 1 → e：movabs rax, 1; mov [rbp+eoff], rax
+    if esym >= 0 {
+        g_movabs_rax(1);
+        g_store_local(eoff);
+    }
+    sv(K_DEPTH, pd);
+    parse_block(d);
+    place_label(le);
+    return 0;
+}
