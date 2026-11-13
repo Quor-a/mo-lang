@@ -11091,3 +11091,10 @@ lambda。Mo 此前函数只能命名 + `&fn` 取址。
   panic_label 在 try 内返回最近 catch 标签（嵌套取最内层），catch 入口
   从数据段 rsp 槽恢复栈，e = 错误码（越界 = 1）；跨函数 panic 仍走
   全局 exit（文档 ⚠️）。tests/352。docs/try-catch.md。
+
+## 1.1173.0 (2026-11-13)
+
+- 方法调用返回类型修复：parse_chain_method 的 R_ETY 从硬编码
+  ty_int 改为从函数符号 O_SRT 取 —— 方法返回 struct 时类型信息
+  不再丢失（此前链式字段访问被当 int 加载）。tests/353。
+- projcheck 文档长度门槛达标（docs/try-catch.md 扩充实现细节）。

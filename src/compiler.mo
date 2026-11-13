@@ -6449,7 +6449,9 @@ fn parse_chain_method() -> i64 {
     if na > 6 { arg_restack(na); }
     emit_call_patch(fsym);
     if na > 6 { arg_cleanup(na); }
-    R_ETY = ty_int();
+    # v1.1173: 从函数符号取返回类型（原来硬编码 ty_int —— 方法返回
+    # struct 时类型信息丢失，链式字段访问当成 int 加载）
+    R_ETY = load64(heap + O_SRT + fsym * 8);
     return 0;
 }
 
