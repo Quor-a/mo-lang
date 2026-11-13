@@ -1037,7 +1037,13 @@ fn parse_rel() -> i64 {
                 lt = R_ETY;
                 continue;
             }
-            g_push_rax();
+            if ty_kind(lt) == 2 {
+                # v1.1174: struct 缺省字典序（逐 word，无重载时）
+                parse_struct_cmp_default(lt, 156, st_words(ty_si(lt)), 2, 0);
+                lt = R_ETY;
+                continue;
+            }
+g_push_rax();
             parse_shift();
             let rt: i64 = R_ETY;
             g_pop_rcx();
@@ -1058,7 +1064,13 @@ fn parse_rel() -> i64 {
                     lt = R_ETY;
                     continue;
                 }
-                g_push_rax();
+                if ty_kind(lt) == 2 {
+                # v1.1174: struct 缺省字典序（逐 word，无重载时）
+                parse_struct_cmp_default(lt, 158, st_words(ty_si(lt)), 2, 1);
+                lt = R_ETY;
+                continue;
+            }
+g_push_rax();
                 parse_shift();
             let rt: i64 = R_ETY;
                 g_pop_rcx();
@@ -1079,7 +1091,13 @@ fn parse_rel() -> i64 {
                         lt = R_ETY;
                         continue;
                     }
-                    g_push_rax();
+                    if ty_kind(lt) == 2 {
+                # v1.1174: struct 缺省字典序（逐 word，无重载时）
+                parse_struct_cmp_default(lt, 159, st_words(ty_si(lt)), 2, 0);
+                lt = R_ETY;
+                continue;
+            }
+g_push_rax();
                     parse_shift();
             let rt: i64 = R_ETY;
                     g_pop_rcx();
@@ -1100,7 +1118,13 @@ fn parse_rel() -> i64 {
                             lt = R_ETY;
                             continue;
                         }
-                        g_push_rax();
+                        if ty_kind(lt) == 2 {
+                # v1.1174: struct 缺省字典序（逐 word，无重载时）
+                parse_struct_cmp_default(lt, 157, st_words(ty_si(lt)), 2, 1);
+                lt = R_ETY;
+                continue;
+            }
+g_push_rax();
                         parse_shift();
             let rt: i64 = R_ETY;
                         g_pop_rcx();
@@ -1219,6 +1243,57 @@ fn op_lhs_to_slot(words: i64) -> i64 {
         emit1(8);
     }
     return slot;
+}
+
+
+
+# v1.1174: struct 无重载时的 </<=/>/>= 缺省语义 —— 逐 word 有符号字典序。
+# 第一个不相等的 word 决定结果；全部相等 → setcc 按"不小于/不大于"语义给 1/0。
+# 本函数在 rhs 解析**之前**调用（自己 parse_shift）。
+# f64 字段按位模式比较（NaN 语义不保证），文档注明。
+fn parse_struct_cmp_default(lt: i64, cc: i64, words: i64, kind: i64, eqv: i64) -> i64 {
+    # lhs 进栈暂存（rhs 解析会覆盖 rax/R_SADDR）
+    let lhs_saddr: i64 = R_SADDR;
+    g_push_rax();
+    if kind == 0 { parse_mul(); } else {
+        if kind == 1 { parse_unary(); } else {
+            if kind == 3 { parse_rel(); } else { parse_shift(); }
+        }
+    }
+    let rt: i64 = R_ETY;
+    if ty_kind(rt) != 2 {
+        return err_at2("struct comparison requires the same type", gv(K_LINE), gv(K_COL));
+    }
+    if ty_si(lt) != ty_si(rt) {
+        return err_at2("struct comparison requires the same type", gv(K_LINE), gv(K_COL));
+    }
+    # rhs（当前 rax/R_SADDR）→ slotR
+    let slotR: i64 = op_lhs_to_slot(words);
+    g_pop_rax();
+    R_SADDR = lhs_saddr;
+    # lhs（当前 rax/R_SADDR）→ slotL
+    let slotL: i64 = op_lhs_to_slot(words);
+    let ldiff: i64 = new_label();
+    let lend: i64 = new_label();
+    let wj: i64 = 0;
+    while wj < words {
+        g_movabs_rax(slotL + wj * 8);
+        ops3(0x48, 0x8b, 0x00);
+        g_movabs_rcx(slotR + wj * 8);
+        ops3(0x48, 0x8b, 0x09);
+        ops3(0x48, 0x39, 0xc8);
+        emit_jcc(0x85, ldiff);
+        wj = wj + 1;
+    }
+    g_movabs_rax(eqv);
+    emit_jmp(lend);
+    place_label(ldiff);
+    g_setcc(cc);
+    ops3(0x48, 0x0f, 0xb6); emit1(0xc0);
+    place_label(lend);
+    R_ETY = ty_int();
+    R_SADDR = 0;
+    return 0;
 }
 
 fn op_try_overload(lt: i64, m: i64) -> i64 {
