@@ -11118,3 +11118,10 @@ lambda。Mo 此前函数只能命名 + `&fn` 取址。
   freestanding（x86_64/aarch64）= syscall write(2)+exit(1)（MO_WRITE_/
   MO_EXIT_ 宏，panic 定义移至 mo_syscall 之后避免隐式声明冲突）。
   三后端实测 fatal: boom / exit(1)。
+
+## 1.1177.0 (2026-11-13)
+
+- assert(cond, "msg") 内建：cond 为假时写 stderr + 走 panic 路径
+  （try/catch 捕获 e=2，无 try 则 exit(1)）。门禁 507/0（新增 tests/357）。
+- mo2x 对齐：三后端（C / freestanding x86_64/aarch64）前导发 assert_
+  helper，调用点 assert(...) 改名透传。实测三后端 boom/exit(1)。

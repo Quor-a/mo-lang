@@ -1144,7 +1144,8 @@ fn emit_primary() -> i64 {
             if skip_clash == 0 {
                 if is_libc_clash(nm) == 1 { outs("mo_"); }
             }
-            outs(nm);
+            # v1.1177: assert(cond, "msg") → 前导 assert_ helper
+            if streq(nm, "assert") == 1 { outs("assert_"); } else { outs(nm); }
             outs("(");
             # v1.1164: 查签名表，按形参类型给实参发隐式 cast（ptr↔i64 互传）
             let fi3: i64 = fsg_find(nm);
@@ -3968,6 +3969,7 @@ fn fs_header() -> i64 {
         line("#define MO_WRITE_ 1");
         line("#define MO_EXIT_  60");
         line("static void panic(const unsigned char* m){ long mn=0; while(m[mn]) mn++; mo_syscall(MO_WRITE_, 2, (long)m, mn, 0, 0, 0); mo_syscall(MO_EXIT_, 1, 0, 0, 0, 0, 0); }");
+        line("static void assert_(long c, const unsigned char* m){ if(c) return; long mn=0; while(m[mn]) mn++; mo_syscall(MO_WRITE_, 2, (long)m, mn, 0, 0, 0); mo_syscall(MO_EXIT_, 1, 0, 0, 0, 0, 0); }");
         emit_fs_print();
         return 0;
     }
@@ -3987,6 +3989,7 @@ fn fs_header() -> i64 {
         # exit：libc 风格程序直接调 exit(code) —— freestanding 无 libc。
         # 必须在 mo_syscall 定义之后（否则隐式声明冲突）。
         line("static void __attribute__((noreturn)) mo_exit(long c){ mo_syscall(94,c,0,0,0,0,0); for(;;){} }");
+        line("static void assert_(long c, const unsigned char* m){ if(c) return; long mn=0; while(m[mn]) mn++; mo_syscall(MO_WRITE_, 2, (long)m, mn, 0, 0, 0); mo_syscall(MO_EXIT_, 1, 0, 0, 0, 0, 0); }");
         line("static void panic(const unsigned char* m){ long mn=0; while(m[mn]) mn++; mo_syscall(MO_WRITE_, 2, (long)m, mn, 0, 0, 0); mo_syscall(MO_EXIT_, 1, 0, 0, 0, 0, 0); }");
         emit_fs_print();
         return 0;
@@ -4530,6 +4533,7 @@ fn emit_header() -> i64 {
         # v1.1176: panic 内建对齐（moc v1.1175）
         line("#include <stdlib.h>");
         line("static void panic(const char* m){ fprintf(stderr, \"%s\", m); exit(1); }");
+        line("static void assert_(long c, const char* m){ if(!c){ fprintf(stderr, \"%s\", m); exit(1);} }");
         line("long long mo_main(void);");
         return 0;
     }
