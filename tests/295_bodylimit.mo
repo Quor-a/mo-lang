@@ -27,6 +27,7 @@ fn main() -> i64 {
         i = i + 1;
     }
     let b: i64 = tcp_http_req_port("POST", "/up/a.bin", "127.0.0.1", 18937, &T_BODY, 8000, &T_BUF, 65536, &T_STAT);
+    if b == 0 - 1 { exit(1); }
     if T_STAT != 201 { print("b1:"); print_i64(T_STAT); print("\n"); exit(1); }
     # ② CL=8001 > 上限 → 413
     b = tcp_http_req_port("POST", "/up/a.bin", "127.0.0.1", 18937, &T_BODY, 8001, &T_BUF, 65536, &T_STAT);

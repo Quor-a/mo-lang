@@ -38,7 +38,7 @@ fn line(k: i64) -> i64 {
     return &buf + load64(&offs + k * 8);
 }
 
-fn trim(p: i64) -> i64 {
+fn strip_nl(p: i64) -> i64 {
     let i: i64 = 0;
     while load8(p + i) != 0 {
         if load8(p + i) == 10 {
@@ -86,7 +86,7 @@ fn main() -> i64 {
     # 把每行末尾的换行改成 0，这样 strcmp / print 都好处理
     let i: i64 = 0;
     while i < nline {
-        trim(line(i));
+        strip_nl(line(i));
         i = i + 1;
     }
     sort_lines(nline);

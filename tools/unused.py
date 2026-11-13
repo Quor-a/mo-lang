@@ -81,7 +81,9 @@ def scan(path):
                 if k+1 < len(toks) and toks[k+1] == '=': w += 1
                 else: r += 1
             if w > 0 and r == 0:
-                hits.append((path, off + body[:dm.start()].count('\n') + 1, fname, name, w))
+                ln_abs = off + body[:dm.start()].count('\n') + 1
+                if ln_abs in exempt: continue   # v1.1171 修复：exempt 集合算了从未用上
+                hits.append((path, ln_abs, fname, name, w))
     return hits
 
 def main():

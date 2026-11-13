@@ -45,6 +45,7 @@ fn main() -> i64 {
     }
     # push → 201
     let b: i64 = tcp_http_post_gzip("/pub/a.tar.gz?name=pk301&version=1.0.0", "127.0.0.1", 18944, &T_BODY, 512, &T_BUF, 65536, &T_STAT);
+    if b == 0 - 1 { exit(1); }
     if T_STAT != 201 { print("d1:"); print_i64(T_STAT); print("\n"); exit(1); }
     # DELETE 无 token → 403
     b = tcp_http_req_port("DELETE", "/pkg/a.tar.gz", "127.0.0.1", 18944, 0, 0, &T_BUF, 65536, &T_STAT);

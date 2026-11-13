@@ -75,7 +75,7 @@ else bad "以下文档过短（可能是占位）：$SM"; fi
 
 echo "=== 7. 版本号一致 ==="
 V=$(cat VERSION)
-if grep -q "## \[$V\]" CHANGELOG.md; then ok "VERSION=$V 且 CHANGELOG 有对应条目"
+if grep -qE "^## (v?\[$V\]|v?$V)" CHANGELOG.md; then ok "VERSION=$V 且 CHANGELOG 有对应条目"
 else bad "VERSION=$V 在 CHANGELOG 里没有条目"; fi
 
 echo "=== 8. 断言必须影响退出码 ==="

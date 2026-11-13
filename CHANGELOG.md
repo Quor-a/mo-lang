@@ -11071,3 +11071,16 @@ lambda。Mo 此前函数只能命名 + `&fn` 取址。
   🔴 实测坑：桶下标用 `k % 256` 时 sar 使 k 为负 → 负偏移越界写（gdb 下
   偶现正常、直接跑 SIGSEGV）—— 必须用 `k & 255`。
 - 新测试 tests/349_sort2.mo（期望 127，含 i64 边界值与 1000 伪随机数双算法验证）。
+
+## 1.1171.0 (2026-11-13)
+
+- for-in 扩展：`for x in <vec 表达式>` —— RHS 求值一次为 vec 句柄
+  （lib/vec.mo 布局 {data,len,cap}，元素 i64），支持函数调用/变量/括号表达式，
+  隐藏局部 _fv_<depth>/_fi_<depth>。tests/350、351 smoke。
+- mo2x 回归修复（v1.1164 mo_ 前缀遗留）：freestanding/内核前导补
+  strcpy/strcat 符号，T_FS/T_KERN 调用点跳过 mo_ 前缀 —— 修复
+  kern64systest（24/0）与 a64xself（14/0）自 v1.1164 起的 undeclared 回归。
+- 工具修复：depcheck 传参缺失 + warning 误判；projcheck CHANGELOG 格式
+  兼容 `## v1.x.y`/`## x.y.z`；unused.py exempt 集合算了从未用上（真 bug）。
+- examples/ffi.mo 改用非 variadic extern（extern 尚不支持 ...），sort.mo 改名
+  消除与 lib 的 trim 撞名。make check 全绿。

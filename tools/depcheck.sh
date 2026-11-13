@@ -32,7 +32,8 @@ for f in lib/*.mo; do
   b=$(basename $f)
   STUB=$(stub_for "$b")
   printf 'import "%s";\n%s\nfn main() -> i64 { return 0; }\n' "$b" "$STUB" > $TMP/test.mo
-  out=$( cd $TMP && $OLDPWD/$MOC 2>&1 )
+  out=$( cd $TMP && $OLDPWD/$MOC test.mo /dev/null 2>&1 )
+  out=$(echo "$out" | grep -v "warning:" || true)
   if [ -n "$out" ]; then
     echo "FAIL $b 单独引用时编译失败:"
     echo "$out" | head -3 | sed 's/^/    /'

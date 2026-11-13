@@ -36,7 +36,7 @@ fn main() -> i64 {
     csp_go(&get_go, 2);
     csp_go(&get_go, 3);
     let waitn: i64 = 0;
-    let rs: i64 = 0;
+    let rs: i64 = 0;  # unused: ok
     while OKN < 3 && waitn < 200 {
         rs = usleep(50000);
         waitn = waitn + 1;

@@ -3955,6 +3955,14 @@ fn parse_eq() -> i64 {
             lt = R_ETY;
         } else {
         if accept("==") == 1 {
+            # v1.1168: struct 运算符重载（eq）
+            let ovl: i64 = op_try_overload(lt, "eq");
+            if ovl >= 0 {
+                let slot: i64 = op_lhs_to_slot(st_words(ty_si(lt)));
+                parse_op_overload_impl("eq", ovl, slot, st_words(ty_si(lt)), 3);
+                lt = R_ETY;
+                continue;
+            }
             g_push_rax();
             parse_rel();
             let rt: i64 = R_ETY;
@@ -3989,6 +3997,14 @@ fn parse_eq() -> i64 {
             lt = R_ETY;
         } else {
             if accept("!=") == 1 {
+                # v1.1168: struct 运算符重载（ne）
+                let ovl: i64 = op_try_overload(lt, "ne");
+                if ovl >= 0 {
+                    let slot: i64 = op_lhs_to_slot(st_words(ty_si(lt)));
+                    parse_op_overload_impl("ne", ovl, slot, st_words(ty_si(lt)), 3);
+                    lt = R_ETY;
+                    continue;
+                }
                 g_push_rax();
                 parse_rel();
                 let rt2: i64 = R_ETY;
@@ -4054,6 +4070,14 @@ fn parse_rel() -> i64 {
     let lt: i64 = R_ETY;
     while 1 {
         if accept("<") == 1 {
+            # v1.1168: struct 运算符重载（lt）
+            let ovl: i64 = op_try_overload(lt, "lt");
+            if ovl >= 0 {
+                let slot: i64 = op_lhs_to_slot(st_words(ty_si(lt)));
+                parse_op_overload_impl("lt", ovl, slot, st_words(ty_si(lt)), 2);
+                lt = R_ETY;
+                continue;
+            }
             g_push_rax();
             parse_shift();
             let rt: i64 = R_ETY;
@@ -4067,6 +4091,14 @@ fn parse_rel() -> i64 {
             lt = R_ETY;
         } else {
             if accept("<=") == 1 {
+                # v1.1168: struct 运算符重载（le）
+                let ovl: i64 = op_try_overload(lt, "le");
+                if ovl >= 0 {
+                    let slot: i64 = op_lhs_to_slot(st_words(ty_si(lt)));
+                    parse_op_overload_impl("le", ovl, slot, st_words(ty_si(lt)), 2);
+                    lt = R_ETY;
+                    continue;
+                }
                 g_push_rax();
                 parse_shift();
             let rt: i64 = R_ETY;
@@ -4080,6 +4112,14 @@ fn parse_rel() -> i64 {
             lt = R_ETY;
             } else {
                 if accept(">") == 1 {
+                    # v1.1168: struct 运算符重载（gt）
+                    let ovl: i64 = op_try_overload(lt, "gt");
+                    if ovl >= 0 {
+                        let slot: i64 = op_lhs_to_slot(st_words(ty_si(lt)));
+                        parse_op_overload_impl("gt", ovl, slot, st_words(ty_si(lt)), 2);
+                        lt = R_ETY;
+                        continue;
+                    }
                     g_push_rax();
                     parse_shift();
             let rt: i64 = R_ETY;
@@ -4093,6 +4133,14 @@ fn parse_rel() -> i64 {
             lt = R_ETY;
                 } else {
                     if accept(">=") == 1 {
+                        # v1.1168: struct 运算符重载（ge）
+                        let ovl: i64 = op_try_overload(lt, "ge");
+                        if ovl >= 0 {
+                            let slot: i64 = op_lhs_to_slot(st_words(ty_si(lt)));
+                            parse_op_overload_impl("ge", ovl, slot, st_words(ty_si(lt)), 2);
+                            lt = R_ETY;
+                            continue;
+                        }
                         g_push_rax();
                         parse_shift();
             let rt: i64 = R_ETY;
@@ -4137,11 +4185,105 @@ fn parse_shift() -> i64 {
     return 0;
 }
 
+
+# v1.1167: 结构体二元运算符重载。
+# 语法：impl 块内 fn add/sub/mul(self, o: T) -> T。
+# 编译器把 self/o 都按**地址**传（rdi=lhs 槽，rsi=rhs 槽），
+# 返回值 struct 按值（rax/rdx）。
+fn op_overload_fsym(ci: i64, m: i64) -> i64 {
+    if ci < 0 { return 0 - 1; }
+    return find_method_sym(st_name(ci), m);
+}
+
+# rhs 解析 + 归一化到数据段槽 rhs_slot，然后 rdi=lhs_slot/rsi=rhs_slot 发调用。
+# rhs_parser: 0=parse_mul（+/mul? mul 需要 parse_unary）—— 简化：kind 参数，
+# 0=parse_mul 1=parse_unary。
+fn parse_op_overload_impl(mname: i64, fsym: i64, lhs_slot: i64, words: i64, kind: i64) -> i64 {
+    if kind == 0 { parse_mul(); } else {
+        if kind == 1 { parse_unary(); } else {
+            if kind == 3 { parse_rel(); } else { parse_shift(); }
+        }
+    }
+    let rt: i64 = R_ETY;
+    if ty_kind(rt) != 2 {
+        return err_at2("operator overload: rhs 必须是同类 struct", gv(K_LINE), gv(K_COL));
+    }
+    let rhs_slot: i64 = 268435456 + gv(K_DLEN);
+    let wi: i64 = 0;
+    while wi < words { dquad(0); wi = wi + 1; }
+    g_movabs_rsi(rhs_slot);
+    if R_SADDR == 1 {
+        # rhs 是左值：rax = 源地址，逐 word 拷到 rhs_slot
+        let wi2: i64 = 0;
+        while wi2 < words {
+            ops3(0x48, 0x8b, 0x88);        # mov rcx,[rax+disp32]
+            emit4(wi2 * 8);
+            ops3(0x48, 0x89, 0x8e);        # mov [rsi+disp32],rcx
+            emit4(wi2 * 8);
+            wi2 = wi2 + 1;
+        }
+    } else {
+        # rhs 是值形态：rax/rdx → 槽
+        ops3(0x48, 0x89, 0x06);            # mov [rsi],rax
+        ops3(0x48, 0x89, 0x56);            # mov [rsi+8],rdx
+        emit1(8);
+    }
+    # rdi = lhs_slot（movabs rdi）
+    ops2(0x48, 0xbf);
+    emit8(lhs_slot);
+    # rsi = rhs_slot（重发，前面被拷贝循环使用过）
+    g_movabs_rsi(rhs_slot);
+    emit_call_patch(fsym);
+    R_ETY = load64(heap + O_SRT + fsym * 8);
+    R_SADDR = 0;                        # 返回值形态（rax/rdx）
+    return 0;
+}
+
+fn op_lhs_to_slot(words: i64) -> i64 {
+    # lhs 已求值（rax 值或地址 + R_SADDR）→ 归一化落到数据段新槽，返回槽地址
+    let slot: i64 = 268435456 + gv(K_DLEN);
+    let wi: i64 = 0;
+    while wi < words { dquad(0); wi = wi + 1; }
+    g_movabs_rsi(slot);
+    if R_SADDR == 1 {
+        let wi2: i64 = 0;
+        while wi2 < words {
+            ops3(0x48, 0x8b, 0x88);        # mov rcx,[rax+disp32]
+            emit4(wi2 * 8);
+            ops3(0x48, 0x89, 0x8e);        # mov [rsi+disp32],rcx
+            emit4(wi2 * 8);
+            wi2 = wi2 + 1;
+        }
+    } else {
+        ops3(0x48, 0x89, 0x06);            # mov [rsi],rax
+        ops3(0x48, 0x89, 0x56);            # mov [rsi+8],rdx
+        emit1(8);
+    }
+    return slot;
+}
+
+fn op_try_overload(lt: i64, m: i64) -> i64 {
+    # 返回 fsym 或 -1。lhs 为 struct 且有方法才可重载。
+    if ty_kind(lt) != 2 { return 0 - 1; }
+    let si: i64 = ty_si(lt);
+    if st_words(si) > 2 { return 0 - 1; }   # 值寄存器只有 rax/rdx
+    let fs: i64 = op_overload_fsym(si, m);
+    return fs;
+}
+
 fn parse_add() -> i64 {
     parse_mul();
     let lt: i64 = R_ETY;
     while 1 {
         if accept("+") == 1 {
+            # v1.1167: struct 运算符重载（add）—— 在原逻辑前拦截
+            let ovl: i64 = op_try_overload(lt, "add");
+            if ovl >= 0 {
+                let slot: i64 = op_lhs_to_slot(st_words(ty_si(lt)));
+                parse_op_overload_impl("add", ovl, slot, st_words(ty_si(lt)), 0);
+                lt = R_ETY;
+                continue;
+            }
             g_push_rax();
             parse_mul();
             let rt: i64 = R_ETY;
@@ -4189,6 +4331,14 @@ fn parse_add() -> i64 {
             lt = R_ETY;
         } else {
             if accept("-") == 1 {
+                # v1.1167: struct 运算符重载（sub）
+                let ovl: i64 = op_try_overload(lt, "sub");
+                if ovl >= 0 {
+                    let slot: i64 = op_lhs_to_slot(st_words(ty_si(lt)));
+                    parse_op_overload_impl("sub", ovl, slot, st_words(ty_si(lt)), 0);
+                    lt = R_ETY;
+                    continue;
+                }
                 g_push_rax();
                 parse_mul();
                 let rt2: i64 = R_ETY;
@@ -4235,6 +4385,14 @@ fn parse_mul() -> i64 {
     let lt: i64 = R_ETY;
     while 1 {
         if accept("*") == 1 {
+            # v1.1167: struct 运算符重载（mul）
+            let ovl: i64 = op_try_overload(lt, "mul");
+            if ovl >= 0 {
+                let slot: i64 = op_lhs_to_slot(st_words(ty_si(lt)));
+                parse_op_overload_impl("mul", ovl, slot, st_words(ty_si(lt)), 1);
+                lt = R_ETY;
+                continue;
+            }
             g_push_rax();
             parse_unary();
             let rt: i64 = R_ETY;
@@ -9621,6 +9779,83 @@ fn parse_for_in_str(vname: i64) -> i64 {
     return 0;
 }
 
+# v1.1171: for x in <vec 表达式> —— RHS 求值一次为 vec 句柄（lib/vec.mo 布局
+# {data, len, cap}，元素 i64），逐元素迭代。隐藏局部：_fv_<depth> 句柄、_fi_<depth> 索引。
+fn parse_for_in_vec(vname: i64) -> i64 {
+    parse_expr();                # rax = vec 句柄（调用/变量/括号表达式均可）
+    let d: i64 = gv(K_DEPTH) + 1;
+    sv(K_DEPTH, d);
+    let vb: i64 = heap + O_SCAL + 5700;
+    memcpy(vb, "_fv_");
+    store8(vb + 4, 48 + gv(K_DEPTH));
+    store8(vb + 5, 0);
+    if sym_dup(vb) >= 0 { return err_atp("duplicate definition", gv(K_PLINE), gv(K_PCOL), gv(K_PPOS)); }
+    let vo: i64 = gv(K_CUROFF);
+    sv(K_CUROFF, vo - 8);
+    let vid: i64 = sym_add(vb, 1, vo, 0);
+    store64(heap + O_STY + vid * 8, ty_int());
+    dbg_var(vb, vo, gv(K_LINE), ty_int());
+    g_store_local(vo);
+    let ibuf: i64 = heap + O_SCAL + 5600;
+    memcpy(ibuf, "_fi_");
+    store8(ibuf + 4, 48 + gv(K_DEPTH));
+    store8(ibuf + 5, 0);
+    if sym_dup(ibuf) >= 0 { return err_atp("duplicate definition", gv(K_PLINE), gv(K_PCOL), gv(K_PPOS)); }
+    let fo: i64 = gv(K_CUROFF);
+    sv(K_CUROFF, fo - 8);
+    let fid: i64 = sym_add(ibuf, 1, fo, 0);
+    store64(heap + O_STY + fid * 8, ty_int());
+    dbg_var(ibuf, fo, gv(K_LINE), ty_int());
+    g_movabs_rax(0);
+    g_store_local(fo);
+    if sym_dup(vname) >= 0 { return err_atp("duplicate definition", gv(K_PLINE), gv(K_PCOL), gv(K_PPOS)); }
+    let xo: i64 = gv(K_CUROFF);
+    sv(K_CUROFF, xo - 8);
+    let xid: i64 = sym_add(vname, 1, xo, 0);
+    store64(heap + O_STY + xid * 8, ty_int());
+    dbg_var(vname, xo, gv(K_LINE), ty_int());
+    let chk: i64 = new_label();
+    let end: i64 = new_label();
+    let stp: i64 = new_label();
+    let bdy: i64 = new_label();
+    loop_push(chk, end, stp);
+    place_label(chk);
+    # cond: _fi - len >= 0 → end
+    g_load_local(fo);
+    g_push_rax();
+    g_load_local(vo);
+    ops3(0x48, 0x8b, 0x40);      # mov rax,[rax+8] → len
+    emit1(8);
+    g_pop_rcx();
+    g_sub();                     # rax = _fi - len
+    g_cmp_rax_0();
+    emit_jcc(0x8d, end);
+    emit_jmp(bdy);
+    place_label(stp);
+    g_load_local(fo);
+    ops3(0x48, 0x83, 0xc0); emit1(1);
+    g_store_local(fo);
+    emit_jmp(chk);
+    place_label(bdy);
+    # x = data[_fi] = load64(load64(h) + _fi*8)
+    g_load_local(vo);
+    ops3(0x48, 0x8b, 0x00);      # mov rax,[rax] → data
+    g_push_rax();
+    g_load_local(fo);
+    g_mul_imm(8);
+    g_pop_rcx();
+    g_add();
+    ops3(0x48, 0x8b, 0x00);      # mov rax,[rax]
+    g_store_local(xo);
+    parse_block(d + 1);
+    emit_jmp(stp);
+    place_label(end);
+    sym_pop_scope(d);
+    sv(K_DEPTH, d - 1);
+    loop_pop();
+    return 0;
+}
+
 fn parse_for_in(vname: i64) -> i64 {
     next_token();            # 吃 'in'（x 名已在 vname 独立缓冲）
     # v1.1095: range 形式 for i in A..B { BODY } —— 变量 i 走 A..B-1
@@ -9646,7 +9881,8 @@ fn parse_for_in(vname: i64) -> i64 {
     }
     if gv(K_TKIND) != 1 { return err_at2("for-in: expected array variable", gv(K_LINE), gv(K_COL)); }
     let asym: i64 = sym_lookup(tokbuf());
-    if asym < 0 { return undef_err(tokbuf()); }
+    # v1.1171: 未定义的 ident → 表达式起点（调用等），按 vec 句柄迭代
+    if asym < 0 { return parse_for_in_vec(vname); }
     let at: i64 = sym_type(asym);
     # v1.1124: str 变量 → 字节迭代
     if ty_kind(at) == 10 {

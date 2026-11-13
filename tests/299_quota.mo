@@ -51,6 +51,7 @@ fn main() -> i64 {
     }
     # push 1 → 201
     let b: i64 = tcp_http_post_gzip("/pub/a.tar.gz?name=a&version=1.0.0", "127.0.0.1", 18942, &T_BODY, 512, &T_BUF, 65536, &T_STAT);
+    if b == 0 - 1 { exit(1); }
     if T_STAT != 201 { print("q1:"); print_i64(T_STAT); print("\n"); exit(1); }
     # push 2 → 201
     b = tcp_http_post_gzip("/pub/b.tar.gz?name=b&version=1.0.0", "127.0.0.1", 18942, &T_BODY, 512, &T_BUF, 65536, &T_STAT);

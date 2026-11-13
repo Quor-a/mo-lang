@@ -32,6 +32,7 @@ fn main() -> i64 {
     strcpy(&T_BODY, "auth292");
     # ① 无 token → 403
     let b: i64 = tcp_http_post_gzip("/up/f.bin", "127.0.0.1", 18934, &T_BODY, 7, &T_BUF, 65536, &T_STAT);
+    if b == 0 - 1 { exit(1); }
     if T_STAT != 403 { print("a1:"); print_i64(T_STAT); print("\n"); exit(1); }
     # ② 错 token → 403
     b = tcp_http_post_gzip("/up/f.bin?token=bad", "127.0.0.1", 18934, &T_BODY, 7, &T_BUF, 65536, &T_STAT);

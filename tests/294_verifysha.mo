@@ -73,6 +73,7 @@ fn main() -> i64 {
         i = i + 1;
     }
     let b: i64 = tcp_http_post_gzip("/publish/pk294-1.0.0.tar.gz?name=pk294&version=1.0.0", "127.0.0.1", 18936, &T_BODY, 1024, &T_BUF, 65536, &T_STAT);
+    if b == 0 - 1 { exit(1); }
     if T_STAT != 201 { print("s1:"); print_i64(T_STAT); print("\n"); exit(1); }
     # ② push v2.0.0(2048B,同包名)→ 去重后 index 应只有 1 行
     i = 0;

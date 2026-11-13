@@ -2715,7 +2715,7 @@ fn uc_stepper(x: i64, y: i64, w: i64, value: i64, fg: i64, bg: i64) -> i64 {
 # 用于 IDE、终端模拟器、日志查看器。
 fn uc_terminal(x: i64, y: i64, w: i64, h: i64, title: ptr, line1: ptr, line2: ptr, fg: i64, bg: i64) -> i64 {
     let i: i64 = 0;
-    let tlen: i64 = 0;
+    let tlen: i64 = 0;  # unused: ok
     let l1: i64 = 0;
     let l2: i64 = 0;
     tlen = strlen(title);
@@ -4589,7 +4589,7 @@ fn uc_compare_bar(x: i64, y: i64, label: ptr, value: i64, max: i64, fg: i64, bg:
     let i: i64 = 0;
     let filled: i64 = 0;
     let v: i64 = 0;
-    let pct: i64 = 0;
+    let pct: i64 = 0;  # unused: ok
     llen = strlen(label);
     i = 0;
     while i < llen {

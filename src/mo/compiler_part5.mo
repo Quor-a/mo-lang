@@ -2603,6 +2603,83 @@ fn parse_for_in_str(vname: i64) -> i64 {
     return 0;
 }
 
+# v1.1171: for x in <vec 表达式> —— RHS 求值一次为 vec 句柄（lib/vec.mo 布局
+# {data, len, cap}，元素 i64），逐元素迭代。隐藏局部：_fv_<depth> 句柄、_fi_<depth> 索引。
+fn parse_for_in_vec(vname: i64) -> i64 {
+    parse_expr();                # rax = vec 句柄（调用/变量/括号表达式均可）
+    let d: i64 = gv(K_DEPTH) + 1;
+    sv(K_DEPTH, d);
+    let vb: i64 = heap + O_SCAL + 5700;
+    memcpy(vb, "_fv_");
+    store8(vb + 4, 48 + gv(K_DEPTH));
+    store8(vb + 5, 0);
+    if sym_dup(vb) >= 0 { return err_atp("duplicate definition", gv(K_PLINE), gv(K_PCOL), gv(K_PPOS)); }
+    let vo: i64 = gv(K_CUROFF);
+    sv(K_CUROFF, vo - 8);
+    let vid: i64 = sym_add(vb, 1, vo, 0);
+    store64(heap + O_STY + vid * 8, ty_int());
+    dbg_var(vb, vo, gv(K_LINE), ty_int());
+    g_store_local(vo);
+    let ibuf: i64 = heap + O_SCAL + 5600;
+    memcpy(ibuf, "_fi_");
+    store8(ibuf + 4, 48 + gv(K_DEPTH));
+    store8(ibuf + 5, 0);
+    if sym_dup(ibuf) >= 0 { return err_atp("duplicate definition", gv(K_PLINE), gv(K_PCOL), gv(K_PPOS)); }
+    let fo: i64 = gv(K_CUROFF);
+    sv(K_CUROFF, fo - 8);
+    let fid: i64 = sym_add(ibuf, 1, fo, 0);
+    store64(heap + O_STY + fid * 8, ty_int());
+    dbg_var(ibuf, fo, gv(K_LINE), ty_int());
+    g_movabs_rax(0);
+    g_store_local(fo);
+    if sym_dup(vname) >= 0 { return err_atp("duplicate definition", gv(K_PLINE), gv(K_PCOL), gv(K_PPOS)); }
+    let xo: i64 = gv(K_CUROFF);
+    sv(K_CUROFF, xo - 8);
+    let xid: i64 = sym_add(vname, 1, xo, 0);
+    store64(heap + O_STY + xid * 8, ty_int());
+    dbg_var(vname, xo, gv(K_LINE), ty_int());
+    let chk: i64 = new_label();
+    let end: i64 = new_label();
+    let stp: i64 = new_label();
+    let bdy: i64 = new_label();
+    loop_push(chk, end, stp);
+    place_label(chk);
+    # cond: _fi - len >= 0 → end
+    g_load_local(fo);
+    g_push_rax();
+    g_load_local(vo);
+    ops3(0x48, 0x8b, 0x40);      # mov rax,[rax+8] → len
+    emit1(8);
+    g_pop_rcx();
+    g_sub();                     # rax = _fi - len
+    g_cmp_rax_0();
+    emit_jcc(0x8d, end);
+    emit_jmp(bdy);
+    place_label(stp);
+    g_load_local(fo);
+    ops3(0x48, 0x83, 0xc0); emit1(1);
+    g_store_local(fo);
+    emit_jmp(chk);
+    place_label(bdy);
+    # x = data[_fi] = load64(load64(h) + _fi*8)
+    g_load_local(vo);
+    ops3(0x48, 0x8b, 0x00);      # mov rax,[rax] → data
+    g_push_rax();
+    g_load_local(fo);
+    g_mul_imm(8);
+    g_pop_rcx();
+    g_add();
+    ops3(0x48, 0x8b, 0x00);      # mov rax,[rax]
+    g_store_local(xo);
+    parse_block(d + 1);
+    emit_jmp(stp);
+    place_label(end);
+    sym_pop_scope(d);
+    sv(K_DEPTH, d - 1);
+    loop_pop();
+    return 0;
+}
+
 fn parse_for_in(vname: i64) -> i64 {
     next_token();            # 吃 'in'（x 名已在 vname 独立缓冲）
     # v1.1095: range 形式 for i in A..B { BODY } —— 变量 i 走 A..B-1
@@ -2628,7 +2705,8 @@ fn parse_for_in(vname: i64) -> i64 {
     }
     if gv(K_TKIND) != 1 { return err_at2("for-in: expected array variable", gv(K_LINE), gv(K_COL)); }
     let asym: i64 = sym_lookup(tokbuf());
-    if asym < 0 { return undef_err(tokbuf()); }
+    # v1.1171: 未定义的 ident → 表达式起点（调用等），按 vec 句柄迭代
+    if asym < 0 { return parse_for_in_vec(vname); }
     let at: i64 = sym_type(asym);
     # v1.1124: str 变量 → 字节迭代
     if ty_kind(at) == 10 {

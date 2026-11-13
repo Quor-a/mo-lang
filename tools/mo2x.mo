@@ -1123,7 +1123,27 @@ fn emit_primary() -> i64 {
                 outs(")");
                 return 0;
             }
-            if is_libc_clash(nm) == 1 { outs("mo_"); }
+            # v1.1171: freestanding 前导自带 static strlen/atoi/memset/memcpy ——
+            # 调用直发原名（v1.1164 起 mo_ 前缀让 kern64sys 这类"无 import 直用
+            # 前导函数"的 freestanding 程序报 undeclared mo_strlen 回归）。
+            # 非 freestanding C 目标维持 mo_ 前缀（CRT 头签名冲突）。
+            let skip_clash: i64 = 0;
+            if TGT == T_FS {
+                if streq(nm, "strlen") == 1 { skip_clash = 1; }
+                if streq(nm, "atoi") == 1 { skip_clash = 1; }
+                if streq(nm, "memset") == 1 { skip_clash = 1; }
+                if streq(nm, "memcpy") == 1 { skip_clash = 1; }
+                if streq(nm, "strcpy") == 1 { skip_clash = 1; }
+                if streq(nm, "strcat") == 1 { skip_clash = 1; }
+            }
+            if TGT == T_KERN {
+                if streq(nm, "strlen") == 1 { skip_clash = 1; }
+                if streq(nm, "strcpy") == 1 { skip_clash = 1; }
+                if streq(nm, "strcat") == 1 { skip_clash = 1; }
+            }
+            if skip_clash == 0 {
+                if is_libc_clash(nm) == 1 { outs("mo_"); }
+            }
             outs(nm);
             outs("(");
             # v1.1164: 查签名表，按形参类型给实参发隐式 cast（ptr↔i64 互传）
@@ -3892,6 +3912,10 @@ fn fs_header() -> i64 {
     #
     # v1.154 当时的绕法是"数组不写 = 0"，那治的是症状；这里修的是根因。
     line("static long strlen(const unsigned char* s){ long n=0; while(s[n]) n++; return n; }");
+    # v1.1171: 补 strcpy/strcat 原名符号（同上：宏挡不住 IR 层引用；且
+    # skip_clash 让这些调用不再发 mo_ 前缀）
+    line("static unsigned char* strcpy(unsigned char* d, unsigned char* s){ long i=0; while(s[i]){ d[i]=s[i]; i++; } d[i]=0; return d; }");
+    line("static unsigned char* strcat(unsigned char* d, unsigned char* s){ long i=0,j=0; while(d[i]) i++; while(s[j]){ d[i+j]=s[j]; j++; } d[i+j]=0; return d; }");
     # strcmp：try_strcmp 改写需要。-nostdlib 无 libc，但 lib/str.mo 会带实现；
     # 为不重复定义，前导不提供 strcmp —— 依赖 str.mo 的程序已覆盖，未引 str.mo
     # 而用字符串比较的程序需 import str.mo（响亮报错：undefined reference）。
@@ -4221,6 +4245,10 @@ fn kern_header() -> i64 {
     line("  return 0; }");
     line("static long strlen_(unsigned char* s){ long n=0; while(s[n]) n++; return n; }");
     line("#define strlen strlen_");
+    line("static unsigned char* strcpy_(unsigned char* d, unsigned char* s){ long i=0; while(s[i]){ d[i]=s[i]; i++; } d[i]=0; return d; }");
+    line("#define strcpy strcpy_");
+    line("static unsigned char* strcat_(unsigned char* d, unsigned char* s){ long i=0,j=0; while(d[i]) i++; while(s[j]){ d[i+j]=s[j]; j++; } d[i+j]=0; return d; }");
+    line("#define strcat strcat_");
     # 墨语言源码里的 print / print_i64 / print_nl 是普通函数调用，
     # 在内核目标下必须在这里给出定义，否则链接期找不到符号。
     line("static void print(const unsigned char* s){ vga_print((const char*)s); }");
@@ -4474,6 +4502,12 @@ fn emit_header() -> i64 {
         line("#endif");
         line("static long long strlen_(unsigned char* s){ long long n=0; while(s[n]) n++; return n; }");
         line("#define strlen strlen_");
+        # v1.1171: freestanding 前导补 strcpy/strcat（无符号 char* 语义，供
+        # "无 import 直用" 的裸机程序；strlen 系列其余函数签名冲突留给 mo_ 前缀）
+        line("static unsigned char* strcpy_(unsigned char* d, unsigned char* s){ long long i=0; while(s[i]){ d[i]=s[i]; i++; } d[i]=0; return d; }");
+        line("#define strcpy strcpy_");
+        line("static unsigned char* strcat_(unsigned char* d, unsigned char* s){ long long i=0,j=0; while(d[i]) i++; while(s[j]){ d[i+j]=s[j]; j++; } d[i+j]=0; return d; }");
+        line("#define strcat strcat_");
         emit_mem_macros();
         # 输出函数由后端提供（printf 版）。
         # 不用 syscall 是因为 WASI 没有 syscall() —— 照搬 io.mo 会链接失败。

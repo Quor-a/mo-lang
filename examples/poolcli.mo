@@ -106,7 +106,7 @@ fn client_csp(arg: i64) -> i64 {
     let i: i64 = 0;
     while i < ROUNDS {
         let fd: i64 = pool_borrow();
-        let mine: i64 = 0;
+        let mine: i64 = 0;  # unused: ok
         if fd <= 0 {
             fd = aio_connect(2130706433, PORT);
             mine = 1;
@@ -172,7 +172,7 @@ fn client_http(arg: ptr) -> i64 {
     i = 0;
     while i < ROUNDS {
         fd = pool_borrow();
-        let mine: i64 = 0;
+        let mine: i64 = 0;  # unused: ok
         if fd <= 0 {
             fd = tcp_connect(2130706433, PORT);
             mine = 1;

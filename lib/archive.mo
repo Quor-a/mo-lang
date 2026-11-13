@@ -640,7 +640,7 @@ fn gzip_write(src: i64, dst: i64) -> i64 {
         # 登记前面 2 字节的 hash（窗口前进时逐个 insert）
         if i + 2 < n {
             # 找匹配
-            let ml: i64 = 0;
+            let ml: i64 = 0;  # unused: ok
             if i >= 3 {
                 # 需要把 i-1 与 i-2 的 hash 插过——用惰性:每步插 i-3?简化:插 i(当前),找 i 时链里只有 <i
                 ml = 0;

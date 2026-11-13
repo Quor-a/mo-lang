@@ -39,6 +39,7 @@ fn main() -> i64 {
     }
     # push → 201
     let b: i64 = tcp_http_post_gzip("/pub/x.tar.gz?name=x&version=1.0.0", "127.0.0.1", 18945, &T_BODY, 512, &T_BUF, 65536, &T_STAT);
+    if b == 0 - 1 { exit(1); }
     if T_STAT != 201 { print("r1:"); print_i64(T_STAT); print("\n"); exit(1); }
     # HEAD 200(存在性)
     b = tcp_http_req_port("HEAD", "/pkg/x.tar.gz", "127.0.0.1", 18945, 0, 0, &T_BUF, 65536, &T_STAT);
