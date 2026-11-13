@@ -1477,6 +1477,9 @@ fn peek_builtin_fn() -> i64 {
     let r: i64 = 0;
     if streq(nm, "print") == 1 { r = 1; }
     if streq(nm, "print_i64") == 1 { r = 1; }
+    if streq(nm, "eprint") == 1 { r = 1; }
+    if streq(nm, "eprint_i64") == 1 { r = 1; }
+    if streq(nm, "eprint_nl") == 1 { r = 1; }
     if streq(nm, "print_nl") == 1 { r = 1; }
     if streq(nm, "print_hex") == 1 { r = 1; }
     if streq(nm, "exit") == 1 { r = 1; }
@@ -4264,6 +4267,8 @@ fn kern_header() -> i64 {
     line("  if(v<0){ neg=1; u=(unsigned long)(-(long)v); } else u=(unsigned long)v;");
     line("  if(u==0) b[i++]='0';");
     line("  while(u){ b[i++]=(char)('0'+(u%10)); u/=10; }");
+    line("static void eprint(const unsigned char* s){ vga_print((const char*)s); }");
+    line("static void eprint_nl(void){ vga_putc('\\n'); }");
     line("  if(neg) vga_putc('-');");
     line("  while(i) vga_putc(b[--i]);");
     line("}");
@@ -4351,6 +4356,8 @@ fn kern_header_aarch64() -> i64 {
     line("  if(v<0){ neg=1; u=(unsigned long)(-(long)v); } else u=(unsigned long)v;");
     line("  if(u==0) b[i++]='0';");
     line("  while(u){ b[i++]=(char)('0'+(u%10)); u/=10; }");
+    line("static void eprint(const unsigned char* s){ uart_print((const char*)s); }");
+    line("static void eprint_nl(void){ uart_putc('\\n'); }");
     line("  if(neg) uart_putc('-');");
     line("  while(i) uart_putc(b[--i]);");
     line("}");
@@ -4415,6 +4422,16 @@ fn emit_fs_print() -> i64 {
     line("  if(neg) b[i++]='-';");
     line("  while(i){ unsigned char c=b[--i]; mo_syscall(MO_WRITE_,1,(long)&c,1,0,0,0); }");
     line("}");
+    line("static void eprint(const unsigned char* s){ long n=0; while(s[n]) n++; mo_syscall(MO_WRITE_,2,(long)s,n,0,0,0); }");
+    line("static void eprint_nl(void){ mo_syscall(MO_WRITE_,2,(long)&MO_NL_,1,0,0,0); }");
+    line("static void eprint_i64(long v){");
+    line("  unsigned char b[24]; int i=0; unsigned long u; int neg=0;");
+    line("  if(v<0){ neg=1; u=(unsigned long)(-(long)v); } else u=(unsigned long)v;");
+    line("  if(u==0) b[i++]='0';");
+    line("  while(u){ b[i++]=(unsigned char)('0'+(u%10)); u/=10; }");
+    line("  if(neg) b[i++]='-';");
+    line("  while(i){ unsigned char c=b[--i]; mo_syscall(MO_WRITE_,2,(long)&c,1,0,0,0); }");
+    line("}");
     return 0;
 }
 
@@ -4470,6 +4487,17 @@ fn uefi_header() -> i64 {
     line("  while(u){ b[i++]=(char)('0'+(u%10)); u/=10; }");
     line("  if(neg) b[i++]='-';");
     line("  char o[24]; int j=0; while(i) o[j++]=b[--i]; o[j]=0;");
+    line("static void eprint(const unsigned char* s){ uefi_puts((const char*)s); }");
+    line("static void eprint_nl(void){ uefi_puts(\"\\r\\n\"); }");
+    line("static void eprint_i64(long v){");
+    line("  char b[24]; int i=0; unsigned long u; int neg=0;");
+    line("  if(v<0){ neg=1; u=(unsigned long)(-(long)v); } else u=(unsigned long)v;");
+    line("  if(u==0) b[i++]='0';");
+    line("  while(u){ b[i++]=(char)('0'+(u%10)); u/=10; }");
+    line("  if(neg) b[i++]='-';");
+    line("  char o[24]; int j=0; while(i) o[j++]=b[--i]; o[j]=0;");
+    line("  uefi_puts(o);");
+    line("}");
     line("  uefi_puts(o);");
     line("}");
     line("static void exit(long c){ (void)c; for(;;){} }");
@@ -4526,6 +4554,12 @@ fn emit_header() -> i64 {
         line("#define print_i64 print_i64_");
         line("#define print_nl print_nl_");
         line("#define print_hex print_hex_");
+        line("static long long eprint_(const unsigned char* s){ return (long long)fputs((const char*)s, stderr); }");
+        line("static long long eprint_i64_(long long v){ return (long long)fprintf(stderr, \"%lld\", v); }");
+        line("static long long eprint_nl_(void){ return (long long)fputc('\\n', stderr); }");
+        line("#define eprint eprint_");
+        line("#define eprint_i64 eprint_i64_");
+        line("#define eprint_nl eprint_nl_");
         # v1.1164: fint/f64 内建（f64↔i64 转换）。LLP64 规则：一律 long long。
         # (long long)double 向零截断 = cvttsd2si 语义。
         line("static long long fint(double v){ return (long long)v; }");

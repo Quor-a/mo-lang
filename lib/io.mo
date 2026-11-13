@@ -5,6 +5,43 @@ fn print(s: i64) -> i64 {
     return 0;
 }
 
+# v1.1178: stderr 输出 —— 诊断/日志走 fd 2，不污染 stdout 管道。
+fn eprint(s: i64) -> i64 {
+    syscall(1, 2, s, strlen(s), 0, 0, 0);
+    return 0;
+}
+
+fn eprint_i64(v: i64) -> i64 {
+    let buf: [24] i64 = 0;
+    let i: i64 = 22;
+    let neg: i64 = 0;
+    if v < 0 {
+        neg = 1;
+        v = 0 - v;
+    }
+    if v == 0 {
+        store8(&buf, 48);
+        syscall(1, 2, &buf, 1, 0, 0, 0);
+        return 0;
+    }
+    while v > 0 {
+        store8(&buf + i, 48 + (v % 10));
+        v = v / 10;
+        i = i - 1;
+    }
+    if neg == 1 {
+        store8(&buf + i, 45);
+        i = i - 1;
+    }
+    syscall(1, 2, &buf + i + 1, 22 - i, 0, 0, 0);
+    return 0;
+}
+
+fn eprint_nl() -> i64 {
+    eprint("\n");
+    return 0;
+}
+
 fn print_i64(v: i64) -> i64 {
     let buf: [24] i64 = 0;
     let i: i64 = 22;

@@ -11125,3 +11125,11 @@ lambda。Mo 此前函数只能命名 + `&fn` 取址。
   （try/catch 捕获 e=2，无 try 则 exit(1)）。门禁 507/0（新增 tests/357）。
 - mo2x 对齐：三后端（C / freestanding x86_64/aarch64）前导发 assert_
   helper，调用点 assert(...) 改名透传。实测三后端 boom/exit(1)。
+
+## 1.1178.0 (2026-11-13)
+
+- lib/io.mo 新增 eprint / eprint_i64 / eprint_nl（stderr 输出，fd 2，
+  不污染 stdout 管道）。门禁 508/0（新增 tests/358 分流验证）。
+- mo2x 全后端对齐：C/WASI=fputs(stderr)；freestanding x86_64/aarch64=
+  mo_syscall(MO_WRITE_,2)；kern/uart/uefi 裸机目标降级到 stdout 设备
+  （无独立 stderr 概念）。三后端实测 stdout A/B + stderr E1/1234567/-8。
