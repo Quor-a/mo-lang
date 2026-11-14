@@ -11156,3 +11156,10 @@ lambda。Mo 此前函数只能命名 + `&fn` 取址。
   - fold_cmp(cc) 映射 setcc 操作码（94/95/9c/9e/9f/9d）
   - tests/361_cmpfold.mo；门禁 511/0；自举三次逐位一致
 - v1.1180.0 发布：RID 444437371，8 资产 digest 8/8；bundle release/1.1180.0-bundle；守恒删 v1.1178
+
+## 1.1182.0
+- 第四个优化 pass：恒等消除与乘法强度削减
+  - add/sub/or/xor 0、and -1、<<0、>>0、*1 → 零发射（rax 保持左值）
+  - and 0 → xor rax,rax（清零语义，非恒等 —— 253_logic_assign 回归抓出并修复）
+  - *0 → movabs 0；*2^k → shl（覆盖 imm32 编码范围外的大 2^k）
+  - tests/362_identity.mo（i64 正/负/零三组）；门禁 512/0；自举逐位一致

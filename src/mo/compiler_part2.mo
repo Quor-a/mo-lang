@@ -734,6 +734,14 @@ fn try_fold_rhs() -> i64 {
 # rax <op>= imm（Group1 形状：imm8 用 83 /reg，imm32 用独立操作码）
 fn g_imm_g1(m8: i64, op32: i64) -> i64 {
     let v: i64 = gv(K_PLV);
+    # v1.1182: 恒等消除 —— add/sub/or/xor 0、and -1 不改变 rax，一条都不发。
+    # 此时 try_fold_rhs 已回退右常量与 pop rcx，rax 本来就是左操作数。
+    # 🔴 and 0 是清零不是恒等（253 回归教训）：必须发 xor rax,rax（3B，置 ZF）
+    if v == 0 {
+        if m8 == 0xe0 { ops3(0x48, 0x31, 0xc0); return 0; }
+        return 0;
+    }
+    if m8 == 0xe0 && v == 0 - 1 { return 0; }   # and rax,-1 = rax
     if v <= 127 {
         ops3(0x48, 0x83, m8);
         emit1(v & 255);
@@ -832,6 +840,11 @@ fn g_imul() -> i64 {
     if try_fold_rhs() == 1 {
         emit1(0x58);
         let v: i64 = gv(K_PLV);
+        # v1.1182: 恒等/强度削减
+        if v == 0 { g_movabs_rax(0); return 0; }        # x*0 = 0
+        if v == 1 { return 0; }                          # x*1 = x
+        let pk: i64 = pow2_exp(v);
+        if pk > 0 { g_shl_rax_imm(pk); return 0; }       # x*2^k = shl（4B，含 imm32 超界的大 2^k）
         if v <= 127 {
             ops3(0x48, 0x6b, 0xc0);
             emit1(v & 255);
@@ -1170,6 +1183,7 @@ fn g_shl() -> i64 {
     if try_fold_rhs() == 1 {
         emit1(0x58);
         let c: i64 = gv(K_PLV);
+        if c == 0 { return 0; }   # v1.1182: x<<0 = x
         if c <= 63 {
             ops3(0x48, 0xc1, 0xe0);
             emit1(c & 255);
@@ -1190,6 +1204,7 @@ fn g_sar() -> i64 {
     if try_fold_rhs() == 1 {
         emit1(0x58);
         let c: i64 = gv(K_PLV);
+        if c == 0 { return 0; }   # v1.1182: x>>0 = x
         if c <= 63 {
             ops3(0x48, 0xc1, 0xf8);
             emit1(c & 255);
