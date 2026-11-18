@@ -17,7 +17,7 @@ var O_DATA: i64 = 95000000;  # 输出数据段缓冲。原先 5242880，与 O_NA
 var O_DCAP: i64 = 10485760;  # 数据段缓冲上限（与 dbyte 的检查保持一致）
 var O_NAMES: i64 = 6291456;
 var O_SYN: i64 = 6815744;
-var K_WARN:   i64 = 648;   # 0=关闭未使用变量警告（有误报，见 docs）
+var K_WARN:   i64 = 648;   # v1.1188: 默认开启（误报主因已修：&x 标记、lib/ 豁免、_ 前缀弃值惯用法）；-Wall 保留兼容
                           # 🔴 曾与 K_FMODE 同槽 464 → -Wall 打开 f-string
                           #    模式，import 字符串解析全崩。648 在
                           #    K_PROFMAIN(640) 与 K_ESCP(688) 之间，空槽。

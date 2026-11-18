@@ -9001,6 +9001,7 @@ fn main() -> i64 {
         store64(heap + O_CFB + czc * 16 + 8, 0);
         czc = czc + 1;
     }
+    sv(K_WARN, 1);   # v1.1188: 未使用诊断默认开启（误报主因已修）；-Wall 保留兼容
     let ai: i64 = 1;
     while ai < argc() {
         let a: i64 = argv(ai);

@@ -677,7 +677,12 @@ fn warn_unused(d: i64) -> i64 {
         # 只查局部变量（kind==1）：全局量可能只被别的文件用
         if load64(heap + O_SK + k * 8) == 1 {
             if load64(heap + O_SU + k * 8) == 0 {
-                warn_unused_at(name_at(k));
+                let wn: i64 = name_at(k);
+                # v1.1188: `_` 前缀 = 有意弃置（与形参 `_` 豁免一致化）；
+                # 弃值调用惯用法 `let _d: i64 = f(...)` 不再误报。
+                if load8(wn) != 95 {
+                    warn_unused_at(wn);
+                }
             }
         }
         i = i - 1;
