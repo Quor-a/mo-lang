@@ -828,6 +828,7 @@ var R_SADDR: i64 = 0;
 # 失效点：store_sym（一切赋值/++/--）、parse_addr &（地址逃逸）、sym_pop_scope（下标复用）。
 # 只在 load_sym 的标量读路径消费；捕获/数组/struct/byte 各自的读路径不经此处。
 fn cprop_valid(s: i64) -> i64 {
+    if s < 0 || s >= 2048 { return 0; }
     return load8(heap + O_CPROP + s * 16);
 }
 
@@ -836,11 +837,13 @@ fn cprop_get(s: i64) -> i64 {
     return 0;
 }
 fn cprop_set(s: i64, v: i64) -> i64 {
+    if s < 0 || s >= 2048 { return 0; }
     store8(heap + O_CPROP + s * 16, 1);
     store64(heap + O_CPROP + s * 16 + 8, v);
     return 0;
 }
 fn cprop_clear(s: i64) -> i64 {
+    if s < 0 || s >= 2048 { return 0; }
     store8(heap + O_CPROP + s * 16, 0);
     return 0;
 }

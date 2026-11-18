@@ -3,6 +3,15 @@ var RETB: i64 = 0;    # v1.1089: 数组返回暂存区（解决 1079 悬垂）
 # ==========================================================================
 #  x86-64 指令发射
 # ==========================================================================
+fn cprop_load(s: i64) -> i64 {
+    if s < 2048 {
+        if cprop_valid(s) == 1 {
+            return g_load_local(sym_addr(s));
+        }
+    }
+    return g_load_local(sym_addr(s));
+}
+
 fn ops2(a: i64, b: i64) -> i64 {
     emit1(a);
     emit1(b);
@@ -564,12 +573,16 @@ fn load_sym(s: i64) -> i64 {
         if sym_kind(s) == 1 { return g_load_local_b(sym_addr(s)); }
         return g_load_global_b(sym_addr(s));
     }
-    if sym_kind(s) == 1 { return g_load_local(sym_addr(s)); }
+    if sym_kind(s) == 1 { return cprop_load(s); }
     return g_load_global(sym_addr(s));
 }
 
 fn store_sym(s: i64) -> i64 {
     store64(heap + O_SU + s * 8, 1);
+    if s < 2048 {
+        cprop_clear(s);   # v1.1185: 任何赋值即失效
+        store8(heap + O_CPROP + s * 16 + 9, 1);   # 「写过」标志
+    }
 
     if cap_depth(s) > 0 {
         return g_store_captured(sym_addr(s), cap_depth(s));

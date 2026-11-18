@@ -11182,3 +11182,15 @@ lambda。Mo 此前函数只能命名 + `&fn` 取址。
   未被本修复完全消除（ud2 探针证实命中分支可达但返回值未生效），疑似函数体内
   常量发射与回退机制的更深交互，留待专项轮。cprop 消费端保持未接通。
 - tests/363_constret.mo（常量 return × 循环边界回归网）；门禁 513/0；自举一致。
+
+## 1.1185.0
+
+# cprop 失效路径修复 + 符号边界保护（v1.1185）
+
+- store_sym 补 cprop_clear：任何赋值即失效（此前仅 &x 与 scope pop 清除，赋值后仍传播声明期常量）
+- O_CPROP 表新增「写过」标志（+9 字节）：标记符号曾被赋值，供消费端区分纯 let 常量与可变变量
+- 🔴 符号边界保护：cprop_set/valid/clear 及 store_sym 的 cprop 写全部加 s<2048 保护——编译器自举 sym 数超 2048 时 O_CPROP 区越界写坏 O_MODS 导致 SIGSEGV（104 组件系列编译崩溃根因）
+- 排查记录：控制流边界（emit_jcc/emit_jmp/place_label）清 K_CRBX/K_LAST 引发 39~83 例回归，全部撤除——栈顶缓存跨跳转的语义比预想复杂，列为独立课题
+- 消费端（cprop_load 发 movabs）保守回退为直读：本轮先落地正确的失效链路，消费接通待下轮
+- tests/364_cprop.mo：cprop 失效/写过标志/循环/逻辑复合赋值回归网
+- 门禁 514/0（+364）；自举一致
