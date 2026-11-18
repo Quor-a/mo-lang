@@ -570,6 +570,7 @@ fn load_sym(s: i64) -> i64 {
 
 fn store_sym(s: i64) -> i64 {
     store64(heap + O_SU + s * 8, 1);
+
     if cap_depth(s) > 0 {
         return g_store_captured(sym_addr(s), cap_depth(s));
     }
