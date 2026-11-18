@@ -23,7 +23,7 @@ var K_WARN:   i64 = 648;   # 0=关闭未使用变量警告（有误报，见 doc
                           #    K_PROFMAIN(640) 与 K_ESCP(688) 之间，空槽。
 var O_SU: i64 = 9000000;   # 符号是否被读过（未使用检查，见 K_WARN）
 var O_SRT: i64 = 9020000;   # 函数返回类型（O_SU 之后 2 万字节处，够 2048 个符号）
-var O_CPROP: i64 = 9050000;   # 🔴 v1.1183 修正：原 9100000 撞 O_SPFX(91002568) 区（s*16>2568 即越界），移到 9040480~91002568 的真正空档
+var O_CPROP: i64 = 9050000;
 # v1.1180: 局部常量传播表（每 sym 16B: flag@0 val@8；9020000+20480=9040480 之后空闲，< O_LB 92000000）
 var O_SK: i64 = 6832128;
 var O_SA: i64 = 6848512;
@@ -2320,6 +2320,15 @@ var DFTE: [64] i64 = 0;
 var DFTH: i64 = 0;
 
 fn g_epilogue() -> i64 {
+    # v1.1184: 函数边界强制清全部常量标记。否则 return 常量的函数把
+    # K_LAST/K_LASTV/K_LASTR/K_PLL* 残留到下一个被编译的函数 ——
+    # 后面任何 g_push_rax 会误判「rax 是常量」触发回退，把发射流错位。
+    sv(K_LAST, 0);
+    sv(K_LASTV, 0);
+    sv(K_LASTR, 0);
+    sv(K_PLL, 0);
+    sv(K_PLLV, 0);
+    sv(K_PLLR, 0);
     # 🔴 只对主文件插桩：库函数（strlen、print…）被调用几百万次，
     #    插上去既污染数据又把程序拖慢到不可信。
     if gv(K_PROF) == 1 { if gv(K_INIMP) == 0 { prof_emit_leave(); } }

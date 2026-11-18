@@ -1474,6 +1474,15 @@ var DFTE: [64] i64 = 0;
 var DFTH: i64 = 0;
 
 fn g_epilogue() -> i64 {
+    # v1.1184: 函数边界强制清全部常量标记。否则 return 常量的函数把
+    # K_LAST/K_LASTV/K_LASTR/K_PLL* 残留到下一个被编译的函数 ——
+    # 后面任何 g_push_rax 会误判「rax 是常量」触发回退，把发射流错位。
+    sv(K_LAST, 0);
+    sv(K_LASTV, 0);
+    sv(K_LASTR, 0);
+    sv(K_PLL, 0);
+    sv(K_PLLV, 0);
+    sv(K_PLLR, 0);
     # 🔴 只对主文件插桩：库函数（strlen、print…）被调用几百万次，
     #    插上去既污染数据又把程序拖慢到不可信。
     if gv(K_PROF) == 1 { if gv(K_INIMP) == 0 { prof_emit_leave(); } }
