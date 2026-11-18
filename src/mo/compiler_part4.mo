@@ -1566,6 +1566,7 @@ fn parse_addr() -> i64 {
     if sv < 0 { return undef_err(scratch1()); }
     if sym_kind(sv) == 1 {
         cprop_clear(sv);   # v1.1180: &x → 地址逃逸，常量传播失效
+        store64(heap + O_SU + sv * 8, 1);   # v1.1187: &x 也算「用过」（修 unused 误报①）
         g_lea_local(sym_addr(sv));
     } else {
         g_movabs_rax(sym_addr(sv));
