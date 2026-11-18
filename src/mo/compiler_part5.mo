@@ -6456,6 +6456,7 @@ fn parse_func() -> i64 {
         emit1(0x5f);                      # pop rdi
     }
     parse_block(2);
+    if gv(K_WARN) == 1 { warn_unused_params(); }   # v1.1186: 形参未用检查
     if gv(K_HASRET) == 0 {
         # v1.1036: void 函数（省略 "->"）可以没有 return
         if gv(K_VOIDFN) == 0 {

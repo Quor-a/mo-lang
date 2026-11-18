@@ -638,6 +638,31 @@ fn warn_unused_at(name: i64) -> i64 {
     return 0;
 }
 
+# v1.1186: 未使用**形参**警告 —— 形参 depth==1、kind==1、函数体解析完后
+# O_SU==0 即从未被读。空体/`_` 命名豁免（_ 是惯用丢弃名）。
+# 只在 K_WARN=1 时由 parse_func 调用（parse_block(2) 之后、此时函数体
+# 顶层 sym 已被 sym_pop_scope 回收，形参(depth==1)仍在表内）。
+fn warn_unused_params() -> i64 {
+    let i: i64 = 0;
+    while i < gv(K_NSYM) {
+        if load64(heap + O_SD + i * 8) == 1 {
+            if load64(heap + O_SK + i * 8) == 1 {
+                if load64(heap + O_SU + i * 8) == 0 {
+                    let wn: i64 = name_at(i);
+                    if streq(wn, "_") == 0 {
+                        syscall(1, 2, INPATH, strlen(INPATH), 0, 0, 0);
+                        syscall(1, 2, ": warning: unused parameter '", 29, 0, 0, 0);
+                        syscall(1, 2, wn, strlen(wn), 0, 0, 0);
+                        syscall(1, 2, "'\n", 2, 0, 0, 0);
+                    }
+                }
+            }
+        }
+        i = i + 1;
+    }
+    return 0;
+}
+
 # 未使用变量检查：只报警告，不影响编译成功。
 # 选警告而不是错误，是因为它不该挡住编译 —— 而且这条诊断只在 moc 实现，
 # seed 不实现它。保持它是警告的第二个理由：万一误报，
