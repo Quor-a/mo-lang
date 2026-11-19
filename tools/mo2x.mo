@@ -138,6 +138,24 @@ var SRC: [524288] byte = 0;
 var SLEN: i64 = 0;
 
 var POOL: [1048576] byte = 0;
+
+# v1.1193: 稳定字符串池 —— 各名字表存的名字一律拷贝到此。
+# POOL 每个文件重新 tokenize 时 PP=0 整体重写，表里的裸指针会悬空，
+# 之后 streq 撞上重写后的无关内容（126_fmath 里 fm_trunc 撞进 PTRV 的根因）。
+var STP: [16384] byte = 0;
+var NSTP: i64 = 0;
+fn stp_copy(s: i64) -> i64 {
+    let p: i64 = &STP + NSTP;
+    let q: i64 = 0;
+    while load8(s + q) != 0 {
+        if NSTP + q >= 16380 { break; }
+        store8(p + q, load8(s + q));
+        q = q + 1;
+    }
+    store8(p + q, 0);
+    NSTP = NSTP + q + 1;
+    return p;
+}
 var PP: i64 = 0;
 
 var TK: [200000] i64 = 0;
@@ -154,7 +172,8 @@ var CNSV: [256] i64 = 0;
 var NCNS: i64 = 0;
 var CNSP: [4096] byte = 0;
 var GDIM: [2048] byte = 0;   # 数组维度表达式缓存（全局，勿用局部——返回后栈帧失效）
-var GDIMD: i64 = 0;          # 当前嵌套深度（多维数组各占 512 字节）
+var GDIMD: i64 = 0;
+var ADIM: i64 = 0;   # v1.1193: 最近解析的数组维度数值（标量填充用）          # 当前嵌套深度（多维数组各占 512 字节）
 var CNSPP: i64 = 0;
 
 # v1.1163: const fn 求值器（C 后端数组长度 / const 声明用）
@@ -760,11 +779,101 @@ fn emit_binop(s: i64) -> i64 {
 
 # 字符串比较特判：IDENT(∈STRV) CMPOP STRING/IDENT(∈STRV) —— Mo 语义按内容比较。
 # 只覆盖常见模式；复杂表达式回退指针比较（预存限制）。
+# FSGR[i]=返回 kind。CURRTK=当前函数返回 kind。
+var FSGH: [512] i64 = 0;
+var FSGC: [256] i64 = 0;
+var FSGK: [4096] i64 = 0;
+var FSGR: [256] i64 = 0;
+var NFSG: i64 = 0;
+
 fn try_strcmp() -> i64 {
+    if cur_k() == 3 {
+        # v1.1193: 字面量 CMPOP 字面量/str 变量 —— "ab" < "abc" 按内容比
+        let save6: i64 = TI;
+        TI = TI + 1;
+        if cur_k() != 5 { TI = save6; return 0; }
+        let op6: i64 = &POOL + TS[TI];
+        let ic6: i64 = 0;
+        if streq(op6, "==") == 1 { ic6 = 1; }
+        if streq(op6, "!=") == 1 { ic6 = 1; }
+        if streq(op6, "<") == 1 { ic6 = 1; }
+        if streq(op6, ">") == 1 { ic6 = 1; }
+        if streq(op6, "<=") == 1 { ic6 = 1; }
+        if streq(op6, ">=") == 1 { ic6 = 1; }
+        if ic6 == 0 { TI = save6; return 0; }
+        TI = TI + 1;
+        if cur_k() == 3 || (cur_k() == 1 && strv_find(cur_s()) == 1) {
+            outs("strcmp((unsigned char*)");
+            out_cstr(&POOL + TS[save6]);
+            outs(", (unsigned char*)");
+            if cur_k() == 3 { out_cstr(cur_s()); } else { outs(cur_s()); }
+            outs(") ");
+            outs(op6);
+            outs(" 0");
+            TI = TI + 1;
+            return 1;
+        }
+        TI = save6;
+        return 0;
+    }
     if cur_k() != 1 { return 0; }
     let a: i64 = cur_s();
     let isa: i64 = strv_find(a);
-    if isa == 0 { return 0; }
+    if isa == 0 {
+        # v1.1193: 左是返回 str/ptr 的函数调用 ident(...) —— 扩展 strcmp 改写。
+        # 先保存，配平实参括号，看后面是不是比较符。
+        let sv5: i64 = TI;
+        if fsg_find(a) < 0 { return 0; }
+        if FSGR[fsg_find(a)] != 1 { return 0; }
+        TI = TI + 1;
+        if is_op("(") == 0 { TI = sv5; return 0; }
+        TI = TI + 1;
+        let dep5: i64 = 1;
+        while dep5 > 0 && TI < NT {
+            if TK[TI] == 5 {
+                let s5: i64 = &POOL + TS[TI];
+                if streq(s5, "(") == 1 { dep5 = dep5 + 1; }
+                if streq(s5, ")") == 1 { dep5 = dep5 - 1; }
+            }
+            TI = TI + 1;
+        }
+        if dep5 != 0 { TI = sv5; return 0; }
+        if cur_k() != 5 { TI = sv5; return 0; }
+        let opidx: i64 = TI;
+        let opb: [16] byte = 0;
+        let op5: i64 = &opb;
+        {
+            let c5: i64 = 0;
+            let s5b: i64 = &POOL + TS[TI];
+            while load8(s5b + c5) != 0 && c5 < 14 { store8(&opb + c5, load8(s5b + c5)); c5 = c5 + 1; }
+            store8(&opb + c5, 0);
+        }
+        let ic5: i64 = 0;
+        if streq(op5, "==") == 1 { ic5 = 1; }
+        if streq(op5, "!=") == 1 { ic5 = 1; }
+        if streq(op5, "<") == 1 { ic5 = 1; }
+        if streq(op5, ">") == 1 { ic5 = 1; }
+        if streq(op5, "<=") == 1 { ic5 = 1; }
+        if streq(op5, ">=") == 1 { ic5 = 1; }
+        if ic5 == 0 { TI = sv5; return 0; }
+        TI = TI + 1;
+        if cur_k() == 3 || (cur_k() == 1 && strv_find(cur_s()) == 1) {
+            # 重放调用：emit 到 ')'（emit_primary 一次搞定整个调用）
+            TI = sv5;
+            outs("strcmp((unsigned char*)");
+            emit_primary();
+            outs(", (unsigned char*)");
+            TI = opidx + 1;
+            if cur_k() == 3 { out_cstr(cur_s()); } else { outs(cur_s()); }
+            outs(") ");
+            outs(op5);
+            outs(" 0");
+            TI = opidx + 2;
+            return 1;
+        }
+        TI = sv5;
+        return 0;
+    }
     let save: i64 = TI;
     TI = TI + 1;
     if cur_k() != 5 { TI = save; return 0; }
@@ -804,12 +913,6 @@ var CAST_OPEN: i64 = 0;    # emit_primary 已发 "(long long)("，postfix ']' �
 #    绝对地址/偏移都会失效 —— 名字内容被覆盖导致 fsg_find 误命中（io.mo print_f64 的 f64 调用
 #    命中 atoi 槽位就是这个坑）。哈希数值跨文件稳定。
 # FSGH[i]=名哈希, FSGC[i]=参数个数, FSGK[i*8+j]=参数 j kind（0=i64,1=ptr,2=byte,3=f64,4=其他）,
-# FSGR[i]=返回 kind。CURRTK=当前函数返回 kind。
-var FSGH: [512] i64 = 0;
-var FSGC: [256] i64 = 0;
-var FSGK: [4096] i64 = 0;
-var FSGR: [256] i64 = 0;
-var NFSG: i64 = 0;
 var CURRTK: i64 = 4;
 
 fn nm_hash(nm: i64) -> i64 {
@@ -1388,6 +1491,14 @@ fn st_find(nm: i64) -> i64 {
 var CLSV: [64] i64 = 0;   # struct 类型局部变量名
 var CLST: [64] i64 = 0;   # 对应类型名
 var NCLSV: i64 = 0;
+fn clsv_find(nm: i64) -> i64 {
+    let i: i64 = 0;
+    while i < NCLSV {
+        if streq(CLSV[i], nm) == 1 { return CLST[i]; }
+        i = i + 1;
+    }
+    return 0;
+}
 fn clsv_add(nm: i64, ty: i64) -> i64 {
     let i: i64 = 0;
     while i < NCLSV {
@@ -1395,8 +1506,8 @@ fn clsv_add(nm: i64, ty: i64) -> i64 {
         i = i + 1;
     }
     if NCLSV >= 64 { return 0; }
-    CLSV[NCLSV] = nm;
-    CLST[NCLSV] = ty;
+    CLSV[NCLSV] = stp_copy(nm);
+    CLST[NCLSV] = stp_copy(ty);
     NCLSV = NCLSV + 1;
     return 0;
 }
@@ -1416,7 +1527,7 @@ var PTRV: [256] i64 = 0;
 var NPTRV: i64 = 0;
 fn ptrv_add(nm: i64) -> i64 {
     if NPTRV >= 256 { return 0; }
-    PTRV[NPTRV] = nm;
+    PTRV[NPTRV] = stp_copy(nm);
     NPTRV = NPTRV + 1;
     return 0;
 }
@@ -1440,7 +1551,7 @@ fn bytev_find(nm: i64) -> i64 {
 
 fn bytev_add(nm: i64) -> i64 {
     if NBYTEV >= 256 { return 0; }
-    BYTEV[NBYTEV] = nm;
+    BYTEV[NBYTEV] = stp_copy(nm);
     NBYTEV = NBYTEV + 1;
     return 0;
 }
@@ -1460,12 +1571,80 @@ fn strv_find(nm: i64) -> i64 {
 
 fn strv_add(nm: i64) -> i64 {
     if NSTRV >= 64 { return 0; }
-    STRV[NSTRV] = nm;
+    STRV[NSTRV] = stp_copy(nm);
     NSTRV = NSTRV + 1;
     return 0;
 }
 
+fn peek_op2(s: i64, off: i64) -> i64 {
+    if TI + off >= NT { return 0; }
+    if TK[TI + off] != 5 { return 0; }
+    if streq(&POOL + TS[TI + off], s) == 1 { return 1; }
+    return 0;
+}
+var ARRVS: [128] i64 = 0;
+var NARRV: i64 = 0;
+fn peek_op(s: i64) -> i64 {
+    if TI + 1 >= NT { return 0; }
+    if TK[TI + 1] != 5 { return 0; }
+    if streq(&POOL + TS[TI + 1], s) == 1 { return 1; }
+    return 0;
+}
 fn emit_prec(minp: i64) -> i64 {
+    # v1.1193: 运算符重载 —— 左操作数是 struct 变量且存在 Type_op 函数 →
+    # 改写为 Type_op(l, r)。
+    let is_c3: i64 = is_c_like();
+    if is_c3 == 1 && cur_k() == 1 {
+        let onm: i64 = 0;
+        if peek_op("+") == 1 { onm = "add"; }
+        if peek_op("-") == 1 { onm = "sub"; }
+        if peek_op("*") == 1 { onm = "mul"; }
+        if peek_op("/") == 1 { onm = "div"; }
+        if peek_op("==") == 1 { onm = "eq"; }
+        if peek_op("!=") == 1 { onm = "ne"; }
+        if peek_op("<") == 1 { onm = "lt"; }
+        if peek_op(">") == 1 { onm = "gt"; }
+        if peek_op("<=") == 1 { onm = "le"; }
+        if peek_op(">=") == 1 { onm = "ge"; }
+        if onm != 0 {
+            let ty: i64 = clsv_find(cur_s());
+            if ty != 0 {
+                let buf: [128] byte = 0;
+                strcat(&buf, ty);
+                strcat(&buf, "_");
+                strcat(&buf, onm);
+                if fsg_find(&buf) >= 0 {
+                    outs(&buf);
+                    outs("(&");
+                    outs(cur_s());
+                    TI = TI + 2;
+                    outs(", &");
+                    emit_prec(20);
+                    outs(")");
+                    return 0;
+                }
+                # 无重载的 struct 比较：native 端按"未定义 → 假"处理（346 语义对齐）。
+                # 跳过左 ident 与 op，右表达式用平衡跳过（不发射）。
+                if peek_op("==") == 1 || peek_op("!=") == 1 || peek_op("<") == 1 || peek_op(">") == 1 || peek_op("<=") == 1 || peek_op(">=") == 1 {
+                    outs("0");
+                    TI = TI + 2;
+                    let depth: i64 = 0;
+                    while TI < NT {
+                        if TK[TI] == 5 {
+                            if streq(&POOL + TS[TI], "(") == 1 || streq(&POOL + TS[TI], "[") == 1 { depth = depth + 1; }
+                            if streq(&POOL + TS[TI], ")") == 1 || streq(&POOL + TS[TI], "]") == 1 {
+                                if depth == 0 { break; }
+                                depth = depth - 1;
+                            }
+                            if depth == 0 && (streq(&POOL + TS[TI], ";") == 1 || streq(&POOL + TS[TI], "}") == 1 || streq(&POOL + TS[TI], "{") == 1) { break; }
+                        }
+                        TI = TI + 1;
+                    }
+                    return 0;
+                }
+            }
+        }
+    }
     emit_unary();
     while 1 {
         let p: i64 = binprec();
@@ -1603,6 +1782,7 @@ fn emit_dim_to_buf(db: i64) -> i64 {
     TI = save;
     if has_cf == 1 {
         let v: i64 = cns_expr();
+        ADIM = v;
         expect_op("]");
         let nb: [24] byte = 0;
         utoa(v, &nb, 10);
@@ -1610,6 +1790,13 @@ fn emit_dim_to_buf(db: i64) -> i64 {
         while load8(&nb + q) != 0 { store8(buf + q, load8(&nb + q)); q = q + 1; }
         store8(buf + q, 0);
         return 0;
+    }
+    # v1.1193: 记录维度数值（若长度是常量表达式）供标量填充用
+    {
+        let sv2: i64 = TI;
+        let dv: i64 = cns_expr();
+        ADIM = dv;
+        TI = sv2;
     }
     let first: i64 = 1;
     while TI < NT {
@@ -1684,7 +1871,7 @@ fn emit_dim_to_cache() -> i64 {
 }
 
 fn emit_scalar_or_arr(nm: i64, isarr: i64) -> i64 {
-    if isarr == 1 {
+    if isarr == 1 { arr_add(nm);
         if is_op("[") == 1 {
             # v1.1191: 先收集全部维度再输出 —— 此前递归导致维度顺序反转
             # （[2][3] 发成 [3][2]，sizeof(m) 取错外层，len() 对不上）。
@@ -2038,9 +2225,42 @@ fn tok_c(ti: i64) -> i64 {
     outs(&POOL + TS[ti]);
     return 0;
 }
+fn arr_add(nm: i64) -> i64 {
+    if NARRV >= 128 { return 0; }
+    if arr_find(nm) >= 0 { return 0; }
+    ARRVS[NARRV] = stp_copy(nm);
+    NARRV = NARRV + 1;
+    return 0;
+}
+fn arr_find(nm: i64) -> i64 {
+    let i: i64 = 0;
+    while i < NARRV {
+        if streq(ARRVS[i], nm) == 1 { return i; }
+        i = i + 1;
+    }
+    return 0 - 1;
+}
 fn emit_stmt() -> i64 {
     if try_incdec() == 1 { return 0; }
     if is_assign_start() == 1 {
+        # v1.1193: 数组整体赋值 q = p; → memcpy(q, p, sizeof(q))
+        let sv3: i64 = TI;
+        let ln3: i64 = cur_s();
+        if cur_k() == 1 && arr_find(ln3) >= 0 && peek_op("=") == 1 && TK[TI + 2] == 1 && arr_find(&POOL + TS[TI + 2]) >= 0 && peek_op2(";", 3) == 1 {
+            TI = TI + 2;
+            outs("memcpy(");
+            outs(ln3);
+            outs(", ");
+            outs(&POOL + TS[TI]);
+            outs(", sizeof(");
+            outs(ln3);
+            outs("))");
+            TI = TI + 1;
+            expect_op(";");
+            semi();
+            return 0;
+        }
+        TI = sv3;
         emit_lvalue();
         let t: i64 = cur_s();
         TI = TI + 1;
@@ -2415,8 +2635,21 @@ fn emit_local() -> i64 {
         if accept_op("=") == 1 {
             if isarr == 1 {
                 outs(" = {");
+                if cur_k() == 2 && ADIM > 0 {
+                    # v1.1193: `let a: [N] T = v;` 标量填充 —— native 语义是全部元素 = v
+                    let fill: i64 = cur_s();
+                    let fi: i64 = 0;
+                    while fi < ADIM {
+                        if fi > 0 { outs(", "); }
+                        outs(fill);
+                        fi = fi + 1;
+                    }
+                    TI = TI + 1;
+                }
+                else {
                 if cur_k() == 3 { emit_strbytes(cur_s(), 0); TI = TI + 1; }
                 else { if is_op("[") == 1 { emit_arrlit(); } else { emit_expr(); } }
+                }
                 outs("}");
             }
             else {
@@ -2467,7 +2700,7 @@ fn emit_local() -> i64 {
         outi(dim);
         if accept_op("=") == 1 { emit_expr(); }
     } else {
-        if is_struct_ty(LASTTY) == 1 { outs(" = "); outs(LASTTY); outs("()"); } else { if accept_op("=") == 1 { outs(" = "); emit_expr(); } else { outs(" = 0"); } }
+        if is_struct_ty(LASTTY) == 1 { outs(" = "); outs(LASTTY); outs("()"); clsv_add(nm, LASTTY); } else { if accept_op("=") == 1 { outs(" = "); emit_expr(); } else { outs(" = 0"); } }
     }
     nl();
     expect_op(";");
@@ -2522,8 +2755,21 @@ fn emit_global() -> i64 {
         if accept_op("=") == 1 {
             if isarr == 1 {
                 outs(" = {");
+                if cur_k() == 2 && ADIM > 0 {
+                    # v1.1193: `let a: [N] T = v;` 标量填充 —— native 语义是全部元素 = v
+                    let fill: i64 = cur_s();
+                    let fi: i64 = 0;
+                    while fi < ADIM {
+                        if fi > 0 { outs(", "); }
+                        outs(fill);
+                        fi = fi + 1;
+                    }
+                    TI = TI + 1;
+                }
+                else {
                 if cur_k() == 3 { emit_strbytes(cur_s(), 0); TI = TI + 1; }
                 else { if is_op("[") == 1 { emit_arrlit(); } else { emit_expr(); } }
+                }
                 outs("}");
             }
             else {
@@ -2574,7 +2820,7 @@ fn emit_global() -> i64 {
         outi(dim);
         if accept_op("=") == 1 { emit_expr(); }
     } else {
-        if is_struct_ty(LASTTY) == 1 { outs(" = "); outs(LASTTY); outs("()"); } else { if accept_op("=") == 1 { outs(" = "); emit_expr(); } else { outs(" = 0"); } }
+        if is_struct_ty(LASTTY) == 1 { outs(" = "); outs(LASTTY); outs("()"); clsv_add(nm, LASTTY); } else { if accept_op("=") == 1 { outs(" = "); emit_expr(); } else { outs(" = 0"); } }
     }
     nl();
     expect_op(";");
@@ -2789,7 +3035,7 @@ fn emit_sig() -> i64 {
                             else {
                             # struct 形参：moc 语义是引用（self.x=… 对调用方可见）。
                             strcat(&ps, "struct "); strcat(&ps, t); strcat(&ps, "_t*");
-                            if NTRS < 64 { PTRS[NTRS] = pn; NTRS = NTRS + 1; }
+                            if NTRS < 64 { PTRS[NTRS] = stp_copy(pn); NTRS = NTRS + 1; }
                             clsv_add(pn, t);   # 方法接收者也可 .method()
                             }
                         }

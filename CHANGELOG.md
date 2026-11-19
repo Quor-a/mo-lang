@@ -11261,3 +11261,12 @@ lambda。Mo 此前函数只能命名 + `&fn` 取址。
 - 337/338/339 constfn_loop/break/logic C 后端对齐通过；C 后端 mismatch 62→61（constfn 簇清零）
 - 调试教训记录：全局初始化器不支持表达式（魔数惰性初始化）；CFNAME 统一存绝对指针；run_body 返回值用 CFLM_R 魔数区分 return 值与语句状态码
 
+
+## 1.1193.0 mo2x C 后端对齐第三批（v1.1193）
+- 运算符重载接入 C 后端：struct 变量 op struct → Type_op(&l, &r)（fsg_find 函数表探测 + clsv_find 类型表）；无重载的 struct 比较按"未定义→假"语义跳过右表达式（346 对齐）
+- 数组标量填充：let a: [N] T = v; → {v,v,...}（ADIM 维度数值缓存，emit_dim_to_buf/emit_dim_to_cache 双路径）
+- 数组整体赋值：q = p; → memcpy(q, p, sizeof(q))（ARRVS 数组变量表）
+- str 比较对齐：返回 str 的函数调用 == 字面量走 strcmp；字面量 CMPOP 字面量/str 变量走 strcmp（127 全过、128 33/35）
+- 🔴 架构修复：POOL 每文件重新 tokenize（PP=0）导致 PTRV/BYTEV/STRV/CLSV/CLST/ARRVS/PTRS 表内裸指针悬空——新增 STP 稳定字符串池（stp_copy），所有名字表登记时拷贝（126_fmath 的 fm_trunc 误入 PTRV 根因）
+- op_overload 345=85 ✓ 346=19 ✓ 347=7 ✓；26_array_init=20 ✓ 260_arr_assign=79 ✓；126_fmath=0 ✓（59/59）126_utf8=0 ✓
+- C 后端对齐 mismatch 61→50；门禁 514/0
