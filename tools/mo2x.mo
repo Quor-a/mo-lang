@@ -194,6 +194,23 @@ var CFSP: [128] i64 = 0;      # 保存主 TI（调用返回点）
 var CFRET: [128] i64 = 0;     # 保存主 CFI（体解释指针）
 var CFNT: [128] i64 = 0;      # 保存主 NCFT
 var CFFID: [128] i64 = 0;     # 保存主 CFFSTART 当前帧起点
+var CFLN: [128] i64 = 0;      # 每帧局部变量数（局部区在参数区之后）
+var CFWEND: [32] i64 = 0;     # while 循环体结束 token index 栈
+var CFWP: i64 = 0;            # while 栈顶
+var CFLM_B: i64 = 0;  # break 魔数返回值（0-999999001，惰性初始化）
+var CFLM_C: i64 = 0;  # continue 魔数（0-999999002）
+var CFLM_R: i64 = 0;  # return 魔数（0-999999003）
+var CFMAG: i64 = 0;   # 魔数初始化标志
+var CFRET_V: i64 = 0;             # return 表达式值
+
+fn cf_init_magics() -> i64 {
+    if CFMAG == 1 { return 0; }
+    CFLM_B = 0 - 999999001;
+    CFLM_C = 0 - 999999002;
+    CFLM_R = 0 - 999999003;
+    CFMAG = 1;
+    return 0;
+}
 fn cns_find(nm: i64) -> i64 {
     let i: i64 = 0;
     while i < NCNS {
@@ -3132,7 +3149,6 @@ fn cf_is_op(s: i64) -> i64 {
 }
 fn cf_is_kw(s: i64) -> i64 {
     if CFNDEP == 0 { return 0; }
-    if cf_cur_k() != 1 { return 0; }
     return streq(cf_cur_s(), s);
 }
 fn cf_expect_op(s: i64) -> i64 {
@@ -3146,18 +3162,26 @@ fn cf_ident() -> i64 {
 }
 
 # 参数查找：当前帧的 CFNAME/CFVAL（帧起点 base）
-fn cf_find_arg(nm: i64) -> i64 {
+fn cf_find_slot(nm: i64) -> i64 {
     let base: i64 = CFBASE[CFNDEP - 1];
     let np: i64 = CFNP[CFFI2[CFNDEP - 1]];
+    let ne: i64 = base + np + CFLN[CFNDEP - 1];
     let i: i64 = base;
-    while i < base + np {
-        if streq(&CNSP + CFNAME[i], nm) == 1 { return CFVAL[i]; }
+    while i < ne {
+        if streq(CFNAME[i], nm) == 1 { return i; }
         i = i + 1;
     }
     return 0 - 999999;
 }
 
+fn cf_find_arg(nm: i64) -> i64 {
+    let s: i64 = cf_find_slot(nm);
+    if s >= 0 { return CFVAL[s]; }
+    return 0 - 999999;
+}
+
 fn cf_call_fn(fi: i64, from_main: i64) -> i64 {
+    cf_init_magics();
     let na: i64 = CFNP[fi];
     let vals: [8] i64 = 0;
     let vi: i64 = 0;
@@ -3166,7 +3190,7 @@ fn cf_call_fn(fi: i64, from_main: i64) -> i64 {
             if from_main == 1 { expect_op(","); } else { cf_expect_op(","); }
         }
         if from_main == 1 { vals[vi] = cns_expr(); }
-        else { vals[vi] = cf_expr(); }
+        else { vals[vi] = cf_lor(); }
         vi = vi + 1;
     }
     if from_main == 1 { expect_op(")"); } else { cf_expect_op(")"); }
@@ -3185,11 +3209,12 @@ fn cf_call_fn(fi: i64, from_main: i64) -> i64 {
     CFFI2[CFNDEP] = fi;
     let pi: i64 = 0;
     while pi < na {
-        CFNAME[base + pi] = CFPA[fi * 8 + pi];
+        CFNAME[base + pi] = &CNSP + CFPA[fi * 8 + pi];
         CFVAL[base + pi] = vals[pi];
         pi = pi + 1;
     }
     CFFSTART[CFNDEP] = base;
+    CFLN[CFNDEP] = 0;
     CFNDEP = CFNDEP + 1;
     CFI = 0;
     NCFT = CFNF[CFNDEP - 1];
@@ -3197,13 +3222,14 @@ fn cf_call_fn(fi: i64, from_main: i64) -> i64 {
     CFNDEP = CFNDEP - 1;
     CFI = save_i;
     NCFT = save_n;
+    if rv == CFLM_R { return CFRET_V; }
     return rv;
 }
 
 fn cf_atom() -> i64 {
     if cf_is_op("(") == 1 {
         CFI = CFI + 1;
-        let v: i64 = cf_expr();
+        let v: i64 = cf_lor();
         cf_expect_op(")");
         return v;
     }
@@ -3239,7 +3265,7 @@ fn cf_term() -> i64 {
         if cf_is_op("%") == 1 { op = 3; }
         CFI = CFI + 1;
         let r: i64 = cf_atom();
-        if op == 1 { v = v * r; } else { v = v / r; }
+        if op == 1 { v = v * r; } else { if op == 2 { v = v / r; } else { v = v % r; } }
     }
     return v;
 }
@@ -3289,6 +3315,92 @@ fn cf_expr() -> i64 {
     return v;
 }
 
+fn cf_lor() -> i64 {
+    let v: i64 = cf_expr();
+    while cf_is_op("&&") == 1 || cf_is_op("||") == 1 {
+        let land: i64 = 1;
+        if cf_is_op("||") == 1 { land = 2; }
+        CFI = CFI + 1;
+        if land == 1 {
+            if v == 0 { cf_skip_and(); v = 0; }
+            else { let r: i64 = cf_lor(); if r != 0 { v = 1; } else { v = 0; } }
+        } else {
+            if v != 0 { cf_skip_or(); v = 1; }
+            else { let r: i64 = cf_lor(); if r != 0 { v = 1; } else { v = 0; } }
+        }
+    }
+    return v;
+}
+
+fn cf_skip_expr() -> i64 {
+    cf_skip_or();
+    return 0;
+}
+
+fn cf_skip_or() -> i64 {
+    cf_skip_and();
+    while cf_is_op("||") == 1 { CFI = CFI + 1; cf_skip_and(); }
+    return 0;
+}
+
+fn cf_skip_and() -> i64 {
+    cf_skip_cmp();
+    while cf_is_op("&&") == 1 { CFI = CFI + 1; cf_skip_cmp(); }
+    return 0;
+}
+
+fn cf_skip_cmp() -> i64 {
+    cf_skip_add();
+    while cf_is_op("==") == 1 || cf_is_op("!=") == 1 || cf_is_op("<") == 1 || cf_is_op("<=") == 1 || cf_is_op(">") == 1 || cf_is_op(">=") == 1 {
+        CFI = CFI + 1;
+        cf_skip_add();
+    }
+    return 0;
+}
+
+fn cf_skip_add() -> i64 {
+    cf_skip_mul();
+    while cf_is_op("+") == 1 || cf_is_op("-") == 1 || cf_is_op("&") == 1 || cf_is_op("|") == 1 || cf_is_op("^") == 1 || cf_is_op("<<") == 1 || cf_is_op(">>") == 1 {
+        CFI = CFI + 1;
+        cf_skip_mul();
+    }
+    return 0;
+}
+
+fn cf_skip_mul() -> i64 {
+    cf_skip_atom();
+    while cf_is_op("*") == 1 || cf_is_op("/") == 1 || cf_is_op("%") == 1 {
+        CFI = CFI + 1;
+        cf_skip_atom();
+    }
+    return 0;
+}
+
+fn cf_skip_atom() -> i64 {
+    if cf_is_op("(") == 1 {
+        CFI = CFI + 1;
+        cf_skip_or();
+        if cf_is_op(")") == 1 { CFI = CFI + 1; }
+        return 0;
+    }
+    if cf_is_op("-") == 1 || cf_is_op("+") == 1 { CFI = CFI + 1; cf_skip_atom(); return 0; }
+    if cf_cur_k() == 1 {
+        CFI = CFI + 1;
+        if cf_is_op("(") == 1 {
+            let dd: i64 = 1;
+            CFI = CFI + 1;
+            while CFI < NCFT && dd > 0 {
+                if cf_is_op("(") == 1 { dd = dd + 1; }
+                if cf_is_op(")") == 1 { dd = dd - 1; }
+                CFI = CFI + 1;
+            }
+        }
+        return 0;
+    }
+    if cf_cur_k() == 2 || cf_cur_k() == 5 { CFI = CFI + 1; return 0; }
+    return 0;
+}
+
 fn cf_find_fn(nm: i64) -> i64 {
     let i: i64 = 0;
     while i < NCF {
@@ -3296,6 +3408,111 @@ fn cf_find_fn(nm: i64) -> i64 {
         i = i + 1;
     }
     return 0 - 1;
+}
+
+fn cf_stmt() -> i64 {
+    # 返回：0=无语句匹配；1=普通语句已执行；2=体结束'}'；CFLM_B/CFLM_C=break/continue
+    cf_init_magics();
+    if cf_is_op("}") == 1 { return 2; }
+    if cf_is_kw("let") == 1 {
+        CFI = CFI + 1;
+        if cf_cur_k() != 1 { return err("mo2x: const fn let 语法错误"); }
+        let nm: i64 = cf_cur_s();
+        CFI = CFI + 1;
+        cf_expect_op(":");
+        if cf_cur_k() != 1 { return err("mo2x: const fn let 类型语法错误"); }
+        CFI = CFI + 1;
+        cf_expect_op("=");
+        let v: i64 = cf_lor();
+        cf_expect_op(";");
+        let es: i64 = cf_find_slot(nm);
+        if es >= 0 {
+            CFVAL[es] = v;
+            return 1;
+        }
+        let base: i64 = CFBASE[CFNDEP - 1];
+        let np: i64 = CFNP[CFFI2[CFNDEP - 1]];
+        let slot: i64 = base + np + CFLN[CFNDEP - 1];
+        if slot >= 4096 { return err("mo2x: const fn 局部变量过多"); }
+        CFNAME[slot] = nm;
+        CFVAL[slot] = v;
+        CFLN[CFNDEP - 1] = CFLN[CFNDEP - 1] + 1;
+        return 1;
+    }
+    if cf_is_kw("while") == 1 {
+        CFI = CFI + 1;
+        let condstart: i64 = CFI;
+        cf_lor();
+        cf_expect_op("{");
+        let start: i64 = CFI;
+        let dd: i64 = 1;
+        let wend: i64 = CFI;
+        while CFI < NCFT && dd > 0 {
+            if cf_is_op("{") == 1 { dd = dd + 1; }
+            if cf_is_op("}") == 1 { dd = dd - 1; }
+            if dd == 0 { wend = CFI; }
+            if dd > 0 { CFI = CFI + 1; }
+        }
+        if CFWP >= 32 { return err("mo2x: const fn while 嵌套过深"); }
+        CFWEND[CFWP] = wend;
+        CFWP = CFWP + 1;
+        let rv: i64 = 0;
+        while 1 == 1 {
+            CFI = condstart;
+            let cond: i64 = cf_lor();
+            if cond == 0 { rv = 0; break; }
+            CFI = start;
+            rv = cf_run_body_until(wend);
+            if rv == CFLM_R { break; }
+            if rv == CFLM_B { rv = 0; break; }
+            if rv == CFLM_C { rv = 0; continue; }
+            rv = 0;
+            if CFI <= wend { CFI = wend; }
+        }
+        CFWP = CFWP - 1;
+        CFI = wend + 1;
+        if rv == CFLM_R { return CFLM_R; }
+        return 1;
+    }
+    if cf_is_kw("break") == 1 {
+        CFI = CFI + 1;
+        cf_expect_op(";");
+        if CFWP > 0 { CFI = CFWEND[CFWP - 1]; return CFLM_B; }
+        return err("mo2x: const fn break 在循环外");
+    }
+    if cf_is_kw("continue") == 1 {
+        CFI = CFI + 1;
+        cf_expect_op(";");
+        if CFWP > 0 { CFI = CFWEND[CFWP - 1]; return CFLM_C; }
+        return err("mo2x: const fn continue 在循环外");
+    }
+    # 赋值 / 复合赋值：ident 后跟 = += -= *= /= %=
+    if cf_cur_k() == 1 {
+        let nm: i64 = cf_cur_s();
+        if cf_find_slot(nm) >= 0 {
+            CFI = CFI + 1;
+            let aop: i64 = 0;
+            if cf_is_op("=") == 1 { aop = 1; }
+            if cf_is_op("+=") == 1 { aop = 2; }
+            if cf_is_op("-=") == 1 { aop = 3; }
+            if cf_is_op("*=") == 1 { aop = 4; }
+            if cf_is_op("/=") == 1 { aop = 5; }
+            if cf_is_op("%=") == 1 { aop = 6; }
+            if aop == 0 { return err("mo2x: const fn 赋值语法错误"); }
+            CFI = CFI + 1;
+            let r: i64 = cf_expr();
+            cf_expect_op(";");
+            let slot: i64 = cf_find_slot(nm);
+            if aop == 1 { CFVAL[slot] = r; }
+            if aop == 2 { CFVAL[slot] = CFVAL[slot] + r; }
+            if aop == 3 { CFVAL[slot] = CFVAL[slot] - r; }
+            if aop == 4 { CFVAL[slot] = CFVAL[slot] * r; }
+            if aop == 5 { CFVAL[slot] = CFVAL[slot] / r; }
+            if aop == 6 { CFVAL[slot] = CFVAL[slot] % r; }
+            return 1;
+        }
+    }
+    return 0;
 }
 
 fn cf_run_body() -> i64 {
@@ -3306,12 +3523,12 @@ fn cf_run_body() -> i64 {
         if guard > 100000 { return err("mo2x: const fn 执行步数超限"); }
             if cf_is_kw("return") == 1 {
             CFI = CFI + 1;
-            let v: i64 = cf_expr();
-            return v;
+            CFRET_V = cf_lor();
+            return CFLM_R;
         }
         if cf_is_kw("if") == 1 {
             CFI = CFI + 1;
-            let cond: i64 = cf_expr();
+            let cond: i64 = cf_lor();
             cf_expect_op("{");
             let start: i64 = CFI;
             let dd: i64 = 1;
@@ -3325,6 +3542,20 @@ fn cf_run_body() -> i64 {
             if cond != 0 {
                 CFI = start;
                 let rv: i64 = cf_run_body_until(endif);
+                if rv == 0 || rv == 1 || rv == 2 {
+                    CFI = endif + 1;
+                    if cf_is_kw("else") == 1 {
+                        CFI = CFI + 1;
+                        cf_expect_op("{");
+                        let d3: i64 = 1;
+                        while CFI < NCFT && d3 > 0 {
+                            if cf_is_op("{") == 1 { d3 = d3 + 1; }
+                            if cf_is_op("}") == 1 { d3 = d3 - 1; }
+                            CFI = CFI + 1;
+                        }
+                    }
+                    continue;
+                }
                 return rv;
             } else {
                 CFI = endif + 1;
@@ -3342,11 +3573,16 @@ fn cf_run_body() -> i64 {
                     }
                     CFI = s2;
                     let rv: i64 = cf_run_body_until(e2);
+                    if rv == 0 || rv == 1 || rv == 2 { CFI = e2 + 1; continue; }
                     return rv;
                 }
                 continue;   # if 处理完不再走"跳到;"兜底
             }
         }
+        let sr: i64 = cf_stmt();
+        if sr == 1 { continue; }
+        if sr == 2 { CFI = CFI + 1; break; }
+        if sr != 0 { return sr; }
         while CFI < NCFT && cf_is_op(";") == 0 { CFI = CFI + 1; }
         if CFI < NCFT { CFI = CFI + 1; }
     }
@@ -3360,12 +3596,12 @@ fn cf_run_body_until(limit: i64) -> i64 {
         if guard > 100000 { return err("mo2x: const fn 执行步数超限"); }
         if cf_is_kw("return") == 1 {
             CFI = CFI + 1;
-            let v: i64 = cf_expr();
-            return v;
+            CFRET_V = cf_lor();
+            return CFLM_R;
         }
         if cf_is_kw("if") == 1 {
             CFI = CFI + 1;
-            let cond: i64 = cf_expr();
+            let cond: i64 = cf_lor();
             cf_expect_op("{");
             let start: i64 = CFI;
             let dd: i64 = 1;
@@ -3379,6 +3615,20 @@ fn cf_run_body_until(limit: i64) -> i64 {
             if cond != 0 {
                 CFI = start;
                 let rv: i64 = cf_run_body_until(endif);
+                if rv == 0 || rv == 1 || rv == 2 {
+                    CFI = endif + 1;
+                    if cf_is_kw("else") == 1 {
+                        CFI = CFI + 1;
+                        cf_expect_op("{");
+                        let d3: i64 = 1;
+                        while CFI < NCFT && d3 > 0 {
+                            if cf_is_op("{") == 1 { d3 = d3 + 1; }
+                            if cf_is_op("}") == 1 { d3 = d3 - 1; }
+                            CFI = CFI + 1;
+                        }
+                    }
+                    continue;
+                }
                 return rv;
             } else {
                 CFI = endif + 1;
@@ -3396,10 +3646,16 @@ fn cf_run_body_until(limit: i64) -> i64 {
                     }
                     CFI = s2;
                     let rv: i64 = cf_run_body_until(e2);
+                    if rv == 0 || rv == 1 || rv == 2 { CFI = e2 + 1; continue; }
                     return rv;
                 }
+                continue;
             }
         }
+        let sr: i64 = cf_stmt();
+        if sr == 1 { continue; }
+        if sr == 2 { CFI = CFI + 1; break; }
+        if sr != 0 { return sr; }
         while CFI < NCFT && cf_is_op(";") == 0 { CFI = CFI + 1; }
         if CFI < NCFT { CFI = CFI + 1; }
     }

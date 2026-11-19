@@ -11254,3 +11254,10 @@ lambda。Mo 此前函数只能命名 + `&fn` 取址。
 - 全量对齐批测：C 后端 mismatch 71 → 62。
 - 门禁 514/0。
 
+## 1.1192.0
+
+- mo2x const fn 求值器完整化：while（嵌套+条件重评）、let 局部变量（循环重声明复用槽）、赋值/复合赋值（= += -= *= /= %=）、break/continue（跨 if 边界魔数传播）、if/else 控制流修复（体正常结束后继续执行后续语句、无 else 时不再落入兜底、cond!=0 时正确跳过 else 块）
+- && || 逻辑运算接入 const fn 求值（cf_lor 层，短路求值防除零；&& 短路只跳到 || 边界）；修复 cf_term 把 % 当 / 的老 bug
+- 337/338/339 constfn_loop/break/logic C 后端对齐通过；C 后端 mismatch 62→61（constfn 簇清零）
+- 调试教训记录：全局初始化器不支持表达式（魔数惰性初始化）；CFNAME 统一存绝对指针；run_body 返回值用 CFLM_R 魔数区分 return 值与语句状态码
+
