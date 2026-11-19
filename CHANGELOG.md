@@ -11233,3 +11233,14 @@ lambda。Mo 此前函数只能命名 + `&fn` 取址。
 - **实测**：lib/ 全量 -Wall 147 → **0 条**；主程序真信号照报；import 库的主程序零噪声
 - 修正 v1.1187 的豁免只看 INPATH（主文件）的盲区
 - 门禁 514/0；自举一致
+## 1.1190.0
+
+# mo2x C 后端 libc 撞名与内建对齐修复（v1.1190）
+
+- **is_libc_clash 撞名表补全**：新增 atoi/atol/strtol/puts/printf/putchar/malloc/free/calloc/realloc/exit/abort/open/read/write/close/unlink/usleep/fopen/fclose/fread/fwrite/fputs/fork/raise/signal/abs/labs/memchr/memmove —— mo 程序定义的同名函数此前与 glibc 符号冲突（签名不兼容 → 编译错误或链接期未定义行为，10_stringout 静默 exit 64、110_revolve 编译失败）。
+- **load/store 内建不进 fnptr cast**：store64/load64/store8/load8 等是前导宏，宏名不可作 cast 操作数（autodiff.mo ad_reset `store64(...)` 误走 ptr 变量 fnptr 路径 → undeclared）。
+- **str 形参类型修复**：`fn f(s: str)` 形参此前发 `struct str_t*`（类型未定义 → invalid use）；str 是 8 字节槽值语义，与 moc 一致改发 `unsigned char*`。
+- **struct str_t opaque 前向声明** + **fbits/ffrombits 前导补齐**（此前仅 freestanding 目标有 → 127_str 经 assert.mo 链接失败）。
+- 全量对齐批测（367 个 #expect 测试 × moc/C/JS/PY 四路 exit code 比对）建立：C 后端 mismatch 215 → 71；moc native 全对。剩余 71 项（f64 传递、str 比较 <、2D 数组等）列下轮清单。
+- 门禁 514/0；bin/mo2x 用 v1.1189 moc 重编（自举一致）。
+

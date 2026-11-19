@@ -1072,6 +1072,13 @@ fn emit_primary() -> i64 {
                 outs(")");
                 return 0;
             }
+            # v1.1190: 内建 load/store 系走直发（宏）—— 不进 fnptr cast（宏名不可 cast）
+            if streq(nm, "store64") == 1 || streq(nm, "load64") == 1 || streq(nm, "store8") == 1 || streq(nm, "load8") == 1 || streq(nm, "store16") == 1 || streq(nm, "load16") == 1 || streq(nm, "store32") == 1 || streq(nm, "load32") == 1 {
+                outs(nm); outs("(");
+                if is_op(")") == 0 { emit_expr(); while accept_op(",") == 1 { outs(","); emit_expr(); } }
+                expect_op(")"); outs(")");
+                return 0;
+            }
             if ptrv_find(nm) == 1 {
                 # v1.1166: ptr 变量调用 f(args) —— fnptr cast 调用。
                 # 按**顶层**实参个数发对应函数指针原型（0..6 覆盖常用）。
@@ -2578,6 +2585,38 @@ fn is_libc_clash(nm: i64) -> i64 {
     if streq(nm, "memset") == 1 { return 1; }
     if streq(nm, "memcpy") == 1 { return 1; }
     if streq(nm, "memcmp") == 1 { return 1; }
+    if streq(nm, "atoi") == 1 { return 1; }
+    if streq(nm, "atol") == 1 { return 1; }
+    if streq(nm, "strtol") == 1 { return 1; }
+    if streq(nm, "atol") == 1 { return 1; }
+    if streq(nm, "fopen") == 1 { return 1; }
+    if streq(nm, "fclose") == 1 { return 1; }
+    if streq(nm, "fread") == 1 { return 1; }
+    if streq(nm, "fwrite") == 1 { return 1; }
+    if streq(nm, "fputs") == 1 { return 1; }
+    if streq(nm, "fork") == 1 { return 1; }
+    if streq(nm, "raise") == 1 { return 1; }
+    if streq(nm, "signal") == 1 { return 1; }
+    if streq(nm, "abs") == 1 { return 1; }
+    if streq(nm, "labs") == 1 { return 1; }
+    if streq(nm, "memchr") == 1 { return 1; }
+    if streq(nm, "memmove") == 1 { return 1; }
+    # v1.1190: 补全 libc 撞名表 —— puts 撞 glibc（签名不兼容 → 链接期未定义行为/静默错码）
+    if streq(nm, "puts") == 1 { return 1; }
+    if streq(nm, "printf") == 1 { return 1; }
+    if streq(nm, "putchar") == 1 { return 1; }
+    if streq(nm, "malloc") == 1 { return 1; }
+    if streq(nm, "free") == 1 { return 1; }
+    if streq(nm, "calloc") == 1 { return 1; }
+    if streq(nm, "realloc") == 1 { return 1; }
+    if streq(nm, "exit") == 1 { return 1; }
+    if streq(nm, "abort") == 1 { return 1; }
+    if streq(nm, "open") == 1 { return 1; }
+    if streq(nm, "read") == 1 { return 1; }
+    if streq(nm, "write") == 1 { return 1; }
+    if streq(nm, "close") == 1 { return 1; }
+    if streq(nm, "unlink") == 1 { return 1; }
+    if streq(nm, "usleep") == 1 { return 1; }
     if streq(nm, "strlen_") == 1 { return 0; }
     return 0;
 }
@@ -2642,10 +2681,14 @@ fn emit_sig() -> i64 {
                     else {
                         if streq(t, "f64") == 1 { strcat(&ps, "double"); tk = 3; }
                         else {
+                            # v1.1190: str 形参 = unsigned char*（值语义 8 字节槽，与 moc 一致）
+                            if streq(t, "str") == 1 { strcat(&ps, "unsigned char*"); tk = 1; }
+                            else {
                             # struct 形参：moc 语义是引用（self.x=… 对调用方可见）。
                             strcat(&ps, "struct "); strcat(&ps, t); strcat(&ps, "_t*");
                             if NTRS < 64 { PTRS[NTRS] = pn; NTRS = NTRS + 1; }
                             clsv_add(pn, t);   # 方法接收者也可 .method()
+                            }
                         }
                     }
                 }
@@ -4537,6 +4580,12 @@ fn emit_header() -> i64 {
         line("  (void)n;(void)a;(void)b;(void)c;(void)d;(void)e;(void)f; return -1; }");
         line("#endif");
         line("static long long strlen_(unsigned char* s){ long long n=0; while(s[n]) n++; return n; }");
+        # v1.1190: fbits/ffrombits 前导补齐（fs_header 有但普通 C 目标漏 —— 127_str 经 assert.mo 用 fbits 链接失败）
+        line("static long long mo_fbits_impl(double v){ union {double d; long long i;} u; u.d=v; return u.i; }");
+        line("#define fbits mo_fbits_impl");
+        line("static double mo_ffrombits_impl(long long i){ union {double d; long long i;} u; u.i=i; return u.d; }");
+        line("#define ffrombits mo_ffrombits_impl");
+        line("struct str_t;");   # v1.1190: str 类型 opaque 前向（str 作形参/返回时 struct 未定义处可用）
         line("#define strlen strlen_");
         # v1.1171: freestanding 前导补 strcpy/strcat（无符号 char* 语义，供
         # "无 import 直用" 的裸机程序；strlen 系列其余函数签名冲突留给 mo_ 前缀）
