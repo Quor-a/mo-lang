@@ -965,6 +965,21 @@ fn emit_primary() -> i64 {
                 outs(")");
                 return 0;
             }
+            # v1.1191: len() 内建 —— 数组外层元素个数。C 系发 sizeof 比值
+            # （C 编译期常量；数组实参传参退化为指针的场景不受支持，与 moc 编译期语义一致——moc 也只在同作用域算）。
+            if streq(nm, "len") == 1 {
+                TI = TI + 1;
+                if cur_k() != 1 { return err("len() 实参必须是数组名"); }
+                let an: i64 = cur_s();
+                TI = TI + 1;
+                expect_op(")");
+                outs("((long long)(sizeof(");
+                outs(an);
+                outs(")/sizeof(");
+                outs(an);
+                outs("[0])))");
+                return 0;
+            }
             if is_c_like() == 0 {
                 if streq(nm, "argc") == 1 { return err("argc 仅在 C 系后端支持"); }
                 if streq(nm, "argv") == 1 { return err("argv 仅在 C 系后端支持"); }
@@ -1147,6 +1162,15 @@ fn emit_primary() -> i64 {
                 if streq(nm, "strlen") == 1 { skip_clash = 1; }
                 if streq(nm, "strcpy") == 1 { skip_clash = 1; }
                 if streq(nm, "strcat") == 1 { skip_clash = 1; }
+            }
+            # v1.1191: const fn 调用编译期折叠 —— 实参全常量时用 cns_expr 求值发数字
+            # （此前 const fn 调用当普通函数发射 → undefined reference，295/335-339 全炸）
+            if cf_find_fn(nm) >= 0 && is_c_like() == 1 {
+                let sv_cf: i64 = TI;
+                # v1.1191: dispatch 进入时 '(' 已被上游吃掉（TI 指第一个实参）
+                let cfv: i64 = cf_call_fn(cf_find_fn(nm), 1);
+                outi(cfv);
+                return 0;
             }
             if skip_clash == 0 {
                 if is_libc_clash(nm) == 1 { outs("mo_"); }
@@ -1546,6 +1570,52 @@ fn emit_scalar(t: i64) -> i64 {
 # emit_dim_to_cache：从当前 token 走到 ']'（吃掉 ']'），把中间 token 原样
 # 拼进 CACHE 缓冲并返回缓存地址。**只走 token，不输出** —— 输出顺序由调用方控制
 # （C 声明是 `T name[dim];`，dim 在名字后面）。
+# v1.1191: 维度字符串直接写入调用者给的缓冲（避免 GDIM 全局槽覆盖问题）
+fn emit_dim_to_buf(db: i64) -> i64 {
+    let buf: i64 = db;
+    let ci: i64 = 0;
+    let save: i64 = TI;
+    let has_cf: i64 = 0;
+    while TI < NT {
+        if is_op("]") == 1 { break; }
+        if cur_k() == 1 {
+            if cns_find(cur_s()) < 0 && cf_find_fn(cur_s()) >= 0 { has_cf = 1; }
+        }
+        TI = TI + 1;
+    }
+    TI = save;
+    if has_cf == 1 {
+        let v: i64 = cns_expr();
+        expect_op("]");
+        let nb: [24] byte = 0;
+        utoa(v, &nb, 10);
+        let q: i64 = 0;
+        while load8(&nb + q) != 0 { store8(buf + q, load8(&nb + q)); q = q + 1; }
+        store8(buf + q, 0);
+        return 0;
+    }
+    let first: i64 = 1;
+    while TI < NT {
+        if is_op("]") == 1 { break; }
+        if cur_k() == 1 {
+            if cns_find(cur_s()) < 0 {
+                return err("mo2x: 数组长度表达式引用了未定义的 const 名");
+            }
+        }
+        if first == 0 {
+            store8(buf + ci, 32); ci = ci + 1;
+        }
+        let t: i64 = cur_s();
+        let j: i64 = 0;
+        while load8(t + j) != 0 { store8(buf + ci, load8(t + j)); ci = ci + 1; j = j + 1; }
+        first = 0;
+        TI = TI + 1;
+    }
+    store8(buf + ci, 0);
+    expect_op("]");
+    return 0;
+}
+
 fn emit_dim_to_cache() -> i64 {
     let base: i64 = &GDIM + GDIMD * 512;
     GDIMD = GDIMD + 1;
@@ -1571,7 +1641,7 @@ fn emit_dim_to_cache() -> i64 {
         let q: i64 = 0;
         while load8(&nb + q) != 0 { store8(buf + q, load8(&nb + q)); q = q + 1; }
         store8(buf + q, 0);
-        GDIMD = GDIMD - 1;
+        # v1.1191: 不在此处减 GDIMD —— 调用者统一配对减回（多层维度需各自占槽）
         return base;
     }
     let first: i64 = 1;
@@ -1599,13 +1669,29 @@ fn emit_dim_to_cache() -> i64 {
 fn emit_scalar_or_arr(nm: i64, isarr: i64) -> i64 {
     if isarr == 1 {
         if is_op("[") == 1 {
-            TI = TI + 1;
-            let d1: i64 = emit_dim_to_cache();
-            emit_scalar_or_arr(nm, 1);
-            outs("[");
-            outs(d1);
-            outs("]");
-            GDIMD = GDIMD - 1;    # 每层配对减回；不减会让基址一路漂移，写穿 GDIM → 段错误
+            # v1.1191: 先收集全部维度再输出 —— 此前递归导致维度顺序反转
+            # （[2][3] 发成 [3][2]，sizeof(m) 取错外层，len() 对不上）。
+            # v1.1191: 循环收集全部维度的字符串到局部表，再按序输出
+            # （此前递归立即输出导致维度反转 [2][3]→[3][2]）。
+            let dims: [8][64] byte = 0;
+            let nd: i64 = 0;
+            let q2: i64 = 0;
+            while q2 < 8 {
+                if is_op("[") == 0 { break; }
+                TI = TI + 1;
+                let db: i64 = &dims + q2 * 64;
+                emit_dim_to_buf(db);
+                nd = nd + 1;
+                q2 = q2 + 1;
+            }
+            emit_scalar_or_arr(nm, 0);
+            q2 = 0;
+            while q2 < nd {
+                outs("[");
+                outs(&dims + q2 * 64);
+                outs("]");
+                q2 = q2 + 1;
+            }
             return 0;
         }
     }
