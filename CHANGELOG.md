@@ -11270,3 +11270,9 @@ lambda。Mo 此前函数只能命名 + `&fn` 取址。
 - 🔴 架构修复：POOL 每文件重新 tokenize（PP=0）导致 PTRV/BYTEV/STRV/CLSV/CLST/ARRVS/PTRS 表内裸指针悬空——新增 STP 稳定字符串池（stp_copy），所有名字表登记时拷贝（126_fmath 的 fm_trunc 误入 PTRV 根因）
 - op_overload 345=85 ✓ 346=19 ✓ 347=7 ✓；26_array_init=20 ✓ 260_arr_assign=79 ✓；126_fmath=0 ✓（59/59）126_utf8=0 ✓
 - C 后端对齐 mismatch 61→50；门禁 514/0
+
+## 1.1194.0 mo2x C 后端对齐第四批（v1.1194）
+- str switch：判别表达式为字面量或 str 变量 → mo_swstrcmp 比较链（222_switch_str ✓）
+- 数组值比较 a == b / a != b → mo_arrcmp（memcmp 逐字节语义）（244_array_eq ✓）
+- C 前导新增 mo_swstrcmp / mo_arrcmp3（mo_ 前缀避免与 str.mo 撞名）
+- 对齐 c mismatch 50→48；门禁 514/0

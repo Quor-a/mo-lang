@@ -1645,6 +1645,28 @@ fn emit_prec(minp: i64) -> i64 {
             }
         }
     }
+    # v1.1194: 数组值比较 a == b / a != b → memcmp 语义（native 逐 word 比较）
+    if is_c3 == 1 && cur_k() == 1 && arr_find(cur_s()) >= 0 {
+        if peek_op("==") == 1 || peek_op("!=") == 1 {
+            let anm: i64 = cur_s();
+            if TK[TI + 2] == 1 {
+                let bnm: i64 = &POOL + TS[TI + 2];
+                if arr_find(bnm) >= 0 {
+                    let neq: i64 = 0;
+                    if peek_op("!=") == 1 { neq = 1; }
+                    TI = TI + 2;
+                    outs("(mo_arrcmp(");
+                    outs(anm);
+                    outs(", ");
+                    outs(bnm);
+                    outs(")");
+                    if neq == 1 { outs(" != 0)"); } else { outs(" == 0)"); }
+                    TI = TI + 1;
+                    return 0;
+                }
+            }
+        }
+    }
     emit_unary();
     while 1 {
         let p: i64 = binprec();
@@ -2312,7 +2334,15 @@ fn emit_stmt() -> i64 {
     # 再对每组重放输出；空 case 标签并入下一组条件；fallthrough 使 body 延续到下一组。
     if accept_kw("switch") == 1 {
         expect_op("(");
-        outs("{ long long switch__val = (");
+        # v1.1194: str 判别 → strcmp 比较链（判别表达式首 token 为字面量或 str 变量）
+        let swsv: i64 = TI;
+        let swstr: i64 = 0;
+        if TK[TI] == 3 { swstr = 1; }
+        else {
+            if TK[TI] == 1 && strv_find(&POOL + TS[TI]) == 1 { swstr = 1; }
+        }
+        if swstr == 1 { outs("{ unsigned char* switch__val = ("); }
+        else { outs("{ long long switch__val = ("); }
         emit_expr();
         outs(");");
         expect_op(")");
@@ -2406,15 +2436,22 @@ fn emit_stmt() -> i64 {
                 if ltyp[k] == 1 {
                     if cf == 0 { outs(" || "); }
                     cf = 0;
-                    outs("switch__val == (");
                     let sv: i64 = TI;
+                    if swstr == 1 {
+                        outs("mo_swstrcmp(switch__val, ");
+                    }
+                    else {
+                        outs("switch__val == (");
+                    }
                     TI = lc0[k];
                     while TI < lc1[k] {
-                        tok_c(TI);
+                        if TK[TI] == 3 { out_cstr(&POOL + TS[TI]); }
+                        else { tok_c(TI); }
                         TI = TI + 1;
                     }
                     TI = sv;
-                    outs(")");
+                    if swstr == 1 { outs(") == 0"); }
+                    else { outs(")"); }
                 }
                 k = k + 1;
             }
@@ -4567,6 +4604,8 @@ fn fs_header() -> i64 {
     #    实测：wc.mo 的 str_split 在 O2 必现（2026-10-25，安卓 ARM64 实战）。
     line("void* memset(unsigned char* d, int c, unsigned long n){ unsigned long i=0; while(i<n){ d[i]=(unsigned char)c; i++; } return (void*)d; }");
     line("void* memcpy(unsigned char* d, const unsigned char* s, unsigned long n){ unsigned long i=0; while(i<n){ d[i]=s[i]; i++; } return (void*)d; }");
+    # v1.1194: str switch 比较用 mo 前缀，避免与 str.mo 的 strcmp 冲突
+    line("static long long mo_swstrcmp(const unsigned char* a, const unsigned char* b){ long long i=0; while(a[i] && a[i]==b[i]) i++; return (long long)(unsigned char)a[i] - (long long)(unsigned char)b[i]; }");
     # atoi：freestanding 没有 libc，字符串转数字要自己有。
     # 放在这里是因为 andromo.mo 这类程序要用命令行参数指定规模。
     line("static long atoi(const unsigned char* s){");
@@ -5169,6 +5208,9 @@ fn emit_header() -> i64 {
         line("#endif");
         line("static long long strlen_(unsigned char* s){ long long n=0; while(s[n]) n++; return n; }");
         # v1.1190: fbits/ffrombits 前导补齐（fs_header 有但普通 C 目标漏 —— 127_str 经 assert.mo 用 fbits 链接失败）
+        line("static long long mo_swstrcmp(const unsigned char* a, const unsigned char* b){ long long i=0; while(a[i] && a[i]==b[i]) i++; return (long long)(unsigned char)a[i] - (long long)(unsigned char)b[i]; }");
+        line("static long long mo_arrcmp3(const void* a, const void* b, unsigned long n){ const unsigned char* x=a; const unsigned char* y=b; unsigned long i=0; while(i<n){ if(x[i]!=y[i]) return (long long)x[i]-(long long)y[i]; i++; } return 0; }");
+        line("#define mo_arrcmp(a,b) mo_arrcmp3(a,b,sizeof(a))");
         line("static long long mo_fbits_impl(double v){ union {double d; long long i;} u; u.d=v; return u.i; }");
         line("#define fbits mo_fbits_impl");
         line("static double mo_ffrombits_impl(long long i){ union {double d; long long i;} u; u.i=i; return u.d; }");
