@@ -9097,8 +9097,6 @@ fn main() -> i64 {
         # （虚表 call 不走名字查找），避免对 interface 方法误报。
         # v1.1187: 库文件（lib/ 下）的导出函数/全局量是给 import 方用的，
         # 本文件内没人调不是「没用」—— 跳过 function/global 警告（变量仍报）。
-        let islib: i64 = 0;
-        if load8(INPATH) == 108 && load8(INPATH+1) == 105 && load8(INPATH+2) == 98 && load8(INPATH+3) == 47 { islib = 1; }
         let wi: i64 = 0;
         let wv: i64 = 0;
         while wv < gv(K_NVT) {
@@ -9117,7 +9115,9 @@ fn main() -> i64 {
             if load64(heap + O_SWN + wi * 8) == 0 {
             if load64(heap + O_SK + wi * 8) == 0 || load64(heap + O_SK + wi * 8) == 2 || load64(heap + O_SK + wi * 8) == 4 {
                 if load64(heap + O_SU + wi * 8) == 0 {
-                    if islib == 1 { wi = wi + 1; continue; }   # v1.1187: 库导出面豁免
+                    # v1.1189: 主文件自身在 lib/ 下 → 导出面豁免
+                    # （import 文件的 sym 已被外层 O_SWN==0 条件挡住）
+                    if load8(INPATH) == 108 && load8(INPATH+1) == 105 && load8(INPATH+2) == 98 && load8(INPATH+3) == 47 { wi = wi + 1; continue; }
                     let wn: i64 = name_at(wi);
                     if streq(wn, "main") == 0 {
                         syscall(1, 2, INPATH, strlen(INPATH), 0, 0, 0);

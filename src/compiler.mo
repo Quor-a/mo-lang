@@ -3842,10 +3842,18 @@ fn warn_unused_params() -> i64 {
                 if load64(heap + O_SU + i * 8) == 0 {
                     let wn: i64 = name_at(i);
                     if streq(wn, "_") == 0 {
-                        syscall(1, 2, INPATH, strlen(INPATH), 0, 0, 0);
-                        syscall(1, 2, ": warning: unused parameter '", 29, 0, 0, 0);
-                        syscall(1, 2, wn, strlen(wn), 0, 0, 0);
-                        syscall(1, 2, "'\n", 2, 0, 0, 0);
+                        # v1.1189: import 文件的形参豁免 + 主文件 lib/ 豁免
+                        let wf: i64 = load64(heap + O_SWN + i * 8);
+                        let islibf2: i64 = 0;
+                        if load8(INPATH) == 108 && load8(INPATH+1) == 105 && load8(INPATH+2) == 98 && load8(INPATH+3) == 47 { islibf2 = 1; }
+                        if wf != 0 || islibf2 == 1 {
+                            i = i + 1;
+                        } else {
+                            syscall(1, 2, INPATH, strlen(INPATH), 0, 0, 0);
+                            syscall(1, 2, ": warning: unused parameter '", 29, 0, 0, 0);
+                            syscall(1, 2, wn, strlen(wn), 0, 0, 0);
+                            syscall(1, 2, "'\n", 2, 0, 0, 0);
+                        }
                     }
                 }
             }
@@ -3873,7 +3881,18 @@ fn warn_unused(d: i64) -> i64 {
                 # v1.1188: `_` 前缀 = 有意弃置（与形参 `_` 豁免一致化）；
                 # 弃值调用惯用法 `let _d: i64 = f(...)` 不再误报。
                 if load8(wn) != 95 {
-                    warn_unused_at(wn);
+                    # v1.1189: 豁免两类——①import 文件的 sym（跨文件死代码
+                    # 单遍编译器无法归属，GCC 同样只报本编译单元）；②主文件
+                    # 自身在 lib/ 下（库内弃值调用惯用法，作者可用
+                    # tools/unused.py 自查）。
+                    let wf: i64 = load64(heap + O_SWN + k * 8);
+                    let islibf: i64 = 0;
+                    if load8(INPATH) == 108 && load8(INPATH+1) == 105 && load8(INPATH+2) == 98 && load8(INPATH+3) == 47 { islibf = 1; }
+                    if wf != 0 {
+                        i = 1;   # 退出扫描（后续 sym 更晚定义、也全是 import 的）
+                    } else {
+                        if islibf == 0 { warn_unused_at(wn); }
+                    }
                 }
             }
         }
@@ -16635,8 +16654,6 @@ fn main() -> i64 {
         # （虚表 call 不走名字查找），避免对 interface 方法误报。
         # v1.1187: 库文件（lib/ 下）的导出函数/全局量是给 import 方用的，
         # 本文件内没人调不是「没用」—— 跳过 function/global 警告（变量仍报）。
-        let islib: i64 = 0;
-        if load8(INPATH) == 108 && load8(INPATH+1) == 105 && load8(INPATH+2) == 98 && load8(INPATH+3) == 47 { islib = 1; }
         let wi: i64 = 0;
         let wv: i64 = 0;
         while wv < gv(K_NVT) {
@@ -16655,7 +16672,9 @@ fn main() -> i64 {
             if load64(heap + O_SWN + wi * 8) == 0 {
             if load64(heap + O_SK + wi * 8) == 0 || load64(heap + O_SK + wi * 8) == 2 || load64(heap + O_SK + wi * 8) == 4 {
                 if load64(heap + O_SU + wi * 8) == 0 {
-                    if islib == 1 { wi = wi + 1; continue; }   # v1.1187: 库导出面豁免
+                    # v1.1189: 主文件自身在 lib/ 下 → 导出面豁免
+                    # （import 文件的 sym 已被外层 O_SWN==0 条件挡住）
+                    if load8(INPATH) == 108 && load8(INPATH+1) == 105 && load8(INPATH+2) == 98 && load8(INPATH+3) == 47 { wi = wi + 1; continue; }
                     let wn: i64 = name_at(wi);
                     if streq(wn, "main") == 0 {
                         syscall(1, 2, INPATH, strlen(INPATH), 0, 0, 0);

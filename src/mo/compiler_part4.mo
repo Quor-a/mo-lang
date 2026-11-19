@@ -650,10 +650,18 @@ fn warn_unused_params() -> i64 {
                 if load64(heap + O_SU + i * 8) == 0 {
                     let wn: i64 = name_at(i);
                     if streq(wn, "_") == 0 {
-                        syscall(1, 2, INPATH, strlen(INPATH), 0, 0, 0);
-                        syscall(1, 2, ": warning: unused parameter '", 29, 0, 0, 0);
-                        syscall(1, 2, wn, strlen(wn), 0, 0, 0);
-                        syscall(1, 2, "'\n", 2, 0, 0, 0);
+                        # v1.1189: import 文件的形参豁免 + 主文件 lib/ 豁免
+                        let wf: i64 = load64(heap + O_SWN + i * 8);
+                        let islibf2: i64 = 0;
+                        if load8(INPATH) == 108 && load8(INPATH+1) == 105 && load8(INPATH+2) == 98 && load8(INPATH+3) == 47 { islibf2 = 1; }
+                        if wf != 0 || islibf2 == 1 {
+                            i = i + 1;
+                        } else {
+                            syscall(1, 2, INPATH, strlen(INPATH), 0, 0, 0);
+                            syscall(1, 2, ": warning: unused parameter '", 29, 0, 0, 0);
+                            syscall(1, 2, wn, strlen(wn), 0, 0, 0);
+                            syscall(1, 2, "'\n", 2, 0, 0, 0);
+                        }
                     }
                 }
             }
@@ -681,7 +689,18 @@ fn warn_unused(d: i64) -> i64 {
                 # v1.1188: `_` 前缀 = 有意弃置（与形参 `_` 豁免一致化）；
                 # 弃值调用惯用法 `let _d: i64 = f(...)` 不再误报。
                 if load8(wn) != 95 {
-                    warn_unused_at(wn);
+                    # v1.1189: 豁免两类——①import 文件的 sym（跨文件死代码
+                    # 单遍编译器无法归属，GCC 同样只报本编译单元）；②主文件
+                    # 自身在 lib/ 下（库内弃值调用惯用法，作者可用
+                    # tools/unused.py 自查）。
+                    let wf: i64 = load64(heap + O_SWN + k * 8);
+                    let islibf: i64 = 0;
+                    if load8(INPATH) == 108 && load8(INPATH+1) == 105 && load8(INPATH+2) == 98 && load8(INPATH+3) == 47 { islibf = 1; }
+                    if wf != 0 {
+                        i = 1;   # 退出扫描（后续 sym 更晚定义、也全是 import 的）
+                    } else {
+                        if islibf == 0 { warn_unused_at(wn); }
+                    }
                 }
             }
         }
