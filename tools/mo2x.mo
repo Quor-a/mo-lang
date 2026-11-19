@@ -88,6 +88,7 @@ var CHB: [2] byte = 0;
 var IND: i64 = 0;          # 当前缩进层级（Python 用）
 var LASTDIM: i64 = 0;      # 最近一次数组维度
 var LASTTY: i64 = 0;       # 最近一次基类型名
+var LWSEQ: i64 = 0;        # v1.1195: 可写字面量副本计数
 var BOL: i64 = 1;          # 行首标记（全局变量必须先声明）
 
 
@@ -2665,9 +2666,41 @@ fn emit_block_body() -> i64 {
 fn emit_local() -> i64 {
     let nm: i64 = ident();
     expect_op(":");
+    {
+        let db: [64] byte = 0;
+        let dq: i64 = 0;
+        while dq < 6 {
+            utoa(TK[TI+dq], &db, 10); syscall(1, 2, &db, strlen(&db), 0, 0, 0);
+            syscall(1, 2, ",", 1, 0, 0, 0);
+            dq = dq + 1;
+        }
+        syscall(1, 2, "N\n", 2, 0, 0, 0);
+    }
     if is_c_like() == 1 {
         let isarr: i64 = 0;
         if is_op("[") == 1 { isarr = 1; }
+        if isarr == 0 && is_c_like() == 1 && TK[TI] == 1 && TK[TI + 1] == 5 && TK[TI + 2] == 3 {
+            # v1.1195: 局部 str 字面量 init → 可写 static 副本（07_memory：store64 进字面量）
+            LWSEQ = LWSEQ + 1;
+            outs("static unsigned char __mlit_");
+            outi(LWSEQ);
+            outs("[] = ");
+            out_cstr(&POOL + TS[TI + 2]);
+            outs(";");
+            nl();
+            TI = TI + 3;
+            emit_scalar(&POOL + TS[TI - 3]);
+            outs(" ");
+            outs(nm);
+            if streq(&POOL + TS[TI - 3], "str") == 1 { strv_add(nm); }
+            if LASTTY == 0 || streq(LASTTY, "i64") == 1 { outs(" = (long long)(unsigned char*)__mlit_"); }
+            else { outs(" = (unsigned char*)__mlit_"); }
+            outi(LWSEQ);
+            outs(";");
+            nl();
+            expect_op(";");
+            return 0;
+        }
         emit_scalar_or_arr(nm, isarr);
         if accept_op("=") == 1 {
             if isarr == 1 {
@@ -2788,6 +2821,29 @@ fn emit_global() -> i64 {
     if is_c_like() == 1 {
         let isarr: i64 = 0;
         if is_op("[") == 1 { isarr = 1; }
+        if isarr == 0 && cur_k() == 3 && is_c_like() == 1 {
+            # v1.1195: 全局 str 字面量 init → 可写副本（native 字面量在 .data 可写，
+            # C rodata 上 store64 会 SIGSEGV —— 07_memory）
+            LWSEQ = LWSEQ + 1;
+            outs("static unsigned char __mlit_");
+            outi(LWSEQ);
+            outs("[] = ");
+            out_cstr(cur_s());
+            outs(";");
+            nl();
+            TI = TI + 3;
+            emit_scalar(&POOL + TS[TI - 3]);
+            outs(" ");
+            outs(nm);
+            if streq(&POOL + TS[TI - 3], "str") == 1 { strv_add(nm); }
+            if LASTTY == 0 || streq(LASTTY, "i64") == 1 { outs(" = (long long)(unsigned char*)__mlit_"); }
+            else { outs(" = (unsigned char*)__mlit_"); }
+            outi(LWSEQ);
+            outs(";");
+            nl();
+            expect_op(";");
+            return 0;
+        }
         emit_scalar_or_arr(nm, isarr);
         if accept_op("=") == 1 {
             if isarr == 1 {
@@ -5811,6 +5867,23 @@ fn g_stmt() -> i64 {
                 }
                 if accept_op("=") == 1 { emit_expr(); }
             } else {
+                if is_c_like() == 1 && TK[TI] == 3 {
+                    # v1.1195: 局部 str 字面量 init → 可写 static 副本（07_memory）
+                    LWSEQ = LWSEQ + 1;
+                    outs("static unsigned char __mlit_");
+                    outi(LWSEQ);
+                    outs("[] = ");
+                    out_cstr(cur_s());
+                    outs(";");
+                    nl();
+                    TI = TI + 1;
+                    g_decl(nm, 0);
+                    if LASTTY == 0 || streq(LASTTY, "i64") == 1 { outs(" = (long long)(unsigned char*)__mlit_"); }
+                    else { outs(" = (unsigned char*)__mlit_"); }
+                    outi(LWSEQ);
+                    outs(";");
+                    return 0;
+                }
                 g_decl(nm, 0);
                 if accept_op("=") == 1 { outs(" = "); emit_expr(); }
                 else {

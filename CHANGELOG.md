@@ -11276,3 +11276,8 @@ lambda。Mo 此前函数只能命名 + `&fn` 取址。
 - 数组值比较 a == b / a != b → mo_arrcmp（memcmp 逐字节语义）（244_array_eq ✓）
 - C 前导新增 mo_swstrcmp / mo_arrcmp3（mo_ 前缀避免与 str.mo 撞名）
 - 对齐 c mismatch 50→48；门禁 514/0
+
+## 1.1195.0 mo2x C 后端对齐第五批（v1.1195）
+- 07_memory ✓：str 字面量 init → 可写 static 副本 __mlit_N（native 字面量在 .data 可写，C rodata 上 store64 SIGSEGV）
+- 222_switch_str 稳定化：可写副本路径补 strv_add（switch str 判别探测依赖）
+- c mismatch 48→46；门禁 514/0
