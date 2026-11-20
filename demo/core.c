@@ -56,11 +56,11 @@ static double f64(long long v){ return (double)v; }
 static void panic(const char* m){ fprintf(stderr, "%s", m); exit(1); }
 static long long mo_oob(long long i, long long n){ if(i<0){ i+=n; } if(i<0||i>=n){ fprintf(stderr, "index out of bounds\n"); exit(1);} return i; }
 static void assert_(long c, const char* m){ if(!c){ fprintf(stderr, "%s", m); exit(1);} }
-long long mo_main(void);
-long long mo_main();
+static long long mo_main(void);
+static long long mo_main();
 
 /* ---- /tmp/demo.mo ---- */
-long long mo_main() {
+static long long mo_main() {
 long long a = ((long long)0);
 long long b = ((long long)1);
 long long i = ((long long)0);
