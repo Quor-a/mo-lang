@@ -400,14 +400,13 @@ fn is_ws(c: i64) -> i64 {
 fn ops_init() -> i64 {
     if NOPS > 0 { return 0; }
     # 长的必须在前，否则 "==" 会被拆成两个 "="
-    OPS[0] = "<<="; OPS[1] = ">>="; OPS[2] = "=="; OPS[3] = "!="; OPS[4] = "<="; OPS[5] = ">=";
-    OPS[6] = "&&"; OPS[7] = "||"; OPS[8] = "<<"; OPS[9] = ">>";
-    OPS[10] = "+="; OPS[11] = "-="; OPS[12] = "*="; OPS[13] = "/=";
-    OPS[14] = "%="; OPS[15] = "&="; OPS[16] = "|="; OPS[17] = "^=";
-    OPS[18] = "+"; OPS[19] = "-"; OPS[20] = "*"; OPS[21] = "/";
-    OPS[22] = "%"; OPS[23] = "&"; OPS[24] = "|"; OPS[25] = "^";
-    OPS[26] = "="; OPS[27] = "<"; OPS[28] = ">"; OPS[29] = "!";
-    OPS[30] = "?";
+    OPS[0] = "<<="; OPS[1] = ">>="; OPS[2] = "=>"; OPS[3] = "=="; OPS[4] = "!="; OPS[5] = "<="; OPS[6] = ">=";
+    OPS[7] = "&&"; OPS[8] = "||"; OPS[9] = "<<"; OPS[10] = ">>";
+    OPS[11] = "+="; OPS[12] = "-="; OPS[13] = "*="; OPS[14] = "/=";
+    OPS[15] = "%="; OPS[16] = "&="; OPS[17] = "|="; OPS[18] = "^=";
+    OPS[19] = "+"; OPS[20] = "-"; OPS[21] = "*"; OPS[22] = "/";
+    OPS[23] = "%"; OPS[24] = "&"; OPS[25] = "|"; OPS[26] = "^";
+    OPS[27] = "="; OPS[28] = "<"; OPS[29] = ">"; OPS[30] = "!";
     NOPS = 31;
     return 0;
 }
@@ -695,6 +694,12 @@ fn tokenize() -> i64 {
                     } else {
                         # 单字符分隔符。注意：不能包含 < > = ! ，
                         # 否则 "==" / "!=" / "<=" / ">=" 会被拆开
+                        if c == 46 && load8(&SRC + SLEN + 1) == 46 {
+                            # v1.1203: '..' range/切片单 token（319；moc 同款）
+                            store8(&LEXB, 46); store8(&LEXB + 1, 46); store8(&LEXB + 2, 0);
+                            SLEN = SLEN + 2;
+                            add_tok(5, &LEXB);
+                        } else {
                         if c == 40 || c == 41 || c == 123 || c == 125 || c == 91 || c == 93
                            || c == 59 || c == 44 || c == 58 || c == 46 {
                             # f-string：'}' 是插值表达式结束 —— 后面紧跟下一个
@@ -735,6 +740,7 @@ fn tokenize() -> i64 {
                                 add_tok(5, op);
                             }
                         }
+                        }   # v1.1203: '..' 分支的 else 闭合
                     }
                 }
             }
@@ -1444,6 +1450,42 @@ fn emit_primary() -> i64 {
 }
 
 fn emit_postfix() -> i64 {
+    # v1.1203: 切片预扫 IDENT '[' a '..' b ']' —— 必须在 primary 发出基名之前拦截
+    if is_c_like() == 1 && cur_k() == 1 && peek_op("[") == 1 {
+        let sb0: i64 = cur_s();
+        let j0: i64 = TI + 2;
+        let dep0: i64 = 1;
+        let hasdd: i64 = 0;
+        while j0 < NT {
+            if TK[j0] == 5 && streq(&POOL + TS[j0], "[") == 1 { dep0 = dep0 + 1; }
+            else {
+                if TK[j0] == 5 && streq(&POOL + TS[j0], "]") == 1 {
+                    dep0 = dep0 - 1;
+                    if dep0 == 0 { break; }
+                }
+                else {
+                    if dep0 == 1 && TK[j0] == 5 && streq(&POOL + TS[j0], "..") == 1 { hasdd = 1; }
+                }
+            }
+            j0 = j0 + 1;
+        }
+        if hasdd == 1 && TK[j0] == 5 && streq(&POOL + TS[j0], "]") == 1 {
+            TI = TI + 2;   # 吃 '[' → 指向 a
+            outs("mo_slice((unsigned char*)");
+            outs(sb0);
+            outs(",");
+            let sv_co4: i64 = CAST_OPEN;
+            CAST_OPEN = 0;
+            emit_expr();
+            outs(",");
+            expect_op("..");
+            emit_expr();
+            CAST_OPEN = sv_co4;
+            expect_op("]");
+            outs(")");
+            return 0;
+        }
+    }
     # v1.1199: 链式 ptr 字段访问预扫：base .f1 .f2 ...（纯 '.' 链，含 fldptr）→ chain_rec 重建
     if is_c_like() == 1 && cur_k() == 1 && peek_op(".") == 1 {
         let cb: i64 = cur_s();
@@ -3021,6 +3063,13 @@ fn emit_stmt() -> i64 {
             semi();
             return 0;
         }
+        if is_c_like() == 1 && CURRTK == 5 {
+            # v1.1203: 数组返回 —— 局部数组名退化为指针原样返回
+            emit_expr();
+            expect_op(";");
+            semi();
+            return 0;
+        }
         if is_c_like() == 1 { outs("("); }
         # v1.1164: i64 返回类型的函数，return 表达式包 (long long) —— 兼容 ptr→i64 隐式返回
         if is_c_like() == 1 && CURRTK == 0 { outs("(long long)("); }
@@ -3368,6 +3417,51 @@ fn emit_stmt() -> i64 {
         blk_close();
         return 0;
     }
+    if accept_kw("match") == 1 {
+        # v1.1203: match 语句（280_match）—— match expr { pat => {stmts} ... _ => {stmts} }
+        # 模式：数字字面量 / const·enum 名（求值折叠）/ _ default。C：if/else if 链。
+        outs("{ long long __mv = (");
+        emit_expr();
+        outs("); ");
+        expect_op("{");
+        let mfirst: i64 = 1;
+        while is_op("}") == 0 {
+            if cur_k() == 1 && streq(cur_s(), "_") == 1 {
+                TI = TI + 1;
+                if mfirst == 0 { outs(" else "); }
+                expect_op("=>");
+                if TGT != T_PY { outs("{"); }
+                expect_op("{");
+                emit_stmts();
+                if TGT != T_PY { outs("}"); }
+                mfirst = 2;   # default 后不再有分支
+                if is_op(",") == 1 { TI = TI + 1; }
+                continue;
+            }
+            if mfirst == 0 { outs(" else "); }
+            outs("if (__mv == ");
+            # 模式值：数字 / 名（const·enum 求值）
+            if cur_k() == 2 { outs(cur_s()); TI = TI + 1; }
+            else {
+                if cur_k() == 1 {
+                    let pv: i64 = cns_expr();
+                    outi(pv);
+                } else { return err("match: bad pattern"); }
+            }
+            outs(") ");
+            expect_op("=>");
+            outs("{");
+            expect_op("{");
+            emit_stmts();
+            outs("}");
+            mfirst = 0;
+            if is_op(",") == 1 { TI = TI + 1; }
+        }
+        expect_op("}");
+        outs(" }");
+        semi();
+        return 0;
+    }
     if accept_kw("let") == 1 {
         # v1.1202: 数组解构 let [x, y, z] = arr;（255_destructure）
         # 也支持嵌套 [[x, y], [z, w]]（平铺索引）与 RHS 函数调用（只调用一次）。
@@ -3423,9 +3517,9 @@ fn emit_stmt() -> i64 {
             let tmp: i64 = 0;
             if cur_k() == 1 && TK[TI + 1] == 5 && load8(&POOL + TS[TI + 1]) == 40 {
                 LWSEQ = LWSEQ + 1;
-                outs("long long __ds");
+                outs("long long* __ds");
                 outi(LWSEQ);
-                outs("[] = ");
+                outs(" = (long long*)");
                 emit_expr();
                 outs(";");
                 nl();
@@ -3592,12 +3686,56 @@ fn emit_local() -> i64 {
             expect_op(";");
             return 0;
         }
+        # v1.1203: 数组返回函数内的局部数组 → static（返回指针不悬垂，317_multi_ret）
+        if is_c_like() == 1 && CURRTK == 5 && isarr == 1 {
+            outs("static ");
+            emit_scalar_or_arr(nm, isarr);
+            outs(" = {0}");
+            outs(";");
+            nl();
+            if accept_op("=") == 1 {
+                outs("memcpy(");
+                outs(nm);
+                outs(", ");
+                if cur_k() == 5 && streq(cur_s(), "[") == 1 {
+                    outs("(long long[])");
+                    outs("{");
+                    emit_arrflat();
+                    outs("}");
+                }
+                else { emit_expr(); }
+                outs(", sizeof(");
+                outs(nm);
+                outs("))");
+                expect_op(";");
+                semi();
+                return 0;
+            }
+            expect_op(";");
+            semi();
+            return 0;
+        }
         emit_scalar_or_arr(nm, isarr);
         if accept_op("=") == 1 {
             if isarr == 1 {
                 # v1.1196: 记录最外维（OOB 运行时检查用）
                 let ai4: i64 = arr_find(nm);
                 if ai4 >= 0 { ARRDIM[ai4] = ADIM; }
+                # v1.1203: 数组 = 函数调用（返回数组）→ 声明后 memcpy（317_multi_ret）
+                if cur_k() == 1 && TK[TI + 1] == 5 && load8(&POOL + TS[TI + 1]) == 40 {
+                    outs(";");
+                    nl();
+                    outs("memcpy(");
+                    outs(nm);
+                    outs(", ");
+                    emit_expr();
+                    outs(", sizeof(");
+                    outs(nm);
+                    outs("))");
+                    expect_op(";");
+                    semi();
+                    return 0;
+                }
                 outs(" = {");
                 if cur_k() == 2 && ADIM > 0 {
                     # v1.1193: `let a: [N] T = v;` 标量填充 —— native 语义是全部元素 = v
@@ -3718,6 +3856,25 @@ fn emit_arrlit() -> i64 {
     return 0;
 }
 
+# v1.1203: 扁平化数组字面量（memcpy 源用 1D 复合字面量，嵌套 {} 不合法）
+fn emit_arrflat() -> i64 {
+    expect_op("[");
+    let first: i64 = 1;
+    while is_op("]") == 0 {
+        if first == 0 { outs(", "); }
+        first = 0;
+        if is_op("[") == 1 {
+            emit_arrflat();
+            if is_op(",") == 1 { TI = TI + 1; }
+            continue;
+        }
+        emit_expr();
+        if is_op(",") == 1 { TI = TI + 1; } else { break; }
+    }
+    expect_op("]");
+    return 0;
+}
+
 fn emit_global() -> i64 {
     let nm: i64 = ident();
     expect_op(":");
@@ -3753,6 +3910,21 @@ fn emit_global() -> i64 {
                 # v1.1196: 记录最外维（OOB 运行时检查用）
                 let ai4: i64 = arr_find(nm);
                 if ai4 >= 0 { ARRDIM[ai4] = ADIM; }
+                # v1.1203: 数组 = 函数调用（返回数组）→ 声明后 memcpy（317_multi_ret）
+                if cur_k() == 1 && TK[TI + 1] == 5 && load8(&POOL + TS[TI + 1]) == 40 {
+                    outs(";");
+                    nl();
+                    outs("memcpy(");
+                    outs(nm);
+                    outs(", ");
+                    emit_expr();
+                    outs(", sizeof(");
+                    outs(nm);
+                    outs("))");
+                    expect_op(";");
+                    semi();
+                    return 0;
+                }
                 outs(" = {");
                 if cur_k() == 2 && ADIM > 0 {
                     # v1.1193: `let a: [N] T = v;` 标量填充 —— native 语义是全部元素 = v
@@ -4123,12 +4295,21 @@ fn emit_sig() -> i64 {
     accept_op("-");
     accept_op(">");
     let rt: i64 = 0;
+    let rtarr: i64 = 0;   # v1.1203: 返回数组 -> [N][M] T（退化指针语义）
+    if is_op("[") == 1 {
+        rtarr = 1;
+        while is_op("[") == 1 { skip_brackets(); }
+        if cur_k() == 1 { rt = cur_s(); TI = TI + 1; }
+    } else {
     if cur_k() == 1 { rt = cur_s(); TI = TI + 1; }
+    }
+    if rtarr == 1 { CURRTK = 5; }
     let ismain: i64 = 0;
     if streq(nm, "main") == 1 { ismain = 1; }
     # v1.1164: 返回类型 kind —— emit return 处按需 cast
     CURRTK = 0;
-    if rt != 0 {
+    if rtarr == 1 { CURRTK = 5; }   # v1.1203: 数组返回 → 指针，return 不 cast
+    else if rt != 0 {
         if streq(rt, "ptr") == 1 || streq(rt, "str") == 1 {
             CURRTK = 1;
             # v1.1199: `-> ptr T` 返回类型 —— 消费元素类型名
@@ -4145,7 +4326,8 @@ fn emit_sig() -> i64 {
     if reg >= 0 { FSGR[reg] = CURRTK; }
 
     if is_c_like() == 1 {
-        if rt != 0 {
+        if rtarr == 1 { outs("long long* "); }
+        else if rt != 0 {
             if streq(rt, "i64") == 1 { outs("long long "); }
             else {
                 if streq(rt, "i32") == 1 { outs("int "); }
@@ -5810,7 +5992,7 @@ fn fs_header() -> i64 {
         line("#define MO_EXIT_  60");
         line("static void panic(const unsigned char* m){ long mn=0; while(m[mn]) mn++; mo_syscall(MO_WRITE_, 2, (long)m, mn, 0, 0, 0); mo_syscall(MO_EXIT_, 1, 0, 0, 0, 0, 0); }");
         line("static long long mo_oob(long long i, long long n){ if(i<0){ i+=n; } if(i<0||i>=n){ mo_syscall(MO_WRITE_, 2, (long)\"index out of bounds\\n\", 19, 0, 0, 0); mo_syscall(MO_EXIT_, 1, 0, 0, 0, 0, 0); } return i; }");
-        line("static void assert_(long c, const unsigned char* m){ if(c) return; long mn=0; while(m[mn]) mn++; mo_syscall(MO_WRITE_, 2, (long)m, mn, 0, 0, 0); mo_syscall(MO_EXIT_, 1, 0, 0, 0, 0, 0); }");
+            line("static void assert_(long c, const unsigned char* m){ if(c) return; long mn=0; while(m[mn]) mn++; mo_syscall(MO_WRITE_, 2, (long)m, mn, 0, 0, 0); mo_syscall(MO_EXIT_, 1, 0, 0, 0, 0, 0); }");
         emit_fs_print();
         return 0;
     }
@@ -6094,6 +6276,7 @@ fn kern_header() -> i64 {
     line("  outb(0xE9, (unsigned char)(n & 0xFF));  /* QEMU/Bochs 调试端口 */");
     line("  return 0; }");
     line("static long strlen_(unsigned char* s){ long n=0; while(s[n]) n++; return n; }");
+    line("static unsigned char* mo_slice(unsigned char* p, long long a, long long b){ long long n=b-a; if(n<0) n=0; unsigned char* q=(unsigned char*)malloc((size_t)(n+1)); long long i=0; while(i<n){ q[i]=p[a+i]; i++; } q[n]=0; return q; }");
     line("#define strlen strlen_");
     line("static unsigned char* strcpy_(unsigned char* d, unsigned char* s){ long i=0; while(s[i]){ d[i]=s[i]; i++; } d[i]=0; return d; }");
     line("#define strcpy strcpy_");
@@ -6397,6 +6580,7 @@ fn emit_header() -> i64 {
         line("  (void)n;(void)a;(void)b;(void)c;(void)d;(void)e;(void)f; return -1; }");
         line("#endif");
         line("static long long strlen_(unsigned char* s){ long long n=0; while(s[n]) n++; return n; }");
+        line("static unsigned char* mo_slice(unsigned char* p, long long a, long long b){ long long n=b-a; if(n<0) n=0; unsigned char* q=(unsigned char*)malloc((size_t)(n+1)); long long i=0; while(i<n){ q[i]=p[a+i]; i++; } q[n]=0; return q; }");
         
         # v1.1190: fbits/ffrombits 前导补齐（fs_header 有但普通 C 目标漏 —— 127_str 经 assert.mo 用 fbits 链接失败）
         line("static long long mo_swstrcmp(const unsigned char* a, const unsigned char* b){ long long i=0; while(a[i] && a[i]==b[i]) i++; return (long long)(unsigned char)a[i] - (long long)(unsigned char)b[i]; }");

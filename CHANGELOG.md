@@ -11354,3 +11354,11 @@ mo2x C 后端解构支持（v1.1202 批次一）：
 4. 🔴 根因修复：is_assign_start 把 `let [...] =` 误判成数组元素赋值语句——语句头关键字（let/const/return/if/while/for/match/fn）一律不当赋值。
 
 c mismatch 25→24 新低、GENFAIL 91→89、门禁 514/0、三级自举一致。
+## 1.1203.0
+
+mo2x C 后端语法扩展（v1.1203 批次二）：
+1. 切片 `s[1..3]`：lexer `'..'` 单 token（OP 表前缀匹配防 `1.3` 小数误拆）；mo_slice 运行时 helper（malloc 拷贝，负长清零）；str/数组双路径
+2. `match x { pat => {...} _ => {...} }`：数字/const/enum/`_` 通配，continue 穿透；`=>` 进 OPS[2]
+3. 多维返回 `fn f() -> [N][M] T`：退化指针语义，CURRTK=5；返回函数内局部数组 static 化（防悬垂，对齐 moc 返回缓冲）；数组=调用 → memcpy；嵌套字面量 memcpy 源扁平化（emit_arrflat，1D 复合字面量不接受嵌套 {}）
+4. 解构 RHS=函数调用 → long long* 临时（272 回归修复）
+指标：c mismatch 25（基线构成不变）、GENFAIL 89→81（255/319/317/280/272 全绿）、门禁 514/0、三级自举字节一致。
