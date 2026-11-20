@@ -11332,3 +11332,7 @@ C 后端（mo2x）大补：对齐 367 测试 c mismatch 28→27（新增修复�
 - 修复编辑事故：文件重复段清理（emit_postfix/emit_unary/kern_print_redirect/main 去重）。
 
 门禁 514/0；对齐 367 测试 c mismatch 27（剩余=网络运行时缺失类 23、126_utf8、128×2、71_proc——已知不可修基线）。
+## 1.1200.0
+
+C 后端（mo2x）第十批：enum 声明（顶层 `enum Name { A; B; }` 成员常量注册 + C enum 发射 + 去重）；const 求值器补齐（`%` 取模、`sizeof([N] T)`、`alignof`、局部 const 语句、`E.B` 限定名）；enum 类型变量发标量；mo_syscall 失败转 -errno 对齐 moc 原语语义（futex 断言）。对齐 367 测试：c mismatch 27→**25**（71_proc、282 转绿），c GENFAIL 102→**91**（净修复 11 测试）。门禁 514/0。
+
