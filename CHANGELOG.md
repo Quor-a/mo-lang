@@ -11303,3 +11303,13 @@ mo2x C 后端对齐第七批（v1.1197）：c mismatch 34→32。
 - 37_index_neg 回归修复：v1.1139 语义负下标从尾数 a[-1]=a[3]——mo_oob 内 i<0 先 i+=n 再判界。
 
 门禁 514/0；对齐 367 测试 c mismatch 32（剩余=运行时缺失/网络线程类 30 项、128 栈布局 2 项、71_proc 进程语义）。
+mo2x C 后端对齐第八批（v1.1198）：c mismatch 32→28。
+
+- 129_escx（3→0 ✓）：字符串字面量下标 "\\xe4"[0] 包 (unsigned char)——C 串下标 char 有符号，mo 语义 unsigned（emit_primary kind3 分支 peek_op("[")）。
+- 116_mopkg（OOB panic/GENFAIL→0 ✓）：三重修复——①全部函数定义加 static 前缀（根治 http_status 跨文件重定义 + libc 撞名）；②`int ± ptr` 混合算术在 emit_prec 二元循环给右侧 ptr 加 (long long) 单目 cast（native 全整数语义，C 里 long long - unsigned char* 是硬错）；③is_libc_clash 名单扩充 rename/mkdir/rmdir/chmod/stat/access/pipe/dup/sleep/getpid 等。
+- 122_stochastic（1→0 ✓）：随 129/116 修复带过。
+- 147_cbfcu 回归根因：v1.1197 全函数 static 化让 gcc -O2 敢于内联常量传播，暴露 `1LL << (64-n)` 在 n=0 时的移位 UB 与哈希乘法 signed overflow UB（-fsanitize=undefined 实证）——发射层 `<<` 右侧包 `(expr) & 63`（native x86 shl 用 cl&63，语义一致）；对齐脚本 gcc 加 -fwrapv。
+- 🔴 附带破案：emit_postfix 的 emit_primary() 调用在补丁往返中丢失（全局 var init 数字静默蒸发，报 "expected operator at '0'"）——恢复调用。PTRV/STRV/ARRV 表扩容 2048（116 多库引入数百 ptr 名，256 上限静默丢弃）。
+
+门禁 514/0；对齐 367 测试 c mismatch 28（剩余=网络运行时缺失类 ~24、128×2 栈布局、71_proc fork、131 str+str 拼接语义）。
+

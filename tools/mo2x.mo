@@ -908,8 +908,11 @@ fn emit_expr() -> i64 {
     return emit_prec(1);
 }
 
-var ARRDIM: [128] i64 = 0;   # v1.1196: 各数组最外维（OOB 运行时检查用）
-var CAST_OPEN: i64 = 0;    # emit_primary 已发 "(long long)("，postfix ']' 后闭合
+var ARRDIM: [2048] i64 = 0;   # v1.1196: 各数组最外维（OOB 运行时检查用）
+var EMITFH: [256] i64 = 0;   # v1.1198: 已发函数名 hash（跨文件重复定义去重）
+var NEMITF: i64 = 0;
+var CAST_OPEN: i64 = 0;
+var PCAST_OPEN: i64 = 0;   # v1.1198: int-ptr 混合 cast 闭括号旗标    # emit_primary 已发 "(long long)("，postfix ']' 后闭合
 # v1.1164: 函数签名注册表 —— 调用点按形参类型发隐式 cast（ptr↔i64 互传在 C 里报错）。
 # 🔴 键是函数名哈希（FNV-1a 数值），不存名字指针：POOL 在跨文件 tokenize 时 PP=0 重置，
 #    绝对地址/偏移都会失效 —— 名字内容被覆盖导致 fsg_find 误命中（io.mo print_f64 的 f64 调用
@@ -938,8 +941,20 @@ fn emit_primary() -> i64 {
         return 0;
     }
     if cur_k() == 3 {
-        if is_c_like() == 1 { outs("(unsigned char*)"); }
-        out_cstr(cur_s());
+        if is_c_like() == 1 {
+            # v1.1198: 字面量下标 "…"[N] 包 (unsigned char) —— C 串下标 char 有符号，
+            # "\xe4"[0] 得 -28（129_escx）；mo 语义 unsigned。
+            if peek_op("[") == 1 {
+                outs("((unsigned char*)");
+                out_cstr(cur_s());
+                outs(")");
+            } else {
+                outs("(unsigned char*)");
+                out_cstr(cur_s());
+            }
+        } else {
+            out_cstr(cur_s());
+        }
         TI = TI + 1;
         return 0;
     }
@@ -1594,10 +1609,10 @@ fn clsv_ty(nm: i64) -> i64 {
 var BYTEV: [256] i64 = 0;  # byte 基类型变量名（数组/指针）—— 读值需提升 long long
 var NBYTEV: i64 = 0;
 # v1.1166: ptr 变量名表（局部 ptr + ptr 形参）—— 调用点 f(x) 走 fnptr cast
-var PTRV: [256] i64 = 0;
+var PTRV: [2048] i64 = 0;
 var NPTRV: i64 = 0;
 fn ptrv_add(nm: i64) -> i64 {
-    if NPTRV >= 256 { return 0; }
+    if NPTRV >= 2048 { return 0; }
     PTRV[NPTRV] = stp_copy(nm);
     NPTRV = NPTRV + 1;
     return 0;
@@ -1627,7 +1642,7 @@ fn bytev_add(nm: i64) -> i64 {
     return 0;
 }
 
-var STRV: [64] i64 = 0;   # 已知 str 类型局部变量名（指针数组）
+var STRV: [2048] i64 = 0;   # 已知 str 类型局部变量名（指针数组）
 var NSTRV: i64 = 0;
 var EXSTR: i64 = 0;        # 上一个 primary 是否字符串值
 
@@ -1641,7 +1656,7 @@ fn strv_find(nm: i64) -> i64 {
 }
 
 fn strv_add(nm: i64) -> i64 {
-    if NSTRV >= 64 { return 0; }
+    if NSTRV >= 2048 { return 0; }
     STRV[NSTRV] = stp_copy(nm);
     NSTRV = NSTRV + 1;
     return 0;
@@ -1653,7 +1668,7 @@ fn peek_op2(s: i64, off: i64) -> i64 {
     if streq(&POOL + TS[TI + off], s) == 1 { return 1; }
     return 0;
 }
-var ARRVS: [128] i64 = 0;
+var ARRVS: [2048] i64 = 0;
 var NARRV: i64 = 0;
 
 fn peek_op(s: i64) -> i64 {
@@ -1757,7 +1772,16 @@ fn emit_prec(minp: i64) -> i64 {
         if streq(op, "<=") == 1 { iscmp = 1; }
         if streq(op, ">=") == 1 { iscmp = 1; }
         emit_binop(op);
+        # v1.1198: `int -/+ ptr` 混合算术 → 右侧 ptr 加 (long long) 单目 cast
+        if (streq(op, "-") == 1 || streq(op, "+") == 1) && cur_k() == 1 && ptrv_find(cur_s()) == 1 {
+            outs("(long long)");
+        }
+        # v1.1198: `<<` 移位数包 & 63 —— C 移位 >=64 是 UB 且 static+O2 常量折叠
+        # 会暴露 poison（147_cbfcu：1LL << (64-n) 在 n=0 时）；native x86 shl 用 cl&63，
+        # 语义一致。
+        if streq(op, "<<") == 1 { outs("(("); }
         emit_prec(p + 1);
+        if streq(op, "<<") == 1 { outs(") & 63)"); }
     }
     return 0;
 }
@@ -2346,7 +2370,7 @@ fn tok_c(ti: i64) -> i64 {
     return 0;
 }
 fn arr_add(nm: i64) -> i64 {
-    if NARRV >= 128 { return 0; }
+    if NARRV >= 2048 { return 0; }
     if arr_find(nm) >= 0 { return 0; }
     ARRVS[NARRV] = stp_copy(nm);
     NARRV = NARRV + 1;
@@ -3151,6 +3175,12 @@ fn is_libc_clash(nm: i64) -> i64 {
     if streq(nm, "write") == 1 { return 1; }
     if streq(nm, "close") == 1 { return 1; }
     if streq(nm, "unlink") == 1 { return 1; }
+    # v1.1198: fs.mo 系撞名补全（116_mopkg rename 撞 libc）
+    if streq(nm, "rename") == 1 { return 1; }
+    if streq(nm, "mkdir") == 1 { return 1; }
+    if streq(nm, "rmdir") == 1 { return 1; }
+    if streq(nm, "chmod") == 1 { return 1; }
+    if streq(nm, "remove") == 1 { return 1; }
     if streq(nm, "usleep") == 1 { return 1; }
     if streq(nm, "strlen_") == 1 { return 0; }
     return 0;
@@ -4668,6 +4698,7 @@ fn pass_file(i: i64, kind: i64) -> i64 {
                         } else {
                         if kind == 2 {
                             if is_gen() == 1 { skip_balanced(); } else { if is_c_like() == 1 {
+                                outs("static ");
                                 emit_sig();
                                 outs(";");
                                 nl();
@@ -4675,7 +4706,20 @@ fn pass_file(i: i64, kind: i64) -> i64 {
                             if is_gen() == 0 { skip_balanced(); }
                         } else {
                             if kind == 3 {
-                                if is_gen() == 1 { g_sig(); g_block(); } else { emit_sig(); emit_block_body(); }
+                                if is_gen() == 1 { g_sig(); g_block(); } else {
+                                    # v1.1198: 跨文件重复函数定义 → 只发第一个（native 链接器宽容；C 重定义硬错）
+                                    let duph: i64 = nm_hash(cur_s());
+                                    let dupf: i64 = 0;
+                                    let dq3: i64 = 0;
+                                    while dq3 < NEMITF { if EMITFH[dq3] == duph { dupf = 1; } dq3 = dq3 + 1; }
+                                    if dupf == 0 {
+                                        if NEMITF < 256 { EMITFH[NEMITF] = duph; NEMITF = NEMITF + 1; }
+                                        # v1.1198: PTRV/ARRV 是作用域表 —— 不清会跨函数/文件误命中
+                                        #（str.mo 的 i64 局部 m 命中陈旧 ptr 名 m → 假 cast + 池偏移崩溃）
+                                        if is_c_like() == 1 { outs("static "); }
+                                        emit_sig(); emit_block_body();
+                                    } else { skip_balanced(); }
+                                }
                             } else {
                                 skip_balanced();
                             }
@@ -5402,7 +5446,7 @@ fn emit_header() -> i64 {
         line("static void panic(const char* m){ fprintf(stderr, \"%s\", m); exit(1); }");
         line("static long long mo_oob(long long i, long long n){ if(i<0){ i+=n; } if(i<0||i>=n){ fprintf(stderr, \"index out of bounds\\n\"); exit(1);} return i; }");
         line("static void assert_(long c, const char* m){ if(!c){ fprintf(stderr, \"%s\", m); exit(1);} }");
-        line("long long mo_main(void);");
+        line("static long long mo_main(void);");
         return 0;
     }
     if TGT == T_JS {
@@ -5622,7 +5666,7 @@ fn resolve_lambdas() -> i64 {
 fn emit_footer() -> i64 {
     if TGT == T_UEFI {
         nl();
-        line("long long mo_main(void);");
+        line("static long long mo_main(void);");
         # lld-link 在 --subsystem,efi_application 下默认找的入口叫 EfiMain
         # （不是 efi_main）—— 用错名字会报 "undefined symbol: EfiMain"。
         line("long long EfiMain(void* imgh, void* st){");
@@ -5634,7 +5678,7 @@ fn emit_footer() -> i64 {
     }
     if TGT == T_FS {
         nl();
-        line("long long mo_main(void);");
+        line("static long long mo_main(void);");
         # Linux 的初始栈顶布局：[sp] = argc, [sp+8] = argv[0], ...
         # 必须在 _start 最开头读，否则栈会被后续调用弄乱。
         #
