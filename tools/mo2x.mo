@@ -975,7 +975,10 @@ fn try_strcmp() -> i64 {
 
 
 
-var ARRDIM: [2048] i64 = 0;   # v1.1196: 各数组最外维（OOB 运行时检查用）
+var ARRDIM: [2048] i64 = 0;
+# v1.1202: 解构行绑定 —— 二维数组声明时的内层维 + 绑定名标记
+var ARRDIM2: [2048] i64 = 0;
+var ARRW: [2048] i64 = 0;   # v1.1196: 各数组最外维（OOB 运行时检查用）
 var EMITFH: [256] i64 = 0;   # v1.1198: 已发函数名 hash（跨文件重复定义去重）
 var ENMH: [64] i64 = 0;      # v1.1200: 已发射 enum 名 hash（成员是 C 全局标识符，重发=重定义）
 var NENMH: i64 = 0;
@@ -2528,6 +2531,17 @@ fn emit_scalar_or_arr(nm: i64, isarr: i64) -> i64 {
                     dq2 = dq2 + 1;
                 }
                 ARRDIM[ai2] = dv2;
+                # v1.1202: nd>1 时记录内层维（解构行绑定 stride 用）
+                if nd > 1 {
+                    let dv3: i64 = 0;
+                    let dq3: i64 = 0;
+                    let db3: i64 = &dims + 64;
+                    while load8(db3 + dq3) != 0 {
+                        dv3 = dv3 * 10 + (load8(db3 + dq3) - 48);
+                        dq3 = dq3 + 1;
+                    }
+                    ARRDIM2[ai2] = dv3;
+                }
             }
             return 0;
         }
@@ -2683,6 +2697,9 @@ fn semi() -> i64 {
 
 # 判断当前语句是不是赋值（只扫 token，不产生输出）
 fn is_assign_start() -> i64 {
+    # v1.1202: `let [x, y] = a;` 以标识符开头 + 后跟 [...] = —— 会被误判成
+    # 数组元素赋值。语句头是关键字（let/const/return/…）时绝不当赋值。
+    if is_kw("let") == 1 || is_kw("const") == 1 || is_kw("return") == 1 || is_kw("if") == 1 || is_kw("while") == 1 || is_kw("for") == 1 || is_kw("match") == 1 || is_kw("fn") == 1 { return 0; }
     let save: i64 = TI;
     let r: i64 = 0;
     if cur_k() == 1 {
@@ -2947,7 +2964,6 @@ fn arr_find(nm: i64) -> i64 {
     return 0 - 1;
 }
 fn emit_stmt() -> i64 {
-
     if try_incdec() == 1 { return 0; }
     if is_assign_start() == 1 {
         # v1.1193: 数组整体赋值 q = p; → memcpy(q, p, sizeof(q))
@@ -3353,6 +3369,126 @@ fn emit_stmt() -> i64 {
         return 0;
     }
     if accept_kw("let") == 1 {
+        # v1.1202: 数组解构 let [x, y, z] = arr;（255_destructure）
+        # 也支持嵌套 [[x, y], [z, w]]（平铺索引）与 RHS 函数调用（只调用一次）。
+        if is_op("[") == 1 {
+            TI = TI + 1;
+            # 收集名字（平铺；嵌套层只是语法糖，名字按出现顺序对应线性索引）
+            let dnames: [32][64] byte = 0;
+            # v1.1202: 每名字元数据 —— DN_NEST（0=标量）/ DN_G 组号 / DN_J 组内子号
+            let DN_NEST: [32] i64 = 0;
+            let DN_G: [32] i64 = 0;
+            let DN_J: [32] i64 = 0;
+            let dn: i64 = 0;
+            let dg: i64 = 0;    # 当前嵌套组号
+            while is_op("]") == 0 {
+                if is_op("[") == 1 {
+                    TI = TI + 1;
+                    let dj: i64 = 0;
+                    while is_op("]") == 0 {
+                        if cur_k() != 1 { return err("destructure: expected identifier"); }
+                        let dn2: i64 = dn;
+                        if dn2 >= 32 { return err("destructure: too many names"); }
+                        let sb: i64 = &dnames + dn2 * 64;
+                        let sq: i64 = 0;
+                        while load8(cur_s() + sq) != 0 { store8(sb + sq, load8(cur_s() + sq)); sq = sq + 1; }
+                        store8(sb + sq, 0);
+                        DN_NEST[dn2] = 1; DN_G[dn2] = dg; DN_J[dn2] = dj;
+                        dn = dn + 1;
+                        dj = dj + 1;
+                        TI = TI + 1;
+                        if is_op(",") == 1 { TI = TI + 1; } else { break; }
+                    }
+                    if is_op("]") == 1 { TI = TI + 1; }
+                    dg = dg + 1;
+                    if is_op(",") == 1 { TI = TI + 1; } else { break; }
+                    continue;
+                }
+                if cur_k() != 1 { return err("destructure: expected identifier"); }
+                let dn2: i64 = dn;
+                if dn2 >= 32 { return err("destructure: too many names"); }
+                let sb: i64 = &dnames + dn2 * 64;
+                let sq: i64 = 0;
+                while load8(cur_s() + sq) != 0 { store8(sb + sq, load8(cur_s() + sq)); sq = sq + 1; }
+                store8(sb + sq, 0);
+                DN_NEST[dn2] = 0;
+                dn = dn + 1;
+                TI = TI + 1;
+                if is_op("]") == 1 { TI = TI + 1; }
+                if is_op(",") == 1 { TI = TI + 1; } else { break; }
+            }
+            if is_op("]") == 1 { TI = TI + 1; }
+            expect_op("=");
+            # RHS：函数调用 → 存临时；数组变量 → 直接用
+            let tmp: i64 = 0;
+            if cur_k() == 1 && TK[TI + 1] == 5 && load8(&POOL + TS[TI + 1]) == 40 {
+                LWSEQ = LWSEQ + 1;
+                outs("long long __ds");
+                outi(LWSEQ);
+                outs("[] = ");
+                emit_expr();
+                outs(";");
+                nl();
+                tmp = LWSEQ;
+            } else {
+                if cur_k() != 1 { return err("destructure: right side must be an array"); }
+            }
+            # v1.1202: RHS 二维数组 → 行绑定（v1.1076）：long long* nm = RHS[i];
+            let rowb: i64 = 0;
+            let anynest: i64 = 0;
+            let dchk: i64 = 0;
+            while dchk < dn { if DN_NEST[dchk] == 1 { anynest = 1; } dchk = dchk + 1; }
+            if tmp == 0 && anynest == 0 {
+                let ri: i64 = arr_find(&POOL + TS[TI]);
+                if ri >= 0 && ARRDIM2[ri] > 0 { rowb = 1; }
+            }
+            let di: i64 = 0;
+            while di < dn {
+                let sb2: i64 = &dnames + di * 64;
+                # 解构名字一律 i64 标量（数组元素），不能走 emit_scalar_or_arr
+                # ——它会从 token 流消费 `: T`，解构声明里没有类型。
+                if rowb == 1 {
+                    if is_c_like() == 1 { outs("long long *"); }
+                    let wi: i64 = arr_find(sb2);
+                    if wi < 0 { wi = arr_add(sb2); }
+                    ARRW[wi] = 1;
+                } else {
+                    if is_c_like() == 1 { outs("long long "); }
+                }
+                outs(sb2);
+                outs(" = ");
+                if DN_NEST[di] == 1 {
+                    # 嵌套：RHS[组][子]（二维 RHS 逐元素）
+                    if is_c_like() == 1 { outs("(long long)"); }
+                    outs(&POOL + TS[TI]);
+                    outs("[");
+                    outi(DN_G[di]);
+                    outs("][");
+                    outi(DN_J[di]);
+                    outs("]");
+                } else {
+                    if tmp > 0 {
+                        outs("((long long*)__ds");
+                        outi(tmp);
+                        outs(")[");
+                        outi(di);
+                        outs("]");
+                    } else {
+                        outs(&POOL + TS[TI]);
+                        outs("[");
+                        outi(di);
+                        outs("]");
+                    }
+                }
+                outs(";");
+                nl();
+                di = di + 1;
+            }
+            if tmp == 0 { TI = TI + 1; }   # 吃掉 RHS 数组名
+            expect_op(";");
+            semi();
+            return 0;
+        }
         emit_local();
         return 0;
     }

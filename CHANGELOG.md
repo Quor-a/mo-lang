@@ -11345,3 +11345,12 @@ C 后端（mo2x）第十批：enum 声明（顶层 `enum Name { A; B; }` 成员�
 
 对齐 367 测试 mismatch 25 维持、门禁 514/0、三级自举字节一致。
 
+## 1.1202.0
+
+mo2x C 后端解构支持（v1.1202 批次一）：
+1. `let [x, y, z] = arr;` 数组解构（255）—— 标量逐元素 `x = arr[i]`；RHS 函数调用只调用一次（存临时）。
+2. 行绑定 `let [r0, r1] = m;` 二维数组（258）—— `long long* r_i = m[i]`（新表 ARRDIM2/ARRW 记录内层维）。
+3. 嵌套解构 `let [[x, y], [z, w]] = m;`（264）—— 元数据 DN_NEST/DN_G/DN_J，`nm = m[g][j]`。
+4. 🔴 根因修复：is_assign_start 把 `let [...] =` 误判成数组元素赋值语句——语句头关键字（let/const/return/if/while/for/match/fn）一律不当赋值。
+
+c mismatch 25→24 新低、GENFAIL 91→89、门禁 514/0、三级自举一致。
