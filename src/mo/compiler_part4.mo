@@ -1593,6 +1593,9 @@ fn parse_addr() -> i64 {
         store64(heap + O_SU + sv * 8, 1);   # v1.1187: &x 也算「用过」（修 unused 误报①）
         g_lea_local(sym_addr(sv));
     } else {
+        # v1.1201: 全局 &x 也算「用过」—— 自评测报告缺陷②（FBUF 只被 &FBUF
+        # 传参仍报 unused）。v1.1187 只修了局部分支，全局漏掉。
+        store64(heap + O_SU + sv * 8, 1);
         g_movabs_rax(sym_addr(sv));
     }
     # v1.1023: &r.x / v1.1024: &a[i] —— 地址 = 基址 + 偏移

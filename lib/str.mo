@@ -163,6 +163,8 @@ fn memcmp(a: i64, b: i64, n: i64) -> i64 {
 }
 
 # 找子串，返回起始下标，找不到返回 -1
+# 🔴 与 C 的 strstr 同名但语义完全相反：C 返回指针/NULL，墨返回下标/-1。
+#     新代码请用语义明确的 str_find —— strstr 仅为兼容保留（v1.1201）。
 fn strstr(hay: ptr, needle: ptr) -> i64 {
     let i: i64 = 0;
     let hn: i64 = strlen(hay);
@@ -177,6 +179,12 @@ fn strstr(hay: ptr, needle: ptr) -> i64 {
         i = i + 1;
     }
     return 0 - 1;
+}
+
+# str_find —— strstr 的语义明确别名（v1.1201，自评测报告缺陷①）：
+# 返回下标、找不到 -1。用名字本身消除「C 习惯写 p != 0 判空」的死循环/段错误陷阱。
+fn str_find(hay: ptr, needle: ptr) -> i64 {
+    return strstr(hay, needle);
 }
 
 # ==========================================================================

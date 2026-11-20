@@ -94,14 +94,34 @@ var BOL: i64 = 1;          # 行首标记（全局变量必须先声明）
 
 
 var OBF: i64 = 0;
-var OBUF: [8192] byte = 0;
+# v1.1201: 全量输出缓冲 —— err() 失败退出时半截产物不进 stdout（自评测缺陷③）。
+# 成功路径由 main 末尾 out_flush() 一次性 write。8MB 上限（实测 C 产物 6.4MB），满则中途 flush。
+var OBUF: [8388608] byte = 0;
+var OPO: i64 = 0;
+fn out_flush() -> i64 {
+    if OPO > 0 { syscall(1, 1, &OBUF, OPO, 0, 0, 0); }
+    OPO = 0;
+    return 0;
+}
 fn raw(s: i64) -> i64 {
-    if OBF == 1 { strcat(&OBUF, s); return 0; }
-    let n: i64 = strlen(s);
-    if n > 0 { syscall(1, 1, s, n, 0, 0, 0); }
+    if OBF == 1 {
+        let n: i64 = strlen(s);
+        if OPO + n > 8388000 { out_flush(); }   # 防御：接近 16MB 边界先 flush
+        let q: i64 = 0;
+        while q < n { store8(&OBUF + OPO, load8(s + q)); OPO = OPO + 1; q = q + 1; }
+        return 0;
+    }
+    let n2: i64 = strlen(s);
+    if n2 > 0 { syscall(1, 1, s, n2, 0, 0, 0); }
     return 0;
 }
 fn rawc(c: i64) -> i64 {
+    if OBF == 1 {
+        if OPO + 1 > 8388000 { out_flush(); }
+        store8(&OBUF + OPO, c);
+        OPO = OPO + 1;
+        return 0;
+    }
     store8(&CHB, c);
     syscall(1, 1, &CHB, 1, 0, 0, 0);
     return 0;
@@ -3500,11 +3520,11 @@ fn emit_local() -> i64 {
     if TGT == T_JS {
         outs("let ");
         outs(nm);
-        if dim > 0 { outs(" = new Array("); outi(dim); outs(").fill(0)"); }
+        # v1.1201: 数组显式 `= v` → fill(实际值)（原 bug：fill(0) 后又 emit_expr
+        # 追加 "0" → `new Array(32).fill(0)0`，自评测报告缺陷③）
+        if dim > 0 { outs(" = new Array("); outi(dim); outs(").fill("); if accept_op("=") == 1 { emit_expr(); } else { outs("0"); } outs(")"); }
         else { if is_struct_ty(LASTTY) == 1 { outs(" = new "); outs(LASTTY); outs("()"); } }
-        if accept_op("=") == 1 {
-            if dim > 0 { emit_expr(); } else { outs(" = "); emit_expr(); }
-        }
+        if dim == 0 && accept_op("=") == 1 { outs(" = "); emit_expr(); }
         outs(";");
         nl();
         expect_op(";");
@@ -3655,11 +3675,11 @@ fn emit_global() -> i64 {
     if TGT == T_JS {
         outs("let ");
         outs(nm);
-        if dim > 0 { outs(" = new Array("); outi(dim); outs(").fill(0)"); }
+        # v1.1201: 数组显式 `= v` → fill(实际值)（原 bug：fill(0) 后又 emit_expr
+        # 追加 "0" → `new Array(32).fill(0)0`，自评测报告缺陷③）
+        if dim > 0 { outs(" = new Array("); outi(dim); outs(").fill("); if accept_op("=") == 1 { emit_expr(); } else { outs("0"); } outs(")"); }
         else { if is_struct_ty(LASTTY) == 1 { outs(" = new "); outs(LASTTY); outs("()"); } }
-        if accept_op("=") == 1 {
-            if dim > 0 { emit_expr(); } else { outs(" = "); emit_expr(); }
-        }
+        if dim == 0 && accept_op("=") == 1 { outs(" = "); emit_expr(); }
         outs(";");
         nl();
         expect_op(";");
@@ -7087,6 +7107,8 @@ fn main() -> i64 {
         print("\n");
         return 2;
     }
+    OBF = 1;
+    OPO = 0;
     add_file(argv(1));
     if is_gen() == 0 { prescan_lambdas(); }   # v1.1166: C 系 —— emit_header 前收集 lambda
     if is_gen() == 1 { g_header(); } else { emit_header(); }
@@ -7101,6 +7123,9 @@ fn main() -> i64 {
     while m < NF { pass_file(m, 3); m = m + 1; }
     resolve_lambdas();
     if is_gen() == 1 { g_footer(); } else { emit_footer(); }
+    # v1.1201: 全部 pass 成功结束才 flush 缓冲 —— 编译失败（err→exit）时
+    # 缓冲整块丢弃，stdout 无半截产物
+    out_flush();
     return 0;
 }
 

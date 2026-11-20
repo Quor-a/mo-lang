@@ -11336,3 +11336,12 @@ C 后端（mo2x）大补：对齐 367 测试 c mismatch 28→27（新增修复�
 
 C 后端（mo2x）第十批：enum 声明（顶层 `enum Name { A; B; }` 成员常量注册 + C enum 发射 + 去重）；const 求值器补齐（`%` 取模、`sizeof([N] T)`、`alignof`、局部 const 语句、`E.B` 限定名）；enum 类型变量发标量；mo_syscall 失败转 -errno 对齐 moc 原语语义（futex 断言）。对齐 367 测试：c mismatch 27→**25**（71_proc、282 转绿），c GENFAIL 102→**91**（净修复 11 测试）。门禁 514/0。
 
+## 1.1201.0
+
+自评测报告（外部实测）三缺陷修复：
+1. `strstr` 同名反义陷阱 —— lib/str.mo 加语义明确别名 `str_find`（下标/-1），strstr 注释标注 C 语义差异，仅为兼容保留。
+2. unused global 取址误报 —— moc `parse_addr` 全局分支补 O_SU 标记（v1.1187 只修了局部）；O_DCAP 提到 16MB。
+3. js/py 编译失败仍输出半截产物 + `fill(0)0` 生成 bug —— mo2x 全量输出缓冲化（成功才 flush，err 退出缓冲丢弃）；数组 `= v` 发射 `fill(实际值)`。
+
+对齐 367 测试 mismatch 25 维持、门禁 514/0、三级自举字节一致。
+

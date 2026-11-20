@@ -14,7 +14,7 @@ var O_DATA: i64 = 95000000;  # 输出数据段缓冲。原先 5242880，与 O_NA
                              # docs/backend_portability.md §五.1 早就记录了却一直没修）。
                              # 移到 O_MODS(91MB) 之后、堆顶之前，容量 10485760（10MB），
                              # dbyte 里有响亮的溢出检查。
-var O_DCAP: i64 = 10485760;  # 数据段缓冲上限（与 dbyte 的检查保持一致）
+var O_DCAP: i64 = 16777216;  # 数据段缓冲上限（v1.1201 提到 16MB：mo2x 全输出缓冲 OBUF 8MB 需要余量）
 var O_NAMES: i64 = 6291456;
 var O_SYN: i64 = 6815744;
 var K_WARN:   i64 = 648;   # v1.1188: 默认开启（误报主因已修：&x 标记、lib/ 豁免、_ 前缀弃值惯用法）；-Wall 保留兼容
@@ -4785,6 +4785,9 @@ fn parse_addr() -> i64 {
         store64(heap + O_SU + sv * 8, 1);   # v1.1187: &x 也算「用过」（修 unused 误报①）
         g_lea_local(sym_addr(sv));
     } else {
+        # v1.1201: 全局 &x 也算「用过」—— 自评测报告缺陷②（FBUF 只被 &FBUF
+        # 传参仍报 unused）。v1.1187 只修了局部分支，全局漏掉。
+        store64(heap + O_SU + sv * 8, 1);
         g_movabs_rax(sym_addr(sv));
     }
     # v1.1023: &r.x / v1.1024: &a[i] —— 地址 = 基址 + 偏移
