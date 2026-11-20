@@ -11281,3 +11281,16 @@ lambda。Mo 此前函数只能命名 + `&fn` 取址。
 - 07_memory ✓：str 字面量 init → 可写 static 副本 __mlit_N（native 字面量在 .data 可写，C rodata 上 store64 SIGSEGV）
 - 222_switch_str 稳定化：可写副本路径补 strv_add（switch str 判别探测依赖）
 - c mismatch 48→46；门禁 514/0
+
+## 1.1196.0.0
+
+mo2x C 后端对齐第六批（v1.1196）：c mismatch 46→34。
+
+- 147_cbfcu（10→0 ✓）：🔴 移位左操作数字面量加 LL 后缀——C 里 `1 << 63` 是 int 移位 UB，mo 语义是 i64 wrap（lib/cms.mo cm_shr 的 (1 << (64-n))-1 实测坑）。影响所有含大移位的库。
+- 266_global_let（1→6 ✓）：顶层 `let` 数组声明此前被跳过——顶层分发只识别 var/const/extern/fn，`let` 落兜底 skip_to_semi。补 let 分支走 emit_global。
+- 269_arr_param（GENFAIL→6 ✓）：数组形参 a: [N] T 发成标量 long long——emit_sig isarr=1 时发 `long long*`。
+- 262_len_ext（10→7 ✓）：len(str)=运行时 strlen（v1.1080 语义），此前发 sizeof 比值对 str 指针得 8。
+- 322_str_neg_index（110→196 ✓）：str 负下标 s[-N] → s[strlen_(s)-N]（v1.1140 运行时 strlen 换算语义），此前发裸负下标 UB。
+- emit_local v1.1195 遗留调试探针清除。
+
+门禁 514/0；对齐 367 测试 c mismatch 34（剩余=网络/线程运行时缺失 30 项、128 栈布局 2 项、OOB 语义 2 项）。

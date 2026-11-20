@@ -929,7 +929,10 @@ fn nm_hash(nm: i64) -> i64 {
 
 fn emit_primary() -> i64 {
     if cur_k() == 2 {
-        outs(cur_s());
+        # v1.1196: 移位左操作数字面量加 LL —— C 里 `1 << 63` 是 int 移位 UB，
+        # mo 语义是 i64 wrap（lib/cms.mo cm_shr 的 (1 << (64-n))-1 实测坑：147_cbfcu）
+        if peek_op("<<") == 1 { outs(cur_s()); outs("LL"); }
+        else { outs(cur_s()); }
         TI = TI + 1;
         return 0;
     }
@@ -1094,6 +1097,13 @@ fn emit_primary() -> i64 {
                 let an: i64 = cur_s();
                 TI = TI + 1;
                 expect_op(")");
+                if strv_find(an) == 1 {
+                    # v1.1196: len(str) = 运行时 strlen（v1.1080 语义；str 变量不是数组）
+                    outs("((long long)strlen_((unsigned char*)");
+                    outs(an);
+                    outs("))");
+                    return 0;
+                }
                 outs("((long long)(sizeof(");
                 outs(an);
                 outs(")/sizeof(");
@@ -1390,7 +1400,44 @@ fn emit_postfix() -> i64 {
     emit_primary();
     while 1 {
         if accept_op("[") == 1 {
-            outs("[");
+            # v1.1196: str 负下标 s[-N] → s[strlen_(s)-N]（v1.1140 语义）
+            let negi: i64 = 0;
+            let negv: i64 = 0;
+            let lnm: i64 = 0;
+            let lisv: i64 = 0;
+            if TI >= 2 && TK[TI - 2] == 1 {
+                lnm = TS[TI - 2];
+                lisv = strv_find(&POOL + lnm);
+            }
+            if lisv == 1 && cur_k() == 5 && load8(&POOL + TS[TI]) == 45 {
+                negi = 1;
+                if TI + 1 < NT && TK[TI + 1] == 2 {
+                    let pv: i64 = 0;
+                    let q2: i64 = TS[TI + 1];
+                    while load8(&POOL + q2) != 0 {
+                        pv = pv * 10 + (load8(&POOL + q2) - 48);
+                        q2 = q2 + 1;
+                    }
+                    negv = pv;
+                } else { negi = 0; }
+            }
+            if negi == 1 {
+                outs("[strlen_((unsigned char*)");
+                outs(&POOL + lnm);
+                outs(")-");
+                let nb: [24] byte = 0;
+                utoa(negv, &nb, 10);
+                outs(&nb);
+                outs("]");
+                TI = TI + 2;   # 吃掉 - N
+                expect_op("]");
+                if CAST_OPEN == 1 {
+                    outs(")");
+                    CAST_OPEN = 0;
+                }
+                continue;
+            }
+outs("[");
             let sv_co: i64 = CAST_OPEN;   # 下标表达式内的 emit_primary 会重置 CAST_OPEN，先保存
             CAST_OPEN = 0;
             emit_expr();
@@ -2666,16 +2713,6 @@ fn emit_block_body() -> i64 {
 fn emit_local() -> i64 {
     let nm: i64 = ident();
     expect_op(":");
-    {
-        let db: [64] byte = 0;
-        let dq: i64 = 0;
-        while dq < 6 {
-            utoa(TK[TI+dq], &db, 10); syscall(1, 2, &db, strlen(&db), 0, 0, 0);
-            syscall(1, 2, ",", 1, 0, 0, 0);
-            dq = dq + 1;
-        }
-        syscall(1, 2, "N\n", 2, 0, 0, 0);
-    }
     if is_c_like() == 1 {
         let isarr: i64 = 0;
         if is_op("[") == 1 { isarr = 1; }
@@ -3113,7 +3150,7 @@ fn emit_sig() -> i64 {
             if isarr == 1 { skip_brackets(); }
             let t: i64 = ident();
             let tk: i64 = 4;
-            if streq(t, "i64") == 1 { strcat(&ps, "long long"); tk = 0; }
+            if streq(t, "i64") == 1 { if isarr == 1 { strcat(&ps, "long long*"); } else { strcat(&ps, "long long"); } tk = 0; }
             else {
                 if streq(t, "i32") == 1 { strcat(&ps, "int"); }
                 else {
@@ -4535,7 +4572,7 @@ fn pass_file(i: i64, kind: i64) -> i64 {
                         expect_op(";");
                     } else { skip_to_semi(); }
                 } else {
-                if accept_kw("var") == 1 {
+                if accept_kw("var") == 1 || accept_kw("let") == 1 {
                     if kind == 1 {
                         if is_gen() == 1 { g_global(); } else { emit_global(); }
                     } else { skip_to_semi(); }
