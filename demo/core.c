@@ -30,6 +30,7 @@ static long long mo_syscall(long long n,long long a,long long b,long long c,long
   (void)n;(void)a;(void)b;(void)c;(void)d;(void)e;(void)f; return -1; }
 #endif
 static long long strlen_(unsigned char* s){ long long n=0; while(s[n]) n++; return n; }
+static unsigned char* mo_slice(unsigned char* p, long long a, long long b){ long long n=b-a; if(n<0) n=0; unsigned char* q=(unsigned char*)malloc((size_t)(n+1)); long long i=0; while(i<n){ q[i]=p[a+i]; i++; } q[n]=0; return q; }
 static long long mo_swstrcmp(const unsigned char* a, const unsigned char* b){ long long i=0; while(a[i] && a[i]==b[i]) i++; return (long long)(unsigned char)a[i] - (long long)(unsigned char)b[i]; }
 static long long mo_arrcmp3(const void* a, const void* b, unsigned long n){ const unsigned char* x=a; const unsigned char* y=b; unsigned long i=0; while(i<n){ if(x[i]!=y[i]) return (long long)x[i]-(long long)y[i]; i++; } return 0; }
 #define mo_arrcmp(a,b) mo_arrcmp3(a,b,sizeof(a))
