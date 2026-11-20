@@ -908,6 +908,7 @@ fn emit_expr() -> i64 {
     return emit_prec(1);
 }
 
+var ARRDIM: [128] i64 = 0;   # v1.1196: 各数组最外维（OOB 运行时检查用）
 var CAST_OPEN: i64 = 0;    # emit_primary 已发 "(long long)("，postfix ']' 后闭合
 # v1.1164: 函数签名注册表 —— 调用点按形参类型发隐式 cast（ptr↔i64 互传在 C 里报错）。
 # 🔴 键是函数名哈希（FNV-1a 数值），不存名字指针：POOL 在跨文件 tokenize 时 PP=0 重置，
@@ -1437,7 +1438,29 @@ fn emit_postfix() -> i64 {
                 }
                 continue;
             }
-outs("[");
+            # v1.1196: 数组变量 OOB 运行时检查（v1.1080 语义：exit 1）
+            let oi: i64 = 0 - 1;
+            if TI >= 2 && TK[TI - 2] == 1 { oi = arr_find(&POOL + TS[TI - 2]); }
+            let idxk: i64 = cur_k();
+            if oi >= 0 && ARRDIM[oi] > 0 && idxk != 2 && idxk != 4 {
+                let db: [24] byte = 0;
+                utoa(ARRDIM[oi], &db, 10);
+                outs("[mo_oob(");
+                let sv_co2: i64 = CAST_OPEN;
+                CAST_OPEN = 0;
+                emit_expr();
+                CAST_OPEN = sv_co2;
+                expect_op("]");
+                outs(",");
+                outs(&db);
+                outs(")]");
+                if CAST_OPEN == 1 {
+                    outs(")");
+                    CAST_OPEN = 0;
+                }
+                continue;
+            }
+            outs("[");
             let sv_co: i64 = CAST_OPEN;   # 下标表达式内的 emit_primary 会重置 CAST_OPEN，先保存
             CAST_OPEN = 0;
             emit_expr();
@@ -1632,6 +1655,7 @@ fn peek_op2(s: i64, off: i64) -> i64 {
 }
 var ARRVS: [128] i64 = 0;
 var NARRV: i64 = 0;
+
 fn peek_op(s: i64) -> i64 {
     if TI + 1 >= NT { return 0; }
     if TK[TI + 1] != 5 { return 0; }
@@ -1966,6 +1990,17 @@ fn emit_scalar_or_arr(nm: i64, isarr: i64) -> i64 {
                 outs("]");
                 q2 = q2 + 1;
             }
+            # v1.1196: 记录最外维（OOB 运行时检查用）—— dims[0] 是数字文本
+            let ai2: i64 = arr_find(nm);
+            if ai2 >= 0 {
+                let dv2: i64 = 0;
+                let dq2: i64 = 0;
+                while load8(&dims + dq2) != 0 {
+                    dv2 = dv2 * 10 + (load8(&dims + dq2) - 48);
+                    dq2 = dq2 + 1;
+                }
+                ARRDIM[ai2] = dv2;
+            }
             return 0;
         }
     }
@@ -2134,6 +2169,21 @@ fn emit_lvalue() -> i64 {
     outs(ident());
     while 1 {
         if accept_op("[") == 1 {
+            # v1.1196: 数组变量 OOB 运行时检查（写路径；ident 已在 TS[TI-2]）
+            let oi5: i64 = 0 - 1;
+            if TI >= 2 && TK[TI - 2] == 1 { oi5 = arr_find(&POOL + TS[TI - 2]); }
+            let idxk5: i64 = cur_k();
+            if oi5 >= 0 && ARRDIM[oi5] > 0 && idxk5 != 2 && idxk5 != 4 {
+                let db5: [24] byte = 0;
+                utoa(ARRDIM[oi5], &db5, 10);
+                outs("[mo_oob(");
+                emit_expr();
+                expect_op("]");
+                outs(",");
+                outs(&db5);
+                outs(")]");
+                continue;
+            }
             outs("[");
             emit_expr();
             expect_op("]");
@@ -2741,6 +2791,9 @@ fn emit_local() -> i64 {
         emit_scalar_or_arr(nm, isarr);
         if accept_op("=") == 1 {
             if isarr == 1 {
+                # v1.1196: 记录最外维（OOB 运行时检查用）
+                let ai4: i64 = arr_find(nm);
+                if ai4 >= 0 { ARRDIM[ai4] = ADIM; }
                 outs(" = {");
                 if cur_k() == 2 && ADIM > 0 {
                     # v1.1193: `let a: [N] T = v;` 标量填充 —— native 语义是全部元素 = v
@@ -2884,6 +2937,9 @@ fn emit_global() -> i64 {
         emit_scalar_or_arr(nm, isarr);
         if accept_op("=") == 1 {
             if isarr == 1 {
+                # v1.1196: 记录最外维（OOB 运行时检查用）
+                let ai4: i64 = arr_find(nm);
+                if ai4 >= 0 { ARRDIM[ai4] = ADIM; }
                 outs(" = {");
                 if cur_k() == 2 && ADIM > 0 {
                     # v1.1193: `let a: [N] T = v;` 标量填充 —— native 语义是全部元素 = v
@@ -4735,6 +4791,7 @@ fn fs_header() -> i64 {
         line("#define MO_WRITE_ 1");
         line("#define MO_EXIT_  60");
         line("static void panic(const unsigned char* m){ long mn=0; while(m[mn]) mn++; mo_syscall(MO_WRITE_, 2, (long)m, mn, 0, 0, 0); mo_syscall(MO_EXIT_, 1, 0, 0, 0, 0, 0); }");
+        line("static long long mo_oob(long long i, long long n){ if(i<0){ i+=n; } if(i<0||i>=n){ mo_syscall(MO_WRITE_, 2, (long)\"index out of bounds\\n\", 19, 0, 0, 0); mo_syscall(MO_EXIT_, 1, 0, 0, 0, 0, 0); } return i; }");
         line("static void assert_(long c, const unsigned char* m){ if(c) return; long mn=0; while(m[mn]) mn++; mo_syscall(MO_WRITE_, 2, (long)m, mn, 0, 0, 0); mo_syscall(MO_EXIT_, 1, 0, 0, 0, 0, 0); }");
         emit_fs_print();
         return 0;
@@ -4757,6 +4814,7 @@ fn fs_header() -> i64 {
         line("static void __attribute__((noreturn)) mo_exit(long c){ mo_syscall(94,c,0,0,0,0,0); for(;;){} }");
         line("static void assert_(long c, const unsigned char* m){ if(c) return; long mn=0; while(m[mn]) mn++; mo_syscall(MO_WRITE_, 2, (long)m, mn, 0, 0, 0); mo_syscall(MO_EXIT_, 1, 0, 0, 0, 0, 0); }");
         line("static void panic(const unsigned char* m){ long mn=0; while(m[mn]) mn++; mo_syscall(MO_WRITE_, 2, (long)m, mn, 0, 0, 0); mo_syscall(MO_EXIT_, 1, 0, 0, 0, 0, 0); }");
+        line("static long long mo_oob(long long i, long long n){ if(i<0){ i+=n; } if(i<0||i>=n){ mo_syscall(MO_WRITE_, 2, (long)\"index out of bounds\\n\", 19, 0, 0, 0); mo_syscall(MO_EXIT_, 1, 0, 0, 0, 0, 0); } return i; }");
         emit_fs_print();
         return 0;
     }
@@ -5300,6 +5358,7 @@ fn emit_header() -> i64 {
         line("  (void)n;(void)a;(void)b;(void)c;(void)d;(void)e;(void)f; return -1; }");
         line("#endif");
         line("static long long strlen_(unsigned char* s){ long long n=0; while(s[n]) n++; return n; }");
+        
         # v1.1190: fbits/ffrombits 前导补齐（fs_header 有但普通 C 目标漏 —— 127_str 经 assert.mo 用 fbits 链接失败）
         line("static long long mo_swstrcmp(const unsigned char* a, const unsigned char* b){ long long i=0; while(a[i] && a[i]==b[i]) i++; return (long long)(unsigned char)a[i] - (long long)(unsigned char)b[i]; }");
         line("static long long mo_arrcmp3(const void* a, const void* b, unsigned long n){ const unsigned char* x=a; const unsigned char* y=b; unsigned long i=0; while(i<n){ if(x[i]!=y[i]) return (long long)x[i]-(long long)y[i]; i++; } return 0; }");
@@ -5341,6 +5400,7 @@ fn emit_header() -> i64 {
         # v1.1176: panic 内建对齐（moc v1.1175）
         line("#include <stdlib.h>");
         line("static void panic(const char* m){ fprintf(stderr, \"%s\", m); exit(1); }");
+        line("static long long mo_oob(long long i, long long n){ if(i<0){ i+=n; } if(i<0||i>=n){ fprintf(stderr, \"index out of bounds\\n\"); exit(1);} return i; }");
         line("static void assert_(long c, const char* m){ if(!c){ fprintf(stderr, \"%s\", m); exit(1);} }");
         line("long long mo_main(void);");
         return 0;

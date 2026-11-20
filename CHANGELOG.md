@@ -11294,3 +11294,12 @@ mo2x C 后端对齐第六批（v1.1196）：c mismatch 46→34。
 - emit_local v1.1195 遗留调试探针清除。
 
 门禁 514/0；对齐 367 测试 c mismatch 34（剩余=网络/线程运行时缺失 30 项、128 栈布局 2 项、OOB 语义 2 项）。
+
+## 1.1197.0.0
+
+mo2x C 后端对齐第七批（v1.1197）：c mismatch 34→32。
+
+- 36_index_oob（192→1 ✓）/ 42_byte_array_oob（0→1 ✓）：数组变量 OOB 运行时检查——emit_postfix 读路径与 emit_lvalue 写路径，非字面量下标包 mo_oob(i,N)。C 前导两分支各加 mo_oob（stdio 用 fprintf+exit；fs/kern 用 mo_syscall write/exit）。ARRDIM[128] 平行表记录各数组最外维（emit_local/emit_global 声明处 + emit_scalar_or_arr init-list 路径）。
+- 37_index_neg 回归修复：v1.1139 语义负下标从尾数 a[-1]=a[3]——mo_oob 内 i<0 先 i+=n 再判界。
+
+门禁 514/0；对齐 367 测试 c mismatch 32（剩余=运行时缺失/网络线程类 30 项、128 栈布局 2 项、71_proc 进程语义）。
