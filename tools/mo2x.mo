@@ -957,6 +957,10 @@ fn try_strcmp() -> i64 {
 
 var ARRDIM: [2048] i64 = 0;   # v1.1196: 各数组最外维（OOB 运行时检查用）
 var EMITFH: [256] i64 = 0;   # v1.1198: 已发函数名 hash（跨文件重复定义去重）
+var ENMH: [64] i64 = 0;      # v1.1200: 已发射 enum 名 hash（成员是 C 全局标识符，重发=重定义）
+var NENMH: i64 = 0;
+var ENUMN: [64] i64 = 0;
+var NENUMN: i64 = 0;
 var NEMITF: i64 = 0;
 var CAST_OPEN: i64 = 0;
 var PCAST_OPEN: i64 = 0;   # v1.1198: int-ptr 混合 cast 闭括号旗标    # emit_primary 已发 "(long long)("，postfix ']' 后闭合
@@ -2345,7 +2349,15 @@ fn emit_scalar(t: i64) -> i64 {
         if is_c_like() == 1 { outs("unsigned char*"); return 0; }
         return err("str 类型仅在 C 系后端支持");
     }
-    if is_c_like() == 1 { outs("struct "); outs(t); outs("_t"); } else { outs(t); }
+    # v1.1200: enum 类型名 → 标量 long long（236 enum 变量）
+    if is_c_like() == 1 {
+        let eth: i64 = nm_hash(t);
+        let etf: i64 = 0;
+        let eti: i64 = 0;
+        while eti < NENMH { if ENMH[eti] == eth { etf = 1; } eti = eti + 1; }
+        if etf == 1 { outs("long long"); return 0; }
+        outs("struct "); outs(t); outs("_t");
+    } else { outs(t); }
     return 0;
 }
 
@@ -2589,6 +2601,9 @@ fn is_struct_ty(t: i64) -> i64 {
     if streq(t, "byte") == 1 { return 0; }
     if streq(t, "ptr") == 1 { return 0; }
     if streq(t, "f64") == 1 { return 0; }
+    # v1.1200: enum 类型名不是 struct
+    let eqi: i64 = 0;
+    while eqi < NENUMN { if streq(t, ENUMN[eqi]) == 1 { return 0; } eqi = eqi + 1; }
     return 1;
 }
 
@@ -3319,6 +3334,38 @@ fn emit_stmt() -> i64 {
     }
     if accept_kw("let") == 1 {
         emit_local();
+        return 0;
+    }
+    if accept_kw("const") == 1 {
+        # v1.1200: 局部 const NAME: T = expr; —— mo2x 求值（cns_expr）后发
+        # C `const long long NAME = <值>;`（引用其它 const 名时直接折叠成数字，
+        # 避免 C enum 声明顺序问题）。151_local_const。
+        let lnm: i64 = ident();
+        expect_op(":");
+        ident();
+        expect_op("=");
+        let lv: i64 = cns_expr();
+        expect_op(";");
+        # 注册（后续语句引用可见）
+        if NCNS < 256 {
+            let dupc: i64 = cns_find(lnm);
+            if dupc < 0 {
+                CNSN[NCNS] = CNSPP;
+                let q8: i64 = 0;
+                while load8(lnm + q8) != 0 { store8(&CNSP + CNSPP, load8(lnm + q8)); CNSPP = CNSPP + 1; q8 = q8 + 1; }
+                store8(&CNSP + CNSPP, 0); CNSPP = CNSPP + 1;
+                CNSV[NCNS] = lv;
+                NCNS = NCNS + 1;
+            }
+        }
+        if is_c_like() == 1 {
+            outs("const long long ");
+            outs(lnm);
+            outs(" = ");
+            outi(lv);
+            outs(";");
+            nl();
+        }
         return 0;
     }
     if accept_op("{") == 1 {
@@ -4835,8 +4882,42 @@ fn cns_atom() -> i64 {
     }
     if is_op("-") == 1 { TI = TI + 1; return 0 - cns_atom(); }
     if is_op("+") == 1 { TI = TI + 1; return cns_atom(); }
+    # v1.1200: sizeof([N] T)/alignof([N] T) —— i64 系宽度 8
+    if cur_k() == 1 && (streq(cur_s(), "sizeof") == 1 || streq(cur_s(), "alignof") == 1) {
+        let isal: i64 = streq(cur_s(), "alignof");
+        TI = TI + 1;
+        expect_op("(");
+        expect_op("[");
+        let dim: i64 = atoi(cur_s());
+        TI = TI + 1;
+        expect_op("]");
+        ident();   # 元素类型 i64/byte/...（统一按 8 字节宽；byte 数组会有偏差，暂同 moc 对齐语义）
+        expect_op(")");
+        if isal == 1 { return 8; }
+        return dim * 8;
+    }
     if cur_k() == 2 { let v: i64 = atoi(cur_s()); TI = TI + 1; return v; }
     if cur_k() == 1 {
+        # v1.1200: 限定名 E.B（enum 点访问）—— 记 "E.B" 全名查表；命中吃 3 token
+        if peek_op(".") == 1 {
+            let ebase: i64 = cur_s();
+            let sv9: i64 = TI;
+            TI = TI + 2;
+            if cur_k() == 1 {
+                # 拼 "E.B" 到栈缓冲
+                let nb9: [128] byte = 0;
+                let q9: i64 = 0;
+                while load8(ebase + q9) != 0 { store8(&nb9 + q9, load8(ebase + q9)); q9 = q9 + 1; }
+                store8(&nb9 + q9, 46); q9 = q9 + 1;
+                let mem9: i64 = cur_s();
+                let q10: i64 = 0;
+                while load8(mem9 + q10) != 0 { store8(&nb9 + q9, load8(mem9 + q10)); q9 = q9 + 1; q10 = q10 + 1; }
+                store8(&nb9 + q9, 0);
+                let i9: i64 = cns_find(&nb9);
+                if i9 >= 0 { TI = TI + 1; return CNSV[i9]; }
+            }
+            TI = sv9;
+        }
         let i: i64 = cns_find(cur_s());
         if i >= 0 { TI = TI + 1; return CNSV[i]; }
         # const fn 调用：当前 token 是函数名，后面跟 '(' —— 用解释器
@@ -4859,7 +4940,7 @@ fn cns_term() -> i64 {
         if is_op("%") == 1 { op = 3; }
         TI = TI + 1;
         let r: i64 = cns_atom();
-        if op == 1 { v = v * r; } else { v = v / r; }
+        if op == 1 { v = v * r; } else { if op == 3 { v = v % r; } else { v = v / r; } }
         # % 与 / 同号语义 —— moc 的 % 是 C 语义，对齐
     }
     return v;
@@ -5277,7 +5358,9 @@ fn pass_file(i: i64, kind: i64) -> i64 {
                             let sc: i64 = TI;
                             while TI < NT {
                                 if is_op(";") == 1 { break; }
-                                if cur_k() == 1 && cns_find(cur_s()) < 0 && cf_find_fn(cur_s()) >= 0 { has_call = 1; }
+                                # 任何标识符（const 名/const fn/sizeof 等）都改用折叠值发射，
+                                # 避免声明顺序（enum 在 const 之后）与未注册名错误
+                                if cur_k() == 1 { has_call = 1; }
                                 TI = TI + 1;
                             }
                             TI = sc;
@@ -5337,6 +5420,92 @@ fn pass_file(i: i64, kind: i64) -> i64 {
                             skip_to_semi();
                         }
                     } else {
+                    if accept_kw("enum") == 1 {
+                        # enum Name { A; B; }（或 A = expr;）—— 注册成员常量 CNSV/CNSN
+                        # 并发射匿名 C enum，使 const 表达式可引用成员（143/144/145/148…）。
+                        let enm: i64 = 0;
+                        if cur_k() == 1 { enm = ident(); }
+                        expect_op("{");
+                        if kind != 3 {
+                            # 收集/前向轮：只注册成员常量；enum 名进 ENMH（is_struct_ty 排除用）
+                            if enm != 0 {
+                                let enb: [64] byte = 0;
+                                let q13: i64 = 0;
+                                while load8(enm + q13) != 0 { store8(&enb + q13, load8(enm + q13)); q13 = q13 + 1; }
+                                store8(&enb + q13, 0);
+                                if NENUMN < 64 { ENUMN[NENUMN] = stp_copy(&enb); NENUMN = NENUMN + 1; }
+                            }
+                            let ev0: i64 = 0;
+                            while is_op("}") == 0 {
+                                let menm0: i64 = cur_s();
+                                TI = TI + 1;
+                                let mev0: i64 = ev0;
+                                if accept_op("=") == 1 { mev0 = cns_expr(); }
+                                if NCNS < 256 {
+                                    CNSN[NCNS] = CNSPP;
+                                    let q7: i64 = 0;
+                                    while load8(menm0 + q7) != 0 { store8(&CNSP + CNSPP, load8(menm0 + q7)); CNSPP = CNSPP + 1; q7 = q7 + 1; }
+                                    store8(&CNSP + CNSPP, 0); CNSPP = CNSPP + 1;
+                                    CNSV[NCNS] = mev0;
+                                    NCNS = NCNS + 1;
+                                    # 限定名 "Name.member" 也注册（E.B 点访问）
+                                    if enm != 0 && NCNS < 256 {
+                                        CNSN[NCNS] = CNSPP;
+                                        let q11: i64 = 0;
+                                        while load8(enm + q11) != 0 { store8(&CNSP + CNSPP, load8(enm + q11)); CNSPP = CNSPP + 1; q11 = q11 + 1; }
+                                        store8(&CNSP + CNSPP, 46); CNSPP = CNSPP + 1;
+                                        let q12: i64 = 0;
+                                        while load8(menm0 + q12) != 0 { store8(&CNSP + CNSPP, load8(menm0 + q12)); CNSPP = CNSPP + 1; q12 = q12 + 1; }
+                                        store8(&CNSP + CNSPP, 0); CNSPP = CNSPP + 1;
+                                        CNSV[NCNS] = mev0;
+                                        NCNS = NCNS + 1;
+                                    }
+                                }
+                                ev0 = mev0 + 1;
+                                accept_op(";");
+                            }
+                            expect_op("}");
+                            continue;
+                        }
+                        # 去 重：枚举成员是 C 全局标识符，多次发射=重定义错
+                        let ehh: i64 = 0;
+                        if enm != 0 { ehh = nm_hash(enm); } else { ehh = nm_hash(cur_s()); }
+                        let edup: i64 = 0;
+                        let dq9: i64 = 0;
+                        while dq9 < NENMH { if ENMH[dq9] == ehh { edup = 1; } dq9 = dq9 + 1; }
+                        if edup == 0 {
+                        if NENMH < 64 { ENMH[NENMH] = ehh; NENMH = NENMH + 1; }
+                        outs("enum { ");
+                        let ev: i64 = 0;
+                        let ef: i64 = 1;
+                        while is_op("}") == 0 {
+                            if ef == 0 { outs(", "); }
+                            ef = 0;
+                            let menm: i64 = cur_s();
+                            outs(menm);
+                            TI = TI + 1;
+                            let mev: i64 = ev;
+                            if accept_op("=") == 1 { mev = cns_expr(); }
+                            outs(" = ");
+                            outi(mev);
+                            # 注册到 const 表（NCNS>=256 时静默跳过注册，只发射）
+                            if NCNS < 256 {
+                                CNSN[NCNS] = CNSPP;
+                                let q6: i64 = 0;
+                                while load8(menm + q6) != 0 { store8(&CNSP + CNSPP, load8(menm + q6)); CNSPP = CNSPP + 1; q6 = q6 + 1; }
+                                store8(&CNSP + CNSPP, 0); CNSPP = CNSPP + 1;
+                                CNSV[NCNS] = mev;
+                                NCNS = NCNS + 1;
+                            }
+                            ev = mev + 1;
+                            accept_op(";");
+                        }
+                        expect_op("}");
+                        outs(" };");
+                        nl();
+                        }
+                        continue;
+                    }
                     if accept_kw("fn") == 1 {
                         # 输出函数是"后端提供"的：C 系目标用 printf 实现，
                         # 而不是照搬 io.mo 里基于 syscall 的写法 ——
@@ -6040,9 +6209,30 @@ fn emit_header() -> i64 {
         # —— NEED_SYS 是扫描源码后才置位的，header 写得更早。
         # 所以用预处理器判断，两端都留一份定义。
         line("#if defined(__linux__) && !defined(__wasi__)");
+        line("#include <errno.h>");
+        # mo 程序全局常量可能撞 errno.h 宏（EAGAIN 等）—— include 后 undef 高频撞名
+        line("#undef EAGAIN");
+        line("#undef EWOULDBLOCK");
+        line("#undef EINTR");
+        line("#undef EBADF");
+        line("#undef EINVAL");
+        line("#undef ENOMEM");
+        line("#undef EACCES");
+        line("#undef EPIPE");
+        line("#undef ECONNRESET");
+        line("#undef EPERM");
+        line("#undef EEXIST");
+        line("#undef ENOENT");
+        line("#undef EISDIR");
+        line("#undef ENOTDIR");
+        line("#undef EMFILE");
         line("#include <sys/syscall.h>");
         line("static long long mo_syscall(long long n,long long a,long long b,long long c,long long d,long long e,long long f){");
-        line("  return syscall(n,a,b,c,d,e,f);");
+        # v1.1200: glibc syscall() 出错返回 -1+errno；mo 原语语义=负 errno（moc 内联汇编版）。
+        # 对齐：失败时返回 -errno（118 futex 断言 -EAGAIN=-11 依赖此语义）。
+        line("  long long r = syscall(n,a,b,c,d,e,f);");
+        line("  if (r == -1 && errno != 0) return -errno;");
+        line("  return r;");
         line("}");
         line("#else");
         line("/* 该平台没有 syscall()：WASI / Windows 走这里。");
