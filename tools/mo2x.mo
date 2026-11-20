@@ -93,7 +93,10 @@ var BOL: i64 = 1;          # 行首标记（全局变量必须先声明）
 
 
 
+var OBF: i64 = 0;
+var OBUF: [8192] byte = 0;
 fn raw(s: i64) -> i64 {
+    if OBF == 1 { strcat(&OBUF, s); return 0; }
     let n: i64 = strlen(s);
     if n > 0 { syscall(1, 1, s, n, 0, 0, 0); }
     return 0;
@@ -384,7 +387,8 @@ fn ops_init() -> i64 {
     OPS[18] = "+"; OPS[19] = "-"; OPS[20] = "*"; OPS[21] = "/";
     OPS[22] = "%"; OPS[23] = "&"; OPS[24] = "|"; OPS[25] = "^";
     OPS[26] = "="; OPS[27] = "<"; OPS[28] = ">"; OPS[29] = "!";
-    NOPS = 30;
+    OPS[30] = "?";
+    NOPS = 31;
     return 0;
 }
 
@@ -785,6 +789,52 @@ var FSGH: [512] i64 = 0;
 var FSGC: [256] i64 = 0;
 var FSGK: [4096] i64 = 0;
 var FSGR: [256] i64 = 0;
+var FSGD: [2048] i64 = 0;   # v1.1199: 形参默认值 FSGD[reg*8+idx]
+var FSGDH: [256] i64 = 0;   # v1.1199: reg 从该实参索引起有默认（0=无）
+var FSGN: [2048] i64 = 0;   # v1.1199: 形参名（具名实参）
+var FldPTR: [128] i64 = 0;   # v1.1199: ptr 类型字段名（链式访问 -> ）
+var FldE: [128] i64 = 0;   # v1.1199: ptr 字段元素类型
+var NFldPTR: i64 = 0;
+fn fldptr_elm(nm: i64) -> i64 {
+    let i: i64 = 0;
+    while i < NFldPTR {
+        if streq(FldPTR[i], nm) == 1 { return FldE[i]; }
+        i = i + 1;
+    }
+    return 0;
+}
+# v1.1199: 链式 ptr 字段访问重建：L_i = ((T*)(L_{i-1}))->f_i 或 L_{i-1}.f_i
+fn chain_rec(base: i64, f0: i64, f1: i64, f2: i64, f3: i64, nf: i64, i: i64) -> i64 {
+    if i == 0 { outs(base); return 0; }
+    # f_{i-1}（0 索引）是左层字段
+    let prev: i64 = 0;
+    if i == 1 { prev = 0; } else { if i == 2 { prev = f0; } else { if i == 3 { prev = f1; } else { prev = f2; } } }
+    let cur: i64 = 0;
+    if i == 1 { cur = f0; } else { if i == 2 { cur = f1; } else { if i == 3 { cur = f2; } else { cur = f3; } } }
+    if i > 1 && prev != 0 {
+        let fe: i64 = fldptr_elm(prev);
+        if fe != 0 {
+            if streq(fe, "i64") == 1 { outs("((long long*)("); } else { outs("((struct "); outs(fe); outs("_t*)("); }
+            chain_rec(base, f0, f1, f2, f3, nf, i - 1);
+            outs("))");
+            outs("->");
+            outs(cur);
+            return 0;
+        }
+    }
+    chain_rec(base, f0, f1, f2, f3, nf, i - 1);
+    outs(".");
+    outs(cur);
+    return 0;
+}
+fn fldptr_find(nm: i64) -> i64 {
+    let i: i64 = 0;
+    while i < NFldPTR {
+        if streq(FldPTR[i], nm) == 1 { return 1; }
+        i = i + 1;
+    }
+    return 0;
+}
 var NFSG: i64 = 0;
 
 fn try_strcmp() -> i64 {
@@ -903,10 +953,7 @@ fn try_strcmp() -> i64 {
     return 0;
 }
 
-fn emit_expr() -> i64 {
-    if try_strcmp() == 1 { return 0; }
-    return emit_prec(1);
-}
+
 
 var ARRDIM: [2048] i64 = 0;   # v1.1196: 各数组最外维（OOB 运行时检查用）
 var EMITFH: [256] i64 = 0;   # v1.1198: 已发函数名 hash（跨文件重复定义去重）
@@ -919,6 +966,7 @@ var PCAST_OPEN: i64 = 0;   # v1.1198: int-ptr 混合 cast 闭括号旗标    # e
 #    命中 atoi 槽位就是这个坑）。哈希数值跨文件稳定。
 # FSGH[i]=名哈希, FSGC[i]=参数个数, FSGK[i*8+j]=参数 j kind（0=i64,1=ptr,2=byte,3=f64,4=其他）,
 var CURRTK: i64 = 4;
+var CURRTS: i64 = 0;   # v1.1199: 当前函数 struct 返回类型名（CURRTK==4 时）
 
 fn nm_hash(nm: i64) -> i64 {
     let h: i64 = 2166136261;
@@ -1331,15 +1379,29 @@ fn emit_primary() -> i64 {
             if is_op(")") == 0 {
                 if fi3 >= 0 && FSGK[fi3 * 8 + ai3] == 1 { outs("(unsigned char*)"); }
                 if fi3 >= 0 && FSGK[fi3 * 8 + ai3] == 0 { outs("(long long)("); }
+                if fi3 >= 0 && FSGK[fi3 * 8 + ai3] == 5 { outs("&("); }
                 emit_expr();
                 if fi3 >= 0 && FSGK[fi3 * 8 + ai3] == 0 { outs(")"); }
+                if fi3 >= 0 && FSGK[fi3 * 8 + ai3] == 5 { outs(")"); }
                 ai3 = 1;
                 while accept_op(",") == 1 {
                     outs(",");
                     if fi3 >= 0 && FSGK[fi3 * 8 + ai3] == 1 { outs("(unsigned char*)"); }
                     if fi3 >= 0 && FSGK[fi3 * 8 + ai3] == 0 { outs("(long long)("); }
+                    if fi3 >= 0 && FSGK[fi3 * 8 + ai3] == 5 { outs("&("); }
                     emit_expr();
                     if fi3 >= 0 && FSGK[fi3 * 8 + ai3] == 0 { outs(")"); }
+                    if fi3 >= 0 && FSGK[fi3 * 8 + ai3] == 5 { outs(")"); }
+                    ai3 = ai3 + 1;
+                }
+            }
+            # v1.1199: 缺省实参补默认（FSGDH[fi3]=首个有默认的实参索引）
+            if fi3 >= 0 && FSGDH[fi3] > 0 {
+                while ai3 < FSGC[fi3] {
+                    if ai3 > 0 { outs(","); }
+                    if FSGK[fi3 * 8 + ai3] == 1 { outs("(unsigned char*)"); }
+                    if FSGK[fi3 * 8 + ai3] == 5 { outs("(long long)"); }
+                    outi(FSGD[fi3 * 8 + ai3]);
                     ai3 = ai3 + 1;
                 }
             }
@@ -1355,6 +1417,154 @@ fn emit_primary() -> i64 {
 }
 
 fn emit_postfix() -> i64 {
+    # v1.1199: 链式 ptr 字段访问预扫：base .f1 .f2 ...（纯 '.' 链，含 fldptr）→ chain_rec 重建
+    if is_c_like() == 1 && cur_k() == 1 && peek_op(".") == 1 {
+        let cb: i64 = cur_s();
+        let cj: i64 = TI + 2;
+        let cf0: i64 = 0;
+        let cf1: i64 = 0;
+        let cf2: i64 = 0;
+        let cf3: i64 = 0;
+        let cn: i64 = 0;
+        let hasptr: i64 = 0;
+        while cj + 1 < NT && TK[cj] == 1 && TK[cj - 1] == 5 && streq(&POOL + TS[cj - 1], ".") == 1 && cn < 4 {
+            if cn == 0 { cf0 = &POOL + TS[cj]; } else { if cn == 1 { cf1 = &POOL + TS[cj]; } else { if cn == 2 { cf2 = &POOL + TS[cj]; } else { cf3 = &POOL + TS[cj]; } } }
+            if fldptr_find(&POOL + TS[cj]) == 1 { hasptr = 1; }
+            cn = cn + 1;
+            cj = cj + 2;
+        }
+        if hasptr == 1 && cn > 0 && ptrv_find(cb) == 0 {
+            TI = TI + 1 + cn * 2;   # 吃 base .f1 .f2 ...
+            chain_rec(cb, cf0, cf1, cf2, cf3, cn, cn);
+            return 0;
+        }
+    }
+    # v1.1199: C 系方法调用 IDENT.method(args) → Type_method(&IDENT, args)。
+    # obj 为 struct 值变量 → &obj；PTRS/PTRV 成员（指针槽）→ 原样。
+    if is_c_like() == 1 && cur_k() == 1 && peek_op(".") == 1 && TK[TI + 2] == 1 && TK[TI + 3] == 5 && streq(&POOL + TS[TI + 3], "(") == 1 {
+        let onm2: i64 = cur_s();
+        let mth2: i64 = &POOL + TS[TI + 2];
+        let ty2: i64 = clsv_ty(onm2);
+        # v1.1199: str 变量方法 s.mth(args) —— contains→strstr 内建；starts_with/ends_with→str_*
+        if ty2 == 0 && strv_find(onm2) == 1 {
+            let m2: i64 = &POOL + TS[TI + 2];
+            if streq(m2, "contains") == 1 {
+                TI = TI + 4;
+                outs("((long long)(strstr((char*)");
+                outs(onm2);
+                outs(",(char*)");
+                emit_expr();
+                outs(")!=0))");
+                TI = TI + 1;
+                return 0;
+            }
+            let buf3: [128] byte = 0;
+            strcat(&buf3, "str_");
+            strcat(&buf3, m2);
+            if fsg_find(&buf3) >= 0 {
+                TI = TI + 4;
+                outs(&buf3);
+                outs("(");
+                outs("(unsigned char*)");
+                outs(onm2);
+                if is_op(")") == 0 {
+                    outs(",");
+                    emit_expr();
+                    while accept_op(",") == 1 { outs(","); emit_expr(); }
+                }
+                TI = TI + 1;
+                outs(")");
+                return 0;
+            }
+        }
+        if ty2 != 0 {
+            let buf2: [128] byte = 0;
+            strcat(&buf2, ty2);
+            strcat(&buf2, "_");
+            strcat(&buf2, mth2);
+            if fsg_find(&buf2) >= 0 {
+                TI = TI + 4;   # 吃 obj . method (
+                let empty4: i64 = is_op(")") == 1;   # 扫描前：TI 指首实参或 ')'
+                let open4: i64 = TI - 1;   # '(' 的 token 索引
+                outs(&buf2);
+                outs("(");
+                if ptrv_find(onm2) == 1 {
+                    outs("(unsigned char*)");
+                    outs(onm2);
+                } else {
+                    outs("(unsigned char*)&");
+                    outs(onm2);
+                }
+                # v1.1199: 具名实参 `name: expr`（值=单 token 数字/ident/负号数字）→ 按形参槽重排
+                if empty4 == 0 && cur_k() == 1 && TK[TI + 1] == 5 && streq(&POOL + TS[TI + 1], ":") == 1 {
+                    let sv4: [8] i64 = 0;
+                    let hv4: [8] i64 = 0;
+                    let fi5: i64 = fsg_find(&buf2);
+                    while is_op(")") == 0 {
+                        let an4: i64 = cur_s();
+                        TI = TI + 1;
+                        expect_op(":");
+                        let ai5: i64 = -1;
+                        if fi5 >= 0 {
+                            let qq4: i64 = 0;
+                            while qq4 < FSGC[fi5] {
+                                if streq(FSGN[fi5 * 8 + qq4], an4) == 1 { ai5 = qq4; }
+                                qq4 = qq4 + 1;
+                            }
+                        }
+                        let neg4: i64 = 1;
+                        if cur_k() == 5 && tok_c(TI) == 45 { neg4 = 0 - 1; TI = TI + 1; }
+                        let v4: i64 = atoi(cur_s());
+                        TI = TI + 1;
+                        if ai5 >= 0 { sv4[ai5] = neg4 * v4; hv4[ai5] = 1; }
+                        if is_op(",") == 1 { TI = TI + 1; }
+                    }
+                    TI = TI + 1;   # 吃 ')'
+                    if fi5 >= 0 {
+                        let qq4: i64 = 1;
+                        while qq4 < FSGC[fi5] {
+                            outs(",");
+                            if hv4[qq4] == 1 { outi(sv4[qq4]); }
+                            else { outi(FSGD[fi5 * 8 + qq4]); }
+                            qq4 = qq4 + 1;
+                        }
+                    }
+                    outs(")");
+                    return 0;
+                }
+                if is_op(")") == 0 {
+                    outs(",");
+                    emit_expr();
+                    while accept_op(",") == 1 { outs(","); emit_expr(); }
+                }
+                # v1.1199: 缺省实参补默认
+                let fi4: i64 = fsg_find(&buf2);
+                if fi4 >= 0 && FSGDH[fi4] > 0 {
+                    let cnt4: i64 = 0;
+                    let dep4: i64 = 0 - 1;   # 调用 '(' 本身不算嵌套
+                    let k4: i64 = open4;
+                    while k4 < TI {
+                        if TK[k4] == 5 && streq(&POOL + TS[k4], ",") == 1 && dep4 == 0 { cnt4 = cnt4 + 1; }
+                        if TK[k4] == 5 && streq(&POOL + TS[k4], "(") == 1 { dep4 = dep4 + 1; }
+                        if TK[k4] == 5 && streq(&POOL + TS[k4], ")") == 1 { dep4 = dep4 - 1; }
+                        k4 = k4 + 1;
+                    }
+                    let have4: i64 = cnt4 + 1;   # 显式实参数（self 之外）
+                    if empty4 == 1 { have4 = 0; }
+                    let slot4: i64 = have4 + 1;   # 槽 0 = self，已被 &obj 占
+                    while slot4 < FSGC[fi4] {
+                        outs(",");
+                        if FSGK[fi4 * 8 + slot4] == 5 { outs("(long long)"); }
+                        outi(FSGD[fi4 * 8 + slot4]);
+                        slot4 = slot4 + 1;
+                    }
+                }
+                TI = TI + 1;   # 吃 ')'
+                outs(")");
+                return 0;
+            }
+        }
+    }
     # 方法调用探测：IDENT . IDENT ( args ) → Type_method(IDENT, args)。
     # 必须在 emit_primary 输出 IDENT 之前识别（输出流无法截回）。
     if cur_k() == 1 && TGT == T_FS {
@@ -1413,9 +1623,74 @@ fn emit_postfix() -> i64 {
         }
         TI = save;
     }
+    # v1.1199: typed ptr（ptr T）字段访问 p.f → ((struct T_t*)p)->f。
+    # 必须在 emit_primary 输出前识别（输出流无法截回）。
+    if is_c_like() == 1 && cur_k() == 1 && ptrv_find(cur_s()) == 1 && peek_op(".") == 1 {
+        let et: i64 = ptelm_get(cur_s());
+        if et != 0 && clsv_isstruct(et) == 1 {
+            let pnm: i64 = cur_s();
+            TI = TI + 2;   # 吃 '.' 与字段名
+            let fld: i64 = cur_s();
+            outs("((struct ");
+            outs(et);
+            outs("_t*)");
+            outs(pnm);
+            outs(")->");
+            outs(fld);
+            TI = TI + 1;
+            # v1.1199: 链式 p.i.v —— ((T*)p)->i 之后的 .v / [i] 继续走 postfix 循环
+            while 1 {
+                if accept_op(".") == 1 { outs("."); outs(ident()); }
+                else {
+                    if accept_op("[") == 1 {
+                        outs("[");
+                        let sv_co3: i64 = CAST_OPEN; CAST_OPEN = 0;
+                        emit_expr();
+                        CAST_OPEN = sv_co3;
+                        expect_op("]");
+                        outs("]");
+                    } else { return 0; }
+                }
+            }
+        }
+    }
+    # v1.1199: typed ptr i64 下标 p[i] → ((long long*)p)[i]（元素步）。
+    # emit_primary 之前探测（输出流无法截回）。
+    if is_c_like() == 1 && cur_k() == 1 && ptrv_find(cur_s()) == 1 && peek_op("[") == 1 {
+        let et2: i64 = ptelm_get(cur_s());
+        if et2 != 0 && streq(et2, "i64") == 1 {
+            outs("((long long*)");
+            outs(cur_s());
+            outs(")[");
+            TI = TI + 2;
+            let sv_co4: i64 = CAST_OPEN; CAST_OPEN = 0;
+            emit_expr();
+            CAST_OPEN = sv_co4;
+            expect_op("]");
+            outs("]");
+            if CAST_OPEN == 1 { outs(")"); CAST_OPEN = 0; }
+            return 0;
+        }
+    }
     emit_primary();
     while 1 {
         if accept_op("[") == 1 {
+            # v1.1199: typed ptr i64 下标 p[i] → ((long long*)p)[i]（元素步）
+            if TI >= 2 && TK[TI - 2] == 1 {
+                let tpi: i64 = ptelm_get(&POOL + TS[TI - 2]);
+                if tpi != 0 && streq(tpi, "i64") == 1 && ptrv_find(&POOL + TS[TI - 2]) == 1 {
+                    outs("((long long*)");
+                    outs(&POOL + TS[TI - 2]);
+                    outs(")[");
+                    let sv_co4: i64 = CAST_OPEN; CAST_OPEN = 0;
+                    emit_expr();
+                    CAST_OPEN = sv_co4;
+                    expect_op("]");
+                    outs("]");
+                    if CAST_OPEN == 1 { outs(")"); CAST_OPEN = 0; }
+                    continue;
+                }
+            }
             # v1.1196: str 负下标 s[-N] → s[strlen_(s)-N]（v1.1140 语义）
             let negi: i64 = 0;
             let negv: i64 = 0;
@@ -1493,7 +1768,7 @@ fn emit_postfix() -> i64 {
                 if TI >= 2 {
                     let sv: i64 = TI;
                     TI = TI - 2;
-                    if cur_k() == 1 && ptr_find(cur_s()) == 1 { isptr = 1; }
+                    if cur_k() == 1 && (ptr_find(cur_s()) == 1 || fldptr_find(cur_s()) == 1) { isptr = 1; }
                     TI = sv;
                 }
                 if isptr == 1 { outs("->"); } else { outs("."); }
@@ -1565,6 +1840,65 @@ fn ptr_find(nm: i64) -> i64 {
     return 0;
 }
 var NCLSF: i64 = 0;
+var CLSFD: [250] i64 = 0;   # v1.1199: 字段默认值（-999999=无）
+# v1.1199: struct 值 word 数（嵌套展开）
+fn stw(si: i64) -> i64 {
+    let tot: i64 = 0;
+    let j: i64 = 0;
+    while j < STFN[si] {
+        let fi: i64 = STF[si] + j * 2;
+        let fty: i64 = CLSF[fi + 1];
+        if streq(fty, "ptr") == 1 || streq(fty, "str") == 1 { tot = tot + 1; }
+        else { if streq(fty, "i64") == 1 || streq(fty, "byte") == 1 || streq(fty, "i32") == 1 || streq(fty, "f64") == 1 { tot = tot + 1; } else {
+            let bi: i64 = st_find(fty);
+            if bi >= 0 { tot = tot + stw(bi); } else { tot = tot + 1; }
+        } }
+        j = j + 1;
+    }
+    return tot;
+}
+# v1.1199: struct 值 ==/!= → memcmp(&a,&b,n)==0/!=0
+fn try_streq() -> i64 {
+    if is_c_like() == 0 { return 0; }
+    if cur_k() != 1 { return 0; }
+    let lty: i64 = clsv_ty(cur_s());
+    if lty == 0 { return 0; }
+    let li: i64 = st_find(lty);
+    if li < 0 { return 0; }
+    let nm: i64 = cur_s();
+    let save7: i64 = TI;
+    TI = TI + 1;
+    if cur_k() != 5 { TI = save7; return 0; }
+    let op7: i64 = &POOL + TS[TI];
+    let iseq: i64 = 0;
+    if streq(op7, "==") == 1 { iseq = 1; }
+    if streq(op7, "!=") == 1 { iseq = 2; }
+    if iseq == 0 { TI = save7; return 0; }
+    TI = TI + 1;
+    if cur_k() != 1 { TI = save7; return 0; }
+    let rty: i64 = clsv_ty(cur_s());
+    if streq(rty, lty) != 1 { TI = save7; return 0; }
+    let rn: i64 = cur_s();
+    TI = TI + 1;
+    let w: i64 = stw(li) * 8;
+    let wb: [24] byte = 0;
+    utoa(w, &wb, 10);
+    outs("mo_arrcmp3((void*)&");
+    outs(nm);
+    outs(",(void*)&");
+    outs(rn);
+    outs(",");
+    outs(&wb);
+    outs(")");
+    if iseq == 1 { outs(" == 0"); } else { outs(" != 0"); }
+    return 1;
+}
+fn emit_expr() -> i64 {
+    if try_streq() == 1 { return 0; }
+    if try_strcmp() == 1 { return 0; }
+    return emit_prec(1);
+}
+
 fn st_find(nm: i64) -> i64 {
     let i: i64 = 0;
     while i < NST {
@@ -1671,6 +2005,40 @@ fn peek_op2(s: i64, off: i64) -> i64 {
 var ARRVS: [2048] i64 = 0;
 var NARRV: i64 = 0;
 
+# v1.1199: typed ptr 元素类型表（ptr T / ptr i64）
+var PTKN: [2048] i64 = 0;   # 变量名（stp_copy）
+var PTELM: [2048] i64 = 0;  # 元素类型名（stp_copy）
+var NPTELM: i64 = 0;
+fn ptelm_set(nm: i64, ty: i64) -> i64 {
+    let i: i64 = 0;
+    while i < NPTELM {
+        if streq(PTKN[i], nm) == 1 { PTELM[i] = stp_copy(ty); return 0; }
+        i = i + 1;
+    }
+    if NPTELM >= 2048 { return 0; }
+    PTKN[NPTELM] = stp_copy(nm);
+    PTELM[NPTELM] = stp_copy(ty);
+    NPTELM = NPTELM + 1;
+    return 0;
+}
+fn ptelm_get(nm: i64) -> i64 {
+    let i: i64 = 0;
+    while i < NPTELM {
+        if streq(PTKN[i], nm) == 1 { return PTELM[i]; }
+        i = i + 1;
+    }
+    return 0;
+}
+# 名字是否为 struct 类型名（供 typed ptr 字段访问判断）
+fn clsv_isstruct(t: i64) -> i64 {
+    if streq(t, "i64") == 1 { return 0; }
+    if streq(t, "byte") == 1 { return 0; }
+    if streq(t, "f64") == 1 { return 0; }
+    if streq(t, "i32") == 1 { return 0; }
+    if streq(t, "bool") == 1 { return 0; }
+    if streq(t, "str") == 1 { return 0; }
+    return 1;
+}
 fn peek_op(s: i64) -> i64 {
     if TI + 1 >= NT { return 0; }
     if TK[TI + 1] != 5 { return 0; }
@@ -1678,9 +2046,60 @@ fn peek_op(s: i64) -> i64 {
     return 0;
 }
 fn emit_prec(minp: i64) -> i64 {
-    # v1.1193: 运算符重载 —— 左操作数是 struct 变量且存在 Type_op 函数 →
-    # 改写为 Type_op(l, r)。
+    # v1.1199: struct 字面量 P { x: 7; y: 2+3; } → C 复合字面量（指定初始化器）。
+    # 必须在 emit_unary 前识别（IDENT '{' 模式）。
     let is_c3: i64 = is_c_like();
+    if is_c3 == 1 && cur_k() == 1 && st_find(cur_s()) >= 0 && peek_op("{") == 1 {
+        let sty: i64 = cur_s();
+        TI = TI + 2;   # 吃 T 与 '{'
+        outs("(struct ");
+        outs(sty);
+        outs("_t){ ");
+        # v1.1199: 已列字段标记（供默认值补齐）
+        let si233: i64 = st_find(sty);
+        let fbase: i64 = 0 - 1;
+        let fcnt: i64 = 0;
+        if si233 >= 0 && si233 < 32 { fbase = STF[si233]; fcnt = STFN[si233]; }
+        let seen: [16] i64 = 0;
+        let sawany: i64 = 0;
+        while is_op("}") == 0 {
+            if cur_k() == 0 { return err("unexpected eof in struct literal"); }
+            let fld: i64 = ident();
+            outs(".");
+            outs(fld);
+            expect_op(":");
+            outs(" = ");
+            emit_expr();
+            outs(", ");
+            if fbase >= 0 {
+                let fj: i64 = 0;
+                while fj < fcnt && fj < 16 {
+                    if streq(CLSF[fbase + fj * 2], fld) == 1 { seen[fj] = 1; sawany = 1; }
+                    fj = fj + 1;
+                }
+            }
+            if is_op(";") == 1 { TI = TI + 1; } else { break; }
+        }
+        expect_op("}");
+        # 未列字段补默认值
+        if fbase >= 0 && sawany == 1 {
+            let fj2: i64 = 0;
+            while fj2 < fcnt && fj2 < 16 {
+                if seen[fj2] == 0 && CLSFD[fbase + fj2 * 2] != 0 - 999999 {
+                    outs(".");
+                    outs(CLSF[fbase + fj2 * 2]);
+                    outs(" = ");
+                    let nb2: [24] byte = 0;
+                    utoa(CLSFD[fbase + fj2 * 2], &nb2, 10);
+                    outs(&nb2);
+                    outs(", ");
+                }
+                fj2 = fj2 + 1;
+            }
+        }
+        outs("}");
+        return 0;
+    }
     if is_c3 == 1 && cur_k() == 1 {
         let onm: i64 = 0;
         if peek_op("+") == 1 { onm = "add"; }
@@ -1754,9 +2173,62 @@ fn emit_prec(minp: i64) -> i64 {
             }
         }
     }
+    # v1.1199: str + str → 拼接（native 走 scat_cat，C 后端此前缺 concat 发射，
+    # 131_regex `s = s + "a"` gcc 硬错 ptr+ptr）。探测（左原子 + '+' + 右原子）后重放：
+    # scat_cat(l, r)。仅当源码 import 了 scat.mo（fsg 有 scat_cat）时改写，
+    # 与 native 一致——native 无 scat import 时同样 die。
+    if is_c3 == 1 && fsg_find("scat_cat") >= 0 {
+        let lstr: i64 = 0;
+        if cur_k() == 3 { lstr = 1; }
+        if cur_k() == 1 && strv_find(cur_s()) == 1 { lstr = 1; }
+        if cur_k() == 1 && fsg_find(cur_s()) >= 0 && FSGR[fsg_find(cur_s())] == 1 { lstr = 1; }
+        let nx131: i64 = TI + 1;
+        if cur_k() == 1 && fsg_find(cur_s()) >= 0 && FSGR[fsg_find(cur_s())] == 1 && nx131 < NT && TK[nx131] == 5 && streq(&POOL + TS[nx131], "(") == 1 {
+            # 左是函数调用：配平实参括号，取 ')' 后的 '+'
+            let d131: i64 = 0;
+            let j131: i64 = nx131;
+            while j131 < NT {
+                if TK[j131] == 5 && streq(&POOL + TS[j131], "(") == 1 { d131 = d131 + 1; }
+                if TK[j131] == 5 && streq(&POOL + TS[j131], ")") == 1 {
+                    d131 = d131 - 1;
+                    if d131 == 0 { break; }
+                }
+                j131 = j131 + 1;
+            }
+            nx131 = j131 + 1;
+        }
+        if nx131 < NT && TK[nx131] == 5 && streq(&POOL + TS[nx131], "+") == 1 {
+            let sv131: i64 = nx131 + 1;
+            if sv131 < NT {
+                let rstr: i64 = 0;
+                if TK[sv131] == 3 { rstr = 1; }
+                if TK[sv131] == 1 && strv_find(&POOL + TS[sv131]) == 1 { rstr = 1; }
+                if rstr == 1 {
+                    outs("scat_cat(");
+                    emit_unary();
+                    outs(", ");
+                    TI = sv131;
+                    emit_unary();
+                    outs(")");
+                    TI = sv131 + 1;
+                    return 0;
+                }
+            }
+        }
+    }
     emit_unary();
     while 1 {
         let p: i64 = binprec();
+        # v1.1199: 三元 cond ? a : b（C 原生；右结合=右侧走完整 emit_prec(1)）
+        if p == 0 && is_c_like() == 1 && is_op("?") == 1 && minp <= 1 {
+            TI = TI + 1;
+            outs(" ? ");
+            emit_prec(1);
+            outs(" : ");
+            expect_op(":");
+            emit_prec(1);
+            return 0;
+        }
         if p == 0 { return 0; }
         if p < minp { return 0; }
         let op: i64 = cur_s();
@@ -2033,8 +2505,43 @@ fn emit_scalar_or_arr(nm: i64, isarr: i64) -> i64 {
     emit_scalar(t);
     outs(" ");
     outs(nm);
+    # v1.1199: `let a: T;`（T=struct 有默认字段）→ 默认值初始化
+    if is_struct_ty(t) == 1 {
+        let dsi: i64 = st_find(t);
+        if dsi >= 0 && dsi < 32 {
+            let dfb: i64 = STF[dsi];
+            let dfn: i64 = STFN[dsi];
+            let dany: i64 = 0;
+            let dj: i64 = 0;
+            while dj < dfn && dj < 16 {
+                if CLSFD[dfb + dj * 2] != 0 - 999999 { dany = 1; }
+                dj = dj + 1;
+            }
+            if dany == 1 {
+                outs(" = (struct ");
+                outs(t);
+                outs("_t){ ");
+                dj = 0;
+                while dj < dfn && dj < 16 {
+                    if CLSFD[dfb + dj * 2] != 0 - 999999 {
+                        outs(".");
+                        outs(CLSF[dfb + dj * 2]);
+                        outs(" = ");
+                        let nb3: [24] byte = 0;
+                        utoa(CLSFD[dfb + dj * 2], &nb3, 10);
+                        outs(&nb3);
+                        outs(", ");
+                    }
+                    dj = dj + 1;
+                }
+                outs("}");
+            }
+        }
+    }
     if streq(t, "byte") == 1 { bytev_add(nm); }
-    if streq(t, "ptr") == 1 { bytev_add(nm); ptrv_add(nm); }
+    if streq(t, "ptr") == 1 { bytev_add(nm); ptrv_add(nm);
+        # v1.1199: `let p: ptr T`（typed ptr）—— 消费元素类型名并记录
+        if cur_k() == 1 { consume_type(); ptelm_set(nm, LASTTY); } }
     if streq(t, "str") == 1 { strv_add(nm); }
     else {
         if streq(t, "i64") == 0 && streq(t, "byte") == 0 && streq(t, "ptr") == 0 && streq(t, "f64") == 0 && streq(t, "i32") == 0 && streq(t, "bool") == 0 {
@@ -2190,6 +2697,26 @@ fn is_assign_start() -> i64 {
 
 fn emit_lvalue() -> i64 {
     if is_gen() == 1 { outs(G_REF); }
+    # v1.1199: typed ptr struct 左值 p.f = ... → ((struct T_t*)p)->f
+    let lvtp: i64 = 0;
+    if is_c_like() == 1 && cur_k() == 1 && ptrv_find(cur_s()) == 1 && peek_op(".") == 1 {
+        lvtp = ptelm_get(cur_s());
+        if lvtp != 0 && clsv_isstruct(lvtp) == 1 {
+            outs("((struct ");
+            outs(lvtp);
+            outs("_t*)");
+            outs(cur_s());
+            outs(")");
+            TI = TI + 1;
+            expect_op(".");
+            outs("->");
+            outs(ident());
+            while 1 {
+                if accept_op(".") == 1 { outs("."); outs(ident()); }
+                else { if accept_op("[") == 1 { outs("["); emit_expr(); expect_op("]"); outs("]"); } else { return 0; } }
+            }
+        }
+    }
     outs(ident());
     while 1 {
         if accept_op("[") == 1 {
@@ -2219,7 +2746,7 @@ fn emit_lvalue() -> i64 {
                 if TI >= 2 {
                     let sv: i64 = TI;
                     TI = TI - 2;
-                    if cur_k() == 1 && ptr_find(cur_s()) == 1 { isptr = 1; }
+                    if cur_k() == 1 && (ptr_find(cur_s()) == 1 || fldptr_find(cur_s()) == 1) { isptr = 1; }
                     TI = sv;
                 }
                 if isptr == 1 { outs("->"); } else { outs("."); }
@@ -2385,6 +2912,7 @@ fn arr_find(nm: i64) -> i64 {
     return 0 - 1;
 }
 fn emit_stmt() -> i64 {
+
     if try_incdec() == 1 { return 0; }
     if is_assign_start() == 1 {
         # v1.1193: 数组整体赋值 q = p; → memcpy(q, p, sizeof(q))
@@ -2428,6 +2956,20 @@ fn emit_stmt() -> i64 {
             return 0;
         }
         outs("return ");
+        # v1.1199: struct 返回类型（值语义）—— 形参是指针槽，解引用一层；局部变量是值，原样
+        if is_c_like() == 1 && CURRTK == 4 {
+            if cur_k() == 1 && ptr_find(cur_s()) == 1 {
+                outs("(*");
+                outs(cur_s());
+                outs(")");
+                TI = TI + 1;
+            } else {
+                emit_expr();
+            }
+            expect_op(";");
+            semi();
+            return 0;
+        }
         if is_c_like() == 1 { outs("("); }
         # v1.1164: i64 返回类型的函数，return 表达式包 (long long) —— 兼容 ptr→i64 隐式返回
         if is_c_like() == 1 && CURRTK == 0 { outs("(long long)("); }
@@ -2695,6 +3237,41 @@ fn emit_stmt() -> i64 {
         blk_close();
         return 0;
     }
+    # v1.1199: do { ... } while (cond); —— C 原生 do-while（continue→cond 与 mo 语义一致）
+    if accept_kw("do") == 1 {
+        if TGT == T_PY { return err("do-while 仅 C 系后端支持"); }
+        outs("do");
+        blk_open();
+        expect_op("{");
+        emit_stmts();
+        IND = IND - 1;
+        outs("} while (");
+        if is_kw("while") == 1 { TI = TI + 1; } else { return err("DW NEED WHILE"); }
+        if is_op("(") == 1 { TI = TI + 1; } else { return err("DW NEED LP"); }
+        emit_expr();
+        if is_op(")") == 1 { TI = TI + 1; } else { return err("DW NEED RP"); }
+        outs(")");
+        if is_op(";") == 0 {
+            let pb: [32] byte = 0;
+            strcat(&pb, "DW k=");
+            let eb: [8] byte = 0;
+            utoa(cur_k(), &eb, 10);
+            strcat(&pb, &eb);
+            strcat(&pb, " t=");
+            let nb: [32] byte = 0;
+            if cur_k() == 5 { strcat(&pb, &POOL + TS[TI]); }
+            strcat(&pb, "|");
+            utoa(TI, &nb, 10);
+            strcat(&pb, &nb);
+            strcat(&pb, "/");
+            utoa(NT, &nb, 10);
+            strcat(&pb, &nb);
+            return err(&pb);
+        }
+        expect_op(";");
+        semi();
+        return 0;
+    }
     if accept_kw("while") == 1 {
         if TGT == T_PY { outs("while "); } else { outs("while ("); }
         emit_expr();
@@ -2847,13 +3424,22 @@ fn emit_local() -> i64 {
                     else {
                         if streq(LASTTY, "i64") == 1 { outs("(long long)"); }
                     }
-                }
-                # `let p: i64 = &arr;` 在 C 系后端原本是**硬错误**：
+                }          # `let p: i64 = &arr;` 在 C 系后端原本是**硬错误**：
                 # 用 unsigned char* 初始化 long long 属指针→整数转换。
                 # 而"这块缓冲在哪"恰恰只能通过取地址表达（virtio 描述符
                 # 就要填缓冲的物理地址）。取地址赋给 i64 是正当用法，
                 # 所以这里补一个显式转换，而不是让调用方去改编译选项。
                 if is_op("&") == 1 { outs("(long long)"); }
+                # v1.1199: `let p: T = 0;`（T=struct）→ 零初始化 {0}
+                if LASTTY != 0 && is_struct_ty(LASTTY) == 1 && cur_k() == 2 && atoi(cur_s()) == 0 {
+                    outs("(struct ");
+                    outs(LASTTY);
+                    outs("_t){0})");
+                    TI = TI + 1;
+                    expect_op(";");
+                    semi();
+                    return 0;
+                }
                 emit_expr();
                 outs(")");
             }
@@ -2993,13 +3579,22 @@ fn emit_global() -> i64 {
                     else {
                         if streq(LASTTY, "i64") == 1 { outs("(long long)"); }
                     }
-                }
-                # `let p: i64 = &arr;` 在 C 系后端原本是**硬错误**：
+                }          # `let p: i64 = &arr;` 在 C 系后端原本是**硬错误**：
                 # 用 unsigned char* 初始化 long long 属指针→整数转换。
                 # 而"这块缓冲在哪"恰恰只能通过取地址表达（virtio 描述符
                 # 就要填缓冲的物理地址）。取地址赋给 i64 是正当用法，
                 # 所以这里补一个显式转换，而不是让调用方去改编译选项。
                 if is_op("&") == 1 { outs("(long long)"); }
+                # v1.1199: `let p: T = 0;`（T=struct）→ 零初始化 {0}
+                if LASTTY != 0 && is_struct_ty(LASTTY) == 1 && cur_k() == 2 && atoi(cur_s()) == 0 {
+                    outs("(struct ");
+                    outs(LASTTY);
+                    outs("_t){0})");
+                    TI = TI + 1;
+                    expect_op(";");
+                    semi();
+                    return 0;
+                }
                 emit_expr();
                 outs(")");
             }
@@ -3080,8 +3675,39 @@ fn emit_struct() -> i64 {
                 CLSF[NCLSF + 1] = fty;
                 NCLSF = NCLSF + 2;
                 STFN[myi] = STFN[myi] + 1;
+                # v1.1199: ptr 字段名入 FldPTR（链式 a.next.next → "->"）
+                if streq(fty, "ptr") == 1 && NFldPTR < 128 { FldPTR[NFldPTR] = stp_copy(fn2); FldE[NFldPTR] = stp_copy(&POOL + TS[TI + 1]); NFldPTR = NFldPTR + 1; }
+            }
+            # v1.1199: ptr 字段声明 struct X_t*（链式 a.next->next 合法）
+            if streq(fty, "ptr") == 1 && cur_k() == 1 {
+                let pelm: i64 = &POOL + TS[TI + 1];
+                TI = TI + 2;
+                outs("struct ");
+                outs(pelm);
+                outs("_t* ");
+                outs(fn2);
+                # 数组/默认值后缀仍走原逻辑但跳过类型——直接处理 ';' 
+                let fdv5: i64 = 0 - 999999;
+                if accept_op("=") == 1 {
+                    if cur_k() == 2 { fdv5 = atoi(cur_s()); TI = TI + 1; }
+                    else { if cur_k() == 5 && tok_c(TI) == 45 { TI = TI + 1; fdv5 = 0 - atoi(cur_s()); TI = TI + 1; } }
+                    if NCLSF >= 2 { CLSFD[NCLSF - 2] = fdv5; }
+                    outs(" = ");
+                    outi(fdv5);
+                }
+                outs(";");
+                nl();
+                expect_op(";");
+                continue;
             }
             emit_scalar_or_arr(fn2, 0);
+            # v1.1199: 字段默认值 x: i64 = 10;
+            let fdv: i64 = 0 - 999999;
+            if accept_op("=") == 1 {
+                if cur_k() == 2 { fdv = atoi(cur_s()); TI = TI + 1; }
+                else { return err("字段默认值仅支持数字字面量（C 后端）"); }
+            }
+            CLSFD[NCLSF - 2] = fdv;   # 刚记录的字段（名索引处）
             outs(";");
             nl();
             expect_op(";");
@@ -3199,18 +3825,24 @@ fn fsg_find(nm: i64) -> i64 {
 
 # 函数签名
 fn emit_sig() -> i64 {
+    NTRS = 0;   # v1.1199: 每函数清 PTRS（跨函数残留误判）
     # v1.1164: 签名表查找（0=未注册）—— 先行定义供调用点用
     let nm: i64 = ident();
     expect_op("(");
     # v1.1164: 注册签名（C 系后端），调用点据此发隐式 cast
     let reg: i64 = -1;
-    if is_c_like() == 1 && NFSG < 256 {
-        reg = NFSG;
-        FSGH[reg] = nm_hash(nm);
-        FSGC[reg] = 0;
-        let q: i64 = 0;
-        while q < 8 { FSGK[reg * 8 + q] = 4; q = q + 1; }
-        NFSG = NFSG + 1;
+    if is_c_like() == 1 {
+        reg = fsg_find(nm);   # v1.1199: 重复签名（声明+定义两 pass）复用同一槽
+        if reg < 0 && NFSG < 256 {
+            reg = NFSG;
+            FSGH[reg] = nm_hash(nm);
+            NFSG = NFSG + 1;
+        }
+        if reg >= 0 {
+            FSGC[reg] = 0;
+            let q: i64 = 0;
+            while q < 8 { FSGK[reg * 8 + q] = 4; q = q + 1; }
+        }
     }
     let first: i64 = 1;
     let ps: [512] byte = 0;
@@ -3242,7 +3874,9 @@ fn emit_sig() -> i64 {
                 else {
                 if streq(t, "byte") == 1 { strcat(&ps, "unsigned char"); tk = 2; }
                 else {
-                    if streq(t, "ptr") == 1 { strcat(&ps, "unsigned char*"); tk = 1; ptrv_add(pn); }
+                    if streq(t, "ptr") == 1 { strcat(&ps, "unsigned char*"); tk = 1; ptrv_add(pn);
+                        # v1.1199: `ptr T`（T=类型名）→ 消费 T（unsigned char* 槽）并记录元素类型
+                        if cur_k() == 1 && is_op(",") == 0 && is_op(")") == 0 { consume_type(); ptelm_set(pn, LASTTY); } }
                     else {
                         if streq(t, "f64") == 1 { strcat(&ps, "double"); tk = 3; }
                         else {
@@ -3253,6 +3887,7 @@ fn emit_sig() -> i64 {
                             strcat(&ps, "struct "); strcat(&ps, t); strcat(&ps, "_t*");
                             if NTRS < 64 { PTRS[NTRS] = stp_copy(pn); NTRS = NTRS + 1; }
                             clsv_add(pn, t);   # 方法接收者也可 .method()
+                            tk = 5;   # v1.1199: struct 形参 → 调用点取址
                             }
                         }
                     }
@@ -3261,10 +3896,20 @@ fn emit_sig() -> i64 {
             }
             if reg >= 0 && FSGC[reg] < 8 {
                 FSGK[reg * 8 + FSGC[reg]] = tk;
+                FSGN[reg * 8 + FSGC[reg]] = stp_copy(pn);   # v1.1199: 具名实参
                 FSGC[reg] = FSGC[reg] + 1;
             }
             strcat(&ps, " ");
             strcat(&ps, pn);
+            # v1.1199: 形参默认值 `= 数字` → FSGD 表，调用点缺实参补默认
+            if reg >= 0 && is_op("=") == 1 {
+                TI = TI + 1;
+                let dv: i64 = 0;
+                if cur_k() == 2 { dv = atoi(cur_s()); TI = TI + 1; }
+                else { if cur_k() == 5 && (tok_c(TI) == 45) { TI = TI + 1; dv = 0 - atoi(cur_s()); TI = TI + 1; } }
+                FSGD[reg * 8 + FSGC[reg] - 1] = dv;
+                FSGDH[reg] = FSGC[reg];   # 从该索引起全部有默认
+            }
         } else {
             strcat(&ps, pn);
             let d: i64 = consume_type();
@@ -3281,12 +3926,16 @@ fn emit_sig() -> i64 {
     # v1.1164: 返回类型 kind —— emit return 处按需 cast
     CURRTK = 0;
     if rt != 0 {
-        if streq(rt, "ptr") == 1 || streq(rt, "str") == 1 { CURRTK = 1; }
+        if streq(rt, "ptr") == 1 || streq(rt, "str") == 1 {
+            CURRTK = 1;
+            # v1.1199: `-> ptr T` 返回类型 —— 消费元素类型名
+            if streq(rt, "ptr") == 1 && cur_k() == 1 { TI = TI + 1; }
+        }
         else {
             if streq(rt, "f64") == 1 { CURRTK = 3; }
             else {
                 if streq(rt, "i64") == 1 { CURRTK = 0; }
-                else { CURRTK = 4; }
+                else { CURRTK = 4; CURRTS = rt; }
             }
         }
     }
@@ -4780,7 +5429,7 @@ fn fs_header() -> i64 {
     # v1.1171: 补 strcpy/strcat 原名符号（同上：宏挡不住 IR 层引用；且
     # skip_clash 让这些调用不再发 mo_ 前缀）
     line("static unsigned char* strcpy(unsigned char* d, unsigned char* s){ long i=0; while(s[i]){ d[i]=s[i]; i++; } d[i]=0; return d; }");
-    line("static unsigned char* strcat(unsigned char* d, unsigned char* s){ long i=0,j=0; while(d[i]) i++; while(s[j]){ d[i+j]=s[j]; j++; } d[i+j]=0; return d; }");
+    line("static unsigned char* strcat_(unsigned char* d, unsigned char* s){ long i=0,j=0; while(d[i]) i++; while(s[j]){ d[i+j]=s[j]; j++; } d[i+j]=0; return d; }");
     # v1.1176: panic 内建对齐（moc v1.1175）—— syscall write(2) + exit(1)
     # strcmp：try_strcmp 改写需要。-nostdlib 无 libc，但 lib/str.mo 会带实现；
     # 为不重复定义，前导不提供 strcmp —— 依赖 str.mo 的程序已覆盖，未引 str.mo

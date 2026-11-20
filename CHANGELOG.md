@@ -11313,3 +11313,22 @@ mo2x C 后端对齐第八批（v1.1198）：c mismatch 32→28。
 
 门禁 514/0；对齐 367 测试 c mismatch 28（剩余=网络运行时缺失类 ~24、128×2 栈布局、71_proc fork、131 str+str 拼接语义）。
 
+
+## 1.1199.0
+
+C 后端（mo2x）大补：对齐 367 测试 c mismatch 28→27（新增修复全为原 GENFAIL/rc=1 簇），c GENFAIL 126→102。
+
+- 131 str+str 拼接：emit_prec '+' 探测左/右 str → 发 scat_cat(L,R)（仅 import scat.mo 时启用，与 native 一致）。
+- typed ptr 语法簇（原 GENFAIL 135 根因）：形参 `p: ptr T` / 局部 `let p: ptr T` / 返回 `-> ptr T`；PTELM 元素类型表；`p.f` → `((struct T_t*)p)->f`（读写双端、链式）、`p[i]` → `((long long*)p)[i]`。
+- 252 do-while：C 原生 do{}while 发射（continue→cond 与 mo 语义一致）。
+- 250 三元 `? :`：分词器加 '?'（OPS[30]，NOPS=31）+ emit_prec 右结合分支。
+- struct literal：`P { x: 1; y: 2; }` → C 指定初始化器；字段默认值 `x: i64 = 10`（CLSFD 表，声明无 init 用默认、literal 补未列字段）；`let p: P = 0` 零值 `(struct T_t){0}`。
+- struct 值返回：`-> P` 的 return 解引用形参指针槽（局部值原样）。
+- C 系方法调用 `obj.method(args)` → Type_method(&obj, args)；str 方法 `s.contains("x")` → strstr 内建、`s.starts_with/ends_with` → str_*。
+- 形参默认值/具名实参：FSGD/FSGDH/FSGN 表；`fn f(a: i64 = 3)` 调用点补默认；`c.add(d: 1)` 按槽重排。
+- 276 链式 ptr 字段：ptr 字段声明为 `struct T_t*`（a.next->next 合法）；FldPTR/FldE 表。
+- 241 struct 值 ==/!=：stw() 嵌套 word 数 + mo_arrcmp3 memcmp 发射。
+- emit_sig 签名表去重（声明+定义复用同槽）；每函数清 PTRS。
+- 修复编辑事故：文件重复段清理（emit_postfix/emit_unary/kern_print_redirect/main 去重）。
+
+门禁 514/0；对齐 367 测试 c mismatch 27（剩余=网络运行时缺失类 23、126_utf8、128×2、71_proc——已知不可修基线）。
