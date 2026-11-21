@@ -701,7 +701,7 @@ fn tokenize() -> i64 {
                             add_tok(5, &LEXB);
                         } else {
                         if c == 40 || c == 41 || c == 123 || c == 125 || c == 91 || c == 93
-                           || c == 59 || c == 44 || c == 58 || c == 46 {
+                           || c == 59 || c == 44 || c == 58 || c == 46 || c == 63 {
                             # f-string：'}' 是插值表达式结束 —— 后面紧跟下一个
                             # 片段（片段之间没有引号），不能当普通代码块结尾。
                             if c == 125 && FMODE == 1 {
@@ -817,7 +817,12 @@ var FSGK: [4096] i64 = 0;
 var FSGR: [256] i64 = 0;
 var FSGD: [2048] i64 = 0;   # v1.1199: 形参默认值 FSGD[reg*8+idx]
 var FSGDH: [256] i64 = 0;   # v1.1199: reg 从该实参索引起有默认（0=无）
-var FSGN: [2048] i64 = 0;   # v1.1199: 形参名（具名实参）
+var FSGN: [2048] i64 = 0;
+var CURRIMPL: i64 = 0;
+# v1.1207: defer 表 —— 函数级 LIFO，return 前重放
+var DEFST: [64] i64 = 0;
+var DEFEN: [64] i64 = 0;
+var NDEF: i64 = 0;   # v1.1207: 当前 impl TYPE —— self 形参类型注入 + 方法名前缀   # v1.1199: 形参名（具名实参）
 var NAPOS: [8] i64 = 0;   # v1.1206: named args 槽提供标记（1=提供）
 var NAST: [8] i64 = 0;    # 实参 token 起点
 var NAEN: [8] i64 = 0;    # 实参 token 终点
@@ -1069,6 +1074,21 @@ fn emit_primary() -> i64 {
         return 0;
     }
     if cur_k() == 1 {
+        # v1.1207: as cast `ident as T` → C cast（截断 f64→i64；i64→f64 提升；ptr→i64 直通）
+        # 360-fix: 左侧是一元运算符（&/-/!/*）时不在 primary 抢跑（&(long long)(e) 非法），由 prec as 直通
+        let asok: i64 = 1;
+        if TI >= 1 && TK[TI - 1] == 5 {
+            let ps: i64 = &POOL + TS[TI - 1];
+            if streq(ps, "&") == 1 || streq(ps, "-") == 1 || streq(ps, "!") == 1 || streq(ps, "*") == 1 { asok = 0; }
+        }
+        if asok == 1 && TK[TI + 1] == 1 && TK[TI + 2] == 1 && is_c_like() == 1 && streq(&POOL + TS[TI + 1], "as") == 1 {
+            let asn: i64 = cur_s();
+            let ast: i64 = &POOL + TS[TI + 2];
+            TI = TI + 3;
+            if streq(ast, "i64") == 1 { outs("(long long)("); outs(asn); outs(")"); }
+            else { if streq(ast, "f64") == 1 { outs("(double)("); outs(asn); outs(")"); } else { outs("("); outs(ast); outs("_t)("); outs(asn); outs(")"); } }
+            return 0;
+        }
         let nm: i64 = cur_s();
         TI = TI + 1;
         # v1.1206: enum 带数据变体构造 Enum.Variant(args) → tagged struct 字面量
@@ -1681,11 +1701,12 @@ fn emit_postfix() -> i64 {
                 let open4: i64 = TI - 1;   # '(' 的 token 索引
                 outs(&buf2);
                 outs("(");
-                if ptrv_find(onm2) == 1 {
+                if ptrv_find(onm2) == 1 && clsv_ty(onm2) == 0 {
                     outs("(unsigned char*)");
                     outs(onm2);
                 } else {
-                    outs("(unsigned char*)&");
+                    if streq(onm2, "self") == 1 && CURRIMPL != 0 { outs("(unsigned char*)"); }
+                    else { outs("(unsigned char*)&"); }
                     outs(onm2);
                 }
                 # v1.1199: 具名实参 `name: expr`（值=单 token 数字/ident/负号数字）→ 按形参槽重排
@@ -1760,7 +1781,7 @@ fn emit_postfix() -> i64 {
     }
     # 方法调用探测：IDENT . IDENT ( args ) → Type_method(IDENT, args)。
     # 必须在 emit_primary 输出 IDENT 之前识别（输出流无法截回）。
-    if cur_k() == 1 && TGT == T_FS {
+    if cur_k() == 1 {
         let save: i64 = TI;
         let onm: i64 = cur_s();
         TI = TI + 1;
@@ -1771,7 +1792,8 @@ fn emit_postfix() -> i64 {
                 TI = TI + 1;
                 if is_op("(") == 1 {
                     let ty: i64 = clsv_ty(onm);
-                    let fi2: i64 = iface_find(ty);
+                    let fi2: i64 = -1;
+                    if TGT == T_FS { fi2 = iface_find(ty); }
                     if fi2 >= 0 {
                         # 接口方法调用：a.area() → ((long long(*)(void*))((void**)a.vt)[IDX])(a.obj, args...)
                         TI = TI + 1;   # '('
@@ -1794,13 +1816,20 @@ fn emit_postfix() -> i64 {
                         return 0;
                     }
                     if ty != 0 {
+                        # v1.1207: enum ctor Enum.Variant(args) 不是方法调用 → 回退
+                        let skipm: i64 = 0;
+                        if ev_struct_ty(ty) == 1 { skipm = 1; }
+                        let eei: i64 = 0;
+                        while eei < NENUMN { if streq(ty, ENUMN[eei]) == 1 { skipm = 1; } eei = eei + 1; }
+                        if skipm == 0 {
                         TI = TI + 1;   # 吃掉 '(' —— 否则它会混进第一个实参
                         # Type_method(obj, args)；obj 若已是 struct 指针（泛型实例化体的形参）→ 不加 &
                         outs(ty);
                         outs("_");
                         outs(mth);
                         outs("(");
-                        if ptr_find(onm) == 1 { outs("(unsigned char*)"); } else { outs("(unsigned char*)&"); }
+                        if streq(onm, "self") == 1 && CURRIMPL != 0 { outs("(unsigned char*)"); }
+                        else { if ptr_find(onm) == 1 { outs("(unsigned char*)"); } else { outs("(unsigned char*)&"); } }
                         outs(onm);
                         if is_op(")") == 0 {
                             outs(",");
@@ -1810,6 +1839,7 @@ fn emit_postfix() -> i64 {
                         expect_op(")");
                         outs(")");
                         return 0;
+                        }
                     }
                 }
             }
@@ -2427,6 +2457,15 @@ fn emit_prec(minp: i64) -> i64 {
         let p: i64 = binprec();
         # v1.1199: 三元 cond ? a : b（C 原生；右结合=右侧走完整 emit_prec(1)）
         if p == 0 && is_c_like() == 1 && is_op("?") == 1 && minp <= 1 {
+            # v1.1207: `expr?;` 错误传播（'?' 后接 ';'/','/'}' 非 :）→ 不当三目，留给 let guard
+            let nq: i64 = TK[TI + 1];
+            let isq: i64 = 0;
+            if nq == 5 {
+                let sq: i64 = &POOL + TS[TI + 1];
+                if streq(sq, ";") == 1 || streq(sq, ",") == 1 || streq(sq, "}") == 1 || streq(sq, ")") == 1 { isq = 1; }
+            }
+            if isq == 0 {
+            err("PROBE-ternary");
             TI = TI + 1;
             outs(" ? ");
             emit_prec(1);
@@ -2434,6 +2473,7 @@ fn emit_prec(minp: i64) -> i64 {
             expect_op(":");
             emit_prec(1);
             return 0;
+            }
         }
         # v1.1206: as cast `expr as T` → 直通（数值语义由比较/算术 cast 兜住）
         if p == 0 && is_c_like() == 1 && cur_k() == 1 && is_kw("as") == 1 && TK[TI + 1] == 1 {
@@ -2442,11 +2482,6 @@ fn emit_prec(minp: i64) -> i64 {
         }
         if p == 0 { return 0; }
         if p < minp { return 0; }
-        # v1.1206: as cast `expr as T` → 直通（数值语义由比较/算术 cast 兜住）
-        if is_c_like() == 1 && cur_k() == 1 && is_kw("as") == 1 && TK[TI + 1] == 1 {
-            TI = TI + 2;   # 吃 'as' 与类型名
-            continue;
-        }
         let op: i64 = cur_s();
         TI = TI + 1;
         # 左操作数是字符串（字面量或已知 str 变量）且 op 是比较符 →
@@ -3203,12 +3238,44 @@ fn emit_stmt() -> i64 {
         return 0;
     }
 
+    # v1.1207: defer —— 收集 token 范围，return 前按 LIFO 重放
+    if accept_kw("defer") == 1 {
+        let st6: i64 = TI;
+        if is_op("{") == 1 { skip_balanced(); }
+        else {
+            let dep6: i64 = 0;
+            while TI < NT {
+                if TK[TI] == 5 {
+                    let sq6: i64 = &POOL + TS[TI];
+                    if dep6 == 0 && streq(sq6, ";") == 1 { break; }
+                    if streq(sq6, "(") == 1 || streq(sq6, "[") == 1 || streq(sq6, "{") == 1 { dep6 = dep6 + 1; }
+                    if streq(sq6, ")") == 1 || streq(sq6, "]") == 1 || streq(sq6, "}") == 1 { dep6 = dep6 - 1; }
+                }
+                TI = TI + 1;
+            }
+        }
+        if NDEF < 64 { DEFST[NDEF] = st6; DEFEN[NDEF] = TI; NDEF = NDEF + 1; }
+        if is_op(";") == 1 { TI = TI + 1; }
+        return 0;
+    }
     if accept_kw("return") == 1 {
         if is_op(";") == 1 {
             TI = TI + 1;
             outs("return");
             semi();
             return 0;
+        }
+        # v1.1207: defer 重放（LIFO）—— return 前插入
+        {
+            let dk: i64 = NDEF;
+            while dk > 0 {
+                dk = dk - 1;
+                let svd: i64 = TI;
+                TI = DEFST[dk];
+                if is_op("{") == 1 { TI = TI + 1; emit_stmts(); }
+                else { emit_stmt(); }
+                TI = svd;
+            }
         }
         outs("return ");
         # v1.1199: struct 返回类型（值语义）—— 形参是指针槽，解引用一层；局部变量是值，原样
@@ -3606,6 +3673,7 @@ fn emit_stmt() -> i64 {
         if evlet >= 0 {
             let nm8: i64 = stp_copy(&POOL + TS[TI + 1]);
             TI = TI + 3;
+            clsv_add(nm8, EVN[evlet]);   # v1.1207: 推断 enum 值 → 方法调用探测命中
             outs(EVN[evlet]);
             outs("_t ");
             outs(nm8);
@@ -3618,12 +3686,31 @@ fn emit_stmt() -> i64 {
         # v1.1205: let 推断 let a = expr;（265）—— 无 ':' 类型。TI 在 let，TI+1=NAME，TI+2='='
         let nm: i64 = stp_copy(&POOL + TS[TI + 1]);
         TI = TI + 3;   # 吃 let、NAME、'='——TI 到 RHS（nm 取 TI+1 的名字）
-        ptrv_add(nm);   # fn 值调用 f(args) 走 fnptr cast（265 f=add; f(1,x)）
+        ptrv_add(nm);
         outs("long long ");
         outs(nm);
         outs(" = (");
         emit_expr();
         outs(")");
+
+        # v1.1207: `expr?` 错误传播 → 值<0 时 return 该值
+        if is_op("?") == 1 {
+            TI = TI + 1;
+            outs("; if ("); outs(nm); outs(" < 0) { ");
+            # defer 重放（LIFO）—— 错误返回路径同样触发 defer
+            {
+                let dq: i64 = NDEF;
+                while dq > 0 {
+                    dq = dq - 1;
+                    let svdq: i64 = TI;
+                    TI = DEFST[dq];
+                    if is_op("{") == 1 { TI = TI + 1; emit_stmts(); }
+                    else { emit_stmt(); }
+                    TI = svdq;
+                }
+            }
+            outs(" return "); outs(nm); outs("; }");
+        }
         expect_op(";");
         semi();
         return 0;
@@ -3807,6 +3894,7 @@ fn emit_stmts() -> i64 {
 }
 
 fn emit_block_body() -> i64 {
+    NDEF = 0;   # v1.1207: 函数级 defer 表
     expect_op("{");
     if TGT == T_PY {
         IND = 0;
@@ -3818,6 +3906,19 @@ fn emit_block_body() -> i64 {
         nl();
     }
     emit_stmts();
+    # v1.1207: 函数体尾 defer 重放（fallthrough 路径）
+    {
+        let dk2: i64 = NDEF;
+        while dk2 > 0 {
+            dk2 = dk2 - 1;
+            let svd2: i64 = TI;
+            TI = DEFST[dk2];
+            if is_op("{") == 1 { TI = TI + 1; emit_stmts(); }
+            else { emit_stmt(); }
+            TI = svd2;
+        }
+    }
+    NDEF = 0;
     if TGT == T_PY { IND = 0; } else { line("}"); }
     return 0;
 }
@@ -3842,6 +3943,11 @@ fn emit_local() -> i64 {
             outs(" = (");
             emit_expr();
             outs(")");
+        }
+        # v1.1207: `expr?` 错误传播
+        if is_op("?") == 1 {
+            TI = TI + 1;
+            outs("; if ("); outs(nm); outs(" < 0) { return "); outs(nm); outs("; }");
         }
         expect_op(";");
         semi();
@@ -3973,6 +4079,23 @@ fn emit_local() -> i64 {
                 }
                 emit_expr();
                 outs(")");
+                # v1.1207: `expr?` 错误传播（显式类型 let）
+                if is_op("?") == 1 {
+                    TI = TI + 1;
+                    outs("; if ("); outs(nm); outs(" < 0) { ");
+                    {
+                        let dq2: i64 = NDEF;
+                        while dq2 > 0 {
+                            dq2 = dq2 - 1;
+                            let svdq2: i64 = TI;
+                            TI = DEFST[dq2];
+                            if is_op("{") == 1 { TI = TI + 1; emit_stmts(); }
+                            else { emit_stmt(); }
+                            TI = svdq2;
+                        }
+                    }
+                    outs(" return "); outs(nm); outs("; }");
+                }
             }
         }
         outs(";");
@@ -4439,12 +4562,17 @@ fn emit_sig() -> i64 {
         if first == 0 { strcat(&ps, ", "); }
         first = 0;
         let pn: i64 = ident();
-        expect_op(":");
+        # v1.1207: impl 方法 `fn m(self, ...)` —— self 无类型标注 → CURRIMPL
+        let selfinj: i64 = 0;
+        if streq(pn, "self") == 1 && CURRIMPL != 0 && is_op(":") == 0 { selfinj = 1; }
+        if selfinj == 0 { expect_op(":"); }
         let isarr: i64 = 0;
         if is_op("[") == 1 { isarr = 1; }
         if is_c_like() == 1 {
             if isarr == 1 { skip_brackets(); }
-            let t: i64 = ident();
+            let t: i64 = 0;
+            if selfinj == 1 { t = CURRIMPL; }
+            else { t = ident(); }
             let tk: i64 = 4;
             if streq(t, "i64") == 1 { if isarr == 1 { strcat(&ps, "long long*"); } else { strcat(&ps, "long long"); } tk = 0; }
             else {
@@ -5950,7 +6078,30 @@ fn pass_file(i: i64, kind: i64) -> i64 {
                     if accept_kw("impl") == 1 {
                         if kind != 3 { skip_balanced(); continue; }
                         let ifn: i64 = ident();
-                        accept_kw("for");
+                        if accept_kw("for") == 0 && is_op("{") == 1 {
+                            # v1.1207: impl TYPE { fn m(self, ...) {...} } —— 方法逐个发射为 TYPE_m
+                            CURRIMPL = ifn;
+                            expect_op("{");
+                            while is_op("}") == 0 {
+                                if accept_kw("fn") == 1 {
+                                    let mn: i64 = cur_s();
+                                    # 方法名 → TYPE_m（POOL 尾追加 "TYPE_m"，改 TS）
+                                    let q4: i64 = PP;
+                                    let k4: i64 = 0;
+                                    while load8(ifn + k4) != 0 { store8(&POOL + PP, load8(ifn + k4)); PP = PP + 1; k4 = k4 + 1; }
+                                    store8(&POOL + PP, 95); PP = PP + 1;   # '_'
+                                    k4 = 0;
+                                    while load8(mn + k4) != 0 { store8(&POOL + PP, load8(mn + k4)); PP = PP + 1; k4 = k4 + 1; }
+                                    store8(&POOL + PP, 0); PP = PP + 1;
+                                    TS[TI] = q4;
+                                    emit_sig();
+                                    emit_block_body();
+                                } else { TI = TI + 1; }
+                            }
+                            TI = TI + 1;
+                            CURRIMPL = 0;
+                            continue;
+                        }
                         let tn: i64 = ident();
                         let fi: i64 = iface_find(ifn);
                         if is_c_like() == 1 {
@@ -8152,10 +8303,12 @@ fn emit_match(isexpr: i64) -> i64 {
     else { outs("{ "); }
     # v1.1205: struct 主体 → struct X_t __mv = (expr);（模式访问字段）；标量主体 → long long
     let msv: i64 = 0;
+    let tagmv: i64 = 0;   # v1.1207: tagged enum 主体 → 数字/区间臂比较 __mv.tag
     if cur_k() == 1 && clsv_find(cur_s()) != 0 {
         msv = 1;
         # v1.1206: tagged enum 主体 → Shape_t __mv（无 struct tag）
         if ev_struct_ty(clsv_find(cur_s())) == 1 {
+            tagmv = 1;
             outs(clsv_find(cur_s()));
             outs("_t __mv = (");
         } else {
@@ -8256,7 +8409,18 @@ fn emit_match(isexpr: i64) -> i64 {
                 outs("\") == 0");
                 TI = TI + 1;
             } else {
-                if cur_k() == 2 { outs("__mv == "); outs(cur_s()); TI = TI + 1; }
+                if cur_k() == 2 {
+                    # v1.1207: 区间臂 lo..hi → 闭区间 [lo, hi]（先探测 '..'，区间不发 ==）
+                    if TK[TI + 1] == 5 && streq(&POOL + TS[TI + 1], "..") == 1 && TK[TI + 2] == 2 {
+                        if tagmv == 1 { outs("__mv.tag >= "); } else { outs("__mv >= "); }
+                        outs(cur_s()); TI = TI + 2;
+                        if tagmv == 1 { outs(" && __mv.tag <= "); } else { outs(" && __mv <= "); }
+                        outs(cur_s()); TI = TI + 1;
+                    } else {
+                    if tagmv == 1 { outs("__mv.tag == "); } else { outs("__mv == "); }
+                    outs(cur_s()); TI = TI + 1;
+                    }
+                }
                 else {
                     # v1.1206: 变体模式 `Variant(b1, b2)` → __mv.tag==v && 绑定=__mv._N
                     if cur_k() == 1 && TK[TI + 1] == 5 && streq(&POOL + TS[TI + 1], "(") == 1 {

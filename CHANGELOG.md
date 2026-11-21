@@ -11402,3 +11402,13 @@ mo2x uic component DSL 展开 + 版本号规范：
 - mo2x: default argument values as constant expressions (cns_expr), negative defaults (210)
 - mo2x: as-cast passthrough in emit_prec; emit_struct typedef dedup guard
 - tests green: 324/326/327/328/333/334, 208/209/210/211, 291/292, 360_cprop; gate 514/0; batch mismatch only known set
+
+## v1.1207.0
+
+- as cast 精确语义: `expr as T` 包裹精确 C cast (307)
+- impl 方法: `impl TYPE { fn m(self, ...) }` -> TYPE_m, 方法调用自动 & (331)
+- match 区间臂 `lo..hi =>` (330)、tagged enum tag 臂 (332)
+- defer 语句: 函数级收集, return 前 LIFO 重放 (323)
+- 错误传播 `?` postfix: let 推断/显式类型/语句位置; lexer 修复 '?' token (325、91)
+- 取址+as 交互修复 (360)
+- 门禁 514/0; 批测 GENFAIL 103→98、mismatch 5→3
