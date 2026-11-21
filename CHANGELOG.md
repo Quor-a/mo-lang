@@ -11419,3 +11419,11 @@ mo2x uic component DSL 展开 + 版本号规范：
 - multi-subscript `m[i], m[j] = ...` (312/313)、multi-field `p.x, a = ...` (314)
 - 数组整体赋值 memcpy 特例从 emit_stmt 移入 multi 路径（260 回归修复）
 - 门禁 514/0; 批测 GENFAIL 98→94、mismatch 3（全已知）
+
+## v1.1209.0
+
+- 三元运算符 `cond ? a : b` 修复残留 probe 致 err（250）
+- for-in 数组遍历 `for x in arr`：一维元素、二维行指针步进、break/continue（251、267）
+- 逻辑复合赋值 `a ||= b` / `a &&= b` → 布尔化结果（253）
+- OPS 表扩容至 [40]，&&=/||= 前置保证最长匹配
+- 门禁 514/0; 批测 GENFAIL 94→90

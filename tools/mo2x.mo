@@ -265,7 +265,7 @@ fn cns_find(nm: i64) -> i64 {
 
 var LN: i64 = 1;
 
-var OPS: [32] i64 = 0;
+var OPS: [40] i64 = 0;
 var NOPS: i64 = 0;
 
 var LEXB: [4096] byte = 0;
@@ -400,14 +400,10 @@ fn is_ws(c: i64) -> i64 {
 fn ops_init() -> i64 {
     if NOPS > 0 { return 0; }
     # 长的必须在前，否则 "==" 会被拆成两个 "="
-    OPS[0] = "<<="; OPS[1] = ">>="; OPS[2] = "=>"; OPS[3] = "=="; OPS[4] = "!="; OPS[5] = "<="; OPS[6] = ">=";
-    OPS[7] = "&&"; OPS[8] = "||"; OPS[9] = "<<"; OPS[10] = ">>";
-    OPS[11] = "+="; OPS[12] = "-="; OPS[13] = "*="; OPS[14] = "/=";
-    OPS[15] = "%="; OPS[16] = "&="; OPS[17] = "|="; OPS[18] = "^=";
-    OPS[19] = "+"; OPS[20] = "-"; OPS[21] = "*"; OPS[22] = "/";
-    OPS[23] = "%"; OPS[24] = "&"; OPS[25] = "|"; OPS[26] = "^";
-    OPS[27] = "="; OPS[28] = "<"; OPS[29] = ">"; OPS[30] = "!";
-    NOPS = 31;
+    OPS[0] = "<<="; OPS[1] = ">>="; OPS[2] = "=>"; OPS[3] = "=="; OPS[4] = "!="; OPS[5] = "<="; OPS[6] = ">="; OPS[7] = "&&="; OPS[8] = "||="; OPS[9] = "&&"; OPS[10] = "||"; OPS[11] = "<<";
+    OPS[12] = ">>"; OPS[13] = "+="; OPS[14] = "-="; OPS[15] = "*="; OPS[16] = "/="; OPS[17] = "%="; OPS[18] = "&="; OPS[19] = "|="; OPS[20] = "^="; OPS[21] = "+"; OPS[22] = "-"; OPS[23] = "*";
+    OPS[24] = "/"; OPS[25] = "%"; OPS[26] = "&"; OPS[27] = "|"; OPS[28] = "^"; OPS[29] = "="; OPS[30] = "<"; OPS[31] = ">"; OPS[32] = "!";
+    NOPS = 33;
     return 0;
 }
 
@@ -2465,7 +2461,6 @@ fn emit_prec(minp: i64) -> i64 {
                 if streq(sq, ";") == 1 || streq(sq, ",") == 1 || streq(sq, "}") == 1 || streq(sq, ")") == 1 { isq = 1; }
             }
             if isq == 0 {
-            err("PROBE-ternary");
             TI = TI + 1;
             outs(" ? ");
             emit_prec(1);
@@ -3013,6 +3008,8 @@ fn is_assign_start() -> i64 {
                 if is_op("^=") == 1 { r = 1; }
                 if is_op("<<=") == 1 { r = 1; }
                 if is_op(">>=") == 1 { r = 1; }
+                if is_op("&&=") == 1 { r = 2; }
+                if is_op("||=") == 1 { r = 2; }
             }
         }
     }
@@ -3373,7 +3370,25 @@ fn arr_find(nm: i64) -> i64 {
 }
 fn emit_stmt() -> i64 {
     if try_incdec() == 1 { return 0; }
-    if is_assign_start() == 1 {
+    let asr: i64 = is_assign_start();
+    if asr == 2 {
+        # v1.1209: 逻辑复合赋值 a ||= b / a &&= b → 布尔化结果
+        let lnl: i64 = ident();
+        let opl: i64 = cur_s();
+        let isor: i64 = 0;
+        if streq(opl, "||=") == 1 { isor = 1; }
+        TI = TI + 1;
+        outs(lnl);
+        outs(" = (");
+        outs(lnl);
+        if isor == 1 { outs(" || "); } else { outs(" && "); }
+        emit_expr();
+        outs(") ? 1 : 0");
+        expect_op(";");
+        semi();
+        return 0;
+    }
+    if asr == 1 {
         # v1.1208: multi-assign（目标列表含 ','）；单目标在 emit_multi_assign 内回退
         emit_multi_assign();
         return 0;
@@ -3721,6 +3736,40 @@ fn emit_stmt() -> i64 {
         return 0;
     }
     if accept_kw("for") == 1 {
+        # v1.1209: for-in 数组遍历 `for x in arr { }`（无括号形态）
+        if is_c_like() == 1 && cur_k() == 1 && TK[TI + 1] == 1 && streq(&POOL + TS[TI + 1], "in") == 1 {
+            let vn: i64 = ident();
+            TI = TI + 1;   # 吃 'in'
+            let an: i64 = ident();
+            let afi: i64 = arr_find(an);
+            if afi < 0 { return err("for-in 目标不是数组"); }
+            # 二维外层：行= ptr 标量
+            outs("for (long long __fi = 0; __fi < ");
+            {
+                let db: [24] byte = 0;
+                utoa(ARRDIM[afi], &db, 10);
+                outs(&db);
+            }
+            outs("; __fi++)");
+            expect_op("{");
+            blk_open();
+            if ARRDIM2[afi] > 0 {
+                outs("long long* "); outs(vn);
+                outs(" = ((long long*)((unsigned char*)"); outs(an); outs(")) + __fi * ");
+                {
+                    let db2: [32] byte = 0;
+                    utoa(ARRDIM2[afi], &db2, 10);
+                    outs(&db2);
+                }
+                outs(";");
+            } else {
+                outs("long long "); outs(vn); outs(" = "); outs(an); outs("[__fi];");
+            }
+            nl();
+            emit_stmts();
+            blk_close();
+            return 0;
+        }
         expect_op("(");
         if is_c_like() == 1 {
             outs("for (");
