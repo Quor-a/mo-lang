@@ -810,6 +810,7 @@ fn emit_binop(s: i64) -> i64 {
 var FSGH: [512] i64 = 0;
 var FSGC: [256] i64 = 0;
 var FSGK: [4096] i64 = 0;
+var FSRT: [256] i64 = 0;   # v1.1210: 函数返回 struct 类型名（推断 let 用）
 var FSGR: [256] i64 = 0;
 var FSGD: [2048] i64 = 0;   # v1.1199: 形参默认值 FSGD[reg*8+idx]
 var FSGDH: [256] i64 = 0;   # v1.1199: reg 从该实参索引起有默认（0=无）
@@ -3882,8 +3883,60 @@ fn emit_stmt() -> i64 {
             let rk: i64 = TK[TI + 3];
             if rk == 2 || rk == 3 { okc = 1; }
             if rk == 1 && cf_find_fn(&POOL + TS[TI + 3]) < 0 { okc = 1; }
+            # v1.1210: RHS 是返回 struct 的调用 → 也走推断分支（270）
+            if rk == 1 && TK[TI + 4] == 5 && streq(&POOL + TS[TI + 4], "(") == 1 && fsg_find(&POOL + TS[TI + 3]) >= 0 { okc = 1; }
         }
         if okc == 1 {
+        # v1.1210: RHS 是 struct 值（字面量 P{...} / struct 变量 / 返回 struct 的调用）→ struct 声明（270/271）
+        let sdone10: i64 = 0;
+        if sdone10 == 0 {
+        if TK[TI + 3] == 1 && TK[TI + 4] == 5 && streq(&POOL + TS[TI + 4], "{") == 1 && st_find(&POOL + TS[TI + 3]) >= 0 {
+            let sty10: i64 = stp_copy(&POOL + TS[TI + 3]);
+            let nm10: i64 = stp_copy(&POOL + TS[TI + 1]);
+            TI = TI + 3;
+            clsv_add(nm10, sty10);
+            outs("struct "); outs(sty10); outs("_t "); outs(nm10); outs(" = ");
+            emit_expr();
+            outs(";");
+            nl();
+            expect_op(";");
+            semi();
+            return 0;
+        }
+        }
+        if sdone10 == 0 {
+        if TK[TI + 3] == 1 && clsv_ty(&POOL + TS[TI + 3]) != 0 && (TK[TI + 4] == 5 && streq(&POOL + TS[TI + 4], ";") == 1 || TK[TI + 4] == 0) {
+            let sty10: i64 = clsv_ty(&POOL + TS[TI + 3]);
+            let nm10: i64 = stp_copy(&POOL + TS[TI + 1]);
+            TI = TI + 3;
+            clsv_add(nm10, sty10);
+            outs("struct "); outs(sty10); outs("_t "); outs(nm10); outs(" = (");
+            emit_expr();
+            outs(");");
+            nl();
+            expect_op(";");
+            semi();
+            return 0;
+        }
+        }
+        if sdone10 == 0 {
+        if TK[TI + 3] == 1 && TK[TI + 4] == 5 && streq(&POOL + TS[TI + 4], "(") == 1 {
+            let cfi10: i64 = fsg_find(&POOL + TS[TI + 3]);
+            if cfi10 >= 0 && FSRT[cfi10] != 0 {
+                let srt10: i64 = FSRT[cfi10];
+                let nm10: i64 = stp_copy(&POOL + TS[TI + 1]);
+                TI = TI + 3;
+                clsv_add(nm10, srt10);
+                outs("struct "); outs(srt10); outs("_t "); outs(nm10); outs(" = ");
+                emit_expr();
+                outs(";");
+                nl();
+                expect_op(";");
+                semi();
+                return 0;
+            }
+        }
+        }
         # v1.1206: RHS = Enum.Variant(...) 构造 → 推断为 tagged struct 值类型
         let evlet: i64 = 0 - 1;
         if TK[TI + 3] == 1 && TK[TI + 4] == 5 && TK[TI + 5] == 1 && TK[TI + 6] == 5 && streq(&POOL + TS[TI + 4], ".") == 1 && streq(&POOL + TS[TI + 6], "(") == 1 {
@@ -4153,6 +4206,48 @@ fn emit_local() -> i64 {
     # v1.1205: 无 ':' 类型（let a = expr;）→ 按 long long 推断（265/270 简单形态）
     if is_op(":") == 0 {
         expect_op("=");
+        # v1.1210: RHS 是 struct 值（字面量 P{...} / struct 变量 / 返回 struct 的调用）→ struct 声明
+        if is_c_like() == 1 && cur_k() == 1 && is_struct_ty(cur_s()) == 1 && TK[TI + 1] == 5 && streq(&POOL + TS[TI + 1], "{") == 1 {
+            let sty: i64 = cur_s();
+            outs("struct "); outs(sty); outs("_t "); outs(nm); outs(" = ");
+            emit_expr();
+            outs(";");
+            nl();
+            clsv_add(nm, sty);
+            expect_op(";");
+            semi();
+            return 0;
+        }
+        if is_c_like() == 1 && cur_k() == 1 && clsv_ty(cur_s()) != 0 && (TK[TI + 1] == 5 || TK[TI + 1] == 0) {
+            # struct 变量拷贝 / 返回 struct 的调用：先声明再 memcpy
+            let sty2: i64 = clsv_ty(cur_s());
+            let iscall2: i64 = 0;
+            if TK[TI + 1] == 5 && streq(&POOL + TS[TI + 1], "(") == 1 { iscall2 = 1; }
+            if iscall2 == 1 {
+                outs("struct "); outs(sty2); outs("_t "); outs(nm); outs(";");
+                nl();
+                let svf: i64 = TI;
+                outs(nm); outs(" = "); emit_expr(); outs(";"); nl();
+                clsv_add(nm, sty2);
+                expect_op(";");
+                semi();
+                return 0;
+            }
+        }
+        if is_c_like() == 1 && cur_k() == 1 && TK[TI + 1] == 5 && streq(&POOL + TS[TI + 1], "(") == 1 {
+            # RHS 是调用：查被调函数返回 struct
+            let cfi: i64 = fsg_find(cur_s());
+            if cfi >= 0 && FSRT[cfi] != 0 {
+                let srt: i64 = FSRT[cfi];
+                outs("struct "); outs(srt); outs("_t "); outs(nm); outs(";");
+                nl();
+                outs(nm); outs(" = "); emit_expr(); outs(";"); nl();
+                clsv_add(nm, srt);
+                expect_op(";");
+                semi();
+                return 0;
+            }
+        }
         if is_c_like() == 1 {
             outs("long long ");
             outs(nm);
@@ -4877,7 +4972,7 @@ fn emit_sig() -> i64 {
             }
         }
     }
-    if reg >= 0 { FSGR[reg] = CURRTK; }
+    if reg >= 0 { FSGR[reg] = CURRTK; if CURRTK == 4 && CURRTS != 0 { FSRT[reg] = stp_copy(CURRTS); } }
 
     if is_c_like() == 1 {
         if rtarr == 1 { outs("long long* "); }

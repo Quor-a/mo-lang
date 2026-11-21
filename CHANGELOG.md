@@ -11427,3 +11427,8 @@ mo2x uic component DSL 展开 + 版本号规范：
 - 逻辑复合赋值 `a ||= b` / `a &&= b` → 布尔化结果（253）
 - OPS 表扩容至 [40]，&&=/||= 前置保证最长匹配
 - 门禁 514/0; 批测 GENFAIL 94→90
+
+## v1.1210.0
+- let 推断 struct 值：RHS 为 struct 字面量 `P { ... }` / struct 变量 / 返回 struct 的调用 → 声明 struct 并块拷（270、271）
+- FSRT 表：函数签名收集时记录返回 struct 类型名，供推断 let 探测
+- 门禁 514/0; 批测 GENFAIL 90→88
