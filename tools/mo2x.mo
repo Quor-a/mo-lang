@@ -2935,8 +2935,7 @@ fn semi() -> i64 {
 
 # 判断当前语句是不是赋值（只扫 token，不产生输出）
 fn is_assign_start() -> i64 {
-    # v1.1202: `let [x, y] = a;` 以标识符开头 + 后跟 [...] = —— 会被误判成
-    # 数组元素赋值。语句头是关键字（let/const/return/…）时绝不当赋值。
+    # v1.1202: 语句头是关键字时绝不当赋值。
     if is_kw("let") == 1 || is_kw("const") == 1 || is_kw("return") == 1 || is_kw("if") == 1 || is_kw("while") == 1 || is_kw("for") == 1 || is_kw("match") == 1 || is_kw("fn") == 1 { return 0; }
     let save: i64 = TI;
     let r: i64 = 0;
@@ -2967,22 +2966,193 @@ fn is_assign_start() -> i64 {
                 }
             }
         }
-        if ok == 1 {
-            if is_op("=") == 1 { r = 1; }
-            else { if is_op("+=") == 1 { r = 1; }
-            else { if is_op("-=") == 1 { r = 1; }
-            else { if is_op("*=") == 1 { r = 1; }
-            else { if is_op("/=") == 1 { r = 1; }
-            else { if is_op("%=") == 1 { r = 1; }
-            else { if is_op("&=") == 1 { r = 1; }
-            else { if is_op("|=") == 1 { r = 1; }
-            else { if is_op("^=") == 1 { r = 1; }
-            else { if is_op("<<=") == 1 { r = 1; }
-            else { if is_op(">>=") == 1 { r = 1; } } } } } } } } } } }
+        # v1.1208: multi-assign 目标逗号列表；复合赋值仅单目标
+        if is_op("=") == 1 {
+            r = 1;
+        } else {
+            if ok == 1 && is_op(",") == 1 {
+                while ok == 1 && is_op(",") == 1 {
+                    TI = TI + 1;
+                    if cur_k() != 1 { ok = 0; break; }
+                    TI = TI + 1;
+                    while ok == 1 {
+                        if is_op("[") == 1 {
+                            let d9: i64 = 0;
+                            let done9: i64 = 0;
+                            while TI < NT {
+                                if is_op("[") == 1 { d9 = d9 + 1; }
+                                else {
+                                    if is_op("]") == 1 {
+                                        d9 = d9 - 1;
+                                        if d9 == 0 { TI = TI + 1; done9 = 1; break; }
+                                    }
+                                }
+                                TI = TI + 1;
+                            }
+                            if done9 == 0 { ok = 0; }
+                        } else {
+                            if is_op(".") == 1 {
+                                TI = TI + 1;
+                                if cur_k() == 1 { TI = TI + 1; } else { ok = 0; }
+                            } else {
+                                break;
+                            }
+                        }
+                    }
+                }
+                if ok == 1 && is_op("=") == 1 { r = 1; }
+            }
+            if r == 0 {
+                if is_op("+=") == 1 { r = 1; }
+                if is_op("-=") == 1 { r = 1; }
+                if is_op("*=") == 1 { r = 1; }
+                if is_op("/=") == 1 { r = 1; }
+                if is_op("%=") == 1 { r = 1; }
+                if is_op("&=") == 1 { r = 1; }
+                if is_op("|=") == 1 { r = 1; }
+                if is_op("^=") == 1 { r = 1; }
+                if is_op("<<=") == 1 { r = 1; }
+                if is_op(">>=") == 1 { r = 1; }
+            }
         }
     }
     TI = save;
     return r;
+}
+
+# v1.1208: multi-assign 目标/值收集发射
+var MAID: i64 = 0;
+fn emit_multi_assign() -> i64 {
+    # 目标 token 段收集
+    let tgst: [8] i64 = 0;
+    let tgen: [8] i64 = 0;
+    let rhst: [8] i64 = 0;
+    let rhen: [8] i64 = 0;
+    let ntg: i64 = 0;
+    tgst[ntg] = TI;
+    while ntg < 8 {
+        # 跳过目标（ident [..] .f …）
+        TI = TI + 1;
+        while 1 {
+            if is_op("[") == 1 {
+                let d: i64 = 0;
+                while TI < NT {
+                    if is_op("[") == 1 { d = d + 1; }
+                    if is_op("]") == 1 { d = d - 1; TI = TI + 1; if d == 0 { break; } }
+                    else { TI = TI + 1; }
+                }
+            } else {
+                if is_op(".") == 1 { TI = TI + 1; TI = TI + 1; }
+                else { break; }
+            }
+        }
+        if is_op(",") == 1 { TI = TI + 1; if ntg < 7 { ntg = ntg + 1; tgst[ntg] = TI; } }
+        else { break; }
+    }
+    # 单目标：回退传统单赋值路径（含 += 等）
+    if ntg == 0 {
+        TI = tgst[0];
+        # v1.1193: 数组整体赋值 q = p; → memcpy（v1.1208 从 emit_stmt 移入）
+        if cur_k() == 1 && arr_find(cur_s()) >= 0 && TK[TI + 1] == 5 && streq(&POOL + TS[TI + 1], "=") == 1 && TK[TI + 2] == 1 && arr_find(&POOL + TS[TI + 2]) >= 0 && TK[TI + 3] == 5 && streq(&POOL + TS[TI + 3], ";") == 1 {
+            let ln3: i64 = cur_s();
+            TI = TI + 2;
+            outs("memcpy(");
+            outs(ln3);
+            outs(", ");
+            outs(&POOL + TS[TI]);
+            outs(", sizeof(");
+            outs(ln3);
+            outs("))");
+            TI = TI + 1;
+            expect_op(";");
+            semi();
+            return 0;
+        }
+        TI = tgst[0];
+        emit_lvalue();
+        let t: i64 = cur_s();
+        TI = TI + 1;
+        if TGT == T_PY {
+            if streq(t, "/=") == 1 { outs(" //= "); } else { outs(" "); outs(t); outs(" "); }
+        } else {
+            outs(" ");
+            outs(t);
+            outs(" ");
+        }
+        emit_expr();
+        expect_op(";");
+        semi();
+        return 0;
+    }
+    expect_op("=");
+    # RHS 逐段收集（逗号深度 0 分割；重放 emit_expr 到逗号/';'）
+    let nrhs: i64 = 0;
+    let cur0: i64 = TI;
+    while 1 {
+        rhst[nrhs] = TI;
+        # 跳到深度 0 的 ',' 或 ';'
+        let dep: i64 = 0;
+        while TI < NT {
+            if TK[TI] == 5 {
+                let s8: i64 = &POOL + TS[TI];
+                if streq(s8, "(") == 1 || streq(s8, "[") == 1 { dep = dep + 1; }
+                if streq(s8, ")") == 1 || streq(s8, "]") == 1 { dep = dep - 1; }
+                if dep == 0 && (streq(s8, ",") == 1 || streq(s8, ";") == 1) { break; }
+            }
+            TI = TI + 1;
+        }
+        rhen[nrhs] = TI;
+        nrhs = nrhs + 1;
+        if is_op(",") == 1 { TI = TI + 1; if nrhs >= 8 { err("multi-assign too many targets"); } }
+        else { break; }
+    }
+    expect_op(";");
+    if ntg + 1 != nrhs { err("multi-assign count mismatch"); }
+    # 1) 先求值全部 RHS 存临时
+    let base: i64 = MAID;
+    MAID = MAID + 1;
+    let k: i64 = 0;
+    while k < nrhs {
+        outs("long long __ma");
+        {
+            let nmb8: [24] byte = 0;
+            utoa(base, &nmb8, 10);
+            outs(&nmb8);
+            outs("_");
+            utoa(k, &nmb8, 10);
+            outs(&nmb8);
+        }
+        outs(" = ");
+        let sv: i64 = TI;
+        TI = rhst[k];
+        emit_expr();
+        TI = sv;
+        outs(";");
+        nl();
+        k = k + 1;
+    }
+    # 2) 再逐目标赋值（重放目标段 emit_lvalue）
+    k = 0;
+    while k <= ntg {
+        let sv2: i64 = TI;
+        TI = tgst[k];
+        emit_lvalue();
+        TI = sv2;
+        outs(" = __ma");
+        {
+            let nmb8b: [24] byte = 0;
+            utoa(base, &nmb8b, 10);
+            outs(&nmb8b);
+            outs("_");
+            utoa(k, &nmb8b, 10);
+            outs(&nmb8b);
+        }
+        outs(";");
+        nl();
+        k = k + 1;
+    }
+    semi();
+    return 0;
 }
 
 fn emit_lvalue() -> i64 {
@@ -3204,6 +3374,9 @@ fn arr_find(nm: i64) -> i64 {
 fn emit_stmt() -> i64 {
     if try_incdec() == 1 { return 0; }
     if is_assign_start() == 1 {
+        # v1.1208: multi-assign（目标列表含 ','）；单目标在 emit_multi_assign 内回退
+        emit_multi_assign();
+        return 0;
         # v1.1193: 数组整体赋值 q = p; → memcpy(q, p, sizeof(q))
         let sv3: i64 = TI;
         let ln3: i64 = cur_s();

@@ -11412,3 +11412,10 @@ mo2x uic component DSL 展开 + 版本号规范：
 - 错误传播 `?` postfix: let 推断/显式类型/语句位置; lexer 修复 '?' token (325、91)
 - 取址+as 交互修复 (360)
 - 门禁 514/0; 批测 GENFAIL 103→98、mismatch 5→3
+
+## v1.1208.0
+
+- multi-assign `a, b = b, a;`：目标/值逗号列表，RHS 先求值存临时再逐目标赋值 (311)
+- multi-subscript `m[i], m[j] = ...` (312/313)、multi-field `p.x, a = ...` (314)
+- 数组整体赋值 memcpy 特例从 emit_stmt 移入 multi 路径（260 回归修复）
+- 门禁 514/0; 批测 GENFAIL 98→94、mismatch 3（全已知）
