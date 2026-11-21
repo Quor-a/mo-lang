@@ -166,13 +166,13 @@ var POOL: [1048576] byte = 0;
 # v1.1193: 稳定字符串池 —— 各名字表存的名字一律拷贝到此。
 # POOL 每个文件重新 tokenize 时 PP=0 整体重写，表里的裸指针会悬空，
 # 之后 streq 撞上重写后的无关内容（126_fmath 里 fm_trunc 撞进 PTRV 的根因）。
-var STP: [16384] byte = 0;
+var STP: [1048576] byte = 0;
 var NSTP: i64 = 0;
 fn stp_copy(s: i64) -> i64 {
     let p: i64 = &STP + NSTP;
     let q: i64 = 0;
     while load8(s + q) != 0 {
-        if NSTP + q >= 16380 { break; }
+        if NSTP + q >= 1048570 { break; }
         store8(p + q, load8(s + q));
         q = q + 1;
     }
@@ -1962,6 +1962,8 @@ fn try_streq() -> i64 {
     if iseq == 1 { outs(" == 0"); } else { outs(" != 0"); }
     return 1;
 }
+
+
 fn emit_expr() -> i64 {
     if try_streq() == 1 { return 0; }
     if try_strcmp() == 1 { return 0; }
@@ -2115,6 +2117,17 @@ fn peek_op(s: i64) -> i64 {
     return 0;
 }
 fn emit_prec(minp: i64) -> i64 {
+    let mdone: i64 = 0;
+    # v1.1205: match 表达式（语句位置外任意位置）—— 发左值后继续 prec 循环（支持 match ... + 1）
+    if is_kw("match") == 1 {
+        # v1.1205: 关键字门控——后继须是主体起点（数字/字符串/标识符/'('），排除 uic.mo 等把 match 用作形参名/数组名
+        let nk: i64 = TK[TI + 1];
+        let ismx: i64 = 0;
+        if nk == 2 || nk == 3 { ismx = 1; }
+        if nk == 1 { ismx = 1; }
+        if nk == 5 && TK[TI + 1] >= 0 && load8(&POOL + TS[TI + 1]) == 40 { ismx = 1; }   # '('
+        if ismx == 1 { emit_match(1); mdone = 1; }
+    }
     # v1.1199: struct 字面量 P { x: 7; y: 2+3; } → C 复合字面量（指定初始化器）。
     # 必须在 emit_unary 前识别（IDENT '{' 模式）。
     let is_c3: i64 = is_c_like();
@@ -2285,7 +2298,7 @@ fn emit_prec(minp: i64) -> i64 {
             }
         }
     }
-    emit_unary();
+    if mdone == 0 { emit_unary(); }
     while 1 {
         let p: i64 = binprec();
         # v1.1199: 三元 cond ? a : b（C 原生；右结合=右侧走完整 emit_prec(1)）
@@ -3041,6 +3054,7 @@ fn emit_stmt() -> i64 {
         semi();
         return 0;
     }
+
     if accept_kw("return") == 1 {
         if is_op(";") == 1 {
             TI = TI + 1;
@@ -3050,6 +3064,7 @@ fn emit_stmt() -> i64 {
         }
         outs("return ");
         # v1.1199: struct 返回类型（值语义）—— 形参是指针槽，解引用一层；局部变量是值，原样
+    if cur_k() == 1 && streq(cur_s(), "let") == 1 { err("probe: q0"); }
         if is_c_like() == 1 && CURRTK == 4 {
             if cur_k() == 1 && ptr_find(cur_s()) == 1 {
                 outs("(*");
@@ -3105,6 +3120,7 @@ fn emit_stmt() -> i64 {
         else {
             if TK[TI] == 1 && strv_find(&POOL + TS[TI]) == 1 { swstr = 1; }
         }
+
         if swstr == 1 { outs("{ unsigned char* switch__val = ("); }
         else { outs("{ long long switch__val = ("); }
         emit_expr();
@@ -3238,6 +3254,7 @@ fn emit_stmt() -> i64 {
                     while nx < nlab {
                         let nb0: i64 = 0;
                         let nbe: i64 = 0;
+
                         if ltyp[nx] == 2 { nb0 = lc1[nx]; } else { nb0 = lc1[nx] + 1; }
                         if nx + 1 < nlab { nbe = lb0[nx + 1]; } else { nbe = end; }
                         let nf: i64 = 0;   # 该组末尾是否有 fallthrough
@@ -3417,50 +3434,32 @@ fn emit_stmt() -> i64 {
         blk_close();
         return 0;
     }
-    if accept_kw("match") == 1 {
-        # v1.1203: match 语句（280_match）—— match expr { pat => {stmts} ... _ => {stmts} }
-        # 模式：数字字面量 / const·enum 名（求值折叠）/ _ default。C：if/else if 链。
-        outs("{ long long __mv = (");
-        emit_expr();
-        outs("); ");
-        expect_op("{");
-        let mfirst: i64 = 1;
-        while is_op("}") == 0 {
-            if cur_k() == 1 && streq(cur_s(), "_") == 1 {
-                TI = TI + 1;
-                if mfirst == 0 { outs(" else "); }
-                expect_op("=>");
-                if TGT != T_PY { outs("{"); }
-                expect_op("{");
-                emit_stmts();
-                if TGT != T_PY { outs("}"); }
-                mfirst = 2;   # default 后不再有分支
-                if is_op(",") == 1 { TI = TI + 1; }
-                continue;
-            }
-            if mfirst == 0 { outs(" else "); }
-            outs("if (__mv == ");
-            # 模式值：数字 / 名（const·enum 求值）
-            if cur_k() == 2 { outs(cur_s()); TI = TI + 1; }
-            else {
-                if cur_k() == 1 {
-                    let pv: i64 = cns_expr();
-                    outi(pv);
-                } else { return err("match: bad pattern"); }
-            }
-            outs(") ");
-            expect_op("=>");
-            outs("{");
-            expect_op("{");
-            emit_stmts();
-            outs("}");
-            mfirst = 0;
-            if is_op(",") == 1 { TI = TI + 1; }
+    if is_kw("match") == 1 {
+        # v1.1205: match 语句统一走 emit_match(0)（数字/const/字符串模式 + 守卫 if + 语句/值臂）
+        return emit_match(0);
+    }
+
+    if is_kw("let") == 1 {
+        let okc: i64 = 0;
+        if TK[TI + 2] == 5 && streq(&POOL + TS[TI + 2], "=") == 1 {
+            let rk: i64 = TK[TI + 3];
+            if rk == 2 || rk == 3 { okc = 1; }
+            if rk == 1 && cf_find_fn(&POOL + TS[TI + 3]) < 0 { okc = 1; }
         }
-        expect_op("}");
-        outs(" }");
+        if okc == 1 {
+        # v1.1205: let 推断 let a = expr;（265）—— 无 ':' 类型。TI 在 let，TI+1=NAME，TI+2='='
+        let nm: i64 = stp_copy(&POOL + TS[TI + 1]);
+        TI = TI + 3;   # 吃 let、NAME、'='——TI 到 RHS（nm 取 TI+1 的名字）
+        ptrv_add(nm);   # fn 值调用 f(args) 走 fnptr cast（265 f=add; f(1,x)）
+        outs("long long ");
+        outs(nm);
+        outs(" = (");
+        emit_expr();
+        outs(")");
+        expect_op(";");
         semi();
         return 0;
+        }
     }
     if accept_kw("let") == 1 {
         # v1.1202: 数组解构 let [x, y, z] = arr;（255_destructure）
@@ -3660,7 +3659,29 @@ fn emit_block_body() -> i64 {
 # 局部：let name: T [= expr];
 fn emit_local() -> i64 {
     let nm: i64 = ident();
+    # v1.1205: 无 ':' 类型（let a = expr;）→ 按 long long 推断（265/270 简单形态）
+    if is_op(":") == 0 {
+        expect_op("=");
+        if is_c_like() == 1 {
+            outs("long long ");
+            outs(nm);
+            outs(" = (");
+            emit_expr();
+            outs(")");
+        } else {
+            outs("long long ");
+            outs(nm);
+            outs(" = (");
+            emit_expr();
+            outs(")");
+        }
+        expect_op(";");
+        semi();
+        return 0;
+    }
     expect_op(":");
+    let PTY: i64 = 0;
+    if cur_k() == 1 && streq(cur_s(), "ptr") == 1 { PTY = 1; }
     if is_c_like() == 1 {
         let isarr: i64 = 0;
         if is_op("[") == 1 { isarr = 1; }
@@ -3716,6 +3737,7 @@ fn emit_local() -> i64 {
             return 0;
         }
         emit_scalar_or_arr(nm, isarr);
+        if isarr == 0 && PTY == 0 && LASTTY != 0 && is_struct_ty(LASTTY) == 1 { clsv_add(nm, LASTTY); }   # v1.1205-fix: 值语义 struct 才登记（ptr 声明不登记）
         if accept_op("=") == 1 {
             if isarr == 1 {
                 # v1.1196: 记录最外维（OOB 运行时检查用）
@@ -7739,5 +7761,228 @@ fn g_global() -> i64 {
     if accept_op("=") == 1 { outs(" = "); emit_expr(); }
     nl();
     expect_op(";");
+    return 0;
+}
+
+# v1.1205: 臂首 token 是否语句关键字（语句形态臂）还是值表达式（match 表达式臂）
+fn arm_is_stmt() -> i64 {
+    if cur_k() != 1 { return 0; }
+    if streq(cur_s(), "return") == 1 { return 1; }
+    if streq(cur_s(), "let") == 1 { return 1; }
+    if streq(cur_s(), "const") == 1 { return 1; }
+    if streq(cur_s(), "if") == 1 { return 1; }
+    if streq(cur_s(), "while") == 1 { return 1; }
+    if streq(cur_s(), "for") == 1 { return 1; }
+    if streq(cur_s(), "match") == 1 { return 1; }
+    return 0;
+}
+
+var MPB: [4096] byte = 0;   # v1.1205: match 模式路径缓冲
+var MLPT: i64 = 0;           # 当前路径长度（NUL 位置）
+var MBN: [64] i64 = 0;      # 绑定名表（match 模式绑定，臂内可见）
+var NMBN: i64 = 0;
+# v1.1205: 统一 match 发射（isexpr=1 值形态 statement-expression；0 语句形态）
+# 调用时 TI 停在 "match" 上（本函数 TI+1 吃掉它）。
+
+fn mbn_add(nm: i64) -> i64 {
+    let i: i64 = 0;
+    while i < NMBN {
+        if streq(MBN[i], nm) == 1 { return 0; }
+        i = i + 1;
+    }
+    if NMBN < 64 { MBN[NMBN] = stp_copy(nm); NMBN = NMBN + 1; }
+    return 0;
+}
+fn mp_init() -> i64 {
+    store8(&MPB + 0, 95);   # _
+    store8(&MPB + 1, 95);   # _
+    store8(&MPB + 2, 109);  # m
+    store8(&MPB + 3, 118);  # v
+    store8(&MPB + 4, 0);
+    MLPT = 4;
+    return 0;
+}
+fn mp_push(f: i64) -> i64 {
+    # 追加 '.' + 字段名，返回旧 MLPT（供弹出恢复）
+    let old: i64 = MLPT;
+    let q: i64 = old;
+    store8(&MPB + q, 46);   # '.'
+    q = q + 1;
+    let w: i64 = 0;
+    while load8(f + w) != 0 {
+        store8(&MPB + q + w, load8(f + w));
+        w = w + 1;
+    }
+    store8(&MPB + q + w, 0);
+    MLPT = q + w;
+    return old;
+}
+fn mp_pop(o: i64) -> i64 {
+    store8(&MPB + o, 0);
+    MLPT = o;
+    return 0;
+}
+fn emit_mpat_leaf() -> i64 {
+    # v1.1205: 模式字段叶子 —— 路径前缀由调用方顺序 outs（无指针拼接，规避 native 拼接异常）
+    # 当前 token = 字段值（数字 / 绑定名 / 嵌套 struct 模式）
+    if cur_k() == 1 && st_find(cur_s()) >= 0 && peek_op("{") == 1 {
+        TI = TI + 2;   # 吃 Name '{'
+        while is_op("}") == 0 {
+            if is_op(";") == 1 { TI = TI + 1; continue; }
+            let oldp: i64 = mp_push(&POOL + TS[TI]);   # 路径追加 .字段
+            TI = TI + 2;   # 吃 字段名 与 ':'
+            emit_mpat_leaf();
+            mp_pop(oldp);
+            if is_op(";") == 1 || is_op(",") == 1 { TI = TI + 1; }
+            if is_op("}") == 0 { outs(" && "); }
+        }
+        expect_op("}");
+        return 0;
+    }
+    if cur_k() == 2 {
+        outs(&MPB);
+        outs(" == (");
+        outs(cur_s());
+        outs(")");
+        TI = TI + 1;
+        return 0;
+    }
+    if cur_k() == 1 {
+        # 绑定：v 声明提升到 match 块头（臂内可见）——条件处只赋值
+        mbn_add(&POOL + TS[TI]);
+        outs("(({ ");
+        outs(&POOL + TS[TI]);
+        outs(" = ");
+        outs(&MPB);
+        outs("; 1; }))");
+        TI = TI + 1;
+        return 0;
+    }
+    return err("match: 不支持的字段模式值");
+}
+fn emit_match(isexpr: i64) -> i64 {
+    NMBN = 0;
+    TI = TI + 1;
+    if isexpr == 1 { outs("({ "); }
+    else { outs("{ "); }
+    # v1.1205: struct 主体 → struct X_t __mv = (expr);（模式访问字段）；标量主体 → long long
+    let msv: i64 = 0;
+    if cur_k() == 1 && clsv_find(cur_s()) != 0 {
+        msv = 1;
+        outs("struct ");
+        outs(clsv_find(cur_s()));
+        outs("_t __mv = (");
+        # struct 指针形参（FSGK tk=5）→ 解引用
+        if ptr_find(cur_s()) == 1 { outs("*"); }
+        emit_expr();
+        outs("); long long __mr = 0; long long __mf = 0;");
+    } else {
+        outs("long long __mv = (long long)(");
+        emit_expr();
+        outs("); long long __mr = 0; long long __mf = 0;");
+    }
+    nl();
+    expect_op("{");
+    # v1.1205: 预扫模式绑定名（`字段: 名` 且非 struct 名/非 _）→ 臂内可见声明
+    NMBN = 0;
+    {
+        let svb: i64 = TI;
+        let depb: i64 = 1;
+        while depb > 0 && TI < NT {
+            if TK[TI] == 5 {
+                let sb: i64 = &POOL + TS[TI];
+                if streq(sb, "{") == 1 { depb = depb + 1; }
+                if streq(sb, "}") == 1 { depb = depb - 1; }
+                if streq(sb, ":") == 1 && TK[TI + 1] == 1 {
+                    let nb: i64 = &POOL + TS[TI + 1];
+                    if streq(nb, "_") == 0 && st_find(nb) < 0 { mbn_add(nb); }
+                }
+            }
+            TI = TI + 1;
+        }
+        TI = svb;
+    }
+    mp_init();
+    # v1.1205: 模式绑定声明（臂内可见）—— 预扫后
+    {
+        let bi: i64 = 0;
+        while bi < NMBN {
+            outs(" long long ");
+            outs(MBN[bi]);
+            outs(" = 0;");
+            bi = bi + 1;
+        }
+    }
+    # v1.1205: strex 判定在 '{' 之后（看第一个模式是否字符串字面量）
+    let strex: i64 = 0;
+    if cur_k() == 3 { strex = 1; }
+    let mfirst: i64 = 1;
+    while is_op("}") == 0 {
+        let isdef: i64 = 0;
+        if cur_k() == 1 && streq(cur_s(), "_") == 1 { isdef = 1; TI = TI + 1; }
+        if mfirst == 0 { outs(" else "); }
+        if isdef == 0 {
+            outs("if (");
+            # v1.1205: struct 模式 P { x: 5; y: 2; } → __mv.x==5 && __mv.y==2（仅列出字段；支持嵌套+绑定）
+            if cur_k() == 1 && st_find(cur_s()) >= 0 && peek_op("{") == 1 {
+                TI = TI + 2;   # 吃 'P' 与 '{'
+                outs("(");
+                while is_op("}") == 0 {
+                    if is_op(";") == 1 { TI = TI + 1; continue; }
+                    let oldp: i64 = mp_push(&POOL + TS[TI]);   # 路径追加 .字段
+                    TI = TI + 2;   # 吃 字段名 与 ':'
+                    emit_mpat_leaf();
+                    mp_pop(oldp);
+                    if is_op(";") == 1 || is_op(",") == 1 { TI = TI + 1; }
+                    if is_op("}") == 0 { outs(" && "); }
+                }
+                expect_op("}");
+                outs(") && 1");
+            } else {
+            if strex == 1 {
+                outs("mo_swstrcmp((unsigned char*)__mv, \"");
+                outs(cur_s());
+                outs("\") == 0");
+                TI = TI + 1;
+            } else {
+                outs("__mv == ");
+                if cur_k() == 2 { outs(cur_s()); TI = TI + 1; }
+                else { outi(cns_expr()); }
+            }
+            }
+            # 守卫 if cond（281）
+            if accept_kw("if") == 1 {
+                outs(" && (");
+                emit_expr();
+                outs(")");
+            }
+            outs(")");
+        }
+        expect_op("=>");
+        outs(" { __mf = 1;");
+        if is_op("{") == 1 {
+            TI = TI + 1;
+            if isexpr == 1 && arm_is_stmt() == 0 {
+                outs(" __mr = (");
+                emit_expr();
+                outs(");");
+                expect_op("}");
+            } else {
+                emit_stmts();
+            }
+        } else {
+            outs(" __mr = (");
+            emit_expr();
+            outs(");");
+            if is_op("}") == 0 && is_op(",") == 0 { err("match: expected } or , after bare arm"); }
+        }
+        outs(" }");
+        if isdef == 1 { mfirst = 2; }
+        else { mfirst = 0; }
+        if is_op(",") == 1 { TI = TI + 1; }
+    }
+    expect_op("}");
+    if isexpr == 1 { outs(" __mr; })"); }
+    else { outs(" }"); semi(); }
     return 0;
 }

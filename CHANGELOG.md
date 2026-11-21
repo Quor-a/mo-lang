@@ -11371,3 +11371,26 @@ mo2x uic component DSL 展开 + 版本号规范：
 3. 版本号规范统一：CHANGELOG 142 条标题全部 v 前缀（裸 `## 1.` 与 `## 1.x.y.0.0` 异类清除）；docs/VERSIONING.md（vMAJOR.MINOR.PATCH 用户可见、VERSION 文件裸数字机器可读）
 4. moc MO_DUMP：/proc/self/environ 读 MO_DUMP env，component 展开文本 dump 至 /tmp/dump*.txt（黄金参照数据驱动对齐）
 指标：144/145/158/159 与 moc native 字节级一致；c mismatch 25（基线）、GENFAIL 81→77、门禁 514/0、自宿 C 产物字节一致。
+
+## v1.1205.0
+
+### match 表达式族（mo2x C 后端）
+
+- 统一 `emit_match(isexpr)` 发射器：数字/const/enum/字符串模式（strcmp）、守卫 `if (cond)`、裸表达式臂、逗号分隔臂、`_` 默认臂。
+- match 作表达式（let 右值/赋值右值）：GCC statement-expression `({ ... __mr; })`。
+- struct 模式与递归嵌套：`P { x: 5; y: 2; }` → 字段相等链；模式绑定 `P { x: v; }` 臂内可见（绑定预扫 + 声明提升到 match 块头）；模式路径缓冲 MPB（栈式 mp_push/mp_pop）。
+- match 关键字门控：后继须为模式主体起点（数字/字符串/标识符/`(`）——防止把用作形参名的 `match` 误判为关键字（lib/uic.mo 回归修复）。
+- match 语句臂支持语句形态（return/let/if/while/for/嵌套 match）。
+
+### let 类型推断（265）
+
+- `let f = add;` 无 `:` 声明按 RHS 推断；fn 值调用走 fnptr cast（`((long long (*)(...))f)(...)`）。
+- 局部 struct 变量登记（clsv_add）修正：emit_type 之后登记（避免 LASTTY 残留误注册）、ptr 声明不登记（`p != 0` 不再被误作 struct 重载比较折叠为 0）。
+- 恢复 emit_stmt 开头 try_incdec 调用（重写时误删，35_incdec 回归修复）。
+
+### 其它
+
+- STP 池 16384 → 1048576；删除死代码 spcat2。
+- 对齐批测：C 后端零退步；10 项此前 GENFAIL 转绿（280~290 match 族、265 let 推断、293 match_deep）；门禁 514/0。
+
+**全文**: mo-lang v1.1205.0 修复 match 表达式族、struct 模式匹配、let 类型推断与三处回归（clsv 误注册 / try_incdec 丢失 / match 关键字门控）。
