@@ -273,7 +273,7 @@
   （recQ A3 三级一致 md5 e594b662116280b07398bd959ad804fa）。
 - tests 296_subfold（t296=53）。门禁 run780。
 
-## 1.1112.0 - 2026-11-03
+## v1.1112.0 - 2026-11-03
 
 ### Added
 - **const fn（编译期折叠）**：`const fn sq(x: i64) -> i64 { return x * x; }` —— 调用点
@@ -288,13 +288,13 @@
   `return` 被跳过 → rv=0。同类：parse_call 折叠的 sb9 须在 expect(")") 前记录
   （')' 的 K_POS），否则 set_back(sb9) 重读到下一个 token → 假 syntax error。
 
-## 1.1111.0 - 2026-11-03
+## v1.1111.0 - 2026-11-03
 
 ### Fixed
 - **struct 形参 return 按值拷贝**：`fn f(x: T) -> T { return x; }` 此前返回的是调用方对象地址（0x10000070 垃圾值）——根因：形参 `x: T` 是引用语义（ty_ptr(ty_struct)，this 指针惯例），槽内容=调用方地址；parse_return 把槽内容直接当对象基址。修法：形参符号记 O_SP=1（struct 或 ptr(struct) 形参），return 时先 `mov rax,[rax]` 解引用一层再按 rax/rdx 拷贝。
 - t295 入库（1 字段与 2 字段 rax:rdx 均验证）
 
-## 1.1110.0 - 2026-11-03
+## v1.1110.0 - 2026-11-03
 
 ### Added
 - **前向 struct 类型**：函数签名（形参/返回类型/ptr 目标/let 类型）可引用尚未定义的 struct —— 解析处预注册，定义处复用（空字段槽校验，重复定义报错）。递归/互相引用 struct（链表、A<->B）随之成立。
@@ -305,7 +305,7 @@
 - struct 按值传参 + 按值返回组合（1 字段）返回垃圾（0x10000070，疑似引用/值 ABI 混用）—— 前向无关，既有 bug，待查
 - 前向类型下字段访问/字面量构造仍须在定义之后（单遍编译限制）
 
-## 1.1109.0 - 2026-11-03
+## v1.1109.0 - 2026-11-03
 
 ### Added
 - **match 任意深度嵌套 struct 模式**：三层及以上（如 `Q { p: P { q: R { z: a; }; }; }`），语句版+表达式版，含嵌套绑定。
@@ -316,7 +316,7 @@
 - 表达式版嵌套绑定 store 槽 O_SWC+(i*8) → +(i*8+sbk2*8)（t287 SIGSEGV 实证）
 - 两版绑定符号均补臂内深度保护（v1.1105 铁律）
 
-## 1.1108.0 - 2026-11-03
+## v1.1108.0 - 2026-11-03
 
 ### Added
 - **match 语句版守卫绑定**：`match x { y if y > 3 => { ... } _ => { ... } }` - 绑定变量在守卫条件与臂体内可见（值=判别值）。
@@ -330,20 +330,20 @@
 - 🔴 排坑续：绑定符号须记臂内深度（sym_add 前 sv(K_DEPTH,d+1)，add 后还原），
   match 结束 sym_pop_scope(d+1) 回收 —— 否则后续 match 同名绑定报 duplicate。
 
-## 1.1107.0 — 2026-11-03
+## v1.1107.0 — 2026-11-03
 
 ### Added
 - **match 表达式守卫**：`match x { y if y > 3 => y * 10, _ => 0 }` —— 绑定模式（未定义标识符）+ `if` 条件，判别值存 hs 槽供绑定读取；发射段绑定臂无条件进守卫标签，条件失败 je 下一臂/守卫标签/default。
 - **跨 match 残留清零**：每次 match 前清 O_SWG/O_SWVB/SWSTR/O_SWSN（同函数多 match 必需）。
 - 实现备忘：🔴 绑定模式判定 = `sym_lookup<0 && enum_value<0`（const/enum 名 sym_lookup 或 enum 表命中，走 sw_const —— 280 回归实证）；🔴 守卫标签 O_SWGL 分配循环须在发射段之前跑（否则 place(0)）。
 
-## 1.1106.0 — 2026-11-03
+## v1.1106.0 — 2026-11-03
 
 ### Added
 - **match 嵌套 struct 模式**：模式字段值可以是 struct 模式，`Q { p: P { x: 3; }; n: 5; }`（语句版+表达式版），字段 offset 自动下沉（外层 foff + 子 off）；表达式版嵌套子模式里的绑定名 `Q { p: P { y: v; } => v` 建符号 + place 后统一 store。
 - 实现备忘：scan 嵌套分支子字段循环内 cnt 已自增（嵌套分支尾不得重复 ++）；第二遍跳子块用深度计数、break 时停在子 '}'（再统一吃 '}' + 外层 ';'）。
 
-## 1.1105.0
+## v1.1105.0
 - match struct 模式移植到表达式版（parse_match_expr）：发射段（r11 保值 +
   逐字段 cmp 链 + 全绑定臂 emit_jmp）与第二遍臂循环（吃 token + 建绑定
   符号 + place 后 store）全部抄语句版 v1.1103/1104。
@@ -351,7 +351,7 @@
   存在 scratch2（parse_let 记下、parse_expr 后才 sym_add），被覆盖导致
   外层变量 undefined。统一用 scratch3。
 
-## 1.1104.0
+## v1.1104.0
 - match struct 模式支持字段绑定变量：`P { y: v; }` —— 臂内 v = r.y（i64）。
   scan 记绑定名（O_SWSB 区，intern id）；发射在 place_label(臂) 之后统一
   store（数据驱动重放）；符号在第二遍臂循环时建（sym_add，CUROFF 递减）。
@@ -359,7 +359,7 @@
   的残留标志撞运气，必须 emit_jmp 无条件进臂。
 - 🔴 排坑②：绑定 store 必须发在 place_label(臂标签) 之后，否则被跳转跳过。
 
-## 1.1103.0
+## v1.1103.0
 - match struct 模式：`match r { P { x: 1; } => …, _ => … }`（语句版）。
   字段名: 编译期常量（分号分隔），部分字段可省略；全部匹配才进臂。
   实现：O_SWSM/O_SWSN 区、mt_scan struct 分支（st_field 查 offset）、
@@ -369,7 +369,7 @@
 - 🔴 排坑：st_field(si, fname) 第二参是**字符串缓冲地址**（scratch1/3），
   不是 intern id —— 传 intern id 直接 SIGSEGV（探针实证）。
 
-## 1.1102.0
+## v1.1102.0
 - match 表达式支持字符串模式（语句版 v1.1099 逻辑移植 parse_match_expr：
   SWSTR 标记 + g_str_eq 比较链 + r11 判别串保值）。
 - 🔴 存量 bug 修复：mt_scan 数字/enum/const 模式分支不写 SWSTR[n]=0 ——
@@ -379,7 +379,7 @@
   parse_expr（primary 集成）——旧特判遇 `match …} * 2` 后缀运算符报
   syntax error（探针 pt8/pt4 实证）。
 
-## 1.1101.0
+## v1.1101.0
 - match 表达式任意位置内嵌：`return f() + match c { ... };` 等（parse_primary 集成，
   借栈顶临时槽，结束后还原 CUROFF；'match' 已声明为变量名时兼容 tests/294）。
 - 🔴 存量 bug 修复：推断 let（`let a = 5;`）与 typed let（`let b: i64 = 6;`）混用时
@@ -388,66 +388,66 @@
 - 表达式臂语法确认：多模式臂之间必须逗号分隔（`1 => 11, 2 => 22,`）；
   语句版 match 不受影响。mt_scan/parse_match_expr 臂间逗号 accept 兼容。
 
-## 1.1100.0
+## v1.1100.0
 - match 表达式：`let r = match c { PAT => EXPR, ... };` 与 `r = match ...;`。
   臂值为裸表达式（逗号分隔）或 `{ expr }` 单表达式块；结果写入变量槽。
   表达式任意位置内嵌 match（如 return f() + match）暂不支持。
-## 1.1099.0
+## v1.1099.0
 - match 增强：字符串模式（`"abc" =>`，判别式为 str，全部臂须为字符串，g_str_eq
   比较链）与守卫（`PAT if cond =>`，模式匹配后再验 cond，失败尝试下一臂）。
   带守卫的臂豁免 duplicate 检查（同值不同守卫合法）。
-## 1.1098.0
+## v1.1098.0
 - match 表达式：`match e { PAT => { ... } _ => { ... } }`。模式支持数字、
   const 名、裸 enum 成员（含 +/-/* 算术后缀）；`_` 为 default（建议放最后）。
   比较链发射（无跳转表），每臂隐式 break、无穿透；臂内 return/break/continue
   按 switch 同款循环栈语义。`=>` 为新增双字符 token。
-## 1.1097.0
+## v1.1097.0
 - 数组字面量非常量元素：局部/全局数组 `[expr, ...]` 的元素可为运行期表达式
   （变量、算术、`-` 前缀、enum 成员及其算术后缀），逐元素求值直接写入目标槽，
   与常量元素可混用。byte 数组逐字节步进。
-## 1.1096.0
+## v1.1096.0
 - 解除局部数组返回硬错（v1.1089）：`return a;`（a 为局部数组）现将内容拷入
   数据段隐藏缓冲（8KB 上限）后返回缓冲地址。两次此类调用之间上一次结果被覆盖。
-## 1.1095.0
+## v1.1095.0
 - range for：`for i in A..B { BODY }`（A<B 时遍历 A..B-1），端点支持数字、const 名、
   裸 enum 成员；`continue`/`break` 正常。词法新增 `..` 双字符 token。
-## 1.1094.0
+## v1.1094.0
 - struct 字段支持指针类型（含自引用链表：`struct Node { v: i64; next: ptr Node; }`）。
 - 链式指针字段访问修复：`p.next.v`、`a.next.next.v`（中间 ptr 段自动解引用）。
 - try_parse_type 支持嵌套数组类型 `[[N] T]`；删除 enum 类型分支残留调试输出。
-## 1.1093.0
+## v1.1093.0
 - 编译器自举性能：21.8s → 0.13s（约 170 倍）。根因是 set_pos 探测回滚把 K_CPOS 清零，
   之后每次 next_token 的 advance_lc 都从 0 重扫源码（O(n²)）。新增 set_back 回滚
   （只回滚 K_POS，行号游标不动）；另将 emit4/emit8 改为直接写字节。
-## 1.1092.0
+## v1.1092.0
 - switch case 常量折叠扩展乘除：`case GREEN * 3:`、`case 1 * 2 + 1:`。
 
-## 1.1091.0
+## v1.1091.0
 - 全局 struct 字面量初始化：`var G: P = P { x: 1; y: 2; };`（编译期常量入数据段）。
 
-## 1.1090.0
+## v1.1090.0
 - 变量行 for-in：`for v in row`（row 为外层 for-in 的行指针，上界自动取行长度）。
 
-## 1.1089.0
+## v1.1089.0
 - 解构 RHS 函数调用：`let [x, y, z] = mk();`（数组返回地址经隐藏槽）。
 - 局部数组返回改为硬错（悬垂帧），须返回全局/静态数组。
 
-## 1.1088.0
+## v1.1088.0
 - 修复推断 let + struct：返回值（rax/rdx）落槽 vs 地址块拷（R_SADDR 区分），此前段错。
 
-## 1.1087.0
+## v1.1087.0
 - 数组形参：`fn sum(a: [3] i64)`（一维，按 ptr(元素) 语义传入）。
 
-## 1.1086.0
+## v1.1086.0
 - for-in 行索引：`for v in m[1]` 遍历二维数组第 i 行（常量索引）。
 
-## 1.1085.0
+## v1.1085.0
 - 修复二维 for-in：行 stride 非 2 次幂（[3] i64=24）时元素寻址错位（shl→imul）。
 
-## 1.1084.0
+## v1.1084.0
 - 顶层 let：`let g: [N] T = [...];` 与 var 等价，数组/struct 初始化全支持。
 
-## 1.1083.0
+## v1.1083.0
 - 无类型推断 let：`let f = add;` 省略类型标注，从右值推断；裸函数名作表达式值。
 
 ## [1.1082.0]
@@ -7189,7 +7189,7 @@ n 翻倍、加速比翻倍 = O(n) 对 O(n²) 的特征。只测一个 n 看不�
 CHIRP/HASH 不可分离退回 O(n²)；只做矩阵-向量乘，未做 batch 前向的
 矩阵-矩阵乘；代价模型是乘加次数而非真实时钟。
 
-## 1.89.0 —— W2C 训练后管线：权重 → 代码 → 只微调振幅
+## v1.89.0 —— W2C 训练后管线：权重 → 代码 → 只微调振幅
 
 **新增**
 - `examples/w2cpipe.mo`：训完 → 反编译 → 只存 K 个振幅 → 重展开推理 → 测端到端精度
@@ -9995,7 +9995,7 @@ socket/bind/listen/accept/send/recv 全是系统调用，不需要链接任何�
 - 标准库不做边界检查（`strcpy` / `strcat` 不检查目标容量，`atoi` 不检查溢出）
 - 数组访问不做越界检查
 
-## 1.47.0 — bool 与 enum
+## v1.47.0 — bool 与 enum
 
 - 新增 `bool` 类型（i64 的具名别名）：`true` / `false` 字面量、`let x: bool`、
   函数参数与返回类型
@@ -10004,7 +10004,7 @@ socket/bind/listen/accept/send/recv 全是系统调用，不需要链接任何�
 - 🔴 查明：比较结果的类型不能改成 bool（`R_ETY` 参与代码生成决策）
 - 已知：裸字面量 `&&` / `||` 是既有缺陷，未修
 
-## 1.48.0 — arena 与 leak
+## v1.48.0 — arena 与 leak
 
 - 新增 `lib/arena.mo`：区域分配器（Arena_init / alloc / reset / free / str）
 - 新增 `lib/leak.mo`：分配追踪与泄漏报告（lmalloc / lfree / leak_report / leak_clear）
@@ -10015,7 +10015,7 @@ socket/bind/listen/accept/send/recv 全是系统调用，不需要链接任何�
   导致单次 malloc 超过 65520 字节时返回越界指针（段错误）
 - 新增文档 `docs/memory.md`
 
-## 1.49.0 — LSP 语言服务器
+## v1.49.0 — LSP 语言服务器
 
 - 新增 `tools/mols.py`：Language Server，JSON-RPC over stdio，纯标准库
   - **诊断**：调用真 moc 编译，报错内联到编辑器（最有价值的一项）
@@ -10037,7 +10037,7 @@ socket/bind/listen/accept/send/recv 全是系统调用，不需要链接任何�
 - 另外发现：enum/struct 的成员写在**同一行**时索引不到（从 ln+1 开始扫），
   已改为从声明行本身开始扫。
 
-## 1.50.0 — 调试信息：变量位置（DW_AT_location）
+## v1.50.0 — 调试信息：变量位置（DW_AT_location）
 
 - `-g` 现在生成局部变量与全局变量的 DWARF DIE：
   - `DW_TAG_subprogram`（low_pc / high_pc / frame_base / decl_line）
@@ -10051,7 +10051,7 @@ socket/bind/listen/accept/send/recv 全是系统调用，不需要链接任何�
 - DBG 缓冲区 4MB → 8MB（新增 O_DF 函数表、O_DV 变量表）
 - 新增文档 `docs/debug_info.md`
 
-## 1.51.0 — .debug_frame（CFI，栈回溯）
+## v1.51.0 — .debug_frame（CFI，栈回溯）
 
 - `-g` 现在生成 `.debug_frame`：一个 CIE + 每个函数一条 FDE
   - CFA = rsp+8（入口）→ rsp+16（push 后）→ rbp+16（mov 后）
@@ -10066,7 +10066,7 @@ socket/bind/listen/accept/send/recv 全是系统调用，不需要链接任何�
      会把后续字节当表达式长度解析 → corrupt len）
 - 已知限制：中间 return 的尾声处 CFI 未描述（函数体内均正确）
 
-## 1.52.0 — 类型 DIE（struct / array / ptr / f64 / bool）
+## v1.52.0 — 类型 DIE（struct / array / ptr / f64 / bool）
 
 - `-g` 现在生成完整类型信息：
   - base_type：i64 / byte / f64 / bool（此前只有 i64）
@@ -10083,7 +10083,7 @@ socket/bind/listen/accept/send/recv 全是系统调用，不需要链接任何�
   3. DW_AT_count 是 55 不是 53（53 = DW_AT_base_types）
 - 局部结构体变量改为按静态（绝对地址）登记 —— 它落在数据段不在栈上
 
-## 1.54.0 — 函数指针 + 线程/同步
+## v1.54.0 — 函数指针 + 线程/同步
 
 - **函数指针 `&funcname`**：可把墨函数当回调传给 C
   （解除"qsort 用不了"这一已知限制）
@@ -10103,7 +10103,7 @@ socket/bind/listen/accept/send/recv 全是系统调用，不需要链接任何�
 - 新增 tools/threadtest.sh（4 项，含**无锁对照**）
 - 新增 examples/threads.mo、docs/concurrency.md
 
-## 1.55.0 — 被 C 调用（-shared 共享库）
+## v1.55.0 — 被 C 调用（-shared 共享库）
 
 - **新增 `-shared`**：墨语言编译成 .so，C 程序可链接并调用
   - 本文件定义的函数全部导出；`main` 不导出（避免与 C 的 main 冲突）
@@ -10119,7 +10119,7 @@ socket/bind/listen/accept/send/recv 全是系统调用，不需要链接任何�
 - 新增 tools/shtest.sh（6 项）、docs/shared_lib.md
 - 注意：测试里四个调用不能写进同一个 printf（C 实参求值顺序未定义）
 
-## 1.56.0 — 错误处理：`?` 传播
+## v1.56.0 — 错误处理：`?` 传播
 
 - **`f()?`**：返回值 < 0 就带着它立即返回（错误传播）
   - 展开为 `cmp rax,0; jl L_err`，函数末尾放 `L_err:` + 标准尾声
@@ -10131,7 +10131,7 @@ socket/bind/listen/accept/send/recv 全是系统调用，不需要链接任何�
 - 新增 tests/91_errprop.mo（7 条断言，含 4 条**错误路径**）
 - 新增 docs/error_handling.md
 
-## 1.57.0 — 数组字面量 + byte 数组字符串初始化
+## v1.57.0 — 数组字面量 + byte 数组字符串初始化
 
 - **`[1, 2, 3]` 数组字面量**：全局与局部数组均可用，支持负数，不足补 0
 - **byte 数组可用字符串初始化**：`let s: [8] byte = "abc";`
@@ -10141,7 +10141,7 @@ socket/bind/listen/accept/send/recv 全是系统调用，不需要链接任何�
   2. 列表分支下多走一次 `next_token` → 跳过分号，报错指向**下一行**
 - 新增 tests/92_arraylit.mo（15 条断言）、docs/array_literal.md
 
-## 1.58.0 — 包管理器完善（版本约束 + 依赖树 + 锁校验）
+## v1.58.0 — 包管理器完善（版本约束 + 依赖树 + 锁校验）
 
 - **mo.toml 真正的 TOML 子集解析**（原先只 grep `git = "..."`）
 - **版本约束**：`^1.2.3` / `~1.2.3` / `>=` / `=` / `*`，install/fetch 时校验
@@ -10156,7 +10156,7 @@ socket/bind/listen/accept/send/recv 全是系统调用，不需要链接任何�
   4. verify 必须比对依赖**闭包**，否则每个正常项目都误报
 - 新增 tools/pkgtest.sh（13 项，用本地 git 仓库真跑）、docs/package_manager.md
 
-## 1.59.0 — prof.mo 性能分析库（手工插桩）；-p 自动插桩已知不可用
+## v1.59.0 — prof.mo 性能分析库（手工插桩）；-p 自动插桩已知不可用
 
 - **lib/prof.mo**：确定性（插桩式）分析器。自身耗时 = 累计 − 子调用之和
   - 计时用 clock_gettime 系统调用（228），不依赖 libc
@@ -10171,7 +10171,7 @@ socket/bind/listen/accept/send/recv 全是系统调用，不需要链接任何�
   全局数组声明必须带初值；`str_eq` 不存在（用 strcmp）
 - 新增 docs/profiler.md
 
-## 1.59.1 — -p 自动插桩修复（profiler 完整可用）
+## v1.59.1 — -p 自动插桩修复（profiler 完整可用）
 
 - **自动插桩跑通**：`moc prog.mo -p prog.elf`，入口/出口/报告全自动
 - 🔴 **死区 bug 根因定位并修复**：插桩发射在 `let addr` **之前**，
@@ -10186,7 +10186,7 @@ socket/bind/listen/accept/send/recv 全是系统调用，不需要链接任何�
 - 只对主文件插桩（库函数调用太频繁，插上会污染数据并严重拖慢）
 - 新增 tools/proftest.sh（12 项，含"耗时必须 > 0"与自身耗时剥离断言）
 
-## 1.60.0 — 接口（interface）+ 运行时动态分派
+## v1.60.0 — 接口（interface）+ 运行时动态分派
 
 - **`interface` / `impl`**：vtable 由 impl 自动生成，方法调用编译为 `call [vt+idx*8]`
   - 设计：**接口值 = `{ obj; vt }` 两字段结构体** —— 不需要动类型系统，
@@ -10202,7 +10202,7 @@ socket/bind/listen/accept/send/recv 全是系统调用，不需要链接任何�
 - 新增 tests/93_interface.mo、docs/interface.md
 - 测试 135 / 135，自举三级一致
 
-## 1.61.0 — 泛型函数与单态化（generic / instantiate）
+## v1.61.0 — 泛型函数与单态化（generic / instantiate）
 
 - **`generic fn` / `instantiate ... as`**：一份源码生成多份类型特化
   - 不用 IR、不改类型系统：保存函数体源码文本，实例化时按标识符边界替换
@@ -10218,7 +10218,7 @@ socket/bind/listen/accept/send/recv 全是系统调用，不需要链接任何�
 - 新增 tests/94_generic.mo、docs/generics.md
 - 测试 136 / 136，自举三级一致
 
-## 1.62.0 — 嵌套函数与变量捕获（闭包）
+## v1.62.0 — 嵌套函数与变量捕获（闭包）
 
 - 函数体内可定义嵌套函数，捕获并**读写**外层的局部变量与参数
   - 代码就地发射（外层 jmp 跳过），捕获靠静态链 `[rbp]`，支持一层
@@ -10233,7 +10233,7 @@ socket/bind/listen/accept/send/recv 全是系统调用，不需要链接任何�
 - 新增 tests/95_closure.mo、docs/closure.md
 - 测试 137 / 137，自举三级一致
 
-## 1.63.0 — 体积构成实测：寄存器分配的价值重估
+## v1.63.0 — 体积构成实测：寄存器分配的价值重估
 
 - 新增 `tools/codecompose.py`（`make codecompose`）：按指令统计代码段体积构成，
   让"往哪优化"有数据而不是凭直觉
@@ -10248,7 +10248,7 @@ socket/bind/listen/accept/send/recv 全是系统调用，不需要链接任何�
 - peephole 剩余空间仅 0.12%，已榨干
 - 测试 137 / 137，自举三级一致
 
-## 1.64.0 — 性能基线：寄存器分配的收益重估
+## v1.64.0 — 性能基线：寄存器分配的收益重估
 
 - 新增性能基线：`examples/bench.mo` + `tools/benchtest.sh`
   - 5 个 workload（算术/调用/递归/数组/局部量），多次跑取去极值均值
@@ -10264,7 +10264,7 @@ socket/bind/listen/accept/send/recv 全是系统调用，不需要链接任何�
   → 更高性价比的方向是「除以常量 → 乘法倒数」
 - 测试 137 / 137，自举三级一致
 
-## 1.65.0 — 强度削减（除以 2 的幂）+ 修复两个既有自举阻断
+## v1.65.0 — 强度削减（除以 2 的幂）+ 修复两个既有自举阻断
 
 - 性能：**arith -46%**（11981784 → 6354210 ns）
   - `/` 与 `%` 右侧为编译期常量 2^k（1≤k≤31）时，用「偏置 + 算术右移」代替 idiv
@@ -10281,7 +10281,7 @@ socket/bind/listen/accept/send/recv 全是系统调用，不需要链接任何�
 - benchtest.sh：变快不再判为失败，改为提示更新基线
 - 测试 138 / 138，**自举三级一致（本次为真实核实）**
 
-## 1.66.0 — 任意常量除数的魔数（乘法倒数）
+## v1.66.0 — 任意常量除数的魔数（乘法倒数）
 
 - `/` 与 `%` 右侧为任意常量 d（2 ≤ |d| ≤ 2^31-1，非 2 的幂）时，
   用「128 位乘法取高位 + 移位」代替 idiv
@@ -10296,7 +10296,7 @@ socket/bind/listen/accept/send/recv 全是系统调用，不需要链接任何�
 - 新增 tests/97_magicdiv.mo：多除数 + 取模 + 负数除数 + MIN/MAX 穷举对照
 - 测试 139 / 139，**自举三级一致（已核实输出）**
 
-## 1.67.0 — 复合赋值 /= %= 的强度削减
+## v1.67.0 — 复合赋值 /= %= 的强度削减
 
 - `x /= d`、`x %= d` 现在与二元运算一样：2 的幂走 g_div_pow2，
   任意常量走 g_div_magic（此前一律 idiv）
@@ -10306,7 +10306,7 @@ socket/bind/listen/accept/send/recv 全是系统调用，不需要链接任何�
   三条路径逐值对照（−1500..1500 × 12 个除数，含负数除数与 MIN/MAX）
 - 发现：墨语言**没有 C 风格 for 循环**（`for` 只用于 `impl X for Y`）
 
-## 1.68.0 — seed 支持复合赋值（自举覆盖面实打实变宽）
+## v1.68.0 — seed 支持复合赋值（自举覆盖面实打实变宽）
 
 - seed 词法识别 `+= -= *= /= %= &= |= ^=`
   - 🔴 必须放在 `&& || ->` 之后、单字符之前，否则 `&=` 会被 `&&` 抢先
@@ -10320,7 +10320,7 @@ socket/bind/listen/accept/send/recv 全是系统调用，不需要链接任何�
   我却误判成改动破坏了 seed，回退了正确的代码、白查一轮
 - 测试 140 / 140，自举三级一致（已核实输出）
 
-## 1.69.0 — 梯度流审计（社区观念整合：AD 正确性是语义问题）
+## v1.69.0 — 梯度流审计（社区观念整合：AD 正确性是语义问题）
 
 - `lib/autodiff.mo` 新增 `ad_audit()` / `ad_audit_reset()` / `ad_audit_count()`
   - 检查：tape 中的未知算子 / 权重从不进图 / 权重从未收到非零梯度 / 溢出
@@ -10336,7 +10336,7 @@ socket/bind/listen/accept/send/recv 全是系统调用，不需要链接任何�
 - 新增 `CLAUDE.md`：给 AI 助手的速查表（社区实践：小语言靠完整规范
   做上下文来对抗幻觉）
 
-## 1.70.0 — 审计接入已有神经网络示例
+## v1.70.0 — 审计接入已有神经网络示例
 
 - 把 `ad_audit()` 接进 `nnet2` / `cnn_ad` / `cnn_shift` 三个既有示例
 - 新增 `tools/adaudit.sh`（12 项检查全过）
@@ -10351,7 +10351,7 @@ socket/bind/listen/accept/send/recv 全是系统调用，不需要链接任何�
   恒 0 所致），此前无人察觉
 - 已知：问题数 > 0 不判失败，断裂分合理/不合理两类，判定权留给人
 
-## 1.71.0 — Leaky ReLU（审计给出的可行动线索）
+## v1.71.0 — Leaky ReLU（审计给出的可行动线索）
 
 - 新增 `ad_lrelu` / `ad_vlrelu` / `ad_slope`（负半轴斜率默认 1/16）
 - A/B 对照 `examples/lrelu_ab.mo`（同种子同数据，只换激活）：
@@ -10364,7 +10364,7 @@ socket/bind/listen/accept/send/recv 全是系统调用，不需要链接任何�
   新增算子只改一处。审计当时抓到了"未知算子 op=24"—— 是它自己新加的
 - `tests/100_lrelu.mo`：梯度正确性（正/负半轴、slope=0 退化、数值交叉、块级）
 
-## 1.72.0 — 死通道：按通道分组统计后的发现
+## v1.72.0 — 死通道：按通道分组统计后的发现
 
 - 新增 `ad_gavg_mc`（全局平均池化，梯度平均分摊，用于对照 gmax）
 - 新增 `ad_ever_nz(i)` / `ad_dead_in(lo, n)`：按**层/通道**分组统计死权重
@@ -10377,7 +10377,7 @@ socket/bind/listen/accept/send/recv 全是系统调用，不需要链接任何�
   反向**完全跳过**、卷积层零梯度，结果照样 24/24。修白名单后才真正生效
 - 未完全解释：leaky 版 ch3 池化输出变非零（900）但核仍无梯度，列为后续
 
-## 1.73.0 — 死通道根因：初始化符号一边倒
+## v1.73.0 — 死通道根因：初始化符号一边倒
 
 - 🔴 根因确认：ch3 的 9 个核元素**全为负**（-0.814~-0.075）+ 偏置 0 +
   输入 0/1 二值图 ⇒ `z = Σw·x+b ≤ 0` 对任何输入成立 ⇒ relu 恒 0 ⇒
@@ -10391,7 +10391,7 @@ socket/bind/listen/accept/send/recv 全是系统调用，不需要链接任何�
 - 变异测试：删掉翻转逻辑 → 测试立即失败（非空转）
 - 一般结论：**He/Xavier 管方差不管符号**，符号平衡是正交的独立约束
 
-## 1.74.0 — 剩余 6 个死卷积核：确认是"合理死亡"
+## v1.74.0 — 剩余 6 个死卷积核：确认是"合理死亡"
 
 - 决定性证据（`examples/pool_ab.mo` 诊断）：
   ```
@@ -10412,7 +10412,7 @@ socket/bind/listen/accept/send/recv 全是系统调用，不需要链接任何�
 - 至此 cnn_shift 的 16 个死权重全部得到解释：
   9 个符号一边倒（1.73 修好）+ 6 个 gmax 窗口恒零（合理）+ 1 个其他
 
-## 1.75.0 — 修法推广：autodiff 原生权重初始化
+## v1.75.0 — 修法推广：autodiff 原生权重初始化
 
 - 1.73 的符号平衡修法在 nn.mo 里、操作**普通数组**；autodiff 权重在
   **AD_VAL 槽**里，用户要自己填一遍才用得上 → 容易忘，忘了就回到原样
@@ -10427,7 +10427,7 @@ socket/bind/listen/accept/send/recv 全是系统调用，不需要链接任何�
   20 种子稳定；He 缩放生效；自查能检出人为全负通道
 - 变异测试：删掉翻转 → 立即失败 2 项（非空转）
 
-## 1.76.0 — 训练前发现初始化风险
+## v1.76.0 — 训练前发现初始化风险
 
 - 🔴 关键约束：`ad_audit()` 在训练**后**调用，权重已被更新 120 epoch，
   符号分布早已漂移 —— **事后检查初始化状态在物理上不可能**
@@ -10442,7 +10442,7 @@ socket/bind/listen/accept/send/recv 全是系统调用，不需要链接任何�
 - 另修：`ad_audit` 把初始化风险计入总数后，pool_ab 的"死权重"列剔除它，
   保持与 1.74 数字可比（风险单独一列）
 
-## 1.77.0 — 分组自动推断：覆盖手工填权重的盲区
+## v1.77.0 — 分组自动推断：覆盖手工填权重的盲区
 
 - 1.76 的 `ad_init_note(s,n,nin)` 要用户传 nin；权重若手工 `ad_set` 填的
   （不走 ad_winit）就根本不会被调用 —— **盲区正好落在最需要保护的地方**
@@ -10457,7 +10457,7 @@ socket/bind/listen/accept/send/recv 全是系统调用，不需要链接任何�
 - `tests/105_init_auto.mo` 6 项，含"手工全负权重被检出"这一核心场景
 - 变异测试：把 `if b == s` 改成 `if a == s`（复现第一版的错）→ 立即失败
 
-## 1.78.0 — 前向模式 AD 与点积检验
+## v1.78.0 — 前向模式 AD 与点积检验
 
 - 来源：arXiv:2305.07546《Understanding Automatic Differentiation Pitfalls》
 - 数学：ψ = x̄·ẋ = ȳ·ẏ。取 ȳ = e_loss ⇒
@@ -10473,7 +10473,7 @@ socket/bind/listen/accept/send/recv 全是系统调用，不需要链接任何�
   定义）；未知算子**明确报错**绝不静默当 0（1.39 ad_set 事件的教训）
 - 暂未实现前向规则：CONVMC/MMBA/MBAT/CONV/POOL/SCE —— 报错不静默
 
-## 1.78.1 — 补齐 6 个算子的前向规则
+## v1.78.1 — 补齐 6 个算子的前向规则
 
 - CONVMC / MMBA / MBAT / CONV / POOL / SCE 的前向规则全部实现，
   1.78 中它们会明确报错返回 -1
@@ -10489,7 +10489,7 @@ socket/bind/listen/accept/send/recv 全是系统调用，不需要链接任何�
 - ⚠️ 流程事故：改库时文件被写入重复片段，行数异常。已用备份恢复。
   教训：改库先 cp、改后核对行数
 
-## 1.79.0 — 有限差分：点积检验的第三方参照
+## v1.79.0 — 有限差分：点积检验的第三方参照
 
 - 来源：arXiv:2305.07546 —— 用 FD 替换前向模式做点积检验
   （PyTorch gradcheck 的做法）
@@ -10506,7 +10506,7 @@ socket/bind/listen/accept/send/recv 全是系统调用，不需要链接任何�
 - 步长实测：定点下 0.25 → 0.001 都可用；但 **loss 越小越要用大 h**
   （Σe² 量级时 h=1024 误差 3.5%，h=8192 降到 2%）
 
-## 1.80.0 — ASD：自动稀疏微分（"还在 PDF 里躺着"的概念）
+## v1.80.0 — ASD：自动稀疏微分（"还在 PDF 里躺着"的概念）
 
 概念来源（非工程惯例，是未落地能力）：
 - Gebremedhin, Manne & Pothen, "What Color Is Your Jacobian?" SIAM Review 2005
@@ -10537,7 +10537,7 @@ socket/bind/listen/accept/send/recv 全是系统调用，不需要链接任何�
 
 ---
 
-## 1.100.0 — modb：墨语言自己写的调试器（自包含生态闭环）
+## v1.100.0 — modb：墨语言自己写的调试器（自包含生态闭环）
 
 编译器、链接器、包管理器、LSP 都已是墨语言写的，唯独调试器还依赖外部
 工具 —— **`-g` 的调试信息是自家的，能读它的调试器却不是**。本轮补上。
@@ -11032,7 +11032,7 @@ lambda。Mo 此前函数只能命名 + `&fn` 取址。
 - 局限：体 `{}` 朴素配平（字符串字面量大括号干扰）；无捕获；
   mo2x 后端暂不支持（v1.1166）。
 
-## 1.1166.0 (2026-11-12)
+## v1.1166.0 (2026-11-12)
 
 - mo2x C 系后端（c/cfs/kern/uefi）支持 lambda 表达式（无捕获闭包），与 moc 侧 v1.1165 语法一致；
   js/py 目标明确报错。
@@ -11041,7 +11041,7 @@ lambda。Mo 此前函数只能命名 + `&fn` 取址。
 - 新测试 tests/344_lambda_cbackend.mo（期望 64）。
 - 详见 docs/lambda-cbackend.md。
 
-## 1.1167.0 (2026-11-12)
+## v1.1167.0 (2026-11-12)
 
 - 结构体运算符重载（moc 侧）：`+`/`-`/`*` 映射 `Class_add`/`Class_sub`/`Class_mul`
   方法（按现有 Class_method 命名约定），lhs/rhs 自动按地址传参，返回 struct 按值。
@@ -11049,21 +11049,21 @@ lambda。Mo 此前函数只能命名 + `&fn` 取址。
 - 新测试 tests/345_op_overload.mo（期望 85）。已知限制：struct ≤2 words、
   比较运算符未重载、mo2x 后端不支持。详见 docs/op-overload.md。
 
-## 1.1168.0 (2026-11-12)
+## v1.1168.0 (2026-11-12)
 
 - 比较运算符重载：`==`/`!=`/`<`/`<=`/`>`/`>=` 映射 `Class_eq/ne/lt/le/gt/ge`
   方法（返回 i64 0/1）；无同名方法时走原逻辑（struct 地址比较）。
 - 新测试 tests/346_op_overload_cmp.mo（期望 19）、tests/347_op_overload_gtge.mo（期望 7）。
 - 详见 docs/op-overload.md。
 
-## 1.1169.0 (2026-11-12)
+## v1.1169.0 (2026-11-12)
 
 - 新标准库 lib/ds.mo：set（开放寻址哈希集）、deque（环形双端队列）、
   pq（二叉小根堆优先队列）、ll（双向链表）、stack —— 全部自动扩容，
   分配入口 heap_ready/heap_init 惰性初始化。
 - 新测试 tests/348_ds.mo（期望 253 = 16381 mod 256，覆盖五容器含扩容路径）。
 
-## 1.1170.0 (2026-11-13)
+## v1.1170.0 (2026-11-13)
 
 - 新标准库 lib/sort2.mo：radix_i64（LSD 基数排序，8 位桶 × 8 趟，稳定 O(n)）、
   msort_i64（归并排序，稳定 O(n log n)）、is_sorted_i64（单调检查）。
@@ -11072,7 +11072,7 @@ lambda。Mo 此前函数只能命名 + `&fn` 取址。
   偶现正常、直接跑 SIGSEGV）—— 必须用 `k & 255`。
 - 新测试 tests/349_sort2.mo（期望 127，含 i64 边界值与 1000 伪随机数双算法验证）。
 
-## 1.1171.0 (2026-11-13)
+## v1.1171.0 (2026-11-13)
 
 - for-in 扩展：`for x in <vec 表达式>` —— RHS 求值一次为 vec 句柄
   （lib/vec.mo 布局 {data,len,cap}，元素 i64），支持函数调用/变量/括号表达式，
@@ -11085,48 +11085,48 @@ lambda。Mo 此前函数只能命名 + `&fn` 取址。
 - examples/ffi.mo 改用非 variadic extern（extern 尚不支持 ...），sort.mo 改名
   消除与 lib 的 trim 撞名。make check 全绿。
 
-## 1.1172.0 (2026-11-13)
+## v1.1172.0 (2026-11-13)
 
 - try/catch（同函数越界 panic 恢复）：`try { A } catch(e) { B }`；
   panic_label 在 try 内返回最近 catch 标签（嵌套取最内层），catch 入口
   从数据段 rsp 槽恢复栈，e = 错误码（越界 = 1）；跨函数 panic 仍走
   全局 exit（文档 ⚠️）。tests/352。docs/try-catch.md。
 
-## 1.1173.0 (2026-11-13)
+## v1.1173.0 (2026-11-13)
 
 - 方法调用返回类型修复：parse_chain_method 的 R_ETY 从硬编码
   ty_int 改为从函数符号 O_SRT 取 —— 方法返回 struct 时类型信息
   不再丢失（此前链式字段访问被当 int 加载）。tests/353。
 - projcheck 文档长度门槛达标（docs/try-catch.md 扩充实现细节）。
 
-## 1.1174.0 (2026-11-13)
+## v1.1174.0 (2026-11-13)
 
 - struct 排序比较：`</<=/>/>=` 无重载方法时改为逐 word 有符号
   字典序（此前回退地址比较）；`==`/`!=` 仍逐 word（v1.1060）；
   有重载方法优先（v1.1168）。f64 字段按位模式比较。tests/354。
   docs/struct-ordering.md。
 
-## 1.1175.0 (2026-11-13)
+## v1.1175.0 (2026-11-13)
 
 - panic("msg") 内建：写 stderr；try 内触发最近 catch（e=2），
   无 try → exit(1)。错误码经数据段 errslot 传递（catch 读取后清零，
   0 视为越界=1）。实参须为字符串字面量。tests/355。
 
-## 1.1176.0 (2026-11-13)
+## v1.1176.0 (2026-11-13)
 
 - mo2x 对齐 panic() 内建：C 目标 = fprintf(stderr)+exit(1)；
   freestanding（x86_64/aarch64）= syscall write(2)+exit(1)（MO_WRITE_/
   MO_EXIT_ 宏，panic 定义移至 mo_syscall 之后避免隐式声明冲突）。
   三后端实测 fatal: boom / exit(1)。
 
-## 1.1177.0 (2026-11-13)
+## v1.1177.0 (2026-11-13)
 
 - assert(cond, "msg") 内建：cond 为假时写 stderr + 走 panic 路径
   （try/catch 捕获 e=2，无 try 则 exit(1)）。门禁 507/0（新增 tests/357）。
 - mo2x 对齐：三后端（C / freestanding x86_64/aarch64）前导发 assert_
   helper，调用点 assert(...) 改名透传。实测三后端 boom/exit(1)。
 
-## 1.1178.0 (2026-11-13)
+## v1.1178.0 (2026-11-13)
 
 - lib/io.mo 新增 eprint / eprint_i64 / eprint_nl（stderr 输出，fd 2，
   不污染 stdout 管道）。门禁 508/0（新增 tests/358 分流验证）。
@@ -11134,7 +11134,7 @@ lambda。Mo 此前函数只能命名 + `&fn` 取址。
   mo_syscall(MO_WRITE_,2)；kern/uart/uefi 裸机目标降级到 stdout 设备
   （无独立 stderr 概念）。三后端实测 stdout A/B + stderr E1/1234567/-8。
 
-## 1.1179.0
+## v1.1179.0
 - 编译器首个跨指令优化 pass：双常量折叠（try_fold_both）
   - 二元运算 + - * & | ^ 双侧均为编译期常量（左以 push imm 下栈 K_PLL==1、右为 movabs 常量 K_PL==1）时，回退 push+movabs+pop rcx 共 8 字节，直接发射 movabs rax, result —— 编译期算完，省 3 条指令
   - 结果经 g_movabs_rax 重发，自动重设 K_LAST/K_LASTV/K_LASTR，链式表达式（1+2+3+...+200）全链折叠为单条 mov eax,imm32
@@ -11142,7 +11142,7 @@ lambda。Mo 此前函数只能命名 + `&fn` 取址。
   - 实测：200 项常量加法链 ELF 35081B → 30985B（-4096B，全链折叠为 1 条 mov）
 - 新增 tests/359_fold.mo（14 项：链式/位运算/混合变量不误折叠）；门禁 509/0
 
-## 1.1180.0
+## v1.1180.0
 - 第二个优化 pass：局部常量传播（cprop 表，part1 末尾 helper）
   - `let x: i64 = <纯常量>` 时（parse_expr 后 K_LAST==1，store 前读）登记 x → 常量；typed 与无类型推断两条 let 路径
   - load_sym 标量读路径消费：命中直接发 movabs rax,v（K_LAST=1 → 与 try_fold_both 链式续折联动）
@@ -11150,21 +11150,21 @@ lambda。Mo 此前函数只能命名 + `&fn` 取址。
   - 不传播 byte/f64/ptr/数组/struct；捕获读路径天然绕开（保守）
   - 嵌套函数内同样生效；tests/360_cprop.mo 9 项断言（失效/取址/作用域复用/闭包/循环）全过；门禁 510/0；自举 moc2287820B 逐位一致
 
-## 1.1181.0
+## v1.1181.0
 - 第三个优化 pass：双常量比较折叠（== != < <= > >= 六运算符）
   - 两侧均为 i64 编译期常量（含经 cprop 传播的 let 常量）时，比较结果编译期算成 0/1，回退 push+mov+pop 发 movabs
   - fold_cmp(cc) 映射 setcc 操作码（94/95/9c/9e/9f/9d）
   - tests/361_cmpfold.mo；门禁 511/0；自举三次逐位一致
 - v1.1180.0 发布：RID 444437371，8 资产 digest 8/8；bundle release/1.1180.0-bundle；守恒删 v1.1178
 
-## 1.1182.0
+## v1.1182.0
 - 第四个优化 pass：恒等消除与乘法强度削减
   - add/sub/or/xor 0、and -1、<<0、>>0、*1 → 零发射（rax 保持左值）
   - and 0 → xor rax,rax（清零语义，非恒等 —— 253_logic_assign 回归抓出并修复）
   - *0 → movabs 0；*2^k → shl（覆盖 imm32 编码范围外的大 2^k）
   - tests/362_identity.mo（i64 正/负/零三组）；门禁 512/0；自举逐位一致
 
-## 1.1183.0
+## v1.1183.0
 - 修复 v1.1180 遗留地址冲突：O_CPROP 常量传播表 9100000 与 O_SPFX(91002568)/O_MODS 区重叠，
   sym 下标 ×16 越过 2568B 即写坏模块前缀表（潜在编译器状态破坏，v1.1180~1182 门禁未暴露是因
   cprop 消费端从未接通——本次深查时发现并修正为 9050000（O_SRT 9039688 之后、91000000 之前的
@@ -11174,7 +11174,7 @@ lambda。Mo 此前函数只能命名 + `&fn` 取址。
   消费端函数与 dbg 探针全部撤除，表读写（set/clear）保留于 9050000 安全区。
 - 门禁 512/0；自举逐位一致。
 
-## 1.1184.0
+## v1.1184.0
 - g_epilogue 函数边界强制清全部常量标记（K_LAST/K_LASTV/K_LASTR/K_PLL/K_PLLV/K_PLLR）：
   return 常量的函数不再把「rax 是常量」状态残留到下一个被编译的函数。
   这是通用正确性不变式（跨函数边界任何回退均不合法）。
@@ -11183,7 +11183,7 @@ lambda。Mo 此前函数只能命名 + `&fn` 取址。
   常量发射与回退机制的更深交互，留待专项轮。cprop 消费端保持未接通。
 - tests/363_constret.mo（常量 return × 循环边界回归网）；门禁 513/0；自举一致。
 
-## 1.1185.0
+## v1.1185.0
 
 # cprop 失效路径修复 + 符号边界保护（v1.1185）
 
@@ -11195,7 +11195,7 @@ lambda。Mo 此前函数只能命名 + `&fn` 取址。
 - tests/364_cprop.mo：cprop 失效/写过标志/循环/逻辑复合赋值回归网
 - 门禁 514/0（+364）；自举一致
 
-## 1.1186.0
+## v1.1186.0
 
 # 未使用形参警告 + 常量条件消除实验记录（v1.1186）
 
@@ -11204,7 +11204,7 @@ lambda。Mo 此前函数只能命名 + `&fn` 取址。
 - 排查记录：place_label 清 K_CRBX（栈顶缓存）单做也引发 44 回归——K_CRBX 语义保持 v1.1184 原样
 - 门禁 514/0；自举一致
 
-## 1.1187.0
+## v1.1187.0
 
 # unused 警告误报修复（v1.1187）
 
@@ -11215,7 +11215,7 @@ lambda。Mo 此前函数只能命名 + `&fn` 取址。
 - docs/vs_other_languages.md 记载的「诊断默认关闭」理由（误报训练人忽略警告）现已消除主因
 - 门禁 514/0；自举一致
 
-## 1.1188.0
+## v1.1188.0
 
 # 诊断默认开启 + 弃值调用惯用法支持（v1.1188）
 
@@ -11224,7 +11224,7 @@ lambda。Mo 此前函数只能命名 + `&fn` 取址。
 - lib/ 残留 ~150 条告警全为真信号（弃值调用如 seg.mo 的 d0..d4、shm.mo 的 c/c2），迁移 `_` 前缀列为库清理后续轮
 - 门禁 514/0；自举一致
 
-## 1.1189.0
+## v1.1189.0
 
 # unused 警告跨文件归属修复（v1.1189）
 
@@ -11233,7 +11233,7 @@ lambda。Mo 此前函数只能命名 + `&fn` 取址。
 - **实测**：lib/ 全量 -Wall 147 → **0 条**；主程序真信号照报；import 库的主程序零噪声
 - 修正 v1.1187 的豁免只看 INPATH（主文件）的盲区
 - 门禁 514/0；自举一致
-## 1.1190.0
+## v1.1190.0
 
 # mo2x C 后端 libc 撞名与内建对齐修复（v1.1190）
 
@@ -11244,7 +11244,7 @@ lambda。Mo 此前函数只能命名 + `&fn` 取址。
 - 全量对齐批测（367 个 #expect 测试 × moc/C/JS/PY 四路 exit code 比对）建立：C 后端 mismatch 215 → 71；moc native 全对。剩余 71 项（f64 传递、str 比较 <、2D 数组等）列下轮清单。
 - 门禁 514/0；bin/mo2x 用 v1.1189 moc 重编（自举一致）。
 
-## 1.1191.0
+## v1.1191.0
 
 # mo2x C 后端对齐第二批（v1.1191）
 
@@ -11254,7 +11254,7 @@ lambda。Mo 此前函数只能命名 + `&fn` 取址。
 - 全量对齐批测：C 后端 mismatch 71 → 62。
 - 门禁 514/0。
 
-## 1.1192.0
+## v1.1192.0
 
 - mo2x const fn 求值器完整化：while（嵌套+条件重评）、let 局部变量（循环重声明复用槽）、赋值/复合赋值（= += -= *= /= %=）、break/continue（跨 if 边界魔数传播）、if/else 控制流修复（体正常结束后继续执行后续语句、无 else 时不再落入兜底、cond!=0 时正确跳过 else 块）
 - && || 逻辑运算接入 const fn 求值（cf_lor 层，短路求值防除零；&& 短路只跳到 || 边界）；修复 cf_term 把 % 当 / 的老 bug
@@ -11262,7 +11262,7 @@ lambda。Mo 此前函数只能命名 + `&fn` 取址。
 - 调试教训记录：全局初始化器不支持表达式（魔数惰性初始化）；CFNAME 统一存绝对指针；run_body 返回值用 CFLM_R 魔数区分 return 值与语句状态码
 
 
-## 1.1193.0 mo2x C 后端对齐第三批（v1.1193）
+## v1.1193.0 mo2x C 后端对齐第三批（v1.1193）
 - 运算符重载接入 C 后端：struct 变量 op struct → Type_op(&l, &r)（fsg_find 函数表探测 + clsv_find 类型表）；无重载的 struct 比较按"未定义→假"语义跳过右表达式（346 对齐）
 - 数组标量填充：let a: [N] T = v; → {v,v,...}（ADIM 维度数值缓存，emit_dim_to_buf/emit_dim_to_cache 双路径）
 - 数组整体赋值：q = p; → memcpy(q, p, sizeof(q))（ARRVS 数组变量表）
@@ -11271,18 +11271,18 @@ lambda。Mo 此前函数只能命名 + `&fn` 取址。
 - op_overload 345=85 ✓ 346=19 ✓ 347=7 ✓；26_array_init=20 ✓ 260_arr_assign=79 ✓；126_fmath=0 ✓（59/59）126_utf8=0 ✓
 - C 后端对齐 mismatch 61→50；门禁 514/0
 
-## 1.1194.0 mo2x C 后端对齐第四批（v1.1194）
+## v1.1194.0 mo2x C 后端对齐第四批（v1.1194）
 - str switch：判别表达式为字面量或 str 变量 → mo_swstrcmp 比较链（222_switch_str ✓）
 - 数组值比较 a == b / a != b → mo_arrcmp（memcmp 逐字节语义）（244_array_eq ✓）
 - C 前导新增 mo_swstrcmp / mo_arrcmp3（mo_ 前缀避免与 str.mo 撞名）
 - 对齐 c mismatch 50→48；门禁 514/0
 
-## 1.1195.0 mo2x C 后端对齐第五批（v1.1195）
+## v1.1195.0 mo2x C 后端对齐第五批（v1.1195）
 - 07_memory ✓：str 字面量 init → 可写 static 副本 __mlit_N（native 字面量在 .data 可写，C rodata 上 store64 SIGSEGV）
 - 222_switch_str 稳定化：可写副本路径补 strv_add（switch str 判别探测依赖）
 - c mismatch 48→46；门禁 514/0
 
-## 1.1196.0.0
+## v1.1196.0
 
 mo2x C 后端对齐第六批（v1.1196）：c mismatch 46→34。
 
@@ -11295,7 +11295,7 @@ mo2x C 后端对齐第六批（v1.1196）：c mismatch 46→34。
 
 门禁 514/0；对齐 367 测试 c mismatch 34（剩余=网络/线程运行时缺失 30 项、128 栈布局 2 项、OOB 语义 2 项）。
 
-## 1.1197.0.0
+## v1.1197.0
 
 mo2x C 后端对齐第七批（v1.1197）：c mismatch 34→32。
 
@@ -11314,7 +11314,7 @@ mo2x C 后端对齐第八批（v1.1198）：c mismatch 32→28。
 门禁 514/0；对齐 367 测试 c mismatch 28（剩余=网络运行时缺失类 ~24、128×2 栈布局、71_proc fork、131 str+str 拼接语义）。
 
 
-## 1.1199.0
+## v1.1199.0
 
 C 后端（mo2x）大补：对齐 367 测试 c mismatch 28→27（新增修复全为原 GENFAIL/rc=1 簇），c GENFAIL 126→102。
 
@@ -11332,11 +11332,11 @@ C 后端（mo2x）大补：对齐 367 测试 c mismatch 28→27（新增修复�
 - 修复编辑事故：文件重复段清理（emit_postfix/emit_unary/kern_print_redirect/main 去重）。
 
 门禁 514/0；对齐 367 测试 c mismatch 27（剩余=网络运行时缺失类 23、126_utf8、128×2、71_proc——已知不可修基线）。
-## 1.1200.0
+## v1.1200.0
 
 C 后端（mo2x）第十批：enum 声明（顶层 `enum Name { A; B; }` 成员常量注册 + C enum 发射 + 去重）；const 求值器补齐（`%` 取模、`sizeof([N] T)`、`alignof`、局部 const 语句、`E.B` 限定名）；enum 类型变量发标量；mo_syscall 失败转 -errno 对齐 moc 原语语义（futex 断言）。对齐 367 测试：c mismatch 27→**25**（71_proc、282 转绿），c GENFAIL 102→**91**（净修复 11 测试）。门禁 514/0。
 
-## 1.1201.0
+## v1.1201.0
 
 自评测报告（外部实测）三缺陷修复：
 1. `strstr` 同名反义陷阱 —— lib/str.mo 加语义明确别名 `str_find`（下标/-1），strstr 注释标注 C 语义差异，仅为兼容保留。
@@ -11345,7 +11345,7 @@ C 后端（mo2x）第十批：enum 声明（顶层 `enum Name { A; B; }` 成员�
 
 对齐 367 测试 mismatch 25 维持、门禁 514/0、三级自举字节一致。
 
-## 1.1202.0
+## v1.1202.0
 
 mo2x C 后端解构支持（v1.1202 批次一）：
 1. `let [x, y, z] = arr;` 数组解构（255）—— 标量逐元素 `x = arr[i]`；RHS 函数调用只调用一次（存临时）。
@@ -11354,7 +11354,7 @@ mo2x C 后端解构支持（v1.1202 批次一）：
 4. 🔴 根因修复：is_assign_start 把 `let [...] =` 误判成数组元素赋值语句——语句头关键字（let/const/return/if/while/for/match/fn）一律不当赋值。
 
 c mismatch 25→24 新低、GENFAIL 91→89、门禁 514/0、三级自举一致。
-## 1.1203.0
+## v1.1203.0
 
 mo2x C 后端语法扩展（v1.1203 批次二）：
 1. 切片 `s[1..3]`：lexer `'..'` 单 token（OP 表前缀匹配防 `1.3` 小数误拆）；mo_slice 运行时 helper（malloc 拷贝，负长清零）；str/数组双路径
@@ -11362,3 +11362,12 @@ mo2x C 后端语法扩展（v1.1203 批次二）：
 3. 多维返回 `fn f() -> [N][M] T`：退化指针语义，CURRTK=5；返回函数内局部数组 static 化（防悬垂，对齐 moc 返回缓冲）；数组=调用 → memcpy；嵌套字面量 memcpy 源扁平化（emit_arrflat，1D 复合字面量不接受嵌套 {}）
 4. 解构 RHS=函数调用 → long long* 临时（272 回归修复）
 指标：c mismatch 25（基线构成不变）、GENFAIL 89→81（255/319/317/280/272 全绿）、门禁 514/0、三级自举字节一致。
+
+## v1.1204.0
+
+mo2x uic component DSL 展开 + 版本号规范：
+1. component 展开器（mo2x 单 pass 直发等价 C）：`component Name rows N sep? { fld: kind width W hist H min M max X; }` → _buf/_auto/_init/_set_f/_row/_head/_grid 全套函数（kind: text/gauge/spark/pct 等 10 种；属性 width/hist/min/max 支持数字与 const 表达式 cns_expr）
+2. kind 门控修复：展开只在 kind==3 发射轮执行（原误在收集轮查 const，ROWS 未注册报错）；Host_init 前向声明防隐式声明冲突；_auto 惰性初始化
+3. 版本号规范统一：CHANGELOG 142 条标题全部 v 前缀（裸 `## 1.` 与 `## 1.x.y.0.0` 异类清除）；docs/VERSIONING.md（vMAJOR.MINOR.PATCH 用户可见、VERSION 文件裸数字机器可读）
+4. moc MO_DUMP：/proc/self/environ 读 MO_DUMP env，component 展开文本 dump 至 /tmp/dump*.txt（黄金参照数据驱动对齐）
+指标：144/145/158/159 与 moc native 字节级一致；c mismatch 25（基线）、GENFAIL 81→77、门禁 514/0、自宿 C 产物字节一致。

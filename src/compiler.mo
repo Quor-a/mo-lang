@@ -17590,6 +17590,42 @@ fn cmp_head_field(fld: i64, fi: i64) -> i64 {
     return 0;
 }
 
+# v1.1204: 展开文本 dump（MO_DUMP=路径）—— freestanding：/proc/self/environ 找 MO_DUMP
+fn dump_maybe(len: i64) -> i64 {
+    let eb: [32768] byte = 0;
+    let fd: i64 = syscall(2, "/proc/self/environ", 0, 0, 0, 0, 0);
+    if fd < 0 { return 0; }
+    let n: i64 = syscall(0, fd, eb, 32768, 0, 0, 0);
+    syscall(3, fd, 0, 0, 0, 0, 0);
+    if n <= 0 { return 0; }
+    # 找 MO_DUMP=NULvalue 条目
+    let i: i64 = 0;
+    while i < n {
+        # 条目起
+        let j: i64 = i;
+        while j < n && eb[j] != 0 { j = j + 1; }
+        # eb[i..j] = NAME=VALUE
+        if j - i > 8 {
+            if eb[i] == 77 && eb[i+1] == 79 && eb[i+2] == 95 && eb[i+3] == 68 && eb[i+4] == 85 && eb[i+5] == 77 && eb[i+6] == 80 && eb[i+7] == 61 {
+                # MO_DUMP=
+                let pv: [256] byte = 0;
+                let k: i64 = i + 8;
+                let m: i64 = 0;
+                while k < j && m < 255 { pv[m] = eb[k]; k = k + 1; m = m + 1; }
+                pv[m] = 0;
+                let ofd: i64 = syscall(2, pv, 577, 420, 0, 0, 0);
+                if ofd >= 0 {
+                    syscall(1, ofd, heap + O_GENBUF, len, 0, 0, 0);
+                    syscall(3, ofd, 0, 0, 0, 0, 0);
+                }
+                return 0;
+            }
+        }
+        i = j + 1;
+    }
+    return 0;
+}
+
 # 解析 component 声明并展开
 fn parse_component() -> i64 {
     next_token();
@@ -18095,6 +18131,8 @@ fn parse_component() -> i64 {
     let oc: i64 = gv(K_COL);
     let opos: i64 = gv(K_CPOS);
     let len: i64 = CMP_P - 1;
+    # v1.1204: MO_DUMP=路径 时把展开文本写到该文件（mo2x 对齐用途）
+    dump_maybe(len);
     let fb:  i64 = gv(K_FNBASE);
     let of:  i64 = gv(K_CUROFF);
     let fp:  i64 = gv(K_FPATCH);

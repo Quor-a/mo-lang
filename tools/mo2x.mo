@@ -5284,6 +5284,140 @@ fn cns_term() -> i64 {
     return v;
 }
 
+# v1.1204: uic component 展开（C 等价于 moc parse_component 展开文本）
+fn emit_component(cnm: i64, nrows: i64, csep: i64, CFN: ptr, CFK: ptr, CFW: ptr, CFH: ptr, CFM: ptr, CFX: ptr, CNF: i64) -> i64 {
+    # 全局存储：每字段 + buf
+    let fi: i64 = 0;
+    while fi < CNF {
+        let fk: i64 = load64(CFK + fi * 8);
+        if fk == 0 {
+            outs("unsigned char ");
+            outs(cnm); outs("_"); outs(load64(CFN + fi * 8)); outs("[32] = {0};"); nl();
+        } else {
+            outs("long long ");
+            outs(cnm); outs("_"); outs(load64(CFN + fi * 8)); outs(" = 0;"); nl();
+        }
+        if fk == 7 {
+            # spark: hist 数组 + n
+            outs("long long ");
+            outs(cnm); outs("_"); outs(load64(CFN + fi * 8)); outs("_hist[");
+            outi(load64(CFH + fi * 8)); outs("] = {0};"); nl();
+            outs("long long ");
+            outs(cnm); outs("_"); outs(load64(CFN + fi * 8)); outs("_n = 0;"); nl();
+        }
+        fi = fi + 1;
+    }
+    outs("unsigned char "); outs(cnm); outs("_buf[64] = {0};"); nl();
+    outs("long long "); outs(cnm); outs("_auto = 0;"); nl();
+    outs("static long long "); outs(cnm); outs("_init(void);"); nl();
+    # set 函数
+    fi = 0;
+    while fi < CNF {
+        let fk: i64 = load64(CFK + fi * 8);
+        let fl: i64 = load64(CFN + fi * 8);
+        outs("long long "); outs(cnm); outs("_set_"); outs(fl); outs("(long long v) {"); nl();
+        if fk == 0 {
+            outs("long long n = strlen_(v); long long i = 0;"); nl();
+            outs("while (i < n) { "); outs(cnm); outs("_"); outs(fl); outs("[i] = ((unsigned char*)v)[i]; i++; }"); nl();
+            outs(cnm); outs("_"); outs(fl); outs("[n] = 0;"); nl();
+        } else {
+        if fk == 7 {
+            # spark: 环形 hist 推进
+            let hn: i64 = load64(CFH + fi * 8);
+            outs("if ("); outs(cnm); outs("_"); outs(fl); outs("_n >= "); outi(hn); outs(") {"); nl();
+            outs("long long k = 1;"); nl();
+            outs("while (k < "); outi(hn); outs(") { "); outs(cnm); outs("_"); outs(fl); outs("_hist[k-1] = "); outs(cnm); outs("_"); outs(fl); outs("_hist[k]; k++; }"); nl();
+            outs("} else {"); nl();
+            outs(cnm); outs("_"); outs(fl); outs("_n++;"); nl(); outs("}"); nl();
+            outs(cnm); outs("_"); outs(fl); outs("_hist["); outs(cnm); outs("_"); outs(fl); outs("_n - 1] = v;"); nl();
+        } else {
+        if fk == 4 {
+            outs("if (v < 0) { v = 0; }"); nl();
+            if load64(CFX + fi * 8) > 0 { outs("if (v > "); outi(load64(CFX + fi * 8)); outs(") { v = "); outi(load64(CFX + fi * 8)); outs("; }"); nl(); }
+        }
+        outs(cnm); outs("_"); outs(fl); outs(" = v;"); nl();
+        }
+        }
+        outs("return 0; }"); nl();
+        fi = fi + 1;
+    }
+    # row 函数
+    outs("long long "); outs(cnm); outs("_row(long long x, long long y, long long fg, long long bg) {"); nl();
+    outs("long long cx = x;"); nl();
+    outs("if ("); outs(cnm); outs("_auto == 0) { "); outs(cnm); outs("_init(); "); outs(cnm); outs("_auto = 1; }"); nl();
+    fi = 0;
+    while fi < CNF {
+        let fk: i64 = load64(CFK + fi * 8);
+        let fl: i64 = load64(CFN + fi * 8);
+        let fw: i64 = load64(CFW + fi * 8);
+        outs("uc_text(cx, y, \""); outs(fl); outs("\", UC_WHITE, bg);"); nl();
+        outs("cx += strlen_(\""); outs(fl); outs("\") + 1;"); nl();
+        if fk == 0 {
+            outs("{ long long tv = strlen_("); outs(cnm); outs("_"); outs(fl); outs(");"); nl();
+            outs("if (tv > "); outi(fw); outs(") {"); nl();
+            outs("{ long long tz = 0; while (tz < "); outi(fw); outs(") { "); outs(cnm); outs("_buf[tz] = "); outs(cnm); outs("_"); outs(fl); outs("[tz]; tz++; }"); nl();
+            outs(cnm); outs("_buf["); outi(fw); outs("] = 0; uc_text(cx, y, "); outs(cnm); outs("_buf, UC_YELLOW, bg); }"); nl();
+            outs("} else { uc_text(cx, y, "); outs(cnm); outs("_"); outs(fl); outs(", UC_YELLOW, bg); }"); nl();
+            outs("{ long long p = "); outi(fw); outs(" - tv; long long j = 0;"); nl();
+            outs("while (j < p) { uc_set(cx + tv + j, y, 32, fg, bg); j++; } } }"); nl();
+        } else if fk == 8 {
+            outs("{ unsigned char* pb = "); outs(cnm); outs("_buf; long long pz = 0;"); nl();
+            outs("while (pz < 64) { "); outs(cnm); outs("_buf[pz] = 0; pz++; }"); nl();
+            outs("str_itoa_base(pb, "); outs(cnm); outs("_"); outs(fl); outs(", 10);"); nl();
+            outs("if (strlen_(pb) > "); outi(fw); outs(") "); outs(cnm); outs("_buf["); outi(fw); outs("] = 0;"); nl();
+            outs("uc_text(cx, y, pb, UC_CYAN, bg);"); nl();
+            outs("uc_set(cx + strlen_(pb), y, 37, UC_GREEN, bg); }"); nl();
+        } else if fk == 4 {
+            outs("{ unsigned char* gf = "); outs(cnm); outs("_buf; long long gz = 0;"); nl();
+            outs("while (gz < 64) { "); outs(cnm); outs("_buf[gz] = 0; gz++; }"); nl();
+            outs("str_itoa_base(gf, "); outs(cnm); outs("_"); outs(fl); outs(", 10);"); nl();
+            outs("long long gl = strlen_(gf); long long gw = "); outi(fw); outs(" - gl - 1;"); nl();
+            outs("long long gq = ("); outs(cnm); outs("_"); outs(fl); outs(" * 8) / 100; long long gi = 0;"); nl();
+            outs("while (gi < gw) { uc_set(cx + gi, y, 9608, UC_CYAN, bg); gi++; }"); nl();
+            outs("long long gj = 0;"); nl();
+            outs("while (gj < gq) { if (gj < gw) uc_set(cx + gj, y, 9619, UC_YELLOW, bg); gj++; }"); nl();
+            outs("uc_text(cx + gw + 1, y, gf, UC_WHITE, bg); }"); nl();
+        } else if fk == 7 {
+            outs("{ long long hh = "); outi(fw); outs(" - 0; long long hj = 0;"); nl();
+            outs("while (hj < "); outs(cnm); outs("_"); outs(fl); outs("_n) {"); nl();
+            outs("long long hv = "); outs(cnm); outs("_"); outs(fl); outs("_hist[hj];"); nl();
+            outs("long long hq = (hv * "); outi(load64(CFH + fi * 8)); outs(") / 100; long long hr = 0;"); nl();
+            outs("while (hr < "); outi(load64(CFH + fi * 8)); outs(") { if (hr < hq) uc_set(cx + hj, y - hr, 9608, UC_YELLOW, bg); hr++; }"); nl();
+            outs("hj++; } }"); nl();
+        }
+        outs("cx += "); outi(fw); outs(" + 2;"); nl();
+        fi = fi + 1;
+    }
+    outs("return 0; }"); nl();
+    # grid
+    outs("long long "); outs(cnm); outs("_grid(long long x, long long y, long long fg, long long bg) {"); nl();
+    outs("long long gi = 0;"); nl();
+    outs("while (gi < "); outi(nrows); outs(") {"); nl();
+    outs(cnm); outs("_row(x, y + gi * 2, fg, bg);"); nl();
+    if csep == 1 {
+        outs("if (gi < "); outi(nrows - 1); outs(") {"); nl();
+        outs("long long sj = 0; while (sj < 40) { uc_set(x + sj, y + gi * 2 + 1, 45, UC_WHITE, bg); sj++; } }"); nl();
+    }
+    outs("gi++; }"); nl();
+    outs("return 0; }"); nl();
+    # init
+    outs("long long "); outs(cnm); outs("_init(void) { return 0; }"); nl();
+    # head
+    outs("long long "); outs(cnm); outs("_head(long long x, long long y, long long fg, long long bg) {"); nl();
+    outs("long long cx = x;"); nl();
+    fi = 0;
+    while fi < CNF {
+        let fl: i64 = load64(CFN + fi * 8);
+        outs("uc_text(cx, y, \""); outs(fl); outs("\", UC_WHITE, bg);"); nl();
+        outs("{ long long l = strlen_(\""); outs(fl); outs("\"); long long j = 0;"); nl();
+        outs("while (j < 2) { uc_set(cx + l + j, y, 45, UC_WHITE, bg); j++; } }"); nl();
+        outs("cx += strlen_(\""); outs(fl); outs("\") + 4;"); nl();
+        fi = fi + 1;
+    }
+    outs("return 0; }"); nl();
+    return 0;
+}
+
 fn cns_expr() -> i64 {
     let v: i64 = cns_term();
     while is_op("+") == 1 || is_op("-") == 1 {
@@ -5758,6 +5892,76 @@ fn pass_file(i: i64, kind: i64) -> i64 {
                             skip_to_semi();
                         }
                     } else {
+                    if accept_kw("component") == 1 {
+                        # v1.1204: uic component DSL 展开（144/145/158/159）
+                        # component Name rows N sep? { fld: kind width W ...; }
+                        # 只在 kind==3（函数体发射轮）展开；收集/前向轮跳过
+                        if kind != 3 { skip_balanced(); continue; }
+                        let cnm: i64 = ident();
+                        let nrows: i64 = 0;
+                        let csep: i64 = 0;
+                        if accept_kw("rows") == 1 {
+                            if cur_k() == 2 { nrows = atoi(cur_s()); TI = TI + 1; }
+                            else { nrows = cns_expr(); }
+                        }
+                        if accept_kw("sep") == 1 { csep = 1; }
+                        if accept_kw("title") == 1 { skip_to_semi(); }
+                        expect_op("{");
+                        let CFN: [16] i64 = 0;
+                        let CFK: [16] i64 = 0;
+                        let CFW: [16] i64 = 0;
+                        let CFH: [16] i64 = 0;
+                        let CFM: [16] i64 = 0;
+                        let CFX: [16] i64 = 0;
+                        let CNF: i64 = 0;
+                        while is_op("}") == 0 {
+                            let tfn: i64 = cur_s();
+                            TI = TI + 1;
+                            expect_op(":");
+                            let tfk: i64 = 0 - 1;
+                            if accept_kw("text") == 1 { tfk = 0; }
+                            if accept_kw("num") == 1 { tfk = 1; }
+                            if accept_kw("state") == 1 { tfk = 2; }
+                            if accept_kw("bar") == 1 { tfk = 3; }
+                            if accept_kw("gauge") == 1 { tfk = 4; }
+                            if accept_kw("kv") == 1 { tfk = 5; }
+                            if accept_kw("hex") == 1 { tfk = 6; }
+                            if accept_kw("spark") == 1 { tfk = 7; }
+                            if accept_kw("pct") == 1 { tfk = 8; }
+                            if accept_kw("delta") == 1 { tfk = 9; }
+                            if tfk == 0 - 1 { return err("component: unknown field kind"); }
+                            let tfw: i64 = 10;
+                            if accept_kw("width") == 1 {
+                                if cur_k() == 2 { tfw = atoi(cur_s()); TI = TI + 1; }
+                                else { tfw = cns_expr(); }
+                            }
+                            let tfh: i64 = 0;
+                            if accept_kw("hist") == 1 {
+                                if cur_k() == 2 { tfh = atoi(cur_s()); TI = TI + 1; }
+                                else { tfh = cns_expr(); }
+                            }
+                            let tfm: i64 = 0;
+                            let tfx: i64 = 0;
+                            if accept_kw("min") == 1 {
+                                if cur_k() == 2 { tfm = atoi(cur_s()); TI = TI + 1; }
+                                else { tfm = cns_expr(); }
+                            }
+                            if accept_kw("max") == 1 {
+                                if cur_k() == 2 { tfx = atoi(cur_s()); TI = TI + 1; }
+                                else { tfx = cns_expr(); }
+                            }
+                            accept_kw("hidden");
+                            if accept_kw("align") == 1 {
+                                if cur_k() == 1 && (streq(cur_s(), "right") == 1 || streq(cur_s(), "left") == 1) { TI = TI + 1; }
+                            }
+                            CFN[CNF] = tfn; CFK[CNF] = tfk; CFW[CNF] = tfw; CFH[CNF] = tfh; CFM[CNF] = tfm; CFX[CNF] = tfx;
+                            CNF = CNF + 1;
+                            expect_op(";");
+                        }
+                        TI = TI + 1;
+                        emit_component(cnm, nrows, csep, &CFN, &CFK, &CFW, &CFH, CFM, CFX, CNF);
+                        continue;
+                    }
                     if accept_kw("enum") == 1 {
                         # enum Name { A; B; }（或 A = expr;）—— 注册成员常量 CNSV/CNSN
                         # 并发射匿名 C enum，使 const 表达式可引用成员（143/144/145/148…）。
