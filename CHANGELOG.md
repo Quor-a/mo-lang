@@ -11394,3 +11394,11 @@ mo2x uic component DSL 展开 + 版本号规范：
 - 对齐批测：C 后端零退步；10 项此前 GENFAIL 转绿（280~290 match 族、265 let 推断、293 match_deep）；门禁 514/0。
 
 **全文**: mo-lang v1.1205.0 修复 match 表达式族、struct 模式匹配、let 类型推断与三处回归（clsv 误注册 / try_incdec 丢失 / match 关键字门控）。
+
+## v1.1206.0
+- mo2x: enum tagged-union variants — Enum.Variant(args) constructors (struct literal emission), variant patterns in match (tag + binding pre-scan), tagged typedef pre-pass, param/return/let-inference typing
+- mo2x: named arguments f(x: 1) with FSGN parameter-name mapping, positional/named mix, default slot fill
+- mo2x: match binding patterns y if guard (291/292), const-first mode fixed
+- mo2x: default argument values as constant expressions (cns_expr), negative defaults (210)
+- mo2x: as-cast passthrough in emit_prec; emit_struct typedef dedup guard
+- tests green: 324/326/327/328/333/334, 208/209/210/211, 291/292, 360_cprop; gate 514/0; batch mismatch only known set

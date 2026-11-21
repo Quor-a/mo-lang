@@ -818,6 +818,9 @@ var FSGR: [256] i64 = 0;
 var FSGD: [2048] i64 = 0;   # v1.1199: 形参默认值 FSGD[reg*8+idx]
 var FSGDH: [256] i64 = 0;   # v1.1199: reg 从该实参索引起有默认（0=无）
 var FSGN: [2048] i64 = 0;   # v1.1199: 形参名（具名实参）
+var NAPOS: [8] i64 = 0;   # v1.1206: named args 槽提供标记（1=提供）
+var NAST: [8] i64 = 0;    # 实参 token 起点
+var NAEN: [8] i64 = 0;    # 实参 token 终点
 var FldPTR: [128] i64 = 0;   # v1.1199: ptr 类型字段名（链式访问 -> ）
 var FldE: [128] i64 = 0;   # v1.1199: ptr 字段元素类型
 var NFldPTR: i64 = 0;
@@ -987,6 +990,17 @@ var ARRDIM2: [2048] i64 = 0;
 var ARRW: [2048] i64 = 0;   # v1.1196: 各数组最外维（OOB 运行时检查用）
 var EMITFH: [256] i64 = 0;   # v1.1198: 已发函数名 hash（跨文件重复定义去重）
 var ENMH: [64] i64 = 0;      # v1.1200: 已发射 enum 名 hash（成员是 C 全局标识符，重发=重定义）
+# v1.1206: enum 带数据变体（tagged union）
+var EVN: [64] i64 = 0;       # enum 名（stp_copy）
+var EVNH: [64] i64 = 0;      # 名 hash
+var NEVN: i64 = 0;
+var EVCN: [64] i64 = 0;      # 每 enum 变体数
+var EVTN: [64*8] i64 = 0;    # 变体名（stp_copy）[enum*8+v]
+var EVFC: [64*8] i64 = 0;    # 变体字段数 [enum*8+v]
+var EVFK: [64*8*4] i64 = 0;  # 字段 kind [enum*8+v*4+f]  0=i64,1=ptr,3=f64,2=byte
+var EVIN: [64] i64 = 0;      # 含带参变体旗标（is_struct_ty 放行）
+var EVEM: [64] i64 = 0;
+var NMDBG: i64 = 0;      # tagged struct 已发射旗标
 var NENMH: i64 = 0;
 var ENUMN: [64] i64 = 0;
 var NENUMN: i64 = 0;
@@ -1057,6 +1071,44 @@ fn emit_primary() -> i64 {
     if cur_k() == 1 {
         let nm: i64 = cur_s();
         TI = TI + 1;
+        # v1.1206: enum 带数据变体构造 Enum.Variant(args) → tagged struct 字面量
+        if is_op(".") == 1 && TK[TI + 1] == 1 {
+            let evn: i64 = nm_hash(nm);
+            let evi: i64 = 0 - 1;
+            let evq: i64 = 0;
+            while evq < NEVN { if EVNH[evq] == evn { evi = evq; } evq = evq + 1; }
+            if evi >= 0 && EVIN[evi] == 1 {
+
+                let vq: i64 = TI + 1;   # 指向变体名
+                let vpn: i64 = 0;
+                let vvi: i64 = 0 - 1;
+                let vq2: i64 = 0;
+                while vq2 < EVCN[evi] {
+                    if streq(EVTN[evi * 8 + vq2], &POOL + TS[vq]) == 1 { vvi = vq2; }
+                    vq2 = vq2 + 1;
+                }
+                if vvi >= 0 && TK[vq + 1] == 5 && streq(&POOL + TS[vq + 1], "(") == 1 {
+                    vpn = 1;
+                    TI = vq + 2;   # 进入实参
+                    outs("(");
+                    outs(EVN[evi]);
+                    outs("_t){.tag="); outi(vvi); outs(", ");
+                    let fa6: i64 = 0;
+                    while fa6 < EVFC[evi * 8 + vvi] {
+                        outs("._"); outi(fa6); outs("=");
+                        if EVFK[evi * 32 + vvi * 4 + fa6] == 3 { outs("(double)("); }
+                        else { if EVFK[evi * 32 + vvi * 4 + fa6] == 1 { outs("(unsigned char*)("); } else { outs("(long long)("); } }
+                        emit_expr();
+                        outs(")");
+                        if is_op(",") == 1 { TI = TI + 1; outs(", "); }
+                        fa6 = fa6 + 1;
+                    }
+                    expect_op(")");
+                    outs("}");
+                    return 0;
+                }
+            }
+        }
         # byte/ptr 基下标读提升（v1.194.0）：name[...] 整体包 (long long)(...)
         # 流式输出无法回包 —— 必须在 name 输出前决定。lookahead：下一个是 '['
         # 且变量是 byte 基 → 先输出 cast 开括号，CAST_OPEN 交 postfix 闭合。
@@ -1409,6 +1461,77 @@ fn emit_primary() -> i64 {
             # v1.1164: 查签名表，按形参类型给实参发隐式 cast（ptr↔i64 互传）
             let fi3: i64 = fsg_find(nm);
             let ai3: i64 = 0;
+            # v1.1206: named args——预扫实参 token 范围并映射槽位（name: expr 按 FSGN 匹配），发射按槽序
+            let hasnamed: i64 = 0;
+            if is_op(")") == 0 {
+                let sv6: i64 = TI;
+                let q6: i64 = 0;
+                while q6 < 8 { NAPOS[q6] = 0; NAST[q6] = 0; NAEN[q6] = 0; q6 = q6 + 1; }
+                let nxt6: i64 = 0;
+                let det6: i64 = 0;
+                while det6 == 0 && is_op(")") == 0 {
+                    let st6: i64 = TI;
+                    let slot6: i64 = 0 - 1;
+                    if cur_k() == 1 && peek_op(":") == 1 && fi3 >= 0 {
+                        let an6: i64 = cur_s();
+                        let hit6: i64 = 0 - 1;
+                        let j6: i64 = 0;
+                        while j6 < FSGC[fi3] {
+                            if streq(FSGN[fi3 * 8 + j6], an6) == 1 { hit6 = j6; }
+                            j6 = j6 + 1;
+                        }
+                        if hit6 >= 0 { slot6 = hit6; TI = TI + 2; hasnamed = 1; st6 = TI; }
+                    } else {
+                        if fi3 >= 0 && nxt6 < FSGC[fi3] { slot6 = nxt6; nxt6 = nxt6 + 1; }
+                    }
+                    if slot6 < 0 { det6 = 1; break; }
+                    # 平衡扫描表达式 tokens（到 depth0 ',' 或 ')'）
+                    let dp6: i64 = 0;
+                    while TI < NT {
+                        if TK[TI] == 5 {
+                            let c6: i64 = &POOL + TS[TI];
+                            if dp6 == 0 && (streq(c6, ",") == 1 || streq(c6, ")") == 1) { break; }
+                            if streq(c6, "(") == 1 || streq(c6, "[") == 1 || streq(c6, "{") == 1 { dp6 = dp6 + 1; }
+                            if streq(c6, ")") == 1 || streq(c6, "]") == 1 || streq(c6, "}") == 1 { dp6 = dp6 - 1; }
+                        }
+                        TI = TI + 1;
+                    }
+                    NAPOS[slot6] = 1;
+                    NAST[slot6] = st6;
+                    NAEN[slot6] = TI;
+                    if is_op(",") == 1 { TI = TI + 1; } else { det6 = 1; }
+                }
+                TI = sv6;
+            }
+            if hasnamed == 1 && fi3 >= 0 {
+                # 按槽序发射（named 语义：未提供的槽用默认值）
+                let ai6: i64 = 0;
+                while ai6 < FSGC[fi3] {
+                    if ai6 > 0 { outs(","); }
+                    if NAPOS[ai6] == 1 {
+                        TI = NAST[ai6];
+                        if FSGK[fi3 * 8 + ai6] == 1 { outs("(unsigned char*)"); }
+                        if FSGK[fi3 * 8 + ai6] == 0 { outs("(long long)("); }
+                        if FSGK[fi3 * 8 + ai6] == 5 { outs("&("); }
+                        emit_expr();
+                        if FSGK[fi3 * 8 + ai6] == 0 { outs(")"); }
+                        if FSGK[fi3 * 8 + ai6] == 5 { outs(")"); }
+                        TI = NAEN[ai6];
+                    } else {
+                        # 默认值（FSGD）—— 若该槽无默认则发 0
+                        if FSGK[fi3 * 8 + ai6] == 1 { outs("(unsigned char*)0"); }
+                        else {
+                            if FSGK[fi3 * 8 + ai6] == 5 { outs("(long long)0"); }
+                            else { outi(FSGD[fi3 * 8 + ai6]); }
+                        }
+                    }
+                    ai6 = ai6 + 1;
+                }
+                while is_op(")") == 0 && TI < NT { TI = TI + 1; }
+                expect_op(")");
+                outs(")");
+                return 0;
+            }
             if is_op(")") == 0 {
                 if fi3 >= 0 && FSGK[fi3 * 8 + ai3] == 1 { outs("(unsigned char*)"); }
                 if fi3 >= 0 && FSGK[fi3 * 8 + ai3] == 0 { outs("(long long)("); }
@@ -1428,6 +1551,7 @@ fn emit_primary() -> i64 {
                     ai3 = ai3 + 1;
                 }
             }
+
             # v1.1199: 缺省实参补默认（FSGDH[fi3]=首个有默认的实参索引）
             if fi3 >= 0 && FSGDH[fi3] > 0 {
                 while ai3 < FSGC[fi3] {
@@ -2311,11 +2435,20 @@ fn emit_prec(minp: i64) -> i64 {
             emit_prec(1);
             return 0;
         }
+        # v1.1206: as cast `expr as T` → 直通（数值语义由比较/算术 cast 兜住）
+        if p == 0 && is_c_like() == 1 && cur_k() == 1 && is_kw("as") == 1 && TK[TI + 1] == 1 {
+            TI = TI + 2;   # 吃 'as' 与类型名
+            continue;
+        }
         if p == 0 { return 0; }
         if p < minp { return 0; }
+        # v1.1206: as cast `expr as T` → 直通（数值语义由比较/算术 cast 兜住）
+        if is_c_like() == 1 && cur_k() == 1 && is_kw("as") == 1 && TK[TI + 1] == 1 {
+            TI = TI + 2;   # 吃 'as' 与类型名
+            continue;
+        }
         let op: i64 = cur_s();
         TI = TI + 1;
-        # 字符串比较：Mo 语义是按内容比较（strcmp），C 的指针比较是比地址。
         # 左操作数是字符串（字面量或已知 str 变量）且 op 是比较符 →
         # 改写为 strcmp(l, r) OP 0。
         let iscmp: i64 = 0;
@@ -2426,6 +2559,13 @@ fn emit_scalar(t: i64) -> i64 {
     if streq(t, "str") == 1 {
         if is_c_like() == 1 { outs("unsigned char*"); return 0; }
         return err("str 类型仅在 C 系后端支持");
+    }
+    # v1.1206: tagged enum 类型 → Shape_t（typedef 名）
+    if is_c_like() == 1 && ev_struct_ty(t) == 0 && NMDBG == 42 { err("evmiss"); }
+    if is_c_like() == 1 && ev_struct_ty(t) == 1 {
+        outs(t);
+        outs("_t");
+        return 0;
     }
     # v1.1200: enum 类型名 → 标量 long long（236 enum 变量）
     if is_c_like() == 1 {
@@ -2685,7 +2825,15 @@ fn consume_type() -> i64 {
 }
 
 # 是否结构体类型（JS 要 new，Python 要实例化）
+# v1.1206: enum 名是否为 tagged struct（EVIN 命中）
+fn ev_struct_ty(t: i64) -> i64 {
+    let eqi: i64 = 0;
+    while eqi < NEVN { if EVIN[eqi] == 1 && streq(t, EVN[eqi]) == 1 { return 1; } eqi = eqi + 1; }
+    return 0;
+}
+
 fn is_struct_ty(t: i64) -> i64 {
+    if ev_struct_ty(t) == 1 { return 1; }
     if streq(t, "i64") == 1 { return 0; }
     if streq(t, "byte") == 1 { return 0; }
     if streq(t, "ptr") == 1 { return 0; }
@@ -3447,6 +3595,26 @@ fn emit_stmt() -> i64 {
             if rk == 1 && cf_find_fn(&POOL + TS[TI + 3]) < 0 { okc = 1; }
         }
         if okc == 1 {
+        # v1.1206: RHS = Enum.Variant(...) 构造 → 推断为 tagged struct 值类型
+        let evlet: i64 = 0 - 1;
+        if TK[TI + 3] == 1 && TK[TI + 4] == 5 && TK[TI + 5] == 1 && TK[TI + 6] == 5 && streq(&POOL + TS[TI + 4], ".") == 1 && streq(&POOL + TS[TI + 6], "(") == 1 {
+            let eh8: i64 = nm_hash(&POOL + TS[TI + 3]);
+            let dq8: i64 = 0;
+            while dq8 < NEVN { if EVNH[dq8] == eh8 { evlet = dq8; } dq8 = dq8 + 1; }
+            if evlet >= 0 && EVIN[evlet] == 0 { evlet = 0 - 1; }
+        }
+        if evlet >= 0 {
+            let nm8: i64 = stp_copy(&POOL + TS[TI + 1]);
+            TI = TI + 3;
+            outs(EVN[evlet]);
+            outs("_t ");
+            outs(nm8);
+            outs(" = ");
+            emit_expr();
+            expect_op(";");
+            semi();
+            return 0;
+        }
         # v1.1205: let 推断 let a = expr;（265）—— 无 ':' 类型。TI 在 let，TI+1=NAME，TI+2='='
         let nm: i64 = stp_copy(&POOL + TS[TI + 1]);
         TI = TI + 3;   # 吃 let、NAME、'='——TI 到 RHS（nm 取 TI+1 的名字）
@@ -4029,10 +4197,23 @@ fn emit_global() -> i64 {
     return 0;
 }
 
+var STH: [256] i64 = 0;
+var NSTH: i64 = 0;
 # 结构体
 fn emit_struct() -> i64 {
     let nm: i64 = ident();
     if is_c_like() == 1 {
+        # v1.1206: 防重发（pass0 预收集双跑）
+        let shh: i64 = nm_hash(nm);
+        let shq: i64 = 0;
+        let shdup: i64 = 0;
+        while shq < NSTH { if STH[shq] == shh { shdup = 1; } shq = shq + 1; }
+        if shdup == 1 {
+            # 已发过：只吃 body，不发
+            skip_balanced();
+            return 0;
+        }
+        if NSTH < 256 { STH[NSTH] = shh; NSTH = NSTH + 1; }
         outs("typedef struct ");
         outs(nm);
         outs("_t {\n");
@@ -4281,7 +4462,9 @@ fn emit_sig() -> i64 {
                             if streq(t, "str") == 1 { strcat(&ps, "unsigned char*"); tk = 1; }
                             else {
                             # struct 形参：moc 语义是引用（self.x=… 对调用方可见）。
-                            strcat(&ps, "struct "); strcat(&ps, t); strcat(&ps, "_t*");
+                            # v1.1206: tagged enum 形参 → Shape_t*（typedef，非 struct tag）
+                            if ev_struct_ty(t) == 1 { strcat(&ps, t); strcat(&ps, "_t*"); }
+                            else { strcat(&ps, "struct "); strcat(&ps, t); strcat(&ps, "_t*"); }
                             if NTRS < 64 { PTRS[NTRS] = stp_copy(pn); NTRS = NTRS + 1; }
                             clsv_add(pn, t);   # 方法接收者也可 .method()
                             tk = 5;   # v1.1199: struct 形参 → 调用点取址
@@ -4301,9 +4484,8 @@ fn emit_sig() -> i64 {
             # v1.1199: 形参默认值 `= 数字` → FSGD 表，调用点缺实参补默认
             if reg >= 0 && is_op("=") == 1 {
                 TI = TI + 1;
-                let dv: i64 = 0;
-                if cur_k() == 2 { dv = atoi(cur_s()); TI = TI + 1; }
-                else { if cur_k() == 5 && (tok_c(TI) == 45) { TI = TI + 1; dv = 0 - atoi(cur_s()); TI = TI + 1; } }
+                # v1.1206: 默认值支持常量表达式（0 - 5 等）——cns_expr 求值
+                let dv: i64 = cns_expr();
                 FSGD[reg * 8 + FSGC[reg] - 1] = dv;
                 FSGDH[reg] = FSGC[reg];   # 从该索引起全部有默认
             }
@@ -4364,7 +4546,11 @@ fn emit_sig() -> i64 {
                         if streq(rt, "ptr") == 1 { outs("unsigned char* "); }
                         else {
                             if streq(rt, "str") == 1 { outs("unsigned char* "); }
-                            else { outs("struct "); outs(rt); outs("_t "); }
+                            else {
+                                # v1.1206: tagged enum 返回 → Sh_t（无 struct tag）
+                                if ev_struct_ty(rt) == 1 { outs(rt); outs("_t "); }
+                                else { outs("struct "); outs(rt); outs("_t "); }
+                            }
                         }
                     }
                 }
@@ -5990,6 +6176,25 @@ fn pass_file(i: i64, kind: i64) -> i64 {
                         let enm: i64 = 0;
                         if cur_k() == 1 { enm = ident(); }
                         expect_op("{");
+                        if kind == 9 {
+                            # v1.1206: tagged decls pass —— EVIN enum 前置发 typedef
+                            let ehh9: i64 = 0;
+                            if enm != 0 { ehh9 = nm_hash(enm); } else { ehh9 = nm_hash(cur_s()); }
+                            let evx9: i64 = 0 - 1;
+                            let dq9b: i64 = 0;
+                            while dq9b < NEVN { if EVNH[dq9b] == ehh9 { evx9 = dq9b; } dq9b = dq9b + 1; }
+                            if evx9 >= 0 && EVIN[evx9] == 1 && EVEM[evx9] == 0 {
+                                outs("typedef struct ");
+                                outs(EVN[evx9]);
+                                outs(" { long long tag; long long _0; long long _1; long long _2; long long _3; } ");
+                                outs(EVN[evx9]);
+                                outs("_t;\n");
+                                EVEM[evx9] = 1;   # 后续发射轮跳过（防重发）
+                            }
+                            while is_op("}") == 0 { TI = TI + 1; }
+                            expect_op("}");
+                            continue;
+                        }
                         if kind != 3 {
                             # 收集/前向轮：只注册成员常量；enum 名进 ENMH（is_struct_ty 排除用）
                             if enm != 0 {
@@ -6000,9 +6205,54 @@ fn pass_file(i: i64, kind: i64) -> i64 {
                                 if NENUMN < 64 { ENUMN[NENUMN] = stp_copy(&enb); NENUMN = NENUMN + 1; }
                             }
                             let ev0: i64 = 0;
+                            # v1.1206: enum 名 → EVN/EVIN 登记（带参变体时为 tagged struct）
+                            let eidx0: i64 = 0 - 1;
+                            if enm != 0 {
+                                let eh6: i64 = nm_hash(enm);
+                                let dq6: i64 = 0;
+                                while dq6 < NEVN { if EVNH[dq6] == eh6 { eidx0 = dq6; } dq6 = dq6 + 1; }
+                                if eidx0 < 0 && NEVN < 64 { EVN[NEVN] = stp_copy(enm); EVNH[NEVN] = eh6; EVCN[NEVN] = 0; EVIN[NEVN] = 0; eidx0 = NEVN; NEVN = NEVN + 1; }
+                            }
                             while is_op("}") == 0 {
                                 let menm0: i64 = cur_s();
                                 TI = TI + 1;
+                                # v1.1206: 带参变体 Name(T1, T2);
+                                if is_op("(") == 1 {
+                                    TI = TI + 1;
+                                    let fc6: i64 = 0;
+                                    let vdup6: i64 = 0 - 1;
+                                    if eidx0 >= 0 {
+                                        let vq7: i64 = 0;
+                                        while vq7 < EVCN[eidx0] { if streq(EVTN[eidx0 * 8 + vq7], menm0) == 1 { vdup6 = vq7; } vq7 = vq7 + 1; }
+                                    }
+                                    if vdup6 < 0 && eidx0 >= 0 && EVCN[eidx0] < 8 {
+                                        let vv6: i64 = EVCN[eidx0];
+                                        EVTN[eidx0 * 8 + vv6] = stp_copy(menm0);
+                                        while is_op(")") == 0 {
+                                            # 字段类型：跳过数组维，取类型名
+                                            let fk6: i64 = 0;
+                                            while is_op("[") == 1 { skip_brackets(); }
+                                            let tn6: i64 = 0;
+                                            if cur_k() == 1 {
+                                                tn6 = cur_s(); TI = TI + 1;
+                                                if streq(tn6, "i64") == 1 || streq(tn6, "i32") == 1 || streq(tn6, "u64") == 1 { fk6 = 0; }
+                                                else { if streq(tn6, "f64") == 1 { fk6 = 3; } else { if streq(tn6, "byte") == 1 || streq(tn6, "u8") == 1 { fk6 = 2; } else { fk6 = 1; } } }
+                                            }
+                                            if eidx0 >= 0 && fc6 < 4 { EVFK[eidx0 * 32 + vv6 * 4 + fc6] = fk6; }
+                                            fc6 = fc6 + 1;
+                                            if is_op(",") == 1 { TI = TI + 1; }
+                                        }
+                                        expect_op(")");
+                                        EVFC[eidx0 * 8 + vv6] = fc6;
+                                        EVIN[eidx0] = 1;
+                                        EVCN[eidx0] = vv6 + 1;
+                                    } else {
+                                        while is_op(")") == 0 { TI = TI + 1; }
+                                        expect_op(")");
+                                    }
+                                    accept_op(";");
+                                    continue;
+                                }
                                 let mev0: i64 = ev0;
                                 if accept_op("=") == 1 { mev0 = cns_expr(); }
                                 if NCNS < 256 {
@@ -6039,6 +6289,33 @@ fn pass_file(i: i64, kind: i64) -> i64 {
                         while dq9 < NENMH { if ENMH[dq9] == ehh { edup = 1; } dq9 = dq9 + 1; }
                         if edup == 0 {
                         if NENMH < 64 { ENMH[NENMH] = ehh; NENMH = NENMH + 1; }
+                        # v1.1206: 含带参变体 → 发 tagged struct（成员 _0.._3 全变体共享槽）
+                        let evx: i64 = 0 - 1;
+                        let dqx: i64 = 0;
+                        while dqx < NEVN { if EVNH[dqx] == ehh { evx = dqx; } dqx = dqx + 1; }
+                        if evx >= 0 && EVIN[evx] == 1 && EVEM[evx] == 0 {
+                            # 跳过变体 body（到配平 '}'）
+                            while is_op("}") == 0 { TI = TI + 1; }   # 吃掉变体 body（enum body 无嵌套 '{'）
+                            expect_op("}");
+                            outs("typedef struct ");
+                            outs(EVN[evx]);
+                            outs(" { long long tag; ");
+                            let fkx: i64 = 0;
+                            while fkx < 4 {
+                                outs("long long _"); outi(fkx); outs("; ");
+                                fkx = fkx + 1;
+                            }
+                            outs("} ");
+                            outs(EVN[evx]);
+                            outs("_t;\n");
+                            EVEM[evx] = 1;   # v1.1206: 防重发
+                            continue;
+                        }
+                        if evx >= 0 && EVIN[evx] == 1 {
+                            while is_op("}") == 0 { TI = TI + 1; }
+                            expect_op("}");
+                            continue;   # 已发 tagged struct（防重发）
+                        }
                         outs("enum { ");
                         let ev: i64 = 0;
                         let ef: i64 = 1;
@@ -7658,12 +7935,20 @@ fn main() -> i64 {
     OPO = 0;
     add_file(argv(1));
     if is_gen() == 0 { prescan_lambdas(); }   # v1.1166: C 系 —— emit_header 前收集 lambda
+    # v1.1206: 预收集轮（EVIN/EVTN 登记）+ tagged typedef 前置（全局 var 用）
+    let ip0: i64 = 0;
+    while ip0 < NF { pass_file(ip0, 0); ip0 = ip0 + 1; }
+    let ip9: i64 = 0;
+    while ip9 < NF { pass_file(ip9, 9); ip9 = ip9 + 1; }
     if is_gen() == 1 { g_header(); } else { emit_header(); }
     if is_gen() == 0 { emit_lambda_decls(); } # 前向声明（K&R 兼容原型）紧跟 header
     let i: i64 = 0;
     while i < NF { pass_file(i, 0); i = i + 1; }
     let j: i64 = 0;
     while j < NF { pass_file(j, 1); j = j + 1; }
+    # v1.1206: tagged enum typedef 前置（收集轮之后、发射轮之前，EVIN 已登记）
+    let i9: i64 = 0;
+    while i9 < NF { pass_file(i9, 9); i9 = i9 + 1; }
     let k: i64 = 0;
     while k < NF { pass_file(k, 2); k = k + 1; }
     let m: i64 = 0;
@@ -7869,9 +8154,15 @@ fn emit_match(isexpr: i64) -> i64 {
     let msv: i64 = 0;
     if cur_k() == 1 && clsv_find(cur_s()) != 0 {
         msv = 1;
+        # v1.1206: tagged enum 主体 → Shape_t __mv（无 struct tag）
+        if ev_struct_ty(clsv_find(cur_s())) == 1 {
+            outs(clsv_find(cur_s()));
+            outs("_t __mv = (");
+        } else {
         outs("struct ");
         outs(clsv_find(cur_s()));
         outs("_t __mv = (");
+        }
         # struct 指针形参（FSGK tk=5）→ 解引用
         if ptr_find(cur_s()) == 1 { outs("*"); }
         emit_expr();
@@ -7898,6 +8189,25 @@ fn emit_match(isexpr: i64) -> i64 {
                     if streq(nb, "_") == 0 && st_find(nb) < 0 { mbn_add(nb); }
                 }
             }
+            if TK[TI] == 1 && TK[TI + 1] == 1 && TI + 1 < NT && streq(&POOL + TS[TI + 1], "if") == 1 {
+                let nb2: i64 = &POOL + TS[TI];
+                if streq(nb2, "_") == 0 { mbn_add(nb2); }
+            }
+            # v1.1206: 变体模式 `Variant(b1, b2)` 预扫绑定
+            if TK[TI] == 1 && TK[TI + 1] == 5 && TI + 1 < NT && streq(&POOL + TS[TI + 1], "(") == 1 {
+                let pv: i64 = TI + 2;
+                let dpv: i64 = 0;
+                while pv < NT {
+                    if TK[pv] == 5 {
+                        let spv: i64 = &POOL + TS[pv];
+                        if dpv == 0 && streq(spv, ")") == 1 { break; }
+                        if streq(spv, "(") == 1 { dpv = dpv + 1; }
+                        if streq(spv, ")") == 1 { dpv = dpv - 1; }
+                    }
+                    if TK[pv] == 1 && dpv >= 0 && streq(&POOL + TS[pv], "_") == 0 { mbn_add(&POOL + TS[pv]); }
+                    pv = pv + 1;
+                }
+            }
             TI = TI + 1;
         }
         TI = svb;
@@ -7918,6 +8228,7 @@ fn emit_match(isexpr: i64) -> i64 {
     if cur_k() == 3 { strex = 1; }
     let mfirst: i64 = 1;
     while is_op("}") == 0 {
+        let bindg: i64 = 0;
         let isdef: i64 = 0;
         if cur_k() == 1 && streq(cur_s(), "_") == 1 { isdef = 1; TI = TI + 1; }
         if mfirst == 0 { outs(" else "); }
@@ -7945,12 +8256,58 @@ fn emit_match(isexpr: i64) -> i64 {
                 outs("\") == 0");
                 TI = TI + 1;
             } else {
-                outs("__mv == ");
-                if cur_k() == 2 { outs(cur_s()); TI = TI + 1; }
-                else { outi(cns_expr()); }
+                if cur_k() == 2 { outs("__mv == "); outs(cur_s()); TI = TI + 1; }
+                else {
+                    # v1.1206: 变体模式 `Variant(b1, b2)` → __mv.tag==v && 绑定=__mv._N
+                    if cur_k() == 1 && TK[TI + 1] == 5 && streq(&POOL + TS[TI + 1], "(") == 1 {
+                        let vmn: i64 = 0 - 1;
+                        let vmv: i64 = 0 - 1;
+                        let vme: i64 = 0;
+                        while vme < NEVN {
+                            let vq3: i64 = 0;
+                            while vq3 < EVCN[vme] {
+                                if streq(EVTN[vme * 8 + vq3], cur_s()) == 1 { vmn = vme; vmv = vq3; }
+                                vq3 = vq3 + 1;
+                            }
+                            vme = vme + 1;
+                        }
+                        if vmn >= 0 {
+                            TI = TI + 2;   # 吃 变体名 与 '('
+                            outs("( __mv.tag == ");
+                            outi(vmv);
+                            let fb6: i64 = 0;
+                            while fb6 < EVFC[vmn * 8 + vmv] && is_op(")") == 0 {
+                                if TK[TI] == 1 && streq(&POOL + TS[TI], "_") == 0 {
+                                    mbn_add(cur_s());
+                                    outs(" && ((");
+                                    outs(cur_s());
+                                    outs(" = __mv._");
+                                    outi(fb6);
+                                    outs(", 1))");
+                                }
+                                TI = TI + 1;
+                                if is_op(",") == 1 { TI = TI + 1; }
+                                fb6 = fb6 + 1;
+                            }
+                            expect_op(")");
+                            outs(") ");
+                        } else { outi(cns_expr()); }
+                    } else {
+                    if cur_k() == 1 && TK[TI + 1] >= 0 && TK[TI + 1] < NT && TK[TI + 1] == 1 && streq(&POOL + TS[TI + 1], "if") == 1 {
+                        # v1.1206: 绑定模式 `y if cond` —— y 已在 match 顶部声明（NMBN），此处赋值+守卫
+                        bindg = 1;
+                        mbn_add(cur_s());
+                        outs("(({ ");
+                        outs(cur_s());
+                        outs(" = __mv; 1; }))");
+                        TI = TI + 1;   # 只吃 名字；'if' 交守卫分支
+                    }
+                    else { outi(cns_expr()); }
+                    }
+                }
             }
             }
-            # 守卫 if cond（281）
+            # 守卫 if cond（281）；v1.1206: 绑定模式 bindg=1 时条件恒真，守卫照常发射
             if accept_kw("if") == 1 {
                 outs(" && (");
                 emit_expr();
