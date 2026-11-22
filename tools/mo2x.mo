@@ -1719,10 +1719,13 @@ fn emit_primary() -> i64 {
                 if fi3 >= 0 && FSGK[fi3 * 8 + ai3] == 5 && is_op("&") == 1 { amp5 = 1; TI = TI + 1; outs("(unsigned char*)&"); }
                 if fi3 >= 0 && FSGK[fi3 * 8 + ai3] == 1 && amp5 == 0 { outs("(unsigned char*)"); }
                 if fi3 >= 0 && FSGK[fi3 * 8 + ai3] == 0 && amp5 == 0 { outs("(long long)("); }
-                if fi3 >= 0 && FSGK[fi3 * 8 + ai3] == 5 && amp5 == 0 { outs("&("); }
+                # v1.1216: 实参自身是本函数 struct 引用形参（ptr_find）→ 已是指针，不再取址（90 Arena_str(self)→Arena_alloc(self)）
+                let rself5: i64 = 0;
+                if fi3 >= 0 && FSGK[fi3 * 8 + ai3] == 5 && amp5 == 0 && cur_k() == 1 && ptr_find(cur_s()) == 1 { rself5 = 1; }
+                if fi3 >= 0 && FSGK[fi3 * 8 + ai3] == 5 && amp5 == 0 && rself5 == 0 { outs("&("); }
                 emit_expr();
                 if fi3 >= 0 && FSGK[fi3 * 8 + ai3] == 0 && amp5 == 0 { outs(")"); }
-                if fi3 >= 0 && FSGK[fi3 * 8 + ai3] == 5 && amp5 == 0 { outs(")"); }
+                if fi3 >= 0 && FSGK[fi3 * 8 + ai3] == 5 && amp5 == 0 && rself5 == 0 { outs(")"); }
                 ai3 = 1;
                 while accept_op(",") == 1 {
                     outs(",");
@@ -1730,10 +1733,12 @@ fn emit_primary() -> i64 {
                     if fi3 >= 0 && FSGK[fi3 * 8 + ai3] == 5 && is_op("&") == 1 { amp6 = 1; TI = TI + 1; outs("(unsigned char*)&"); }
                     if fi3 >= 0 && FSGK[fi3 * 8 + ai3] == 1 && amp6 == 0 { outs("(unsigned char*)"); }
                     if fi3 >= 0 && FSGK[fi3 * 8 + ai3] == 0 && amp6 == 0 { outs("(long long)("); }
-                    if fi3 >= 0 && FSGK[fi3 * 8 + ai3] == 5 && amp6 == 0 { outs("&("); }
+                    let rself6: i64 = 0;
+                    if fi3 >= 0 && FSGK[fi3 * 8 + ai3] == 5 && amp6 == 0 && cur_k() == 1 && ptr_find(cur_s()) == 1 { rself6 = 1; }
+                    if fi3 >= 0 && FSGK[fi3 * 8 + ai3] == 5 && amp6 == 0 && rself6 == 0 { outs("&("); }
                     emit_expr();
                     if fi3 >= 0 && FSGK[fi3 * 8 + ai3] == 0 && amp6 == 0 { outs(")"); }
-                    if fi3 >= 0 && FSGK[fi3 * 8 + ai3] == 5 && amp6 == 0 { outs(")"); }
+                    if fi3 >= 0 && FSGK[fi3 * 8 + ai3] == 5 && amp6 == 0 && rself6 == 0 { outs(")"); }
                     ai3 = ai3 + 1;
                 }
             }
@@ -2877,7 +2882,17 @@ fn emit_prec(minp: i64) -> i64 {
             }
         }
     }
-    if mdone == 0 { emit_unary(); }
+    if mdone == 0 {
+        # v1.1216: `ptr % int`（90 p3 % 16）—— LHS ptr 局部变量紧跟 '%' → 包 (long long)。
+        # 紧贴 LHS 的局部判定（非顶部预扫——顶部预扫会破坏 uic.mo 解析，两次实证禁区）。
+        if is_c_like() == 1 && cur_k() == 1 && ptrv_find(cur_s()) == 1 && TK[TI + 1] == 5 && streq(&POOL + TS[TI + 1], "%") == 1 {
+            outs("((long long)");
+            emit_unary();
+            outs(")");
+        } else {
+            emit_unary();
+        }
+    }
     while 1 {
         let p: i64 = binprec();
         # v1.1199: 三元 cond ? a : b（C 原生；右结合=右侧走完整 emit_prec(1)）

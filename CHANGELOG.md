@@ -11464,3 +11464,10 @@ mo2x uic component DSL 展开 + 版本号规范：
 - 93_interface：接口方法动态分派接入 C 后端（原仅 freestanding）
 - 294_verifysha：局部变量 `match` 赋值不再被 match 语句吞掉（三处守门）
 - 门禁 514/0; 批测 GENFAIL 23→1（残余=90 p3%16 预扫禁区类）
+
+
+## v1.1218.0
+- 🔴 批测 GENFAIL 清零（459 项全绿）：
+- 90_arena_leak 双修复：①ptr % int（p3 % 16）在 emit_unary 调用点紧贴 LHS 局部包 (long long)（非顶部预扫——预扫禁区仍成立）；②struct 引用形参作实参且自身已是引用形参时不再双重取址 &(...)（Arena_str→Arena_alloc(self) segv）
+- 294_verifysha：局部变量 match 赋值守门（match 后 '=' 单等 → 变量赋值而非 match 语句）
+- 门禁 514/0; 批测 GENFAIL 1→0, mismatch 1（321 已知）
