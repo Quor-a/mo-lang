@@ -1196,6 +1196,9 @@ fn emit_primary() -> i64 {
         }
         let nm: i64 = cur_s();
         TI = TI + 1;
+        # v1.1216: bool 字面量 true/false → 1/0（89；此前发 C true 未定义）
+        if streq(nm, "true") == 1 { outs("1"); return 0; }
+        if streq(nm, "false") == 1 { outs("0"); return 0; }
         # v1.1211: sizeof([N] T)/alignof([N] T)（197/198）
         if (streq(nm, "sizeof") == 1 || streq(nm, "alignof") == 1) && is_op("(") == 1 && TK[TI + 1] == 5 && streq(&POOL + TS[TI + 1], "[") == 1 {
             let isal7: i64 = streq(nm, "alignof");
@@ -2970,7 +2973,8 @@ fn peek_builtin_fn() -> i64 {
     if streq(nm, "eprint_nl") == 1 { r = 1; }
     if streq(nm, "print_nl") == 1 { r = 1; }
     if streq(nm, "print_hex") == 1 { r = 1; }
-    if streq(nm, "exit") == 1 { r = 1; }
+    # v1.1216: exit 仅 freestanding 由前导提供；C 系 exit 是 libc_clash → mo_exit（net.mo 定义须发射，282_netx）
+    if streq(nm, "exit") == 1 && TGT == T_FS { r = 1; }
     if streq(nm, "argc") == 1 { r = 1; }
     if streq(nm, "argv") == 1 { r = 1; }
     # freestanding（cfs-*）：前导已给出 static strlen/atoi/memset/memcpy。
@@ -3009,6 +3013,12 @@ fn emit_scalar(t: i64) -> i64 {
     }
     if streq(t, "i32") == 1 {
         if is_c_like() == 1 { outs("int"); return 0; }
+    }
+    # v1.1216: bool 类型 → long long（89；此前落 struct bool_t 未定义）
+    if streq(t, "bool") == 1 {
+        if is_c_like() == 1 { outs("long long"); return 0; }
+        outs("0");
+        return 0;
     }
     # str：Mo 的字符串类型（moc 内建）—— C 系即 unsigned char*。
     # 此前不认识 → `let zh: str = "..."` 发射 `struct str_t` → 编译失败。
@@ -3365,7 +3375,12 @@ fn semi() -> i64 {
 # 判断当前语句是不是赋值（只扫 token，不产生输出）
 fn is_assign_start() -> i64 {
     # v1.1202: 语句头是关键字时绝不当赋值。
-    if is_kw("let") == 1 || is_kw("const") == 1 || is_kw("return") == 1 || is_kw("if") == 1 || is_kw("while") == 1 || is_kw("for") == 1 || is_kw("match") == 1 || is_kw("fn") == 1 { return 0; }
+    if is_kw("let") == 1 || is_kw("const") == 1 || is_kw("return") == 1 || is_kw("if") == 1 || is_kw("while") == 1 || is_kw("for") == 1 || is_kw("fn") == 1 { return 0; }
+    # v1.1216: 局部变量 match 赋值 `match = 1`（294）—— '=' 单等 → 按赋值处理
+    if is_kw("match") == 1 {
+        if TK[TI + 1] == 5 && load8(&POOL + TS[TI + 1]) == 61 && TK[TI + 2] != 5 { return 1; }   # 局部变量 match 赋值（294）
+        return 0;   # match 语句由 emit_stmt match 分支处理
+    }
     let save: i64 = TI;
     let r: i64 = 0;
     if cur_k() == 1 {
@@ -4493,8 +4508,16 @@ fn emit_stmt() -> i64 {
         return 0;
     }
     if is_kw("match") == 1 {
-        # v1.1205: match 语句统一走 emit_match(0)（数字/const/字符串模式 + 守卫 if + 语句/值臂）
-        return emit_match(0);
+        # v1.1216: 局部变量 match 赋值 `match = 1`（294）——'=' 后继非主体起点 → 不是 match 语句
+        let nk294: i64 = TK[TI + 1];
+        let ismx294: i64 = 0;
+        if nk294 == 2 || nk294 == 3 { ismx294 = 1; }
+        if nk294 == 1 { ismx294 = 1; }
+        if nk294 == 5 && load8(&POOL + TS[TI + 1]) == 40 { ismx294 = 1; }
+        if ismx294 == 1 {
+            # v1.1205: match 语句统一走 emit_match(0)（数字/const/字符串模式 + 守卫 if + 语句/值臂）
+            return emit_match(0);
+        }
     }
 
     if is_kw("let") == 1 {
@@ -5784,7 +5807,7 @@ fn emit_sig() -> i64 {
         else {
             if streq(rt, "f64") == 1 { CURRTK = 3; }
             else {
-                if streq(rt, "i64") == 1 { CURRTK = 0; }
+                if streq(rt, "i64") == 1 || streq(rt, "bool") == 1 { CURRTK = 0; }   # v1.1216: bool=标量（89）
                 else { CURRTK = 4; CURRTS = rt; }
             }
         }
@@ -5796,7 +5819,8 @@ fn emit_sig() -> i64 {
         else if rt != 0 {
             if streq(rt, "i64") == 1 { outs("long long "); }
             else {
-                if streq(rt, "i32") == 1 { outs("int "); }
+                if streq(rt, "bool") == 1 { outs("int "); }   # v1.1216: bool 返回 → int（89；原落 struct bool_t 未定义）
+                else { if streq(rt, "i32") == 1 { outs("int "); }
                 else {
                 if streq(rt, "byte") == 1 { outs("unsigned char "); }
                 else {
@@ -5822,6 +5846,7 @@ fn emit_sig() -> i64 {
                             }
                         }
                     }
+                }
                 }
                 }
             }
@@ -9605,7 +9630,11 @@ fn arm_is_stmt() -> i64 {
     if streq(cur_s(), "if") == 1 { return 1; }
     if streq(cur_s(), "while") == 1 { return 1; }
     if streq(cur_s(), "for") == 1 { return 1; }
-    if streq(cur_s(), "match") == 1 { return 1; }
+    if streq(cur_s(), "match") == 1 {
+        # v1.1216: 局部变量名 match 的赋值 `match = 1`（294）——match 后 '=' 且非 '==' → 不是 match 表达式
+        if TK[TI + 1] == 5 && load8(&POOL + TS[TI + 1]) == 61 && TK[TI + 2] != 5 { return 0; }
+        return 1;
+    }
     return 0;
 }
 

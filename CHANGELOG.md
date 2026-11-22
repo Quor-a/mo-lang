@@ -11456,3 +11456,11 @@ mo2x uic component DSL 展开 + 版本号规范：
 - 批测修复：str 链式 scat_cat 嵌套（130）、+= str 守门（35/48/52 回归）、局部 str 字面量副本 [64]/len+64（263_jsonx 自伤回归）、len(ptr)=strlen、0x 字面量直发、超小浮点 0.0 口径（127）
 - 批测 gcc 加 -latomic（116_mopkg/260_aioclient）
 - 门禁 514/0; 批测 GENFAIL 34→24（可修项清零；余 netx 22+89+90 已知类）
+
+
+## v1.1217.0
+- 🔴 netx 网络簇 22 项全部转绿：`exit` 被视作后端内建 → lib/net.mo 的 `fn exit` 定义被静默吞掉 → 调用点 mo_exit 无定义链接失败。修 = exit 仅 freestanding 内建；C 系走 libc_clash 改名 mo_exit，库定义正常发射
+- 89_bool_enum：bool 类型四处映射（返回 → int、变量 → long long、true/false → 1/0、return kind 标量）
+- 93_interface：接口方法动态分派接入 C 后端（原仅 freestanding）
+- 294_verifysha：局部变量 `match` 赋值不再被 match 语句吞掉（三处守门）
+- 门禁 514/0; 批测 GENFAIL 23→1（残余=90 p3%16 预扫禁区类）
