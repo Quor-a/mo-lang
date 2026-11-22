@@ -11432,3 +11432,18 @@ mo2x uic component DSL 展开 + 版本号规范：
 - let 推断 struct 值：RHS 为 struct 字面量 `P { ... }` / struct 变量 / 返回 struct 的调用 → 声明 struct 并块拷（270、271）
 - FSRT 表：函数签名收集时记录返回 struct 类型名，供推断 let 探测
 - 门禁 514/0; 批测 GENFAIL 90→88
+
+## v1.1215.0
+- 二元 in / not in（str/数组/二维，299~304、257）：emit_prec 顶部预扫；str in str=strstr；ARREL 元素类型分派；INMODE 污染口径复刻（moc 兼容）
+- for-in 五形态（268/273/277/306/267）：range、字符串、行下标、行变量（FORROW 表）、二维；ARRDIM 外维优先修复
+- enum 簇（148/227/235/298/226/236/143）：收集轮 const 注册、限定名折叠（emit_postfix 顶部）、形参/返回/全局 enum→long long、语句级 enum 就地注册发射
+- fnptr 数组元素调用（183/184）：emit_postfix '[' 前预扫 → cast-call
+- 数组字面量（217/218/316/318）：C99 复合字面量 + CURREL 返回元素类型 + 嵌套平铺
+- component DSL 补齐（124/125/127/130/131/133/231）：default（数值/字符串）、on_click/on_hover、fmt hex、prefix、title
+- tagged match（326/327/328/331/333）：clsv||ENUMN 分派、带参 enum 形参指针解引用
+- cns_expr &&/||（164）；len() 扩展（305）
+- try/catch（352/355/357）：setjmp/longjmp 守卫，mo_oob/panic/assert 全版本 helper 加 longjmp 出口（oob e=1、panic/assert e=2）
+- struct 解构（263）、数组解构行索引（259）
+- argc()/argv() 内建（329）；全局 struct 字面量初始化（274）
+- 🔴 riscv64 双缺陷修复（用户自评测 v1.1210.0）：①cfs-riscv64 头补 mo_oob/panic/assert_/setjmp 全套（此前漏发→链接失败）②_start 补 gp 初始化（.option norelax + la gp, __global_pointer$）——修复 gp=0 导致 ±2048 范围全局静默读写错乱；aarch64 头补 setjmp.h；argv 宏移至声明后
+- 门禁 514/0; 批测 GENFAIL 88→34（可修项清零，余为已知不修类）

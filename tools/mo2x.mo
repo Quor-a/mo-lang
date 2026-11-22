@@ -359,6 +359,7 @@ fn err(msg: i64) -> i64 {
     }
     syscall(1, 2, "'\n", 2, 0, 0, 0);
     syscall(1, 2, "\n", 1, 0, 0, 0);
+    if OBF == 1 { out_flush(); }
     syscall(60, 1, 0, 0, 0, 0, 0);
     return 0;
 }
@@ -811,6 +812,9 @@ var FSGH: [512] i64 = 0;
 var FSGC: [256] i64 = 0;
 var FSGK: [4096] i64 = 0;
 var FSRT: [256] i64 = 0;   # v1.1210: 函数返回 struct 类型名（推断 let 用）
+var CNAN: [256] i64 = 0;   # v1.1211: const 数组名池（防重发）
+var CAVN: [2048] i64 = 0;  # v1.1211: const 数组元素值（CNAN i 的第 j 元素 = CAVN[i*8+j]）
+var NCNAN: i64 = 0;
 var FSGR: [256] i64 = 0;
 var FSGD: [2048] i64 = 0;   # v1.1199: 形参默认值 FSGD[reg*8+idx]
 var FSGDH: [256] i64 = 0;   # v1.1199: reg 从该实参索引起有默认（0=无）
@@ -990,6 +994,8 @@ var ARRDIM: [2048] i64 = 0;
 # v1.1202: 解构行绑定 —— 二维数组声明时的内层维 + 绑定名标记
 var ARRDIM2: [2048] i64 = 0;
 var ARRW: [2048] i64 = 0;   # v1.1196: 各数组最外维（OOB 运行时检查用）
+var ARREL: [2048] i64 = 0;  # v1.1212: 数组元素类型（1=i64 2=f64 3=byte 0=其它/未知）
+var INMODE: i64 = 0;        # v1.1212: moc 兼容 —— str 数组 in 求值后，后续标量 in 均按 strcmp 比较（moc 副作用复刻）
 var EMITFH: [256] i64 = 0;   # v1.1198: 已发函数名 hash（跨文件重复定义去重）
 var ENMH: [64] i64 = 0;      # v1.1200: 已发射 enum 名 hash（成员是 C 全局标识符，重发=重定义）
 # v1.1206: enum 带数据变体（tagged union）
@@ -1016,6 +1022,18 @@ var PCAST_OPEN: i64 = 0;   # v1.1198: int-ptr 混合 cast 闭括号旗标    # e
 # FSGH[i]=名哈希, FSGC[i]=参数个数, FSGK[i*8+j]=参数 j kind（0=i64,1=ptr,2=byte,3=f64,4=其他）,
 var CURRTK: i64 = 4;
 var CURRTS: i64 = 0;   # v1.1199: 当前函数 struct 返回类型名（CURRTK==4 时）
+var CURREL: i64 = 1;   # v1.1213: 当前上下文数组字面量元素类型（1=i64 3=byte）
+var ROWRHS: i64 = 0;   # v1.1214: 解构 RHS 行索引 token 位置（-1=无，先置 0 由调用点写）
+var MJN: i64 = 0;   # v1.1214: try/catch setjmp 层深（0=无 try）
+var CURK: i64 = 0;   # 当前 pass 轮次（pass_file 设置）
+var CFDV: [16] i64 = 0;   # v1.1213: component 字段 default 值
+var CFDH: [16] i64 = 0;   # v1.1213: component 字段有 default 标志
+var CFDS: [16] i64 = 0;   # v1.1213: component 字段 default 字符串（TS 偏移）
+var CFDBUF: [1024] byte = 0;   # v1.1213: component default 字符串缓冲（每字段 64B）
+var CFHV: [16] i64 = 0;   # v1.1213: component on_hover 回调名
+var CFFM: [16] i64 = 0;   # v1.1213: component fmt（1=hex）
+var CFPP: [16] i64 = 0;   # v1.1213: component prefix 标志
+var CFCB: [16] i64 = 0;   # v1.1213: component 字段 on_click 回调名
 
 fn nm_hash(nm: i64) -> i64 {
     let h: i64 = 2166136261;
@@ -1029,6 +1047,61 @@ fn nm_hash(nm: i64) -> i64 {
 }
 
 fn emit_primary() -> i64 {
+    # v1.1213: 数组字面量 [a, b, ...] → C99 复合字面量（217/316/318）
+    if is_c_like() == 1 && cur_k() == 5 && load8(&POOL + TS[TI]) == 91 {
+        # 嵌套检测：配平本层内是否还有 '['（子数组）→ 平铺叶子元素（318）
+        let aj: i64 = TI + 1;
+        let ad: i64 = 1;
+        let anest: i64 = 0;
+        let arun: i64 = 1;
+        while arun == 1 {
+            if aj >= NT { arun = 0; }
+            if arun == 1 && ad <= 0 { arun = 0; }
+            if arun == 1 {
+                let ac2: i64 = 0;
+                if TK[aj] == 5 { ac2 = load8(&POOL + TS[aj]); }
+                if ac2 == 91 { anest = 1; }
+                if ac2 == 91 { ad = ad + 1; }
+                if ac2 == 93 { ad = ad - 1; }
+                aj = aj + 1;
+            }
+        }
+        TI = TI + 1;
+        if CURREL == 3 { outs("((unsigned char[])"); } else { outs("((long long[])"); }
+        outs("{ ");
+        if anest == 1 {
+            # 平铺：遇子数组递归展开其叶子
+            if is_op("]") == 0 {
+                if cur_k() == 5 && load8(&POOL + TS[TI]) == 91 {
+                    TI = TI + 1;
+                    if is_op("]") == 0 {
+                        emit_expr();
+                        while accept_op(",") == 1 { outs(", "); emit_expr(); }
+                    }
+                    expect_op("]");
+                } else { emit_expr(); }
+                while accept_op(",") == 1 {
+                    outs(", ");
+                    if cur_k() == 5 && load8(&POOL + TS[TI]) == 91 {
+                        TI = TI + 1;
+                        if is_op("]") == 0 {
+                            emit_expr();
+                            while accept_op(",") == 1 { outs(", "); emit_expr(); }
+                        }
+                        expect_op("]");
+                    } else { emit_expr(); }
+                }
+            }
+        } else {
+            if is_op("]") == 0 {
+                emit_expr();
+                while accept_op(",") == 1 { outs(", "); emit_expr(); }
+            }
+        }
+        expect_op("]");
+        outs(" })");
+        return 0;
+    }
     if cur_k() == 2 {
         # v1.1196: 移位左操作数字面量加 LL —— C 里 `1 << 63` 是 int 移位 UB，
         # mo 语义是 i64 wrap（lib/cms.mo cm_shr 的 (1 << (64-n))-1 实测坑：147_cbfcu）
@@ -1088,6 +1161,31 @@ fn emit_primary() -> i64 {
         }
         let nm: i64 = cur_s();
         TI = TI + 1;
+        # v1.1211: sizeof([N] T)/alignof([N] T)（197/198）
+        if (streq(nm, "sizeof") == 1 || streq(nm, "alignof") == 1) && is_op("(") == 1 && TK[TI + 1] == 5 && streq(&POOL + TS[TI + 1], "[") == 1 {
+            let isal7: i64 = streq(nm, "alignof");
+            TI = TI + 2;
+            let dim7: i64 = atoi(cur_s());
+            TI = TI + 1;
+            expect_op("]");
+            ident();
+            expect_op(")");
+            if isal7 == 1 { outs("8"); } else { outi(dim7 * 8); }
+            return 0;
+        }
+        # v1.1211: sizeof(X)/alignof(X)（X=struct 或标量类型名）→ sizeof(struct X_t)（201/185）
+        if (streq(nm, "sizeof") == 1 || streq(nm, "alignof") == 1) && is_op("(") == 1 && TK[TI + 1] == 1 {
+            let tn8: i64 = &POOL + TS[TI + 1];
+            if st_find(tn8) >= 0 || streq(tn8, "i64") == 1 || streq(tn8, "byte") == 1 || streq(tn8, "f64") == 1 || streq(tn8, "ptr") == 1 {
+                TI = TI + 2;
+                expect_op(")");
+                if streq(nm, "alignof") == 1 { outs("__alignof__("); } else { outs("sizeof("); }
+                if st_find(tn8) >= 0 { outs("struct "); outs(tn8); outs("_t"); }
+                else { outs(tn8); }
+                outs(")");
+                return 0;
+            }
+        }
         # v1.1206: enum 带数据变体构造 Enum.Variant(args) → tagged struct 字面量
         if is_op(".") == 1 && TK[TI + 1] == 1 {
             let evn: i64 = nm_hash(nm);
@@ -1259,12 +1357,40 @@ fn emit_primary() -> i64 {
             # （C 编译期常量；数组实参传参退化为指针的场景不受支持，与 moc 编译期语义一致——moc 也只在同作用域算）。
             if streq(nm, "len") == 1 {
                 TI = TI + 1;
+                # v1.1213: len(调用) / len(字符串字面量)（305）
+                if cur_k() == 3 {
+                    outs("((long long)strlen_((unsigned char*)");
+                    out_cstr(cur_s());
+                    outs("))");
+                    TI = TI + 1;
+                    expect_op(")");
+                    return 0;
+                }
+                if cur_k() == 1 && peek_op("(") == 1 {
+                    let lvn: i64 = 0;
+                    let lvv: i64 = 0;
+                    if strv_find(cur_s()) == 1 {
+                        lvn = 1; lvv = TS[TI];
+                    }
+                    if lvn == 1 {
+                        outs("((long long)strlen_((unsigned char*)");
+                        emit_expr();
+                        outs("))");
+                        expect_op(")");
+                        return 0;
+                    }
+                    outs("((long long)strlen_((unsigned char*)(");
+                    emit_expr();
+                    outs(")))");
+                    expect_op(")");
+                    return 0;
+                }
                 if cur_k() != 1 { return err("len() 实参必须是数组名"); }
                 let an: i64 = cur_s();
                 TI = TI + 1;
                 expect_op(")");
-                if strv_find(an) == 1 {
-                    # v1.1196: len(str) = 运行时 strlen（v1.1080 语义；str 变量不是数组）
+                if strv_find(an) == 1 || (ptrv_find(an) == 1 && arr_find(an) < 0) {
+                    # v1.1196/1.1213: len(str)/len(ptr) = 运行时 strlen（v1.1080 语义）
                     outs("((long long)strlen_((unsigned char*)");
                     outs(an);
                     outs("))");
@@ -1550,21 +1676,26 @@ fn emit_primary() -> i64 {
                 return 0;
             }
             if is_op(")") == 0 {
-                if fi3 >= 0 && FSGK[fi3 * 8 + ai3] == 1 { outs("(unsigned char*)"); }
-                if fi3 >= 0 && FSGK[fi3 * 8 + ai3] == 0 { outs("(long long)("); }
-                if fi3 >= 0 && FSGK[fi3 * 8 + ai3] == 5 { outs("&("); }
+                # v1.1211: struct 形参（kind5）实参已显式取址 &x → 不再包 &(...)（119）
+                let amp5: i64 = 0;
+                if fi3 >= 0 && FSGK[fi3 * 8 + ai3] == 5 && is_op("&") == 1 { amp5 = 1; TI = TI + 1; outs("(unsigned char*)&"); }
+                if fi3 >= 0 && FSGK[fi3 * 8 + ai3] == 1 && amp5 == 0 { outs("(unsigned char*)"); }
+                if fi3 >= 0 && FSGK[fi3 * 8 + ai3] == 0 && amp5 == 0 { outs("(long long)("); }
+                if fi3 >= 0 && FSGK[fi3 * 8 + ai3] == 5 && amp5 == 0 { outs("&("); }
                 emit_expr();
-                if fi3 >= 0 && FSGK[fi3 * 8 + ai3] == 0 { outs(")"); }
-                if fi3 >= 0 && FSGK[fi3 * 8 + ai3] == 5 { outs(")"); }
+                if fi3 >= 0 && FSGK[fi3 * 8 + ai3] == 0 && amp5 == 0 { outs(")"); }
+                if fi3 >= 0 && FSGK[fi3 * 8 + ai3] == 5 && amp5 == 0 { outs(")"); }
                 ai3 = 1;
                 while accept_op(",") == 1 {
                     outs(",");
-                    if fi3 >= 0 && FSGK[fi3 * 8 + ai3] == 1 { outs("(unsigned char*)"); }
-                    if fi3 >= 0 && FSGK[fi3 * 8 + ai3] == 0 { outs("(long long)("); }
-                    if fi3 >= 0 && FSGK[fi3 * 8 + ai3] == 5 { outs("&("); }
+                    let amp6: i64 = 0;
+                    if fi3 >= 0 && FSGK[fi3 * 8 + ai3] == 5 && is_op("&") == 1 { amp6 = 1; TI = TI + 1; outs("(unsigned char*)&"); }
+                    if fi3 >= 0 && FSGK[fi3 * 8 + ai3] == 1 && amp6 == 0 { outs("(unsigned char*)"); }
+                    if fi3 >= 0 && FSGK[fi3 * 8 + ai3] == 0 && amp6 == 0 { outs("(long long)("); }
+                    if fi3 >= 0 && FSGK[fi3 * 8 + ai3] == 5 && amp6 == 0 { outs("&("); }
                     emit_expr();
-                    if fi3 >= 0 && FSGK[fi3 * 8 + ai3] == 0 { outs(")"); }
-                    if fi3 >= 0 && FSGK[fi3 * 8 + ai3] == 5 { outs(")"); }
+                    if fi3 >= 0 && FSGK[fi3 * 8 + ai3] == 0 && amp6 == 0 { outs(")"); }
+                    if fi3 >= 0 && FSGK[fi3 * 8 + ai3] == 5 && amp6 == 0 { outs(")"); }
                     ai3 = ai3 + 1;
                 }
             }
@@ -1590,7 +1721,135 @@ fn emit_primary() -> i64 {
     return err("bad primary");
 }
 
+var AMP_OPEN: i64 = 0;     # v1.1211: 一元 & 作用于值 struct 局部 → postfix 发裸名
+var IN_OPEN: i64 = 0;      # v1.1212: 二元 in 预扫防递归
+
 fn emit_postfix() -> i64 {
+    # v1.1213: 限定名 E.B / Color.GREEN → const 表折叠（227/148）
+    if is_c_like() == 1 && cur_k() == 1 && TK[TI + 1] == 5 && load8(&POOL + TS[TI + 1]) == 46 && TK[TI + 2] == 1 {
+        let qnb: [128] byte = 0;
+        let qn1: i64 = 0;
+        let b1: i64 = &POOL + TS[TI];
+        while load8(b1 + qn1) != 0 { store8(&qnb + qn1, load8(b1 + qn1)); qn1 = qn1 + 1; }
+        store8(&qnb + qn1, 46); qn1 = qn1 + 1;
+        let b2: i64 = &POOL + TS[TI + 2];
+        let qn2: i64 = 0;
+        while load8(b2 + qn2) != 0 { store8(&qnb + qn1, load8(b2 + qn2)); qn1 = qn1 + 1; qn2 = qn2 + 1; }
+        store8(&qnb + qn1, 0);
+        let qfi: i64 = cns_find(&qnb);
+        if qfi >= 0 {
+            TI = TI + 3;
+            outi(CNSV[qfi]);
+            return 0;
+        }
+    }
+    # v1.1211: 预扫 IDENT '(' … ')' '.' method '(' —— 调用结果方法调用（87）
+    if is_c_like() == 1 && cur_k() == 1 && peek_op("(") == 1 {
+        let mci: i64 = TI + 2;
+        let mdep: i64 = 1;
+        while mci < NT && mdep > 0 {
+            if TK[mci] == 5 && streq(&POOL + TS[mci], "(") == 1 { mdep = mdep + 1; }
+            else { if TK[mci] == 5 && streq(&POOL + TS[mci], ")") == 1 { mdep = mdep - 1; } }
+            mci = mci + 1;
+        }
+        if mdep == 0 && mci + 2 < NT && TK[mci] == 5 && streq(&POOL + TS[mci], ".") == 1 && TK[mci + 1] == 1 && TK[mci + 2] == 5 && streq(&POOL + TS[mci + 2], "(") == 1 {
+            let mfn: i64 = fsg_find(cur_s());
+            if mfn >= 0 && FSRT[mfn] != 0 {
+                let mt: i64 = FSRT[mfn];
+                let meth: i64 = &POOL + TS[mci + 1];
+                outs("({ struct ");
+                outs(mt);
+                outs("_t __pst = ");
+                emit_primary();
+                outs("; ");
+                outs(mt);
+                outs("_");
+                outs(meth);
+                outs("((unsigned char*)&__pst);");
+                TI = mci + 3;   # method '(' 后首实参
+                if is_op(")") == 0 {
+                    outs(",");
+                    emit_expr();
+                    while accept_op(",") == 1 { outs(","); emit_expr(); }
+                }
+                expect_op(")");
+                outs("})");
+                return 0;
+            }
+        }
+    }
+    # v1.1213: 数组元素函数指针调用预扫 tbl[0](args)（183/184）
+    if is_c_like() == 1 && cur_k() == 1 && peek_op("[") == 1 {
+        let fpb: i64 = cur_s();
+        if arr_find(fpb) >= 0 || ptrv_find(fpb) == 1 {
+            # 配平 [..] 后查 '('
+            let fj: i64 = TI + 1;
+            let fd: i64 = 0;
+            let fstop: i64 = 0;
+            while fj < NT && fstop == 0 {
+                let fk2: i64 = TK[fj];
+                let fs2: i64 = &POOL + TS[fj];
+                if fk2 == 5 && load8(fs2) == 91 { fd = fd + 1; }
+                else {
+                    if fk2 == 5 && load8(fs2) == 93 {
+                        fd = fd - 1;
+                        if fd == 0 { fstop = 1; }
+                    }
+                }
+                fj = fj + 1;
+            }
+            # fj 停在 ']' 的下一个；检查 '('
+            let fok: i64 = 0;
+            if fstop == 1 { fok = 1; }
+            if fok == 1 && fj >= NT { fok = 0; }
+            if fok == 1 && TK[fj] != 5 { fok = 0; }
+            if fok == 1 && load8(&POOL + TS[fj]) != 40 { fok = 0; }
+            if fok == 1 {
+                # 预扫实参个数（fj 指向 '('）
+                let pj: i64 = fj + 1;
+                let pd: i64 = 0;
+                let pn: i64 = 0;
+                while pj < NT {
+                    let pk3: i64 = TK[pj];
+                    let ps3: i64 = &POOL + TS[pj];
+                    let c3: i64 = 0;
+                    if pk3 == 5 { c3 = load8(ps3); }
+                    if c3 == 40 { pd = pd + 1; }
+                    if c3 == 41 { if pd == 0 { break; } pd = pd - 1; }
+                    if pd == 0 && c3 == 44 { pn = pn + 1; }
+                    pj = pj + 1;
+                }
+                TI = TI + 2;   # 吃 基名+'['（此刻 cur = 下标表达式）
+                if pn > 0 { pn = pn + 1; }
+                else { if fj + 1 < NT { let c9: i64 = 0; if TK[fj + 1] == 5 { c9 = load8(&POOL + TS[fj + 1]); } if c9 != 41 { pn = 1; } } }
+                outs("((long long(*)(");
+                if pn == 0 { outs("void"); }
+                else {
+                    let na: i64 = 0;
+                    while na < pn { outs("long long"); if na + 1 < pn { outs(","); } na = na + 1; }
+                }
+                outs("))");
+                outs(fpb);
+                outs("[");
+                let sv_co13: i64 = CAST_OPEN;
+                CAST_OPEN = 0;
+                emit_expr();
+                CAST_OPEN = sv_co13;
+                expect_op("]");
+                outs("]");
+                outs(")");
+                TI = TI + 1;   # 吃 '('（实参在 fj 处：TI 现应指向第一个实参或 ')'）
+                outs("(");
+                if is_op(")") == 0 {
+                    emit_expr();
+                    while accept_op(",") == 1 { outs(","); emit_expr(); }
+                }
+                expect_op(")");
+                outs(")");
+                return 0;
+            }
+        }
+    }
     # v1.1203: 切片预扫 IDENT '[' a '..' b ']' —— 必须在 primary 发出基名之前拦截
     if is_c_like() == 1 && cur_k() == 1 && peek_op("[") == 1 {
         let sb0: i64 = cur_s();
@@ -1845,7 +2104,7 @@ fn emit_postfix() -> i64 {
     }
     # v1.1199: typed ptr（ptr T）字段访问 p.f → ((struct T_t*)p)->f。
     # 必须在 emit_primary 输出前识别（输出流无法截回）。
-    if is_c_like() == 1 && cur_k() == 1 && ptrv_find(cur_s()) == 1 && peek_op(".") == 1 {
+    if is_c_like() == 1 && cur_k() == 1 && ptrv_find(cur_s()) == 1 && peek_op(".") == 1 && clsv_ty(cur_s()) == 0 {
         let et: i64 = ptelm_get(cur_s());
         if et != 0 && clsv_isstruct(et) == 1 {
             let pnm: i64 = cur_s();
@@ -1891,6 +2150,26 @@ fn emit_postfix() -> i64 {
             if CAST_OPEN == 1 { outs(")"); CAST_OPEN = 0; }
             return 0;
         }
+    }
+    # v1.1211: &(值 struct 局部) → 发裸名 + '.' 成员链/下标原样（(unsigned char*)& 已由 & 分支发出）
+    if AMP_OPEN == 1 && cur_k() == 1 && clsv_ty(cur_s()) != 0 {
+        outs(cur_s());
+        TI = TI + 1;
+        AMP_OPEN = 0;
+        while 1 {
+            if cur_k() == 5 && streq(cur_s(), ".") == 1 && TK[TI + 1] == 1 {
+                outs(".");
+                outs(&POOL + TS[TI + 1]);
+                TI = TI + 2;
+            } else { if cur_k() == 5 && streq(cur_s(), "[") == 1 {
+                outs("[");
+                TI = TI + 1;
+                emit_expr();
+                expect_op("]");
+                outs("]");
+            } else { break; } }
+        }
+        return 0;
     }
     emit_primary();
     while 1 {
@@ -2033,6 +2312,14 @@ fn emit_unary() -> i64 {
         # 对数组变量，`&arr` 在 C 里是 "指向整个数组的指针"（unsigned char(*)[N]），
         # 传给期待 unsigned char* 的函数是硬错误。加显式转换后，
         # 数组与标量的取地址语义就一致了 —— 都是"首字节地址"。
+        # v1.1211: 目标是值 struct 局部（clsv）→ (unsigned char*)& + postfix 发裸名（119/188）
+        if cur_k() == 1 && clsv_ty(cur_s()) != 0 {
+            outs("(unsigned char*)&");
+            AMP_OPEN = 1;
+            emit_unary();
+            AMP_OPEN = 0;
+            return 0;
+        }
         outs("(unsigned char*)&");
         return emit_unary();
     }
@@ -2269,6 +2556,82 @@ fn peek_op(s: i64) -> i64 {
 }
 fn emit_prec(minp: i64) -> i64 {
     let mdone: i64 = 0;
+    # v1.1212: 二元 in / not in 预扫拦截（299~304）
+    let neg0: i64 = 0;
+    if cur_k() == 5 && load8(&POOL + TS[TI]) == 45 && load8(&POOL + TS[TI] + 1) == 0 { neg0 = 1; }
+    if is_c_like() == 1 && IN_OPEN == 0 && (cur_k() >= 1 && cur_k() <= 4 || neg0 == 1) {
+        let ini: i64 = TI;
+        let depin: i64 = 0;
+        let foundin: i64 = 0;
+        let negin: i64 = 0;
+        while ini < NT {
+            if TK[ini] == 5 && (streq(&POOL + TS[ini], "(") == 1 || streq(&POOL + TS[ini], "[") == 1) { depin = depin + 1; }
+            else { if TK[ini] == 5 && (streq(&POOL + TS[ini], ")") == 1 || streq(&POOL + TS[ini], "]") == 1) {
+                if depin == 0 { break; }
+                depin = depin - 1;
+            } else {
+                if depin == 0 && TK[ini] == 5 && streq(&POOL + TS[ini], ";") == 1 { break; }
+                if depin == 0 && TK[ini] == 5 && streq(&POOL + TS[ini], "{") == 1 { break; }
+                if depin == 0 && TK[ini] == 5 && streq(&POOL + TS[ini], "}") == 1 { break; }
+                if depin == 0 && TK[ini] == 1 && streq(&POOL + TS[ini], "in") == 1 && ini > TI { foundin = 1; break; }
+                if depin == 0 && TK[ini] == 1 && streq(&POOL + TS[ini], "not") == 1 && ini + 1 < NT && TK[ini + 1] == 1 && streq(&POOL + TS[ini + 1], "in") == 1 && ini > TI { foundin = 1; negin = 1; break; }
+            } }
+            ini = ini + 1;
+        }
+        if foundin == 1 && ini + 1 + negin < NT {
+            let rki: i64 = ini + 1 + negin;   # in 右侧首个 token
+            let rstrin: i64 = 0;
+            let rarrin: i64 = 0 - 1;
+            if TK[rki] == 3 { rstrin = 1; }
+            if TK[rki] == 1 && strv_find(&POOL + TS[rki]) == 1 { rstrin = 1; }
+            if TK[rki] == 1 { rarrin = arr_find(&POOL + TS[rki]); }
+            if rstrin == 1 {
+                # str in str → strstr(l, r) != 0 / == 0（not in）
+                # mo 语义 l in r = r 包含 l → strstr(hay=r, needle=l)
+                outs("(strstr((char*)");
+                let sv_in_l: i64 = TI;
+                TI = ini + 1 + negin;   # 右值（hay）
+                if cur_k() == 3 { out_cstr(cur_s()); } else { outs(cur_s()); }
+                outs(", (unsigned char*)");
+                TI = sv_in_l;
+                IN_OPEN = 1;
+                emit_prec(1);   # 左值（needle）
+                IN_OPEN = 0;
+                TI = ini + 2 + negin;
+                if negin == 1 { outs(") == 0)"); } else { outs(") != 0)"); }
+                return 0;
+            }
+            if rarrin >= 0 {
+                # 标量 in / not in 数组 → (!)mo_arr_has*(arr, n, v)（v1.1212: 按元素类型分派）
+                let el: i64 = ARREL[rarrin];
+                if INMODE == 1 && el != 4 { el = 5; }   # moc 副作用：str 数组 in 后，非 str 数组 in 恒假（moc 行为复刻）
+                let nel: i64 = ARRDIM[rarrin];
+                if ARRDIM2[rarrin] > 0 { nel = ARRDIM[rarrin] * ARRDIM2[rarrin]; }
+                if negin == 1 { outs("(!"); }
+                outs("(");
+                if el == 2 { outs("mo_arr_has2((double*)"); }
+                if el == 3 { outs("mo_arr_hasb((unsigned char*)"); }
+                if el == 4 { outs("mo_arr_hass((unsigned char**)"); INMODE = 1; }
+                if el == 5 {
+                    outs("0)");
+                    TI = rki + 1;
+                    return 0;
+                }
+                if el == 0 || el == 1 { outs("mo_arr_has((unsigned char*)"); }
+                outs(&POOL + TS[rki]);
+                outs(", ");
+                outi(nel);
+                outs(", ");
+                IN_OPEN = 1;
+                emit_prec(1);
+                IN_OPEN = 0;
+                TI = rki + 1;
+                outs("))");
+                if negin == 1 { outs(")"); }
+                return 0;
+            }
+        }
+    }
     # v1.1205: match 表达式（语句位置外任意位置）—— 发左值后继续 prec 循环（支持 match ... + 1）
     if is_kw("match") == 1 {
         # v1.1205: 关键字门控——后继须是主体起点（数字/字符串/标识符/'('），排除 uic.mo 等把 match 用作形参名/数组名
@@ -2604,6 +2967,8 @@ fn emit_scalar(t: i64) -> i64 {
         let etf: i64 = 0;
         let eti: i64 = 0;
         while eti < NENMH { if ENMH[eti] == eth { etf = 1; } eti = eti + 1; }
+        let etj: i64 = 0;
+        while etj < NENUMN { if streq(t, ENUMN[etj]) == 1 { etf = 1; } etj = etj + 1; }
         if etf == 1 { outs("long long"); return 0; }
         outs("struct "); outs(t); outs("_t");
     } else { outs(t); }
@@ -2767,6 +3132,12 @@ fn emit_scalar_or_arr(nm: i64, isarr: i64) -> i64 {
                         dq3 = dq3 + 1;
                     }
                     ARRDIM2[ai2] = dv3;
+                }
+                # v1.1212: 记录元素类型（in 求值分派 helper 用）；TI 此处指向元素类型 token
+                if cur_k() == 1 {
+                    if streq(cur_s(), "f64") == 1 { ARREL[ai2] = 2; }
+                    else { if streq(cur_s(), "byte") == 1 { ARREL[ai2] = 3; }
+                    else { ARREL[ai2] = 1; } }
                 }
             }
             return 0;
@@ -3157,7 +3528,7 @@ fn emit_lvalue() -> i64 {
     if is_gen() == 1 { outs(G_REF); }
     # v1.1199: typed ptr struct 左值 p.f = ... → ((struct T_t*)p)->f
     let lvtp: i64 = 0;
-    if is_c_like() == 1 && cur_k() == 1 && ptrv_find(cur_s()) == 1 && peek_op(".") == 1 {
+    if is_c_like() == 1 && cur_k() == 1 && ptrv_find(cur_s()) == 1 && peek_op(".") == 1 && clsv_ty(cur_s()) == 0 {
         lvtp = ptelm_get(cur_s());
         if lvtp != 0 && clsv_isstruct(lvtp) == 1 {
             outs("((struct ");
@@ -3369,8 +3740,88 @@ fn arr_find(nm: i64) -> i64 {
     }
     return 0 - 1;
 }
+# v1.1213: for-in 行变量表（外层二维 for-in 绑定的行指针 → 内层维）
+var FORROWN: [32] i64 = 0;
+var FORROWD: [32] i64 = 0;
+var NFR: i64 = 0;
+fn fr_find(nm: i64) -> i64 {
+    let i: i64 = 0;
+    while i < NFR {
+        if streq(FORROWN[i], nm) == 1 { return i; }
+        i = i + 1;
+    }
+    return 0 - 1;
+}
+fn fr_add(nm: i64, dim: i64) -> i64 {
+    let e: i64 = fr_find(nm);
+    if e >= 0 { FORROWD[e] = dim; return 0; }
+    if NFR >= 32 { return 0; }
+    FORROWN[NFR] = stp_copy(nm);
+    FORROWD[NFR] = dim;
+    NFR = NFR + 1;
+    return 0;
+}
 fn emit_stmt() -> i64 {
     if try_incdec() == 1 { return 0; }
+    # v1.1213: 语句级 enum（298）——注册成员常量 + 就地发 C enum
+    if cur_k() == 1 && streq(cur_s(), "enum") == 1 {
+        TI = TI + 1;
+        let senm: i64 = 0;
+        if cur_k() == 1 { senm = ident(); }
+        expect_op("{");
+        let sehh: i64 = 0;
+        if senm != 0 { sehh = nm_hash(senm); } else { sehh = nm_hash(cur_s()); }
+        let sedup: i64 = 0;
+        let sdq: i64 = 0;
+        while sdq < NENMH { if ENMH[sdq] == sehh { sedup = 1; } sdq = sdq + 1; }
+        if senm != 0 && NENUMN < 64 { ENUMN[NENUMN] = stp_copy(senm); NENUMN = NENUMN + 1; }
+        if sedup == 0 {
+            if NENMH < 64 { ENMH[NENMH] = sehh; NENMH = NENMH + 1; }
+            outs("enum { ");
+            let sev: i64 = 0;
+            let sef: i64 = 1;
+            while is_op("}") == 0 {
+                if sef == 0 { outs(", "); }
+                sef = 0;
+                let smen: i64 = cur_s();
+                outs(smen);
+                TI = TI + 1;
+                let smev: i64 = sev;
+                if accept_op("=") == 1 { smev = cns_expr(); }
+                outs(" = ");
+                outi(smev);
+                if NCNS < 256 {
+                    CNSN[NCNS] = CNSPP;
+                    let sq7: i64 = 0;
+                    while load8(smen + sq7) != 0 { store8(&CNSP + CNSPP, load8(smen + sq7)); CNSPP = CNSPP + 1; sq7 = sq7 + 1; }
+                    store8(&CNSP + CNSPP, 0); CNSPP = CNSPP + 1;
+                    CNSV[NCNS] = smev;
+                    NCNS = NCNS + 1;
+                    if senm != 0 && NCNS < 256 {
+                        CNSN[NCNS] = CNSPP;
+                        let sq11: i64 = 0;
+                        while load8(senm + sq11) != 0 { store8(&CNSP + CNSPP, load8(senm + sq11)); CNSPP = CNSPP + 1; sq11 = sq11 + 1; }
+                        store8(&CNSP + CNSPP, 46); CNSPP = CNSPP + 1;
+                        let sq12: i64 = 0;
+                        while load8(smen + sq12) != 0 { store8(&CNSP + CNSPP, load8(smen + sq12)); CNSPP = CNSPP + 1; sq12 = sq12 + 1; }
+                        store8(&CNSP + CNSPP, 0); CNSPP = CNSPP + 1;
+                        CNSV[NCNS] = smev;
+                        NCNS = NCNS + 1;
+                    }
+                }
+                sev = smev + 1;
+                accept_op(";");
+            }
+            expect_op("}");
+            outs(" };");
+            nl();
+        } else {
+            while is_op("}") == 0 { TI = TI + 1; }
+            expect_op("}");
+        }
+        accept_op(";");
+        return 0;
+    }
     let asr: i64 = is_assign_start();
     if asr == 2 {
         # v1.1209: 逻辑复合赋值 a ||= b / a &&= b → 布尔化结果
@@ -3737,12 +4188,96 @@ fn emit_stmt() -> i64 {
         return 0;
     }
     if accept_kw("for") == 1 {
-        # v1.1209: for-in 数组遍历 `for x in arr { }`（无括号形态）
+        # v1.1209: for-in 数组遍历 `for x in arr { }`（无括号形态）；v1.1213: range/str/行下标/行变量
         if is_c_like() == 1 && cur_k() == 1 && TK[TI + 1] == 1 && streq(&POOL + TS[TI + 1], "in") == 1 {
             let vn: i64 = ident();
             TI = TI + 1;   # 吃 'in'
-            let an: i64 = ident();
-            let afi: i64 = arr_find(an);
+            # v1.1213 B: 字符串遍历 `for c in "abc"` → c=s[__i]
+            if cur_k() == 3 {
+                let sv306: i64 = TI;
+                let slen306: i64 = strlen(&POOL + TS[sv306]);
+                TI = TI + 1;   # 吃字符串
+                expect_op("{");
+                blk_open();
+                outs("for (long long __si = 0; __si < ");
+                outi(slen306);
+                outs("; __si++) { long long "); outs(vn);
+                outs(" = (unsigned char)((");
+                out_cstr(&POOL + TS[sv306]);
+                outs(")[__si]);");
+                nl();
+                emit_stmts();
+                outs(" }");
+                nl();
+                blk_close();
+                return 0;
+            }
+            # v1.1213 A: range `for i in A..B`（A=数字/const 名；数字起点时先吃 A）
+            if cur_k() == 2 && TK[TI + 1] == 5 && load8(&POOL + TS[TI + 1]) == 46 && load8(&POOL + TS[TI + 1] + 1) == 46 {
+                TI = TI + 1;   # 吃 A（数字）
+            }
+            if cur_k() == 5 && load8(&POOL + TS[TI]) == 46 && load8(&POOL + TS[TI] + 1) == 46 {
+                let ab: i64 = TI - 1;   # A token（in 后）
+                TI = TI + 1;   # 吃 '..'
+                outs("for (long long "); outs(vn); outs(" = ");
+                outs(&POOL + TS[ab]);
+                outs("; "); outs(vn); outs(" < ");
+                if cur_k() == 1 || cur_k() == 2 { outs(&POOL + TS[TI]); TI = TI + 1; }
+                outs("; "); outs(vn); outs("++)");
+                expect_op("{");
+                blk_open();
+                emit_stmts();
+                blk_close();
+                return 0;
+            }
+            let an0: i64 = 0 - 1;
+            if cur_k() == 1 { an0 = ident(); }
+            let an: i64 = an0;
+            let afi: i64 = 0 - 1;
+            if an >= 0 { afi = arr_find(an); }
+            # v1.1213 C: 行下标 `for v in m[1]`
+            if an >= 0 && afi >= 0 && cur_k() == 5 && load8(&POOL + TS[TI]) == 91 && ARRDIM2[afi] > 0 {
+                TI = TI + 1;   # 吃 '['
+                let ri: i64 = cur_s();
+                TI = TI + 1;
+                expect_op("]");
+                outs("for (long long __ri = 0; __ri < ");
+                let dbC: [24] byte = 0;
+                utoa(ARRDIM2[afi], &dbC, 10);
+                outs(&dbC);
+                outs("; __ri++) { long long "); outs(vn); outs(" = ((long long*)");
+                outs(an); outs(")[" ); outs(ri); outs(" * ");
+                let dbC2: [24] byte = 0;
+                utoa(ARRDIM2[afi], &dbC2, 10);
+                outs(&dbC2); outs(" + __ri];");
+                nl();
+                expect_op("{");
+                blk_open();
+                emit_stmts();
+                outs(" }");
+                nl();
+                blk_close();
+                return 0;
+            }
+            # v1.1213 D: 行变量 `for v in row`（row=外层二维 for-in 绑定的行指针）
+            if an >= 0 && afi < 0 {
+                let fri: i64 = fr_find(an);
+                if fri >= 0 {
+                    outs("for (long long __ri = 0; __ri < ");
+                    let dbD: [24] byte = 0;
+                    utoa(FORROWD[fri], &dbD, 10);
+                    outs(&dbD);
+                    outs("; __ri++) { long long "); outs(vn); outs(" = "); outs(an); outs("[__ri];");
+                    nl();
+                    expect_op("{");
+                    blk_open();
+                    emit_stmts();
+                    outs(" }");
+                    nl();
+                    blk_close();
+                    return 0;
+                }
+            }
             if afi < 0 { return err("for-in 目标不是数组"); }
             # 二维外层：行= ptr 标量
             outs("for (long long __fi = 0; __fi < ");
@@ -3755,6 +4290,7 @@ fn emit_stmt() -> i64 {
             expect_op("{");
             blk_open();
             if ARRDIM2[afi] > 0 {
+                fr_add(vn, ARRDIM2[afi]);
                 outs("long long* "); outs(vn);
                 outs(" = ((long long*)((unsigned char*)"); outs(an); outs(")) + __fi * ");
                 {
@@ -3991,7 +4527,87 @@ fn emit_stmt() -> i64 {
         return 0;
         }
     }
+    if accept_kw("try") == 1 {
+        # v1.1214: try { } catch(e) { } —— setjmp/longjmp OOB 守卫（352/355/357）
+        expect_op("{");
+        MJN = MJN + 1;
+        outs("if(setjmp(__mjb[");
+        outi(MJN);
+        outs("])==0){ __mjn=");
+        outi(MJN);
+        outs(";");
+        nl();
+        emit_stmts();   # 自吃 '}'
+        outs("__mjn=0; } else { __mjn=");
+        outi(MJN);
+        outs(";");
+        nl();
+        if accept_kw("catch") == 1 {
+            let cen: i64 = 0;
+            if is_op("(") == 1 {
+                TI = TI + 1;
+                if cur_k() == 1 { cen = cur_s(); TI = TI + 1; }
+                if is_op(")") == 1 { TI = TI + 1; }
+            }
+            if is_op("{") == 1 { TI = TI + 1; }
+            if cen != 0 { outs("long long "); outs(cen); outs(" = __mje;"); nl(); }
+            nl();
+            emit_stmts();   # 自吃 '}'
+        }
+        outs("__mjn=");
+        outi(MJN - 1);
+        outs("; }");
+        nl();
+        MJN = MJN - 1;
+        semi();
+        return 0;
+    }
     if accept_kw("let") == 1 {
+        # v1.1214: struct 解构 let P { x, y } = r;（263）—— 字段逐一 load 到新栈槽
+        if cur_k() == 1 && st_find(cur_s()) >= 0 && TK[TI + 1] == 5 && load8(&POOL + TS[TI + 1]) == 123 {
+            let dsn: i64 = cur_s();
+            TI = TI + 2;   # 吃 P '{'
+            # 收集字段名
+            let dfn: [1024] byte = 0;
+            let dfn_n: i64 = 0;
+            while is_op("}") == 0 {
+                if cur_k() == 1 {
+                    let dqq: i64 = dfn_n;
+                    let dsw: i64 = &dfn + dqq * 64;
+                    let dq2: i64 = 0;
+                    while load8(cur_s() + dq2) != 0 { store8(dsw + dq2, load8(cur_s() + dq2)); dq2 = dq2 + 1; }
+                    store8(dsw + dq2, 0);
+                    dfn_n = dfn_n + 1;
+                }
+                TI = TI + 1;
+            }
+            TI = TI + 1;   # 吃 '}'
+            expect_op("=");
+            # RHS：struct 值变量 / 调用 → 存临时再逐字段拷贝
+            LWSEQ = LWSEQ + 1;
+            outs("struct "); outs(dsn); outs("_t __dsr");
+            outi(LWSEQ);
+            outs(" = ");
+            emit_expr();
+            outs(";");
+            nl();
+            expect_op(";");
+            semi();
+            let dfq: i64 = 0;
+            while dfq < dfn_n {
+                let dsw2: i64 = &dfn + dfq * 64;
+                outs("long long ");
+                outs(dsw2);
+                outs(" = __dsr");
+                outi(LWSEQ);
+                outs(".");
+                outs(dsw2);
+                outs(";");
+                nl();
+                dfq = dfq + 1;
+            }
+            return 0;
+        }
         # v1.1202: 数组解构 let [x, y, z] = arr;（255_destructure）
         # 也支持嵌套 [[x, y], [z, w]]（平铺索引）与 RHS 函数调用（只调用一次）。
         if is_op("[") == 1 {
@@ -4055,6 +4671,12 @@ fn emit_stmt() -> i64 {
                 tmp = LWSEQ;
             } else {
                 if cur_k() != 1 { return err("destructure: right side must be an array"); }
+                # v1.1214: RHS 行索引 `m[1]`（259）——记录行号表达式边界
+                if TK[TI + 1] == 5 && load8(&POOL + TS[TI + 1]) == 91 {
+                    ROWRHS = TI + 1;   # 指向 '['
+                } else {
+                    ROWRHS = 0 - 1;
+                }
             }
             # v1.1202: RHS 二维数组 → 行绑定（v1.1076）：long long* nm = RHS[i];
             let rowb: i64 = 0;
@@ -4070,7 +4692,7 @@ fn emit_stmt() -> i64 {
                 let sb2: i64 = &dnames + di * 64;
                 # 解构名字一律 i64 标量（数组元素），不能走 emit_scalar_or_arr
                 # ——它会从 token 流消费 `: T`，解构声明里没有类型。
-                if rowb == 1 {
+                if rowb == 1 && ROWRHS < 0 {
                     if is_c_like() == 1 { outs("long long *"); }
                     let wi: i64 = arr_find(sb2);
                     if wi < 0 { wi = arr_add(sb2); }
@@ -4097,17 +4719,46 @@ fn emit_stmt() -> i64 {
                         outi(di);
                         outs("]");
                     } else {
-                        outs(&POOL + TS[TI]);
-                        outs("[");
-                        outi(di);
-                        outs("]");
+                        if ROWRHS >= 0 {
+                            outs(&POOL + TS[TI]);
+                            outs("[");
+                            # 行号：常量数字直接发
+                            let rq13: i64 = ROWRHS + 1;
+                            if TK[rq13] == 2 { outs(&POOL + TS[rq13]); }
+                            else { outs("0"); }
+                            outs("][");
+                            outi(di);
+                            outs("]");
+                        } else {
+                            outs(&POOL + TS[TI]);
+                            outs("[");
+                            outi(di);
+                            outs("]");
+                        }
                     }
                 }
                 outs(";");
                 nl();
                 di = di + 1;
             }
-            if tmp == 0 { TI = TI + 1; }   # 吃掉 RHS 数组名
+            if tmp == 0 {
+                TI = TI + 1;   # 吃掉 RHS 数组名
+                if ROWRHS >= 0 {
+                    # 吃 [行号]
+                    let rq14: i64 = 0;
+                    let rdep14: i64 = 0;
+                    while TI < NT {
+                        let rk14: i64 = TK[TI];
+                        let rs14: i64 = &POOL + TS[TI];
+                        if rk14 == 5 && load8(rs14) == 91 { rdep14 = rdep14 + 1; }
+                        if rk14 == 5 && load8(rs14) == 93 {
+                            rdep14 = rdep14 - 1;
+                            if rdep14 == 0 { TI = TI + 1; break; }
+                        }
+                        TI = TI + 1;
+                    }
+                }
+            }
             expect_op(";");
             semi();
             return 0;
@@ -4328,12 +4979,21 @@ fn emit_local() -> i64 {
             return 0;
         }
         emit_scalar_or_arr(nm, isarr);
+        if isarr == 1 && LASTTY != 0 {
+            let ae1: i64 = arr_find(nm);
+            if ae1 >= 0 {
+                if streq(LASTTY, "f64") == 1 { ARREL[ae1] = 2; }
+                if streq(LASTTY, "byte") == 1 { ARREL[ae1] = 3; }
+                if streq(LASTTY, "ptr") == 1 || streq(LASTTY, "str") == 1 { ARREL[ae1] = 4; }
+                if streq(LASTTY, "f64") != 1 && streq(LASTTY, "byte") != 1 && streq(LASTTY, "ptr") != 1 && streq(LASTTY, "str") != 1 { ARREL[ae1] = 1; }
+            }
+        }
         if isarr == 0 && PTY == 0 && LASTTY != 0 && is_struct_ty(LASTTY) == 1 { clsv_add(nm, LASTTY); }   # v1.1205-fix: 值语义 struct 才登记（ptr 声明不登记）
         if accept_op("=") == 1 {
             if isarr == 1 {
                 # v1.1196: 记录最外维（OOB 运行时检查用）
                 let ai4: i64 = arr_find(nm);
-                if ai4 >= 0 { ARRDIM[ai4] = ADIM; }
+                if ai4 >= 0 && ARRDIM2[ai4] == 0 { ARRDIM[ai4] = ADIM; }   # v1.1213: 二维时 ADIM=内层维勿覆盖外维
                 # v1.1203: 数组 = 函数调用（返回数组）→ 声明后 memcpy（317_multi_ret）
                 if cur_k() == 1 && TK[TI + 1] == 5 && load8(&POOL + TS[TI + 1]) == 40 {
                     outs(";");
@@ -4536,10 +5196,33 @@ fn emit_global() -> i64 {
         }
         emit_scalar_or_arr(nm, isarr);
         if accept_op("=") == 1 {
+            # v1.1215: 全局 struct 字面量 var G: P = P { x: 1; y: 2; };（274）→ C 静态指定初始化（仅发射轮）
+            if isarr == 0 && cur_k() == 1 && TK[TI + 1] == 5 && load8(&POOL + TS[TI + 1]) == 123 && st_find(cur_s()) >= 0 {
+                let gsn: i64 = cur_s();
+                TI = TI + 2;
+                outs(" = { ");
+                while is_op("}") == 0 {
+                    if cur_k() == 1 {
+                        outs(".");
+                        outs(cur_s());
+                        outs(" = ");
+                        TI = TI + 1;
+                        if is_op(":") == 1 { TI = TI + 1; }
+                        emit_expr();
+                        outs(", ");
+                    } else { TI = TI + 1; }
+                }
+                TI = TI + 1;
+                outs("};");
+                nl();
+                if is_op(";") == 1 { TI = TI + 1; }
+                nl();
+                return 0;
+            }
             if isarr == 1 {
                 # v1.1196: 记录最外维（OOB 运行时检查用）
                 let ai4: i64 = arr_find(nm);
-                if ai4 >= 0 { ARRDIM[ai4] = ADIM; }
+                if ai4 >= 0 && ARRDIM2[ai4] == 0 { ARRDIM[ai4] = ADIM; }   # v1.1213: 二维时 ADIM=内层维勿覆盖外维
                 # v1.1203: 数组 = 函数调用（返回数组）→ 声明后 memcpy（317_multi_ret）
                 if cur_k() == 1 && TK[TI + 1] == 5 && load8(&POOL + TS[TI + 1]) == 40 {
                     outs(";");
@@ -4695,6 +5378,19 @@ fn emit_struct() -> i64 {
                 STFN[myi] = STFN[myi] + 1;
                 # v1.1199: ptr 字段名入 FldPTR（链式 a.next.next → "->"）
                 if streq(fty, "ptr") == 1 && NFldPTR < 128 { FldPTR[NFldPTR] = stp_copy(fn2); FldE[NFldPTR] = stp_copy(&POOL + TS[TI + 1]); NFldPTR = NFldPTR + 1; }
+            }
+            # v1.1211: 字段数组类型 `a: [2] P;` → emit_scalar_or_arr(fn2, 1)（199~204）
+            if TK[TI] == 5 && streq(&POOL + TS[TI], "[") == 1 {
+                emit_scalar_or_arr(fn2, 1);
+                let fdv6: i64 = 0 - 999999;
+                if accept_op("=") == 1 {
+                    if cur_k() == 2 { fdv6 = atoi(cur_s()); TI = TI + 1; }
+                }
+                if NCLSF >= 2 { CLSFD[NCLSF - 2] = fdv6; }
+                outs(";");
+                nl();
+                expect_op(";");
+                continue;
             }
             # v1.1199: ptr 字段声明 struct X_t*（链式 a.next->next 合法）
             if streq(fty, "ptr") == 1 && cur_k() == 1 {
@@ -4906,6 +5602,20 @@ fn emit_sig() -> i64 {
                             # v1.1190: str 形参 = unsigned char*（值语义 8 字节槽，与 moc 一致）
                             if streq(t, "str") == 1 { strcat(&ps, "unsigned char*"); tk = 1; }
                             else {
+                            # v1.1213: enum 名形参 → i64（235）
+                            let eq13: i64 = 0;
+                            let eqq: i64 = 0;
+                            while eqq < NENUMN { if streq(t, ENUMN[eqq]) == 1 { eq13 = 1; } eqq = eqq + 1; }
+                            if eq13 == 1 {
+                                # tagged（带参）enum → struct 指针路径（333）；简单 enum → i64（235）
+                                let tgd13: i64 = 0;
+                                let tqq: i64 = 0;
+                                while tqq < NEVN { if streq(t, EVN[tqq]) == 1 { if EVIN[tqq] == 1 { tgd13 = 1; } } tqq = tqq + 1; }
+                                if tgd13 == 1 { strcat(&ps, t); strcat(&ps, "_t*"); tk = 5; if NTRS < 64 { PTRS[NTRS] = stp_copy(pn); NTRS = NTRS + 1; } }
+                                else { strcat(&ps, "long long"); tk = 0; }
+                                clsv_add(pn, t);
+                            }
+                            else {
                             # struct 形参：moc 语义是引用（self.x=… 对调用方可见）。
                             # v1.1206: tagged enum 形参 → Shape_t*（typedef，非 struct tag）
                             if ev_struct_ty(t) == 1 { strcat(&ps, t); strcat(&ps, "_t*"); }
@@ -4913,6 +5623,7 @@ fn emit_sig() -> i64 {
                             if NTRS < 64 { PTRS[NTRS] = stp_copy(pn); NTRS = NTRS + 1; }
                             clsv_add(pn, t);   # 方法接收者也可 .method()
                             tk = 5;   # v1.1199: struct 形参 → 调用点取址
+                            }
                             }
                         }
                     }
@@ -4953,6 +5664,7 @@ fn emit_sig() -> i64 {
     if cur_k() == 1 { rt = cur_s(); TI = TI + 1; }
     }
     if rtarr == 1 { CURRTK = 5; }
+    if rtarr == 1 && rt != 0 && streq(rt, "byte") == 1 { CURREL = 3; } else { CURREL = 1; }
     let ismain: i64 = 0;
     if streq(nm, "main") == 1 { ismain = 1; }
     # v1.1164: 返回类型 kind —— emit return 处按需 cast
@@ -4994,7 +5706,14 @@ fn emit_sig() -> i64 {
                             else {
                                 # v1.1206: tagged enum 返回 → Sh_t（无 struct tag）
                                 if ev_struct_ty(rt) == 1 { outs(rt); outs("_t "); }
-                                else { outs("struct "); outs(rt); outs("_t "); }
+                                else {
+                                    # v1.1213: enum 名返回类型 → long long（235）
+                                    let rq13: i64 = 0;
+                                    let rqq: i64 = 0;
+                                    while rqq < NENUMN { if streq(rt, ENUMN[rqq]) == 1 { rq13 = 1; } rqq = rqq + 1; }
+                                    if rq13 == 1 { outs("long long "); }
+                                    else { outs("struct "); outs(rt); outs("_t "); }
+                                }
                             }
                         }
                     }
@@ -5878,6 +6597,13 @@ fn cns_atom() -> i64 {
         let isal: i64 = streq(cur_s(), "alignof");
         TI = TI + 1;
         expect_op("(");
+        # v1.1211: sizeof(T) 标量/struct 形态 → 8（185）
+        if cur_k() == 1 && is_op("[") == 0 {
+            ident();
+            expect_op(")");
+            if isal == 1 { return 8; }
+            return 8;
+        }
         expect_op("[");
         let dim: i64 = atoi(cur_s());
         TI = TI + 1;
@@ -5888,6 +6614,8 @@ fn cns_atom() -> i64 {
         return dim * 8;
     }
     if cur_k() == 2 { let v: i64 = atoi(cur_s()); TI = TI + 1; return v; }
+    # v1.1211: char 字面量（kind4）→ 池首字节即字符值（lexer store8 v）
+    if cur_k() == 4 { let v: i64 = load8(cur_s()); TI = TI + 1; return v; }
     if cur_k() == 1 {
         # v1.1200: 限定名 E.B（enum 点访问）—— 记 "E.B" 全名查表；命中吃 3 token
         if peek_op(".") == 1 {
@@ -5911,6 +6639,16 @@ fn cns_atom() -> i64 {
         }
         let i: i64 = cns_find(cur_s());
         if i >= 0 { TI = TI + 1; return CNSV[i]; }
+        # v1.1211: const 数组编译期下标 A[0]（220）
+        let cni: i64 = 0;
+        let cnq: i64 = 0;
+        while cnq < NCNAN { if streq(CNAN[cnq], cur_s()) == 1 { cni = cnq; } cnq = cnq + 1; }
+        if cni >= 0 && TK[TI + 1] == 5 && streq(&POOL + TS[TI + 1], "[") == 1 && TK[TI + 2] == 2 {
+            let cvi: i64 = atoi(&POOL + TS[TI + 2]);
+            TI = TI + 3;
+            expect_op("]");
+            return CAVN[cni * 8 + cvi];
+        }
         # const fn 调用：当前 token 是函数名，后面跟 '(' —— 用解释器
         let fi: i64 = cf_find_fn(cur_s());
         if fi >= 0 {
@@ -6054,7 +6792,44 @@ fn emit_component(cnm: i64, nrows: i64, csep: i64, CFN: ptr, CFK: ptr, CFW: ptr,
     outs("gi++; }"); nl();
     outs("return 0; }"); nl();
     # init
-    outs("long long "); outs(cnm); outs("_init(void) { return 0; }"); nl();
+    outs("long long "); outs(cnm); outs("_init(void) {");
+    let idf: i64 = 0;
+    while idf < CNF {
+        if load64(CFDH + idf * 8) == 1 {
+            outs(cnm); outs("_set_"); outs(load64(CFN + idf * 8)); outs("(");
+            outi(load64(CFDV + idf * 8)); outs(");");
+            nl();
+        } else {
+            if load64(CFDH + idf * 8) == 2 {
+                outs(cnm); outs("_set_"); outs(load64(CFN + idf * 8)); outs("((unsigned char*)");
+                out_cstr(&CFDBUF + idf * 64); outs(");");
+                nl();
+            }
+        }
+        idf = idf + 1;
+    }
+    outs("return 0; }"); nl();
+    # click 触发器函数（124）：Name_click_<fld>() → 回调(Name_<fld>)
+    let icb: i64 = 0;
+    while icb < CNF {
+        let cbn: i64 = load64(CFCB + icb * 8);
+        if cbn != 0 {
+            outs("long long "); outs(cnm); outs("_click_"); outs(load64(CFN + icb * 8)); outs("(void) {");
+            nl();
+            outs(cbn); outs("("); outs(cnm); outs("_"); outs(load64(CFN + icb * 8)); outs(");");
+            nl();
+            outs("return 0; }"); nl();
+        }
+        let hvn: i64 = load64(CFHV + icb * 8);
+        if hvn != 0 {
+            outs("long long "); outs(cnm); outs("_hover_"); outs(load64(CFN + icb * 8)); outs("(void) {");
+            nl();
+            outs(hvn); outs("((unsigned char*)"); outs(cnm); outs("_"); outs(load64(CFN + icb * 8)); outs(");");
+            nl();
+            outs("return 0; }"); nl();
+        }
+        icb = icb + 1;
+    }
     # head
     outs("long long "); outs(cnm); outs("_head(long long x, long long y, long long fg, long long bg) {"); nl();
     outs("long long cx = x;"); nl();
@@ -6113,6 +6888,15 @@ fn cns_expr() -> i64 {
         if cop == 6 { if v >= r { b = 1; } }
         v = b;
     }
+    # v1.1213: const 逻辑与/或（164）
+    while is_op("&&") == 1 || is_op("||") == 1 {
+        let lop: i64 = 1;
+        if is_op("||") == 1 { lop = 2; }
+        TI = TI + 1;
+        let lr: i64 = cns_expr();
+        if lop == 1 { if v != 0 { if lr != 0 { v = 1; } else { v = 0; } } else { v = 0; } }
+        else { if v != 0 { v = 1; } else { if lr != 0 { v = 1; } else { v = 0; } } }
+    }
     return v;
 }
 
@@ -6121,6 +6905,7 @@ fn cns_expr() -> i64 {
 var INS_DONE: i64 = 0;
 fn pass_file(i: i64, kind: i64) -> i64 {
     CURF = i;
+    CURK = kind;
     INS_DONE = 0;
     load_file(i);
     if kind == 3 {
@@ -6362,13 +7147,16 @@ fn pass_file(i: i64, kind: i64) -> i64 {
                     if accept_kw("interface") == 1 {
                         if kind != 0 { skip_balanced(); continue; }
                         let inm: i64 = ident();
-                        if NIF < 32 {
+                        let ifd13: i64 = 0;
+                        let ifq13: i64 = 0;
+                        while ifq13 < NIF { if streq(IFN[ifq13], inm) == 1 { ifd13 = 1; } ifq13 = ifq13 + 1; }
+                        if NIF < 32 && ifd13 == 0 {
                             IFN[NIF] = inm;
                             IFMC[NIF] = 0;
                             NIF = NIF + 1;
                         }
                         let fi: i64 = iface_find(inm);
-                        if is_c_like() == 1 {
+                        if is_c_like() == 1 && ifd13 == 0 {
                             outs("typedef struct ");
                             outs(inm);
                             outs("_t { void* obj; void* vt; } ");
@@ -6471,8 +7259,69 @@ fn pass_file(i: i64, kind: i64) -> i64 {
                         collect_const_fn();
                         continue;
                     }
+                    # v1.1211: const 数组 const A: [N] T = [e,...]; → C 数据段（219/220/221）
+                    if cur_k() == 1 && is_op("[") == 0 && TK[TI + 1] == 5 && streq(&POOL + TS[TI + 1], ":") == 1 && TK[TI + 2] == 5 && streq(&POOL + TS[TI + 2], "[") == 1 {
+                        let can: i64 = ident();
+                        # v1.1211: 防重发（pass0 双跑）
+                        let cdup: i64 = 0;
+                        let cq7: i64 = 0;
+                        while cq7 < NCNAN { if streq(CNAN[cq7], can) == 1 { cdup = 1; } cq7 = cq7 + 1; }
+                        if cdup == 1 {
+                            while is_op(";") == 0 { TI = TI + 1; }
+                            TI = TI + 1;
+                            continue;
+                        }
+                        TI = TI + 1;   # ':'
+                        TI = TI + 1;   # '['
+                        let cdn: i64 = atoi(cur_s());
+                        TI = TI + 1;
+                        expect_op("]");
+                        let cty: i64 = ident();
+                        expect_op("=");
+                        expect_op("[");
+                        let csv0: i64 = TI;   # 元素首 token（CAVN 收集用）
+                        if is_c_like() == 1 {
+                            if streq(cty, "byte") == 1 { outs("static unsigned char "); } else { outs("static long long "); }
+                            outs(can);
+                            outs("[");
+                            outi(cdn);
+                            outs("] = {");
+                            let cq: i64 = 0;
+                            while is_op("]") == 0 {
+                                if cur_k() == 2 { outs(cur_s()); }
+                                else { if cur_k() == 4 { outi(load8(cur_s())); } else { outs(cur_s()); } }
+                                TI = TI + 1;
+                                if is_op(",") == 1 { outs(","); TI = TI + 1; cq = cq + 1; }
+                            }
+                            while cq < cdn { outs(",0"); cq = cq + 1; }
+                            outs("};");
+                            nl();
+                        }
+                        # 元素值表（const 编译期下标 A[i] 用）
+                        if NCNAN < 256 { CNAN[NCNAN] = stp_copy(can); NCNAN = NCNAN + 1; }
+                        let cq9: i64 = 0;
+                        TI = csv0;
+                        while cq9 < cdn && cq9 < 8 && is_op("]") == 0 {
+                            let cv9: i64 = 0;
+                            if cur_k() == 2 { cv9 = atoi(cur_s()); TI = TI + 1; }
+                            else { if cur_k() == 4 { cv9 = load8(cur_s()); TI = TI + 1; } else { cv9 = cns_atom(); } }
+                            CAVN[(NCNAN - 1) * 8 + cq9] = cv9;
+                            cq9 = cq9 + 1;
+                            if is_op(",") == 1 { TI = TI + 1; }
+                        }
+                        TI = csv0;
+                        while is_op("]") == 0 { TI = TI + 1; }
+                        if NCNAN < 256 { NCNAN = NCNAN; }
+                        arr_add(can);
+                        let cai: i64 = arr_find(can);
+                        if cai >= 0 { ARRDIM[cai] = cdn; }
+                        expect_op("]");
+                        expect_op(";");
+                        continue;
+                    }
                     # const NAME : i64 = <expr> ; —— mo2x 只支持字面量算术（无 const fn 调用）
-                    if kind == 1 {
+                    # v1.1213: kind0 收集轮也注册（enum 收集 A=const 名 148 需要）
+                    if kind == 1 || kind == 0 {
                         let cnm: i64 = ident();
                         expect_op(":");
                         ident();          # i64
@@ -6497,7 +7346,7 @@ fn pass_file(i: i64, kind: i64) -> i64 {
                             CNSV[NCNS] = cval;
                             NCNS = NCNS + 1;
                         }
-                        if is_c_like() == 1 {
+                        if is_c_like() == 1 && kind == 1 {
                             # v1.1163: 表达式含 const fn 调用时 enum 直接用**求值结果**（C enum
                             # 不允许函数调用）；纯算式仍原样 emit（保留可读性）。
                             let sv2: i64 = sv_emit;
@@ -6527,7 +7376,7 @@ fn pass_file(i: i64, kind: i64) -> i64 {
                                     if is_op(";") == 1 { break; }
                                     if first == 0 { outs(" "); }
                                     if cur_k() == 1 { outs(cns_name_or_err(cur_s())); }
-                                    else { outs(cur_s()); }
+                                    else { if cur_k() == 4 { outi(load8(cur_s())); } else { outs(cur_s()); } }
                                     first = 0;
                                     TI = TI + 1;
                                 }
@@ -6541,7 +7390,17 @@ fn pass_file(i: i64, kind: i64) -> i64 {
                 if accept_kw("var") == 1 || accept_kw("let") == 1 {
                     if kind == 1 {
                         if is_gen() == 1 { g_global(); } else { emit_global(); }
-                    } else { skip_to_semi(); }
+                    } else {
+                        # v1.1215: 非 kind1 轮的全局 var —— '=' 后若是 Struct{ 字面量，skip_to_semi
+                        # 会被字段内的 ';' 截断（274_global_struct_init）→ 先跳到 '='，遇 '{' 用 skip_balanced
+                        if is_op("=") == 0 && TK[TI + 3] == 5 && load8(&POOL + TS[TI + 3]) == 61 && TK[TI + 4] == 1 && TK[TI + 5] == 5 && load8(&POOL + TS[TI + 5]) == 123 {
+                            TI = TI + 4;   # 吃 : P = 停在 Struct 名
+                            TI = TI + 1;   # 吃 Struct 名
+                            skip_balanced();
+                            while TI < NT && is_op(";") == 0 { TI = TI + 1; }
+                            if is_op(";") == 1 { TI = TI + 1; }
+                        } else { skip_to_semi(); }
+                    }
                 } else {
                     if accept_kw("extern") == 1 {
                         # extern 声明：`extern fn g(...) -> i32;`（无函数体）。
@@ -6581,7 +7440,11 @@ fn pass_file(i: i64, kind: i64) -> i64 {
                             else { nrows = cns_expr(); }
                         }
                         if accept_kw("sep") == 1 { csep = 1; }
-                        if accept_kw("title") == 1 { skip_to_semi(); }
+                        if accept_kw("title") == 1 {
+                            # v1.1213: title "str"（133）—— 只吃字符串 token（原 skip_to_semi 越吃 '{'）
+                            if cur_k() == 3 { TI = TI + 1; }
+                            else { skip_to_semi(); }
+                        }
                         expect_op("{");
                         let CFN: [16] i64 = 0;
                         let CFK: [16] i64 = 0;
@@ -6626,11 +7489,46 @@ fn pass_file(i: i64, kind: i64) -> i64 {
                                 if cur_k() == 2 { tfx = atoi(cur_s()); TI = TI + 1; }
                                 else { tfx = cns_expr(); }
                             }
+                            # v1.1213: default 属性（231/130）—— 值存 CFDV/CFDS[fi]
+                            let tfd: i64 = 0;
+                            let tfdh: i64 = 0;
+                            let tfds: i64 = 0;
+                            if accept_kw("default") == 1 {
+                                if cur_k() == 2 { tfd = atoi(cur_s()); TI = TI + 1; tfdh = 1; }
+                                else { if cur_k() == 3 {
+                                    let dsq: i64 = 0;
+                                    while dsq < 63 { let dsc: i64 = load8(&POOL + TS[TI] + dsq); if dsc == 0 { break; } CFDBUF[CNF * 64 + dsq] = dsc; dsq = dsq + 1; }
+                                    CFDBUF[CNF * 64 + dsq] = 0;
+                                    TI = TI + 1; tfdh = 2; } else { tfd = cns_expr(); tfdh = 1; } }
+                            }
+                            # v1.1213: on_click <fn> 触发器（124）
+                            let tfcb: i64 = 0;
+                            if accept_kw("on_click") == 1 {
+                                if cur_k() == 1 { tfcb = cur_s(); TI = TI + 1; }
+                            }
+                            # v1.1213: on_hover <fn> 触发器（125）
+                            let tfhv: i64 = 0;
+                            if accept_kw("on_hover") == 1 {
+                                if cur_k() == 1 { tfhv = cur_s(); TI = TI + 1; }
+                            }
+                            # v1.1213: fmt hex（131）
+                            let tffm: i64 = 0;
+                            if accept_kw("fmt") == 1 {
+                                if accept_kw("hex") == 1 { tffm = 1; }
+                                else { if cur_k() == 1 { TI = TI + 1; } }
+                            }
+                            # v1.1213: prefix "str"（127）
+                            let tfpf: i64 = 0;
+                            if accept_kw("prefix") == 1 {
+                                if cur_k() == 3 { tfpf = 1; TI = TI + 1; }
+                            }
                             accept_kw("hidden");
                             if accept_kw("align") == 1 {
                                 if cur_k() == 1 && (streq(cur_s(), "right") == 1 || streq(cur_s(), "left") == 1) { TI = TI + 1; }
                             }
                             CFN[CNF] = tfn; CFK[CNF] = tfk; CFW[CNF] = tfw; CFH[CNF] = tfh; CFM[CNF] = tfm; CFX[CNF] = tfx;
+                            CFDV[CNF] = tfd; CFDH[CNF] = tfdh; CFDS[CNF] = tfds; CFCB[CNF] = tfcb;
+                            CFHV[CNF] = tfhv; CFFM[CNF] = tffm; CFPP[CNF] = tfpf;
                             CNF = CNF + 1;
                             expect_op(";");
                         }
@@ -6947,7 +7845,9 @@ fn fs_header() -> i64 {
     # 于是后面 static 定义时报
     # "static declaration of 'argc' follows non-static declaration"。
     line("static long argc(void);");
+        line("static long long __mo_argc = 0; static unsigned char** __mo_argv = 0;");
     line("static unsigned char* argv(long i);");
+    # v1.1216: #define argv 必须在 argv 声明之后（宏先于声明会把声明本身展开 → 编译错误）
     if FS_ARCH == 1 {
         line("static long mo_syscall(long n,long a,long b,long c,long d,long e,long f){");
         line("  register long r0 asm(\"rax\") = n;");
@@ -6961,9 +7861,13 @@ fn fs_header() -> i64 {
         line("}");
         line("#define MO_WRITE_ 1");
         line("#define MO_EXIT_  60");
-        line("static void panic(const unsigned char* m){ long mn=0; while(m[mn]) mn++; mo_syscall(MO_WRITE_, 2, (long)m, mn, 0, 0, 0); mo_syscall(MO_EXIT_, 1, 0, 0, 0, 0, 0); }");
-        line("static long long mo_oob(long long i, long long n){ if(i<0){ i+=n; } if(i<0||i>=n){ mo_syscall(MO_WRITE_, 2, (long)\"index out of bounds\\n\", 19, 0, 0, 0); mo_syscall(MO_EXIT_, 1, 0, 0, 0, 0, 0); } return i; }");
-            line("static void assert_(long c, const unsigned char* m){ if(c) return; long mn=0; while(m[mn]) mn++; mo_syscall(MO_WRITE_, 2, (long)m, mn, 0, 0, 0); mo_syscall(MO_EXIT_, 1, 0, 0, 0, 0, 0); }");
+        line("#include <setjmp.h>");
+        line("static jmp_buf __mjb[8]; static long long __mjn = 0; static long long __mje = 0;");
+        line("static long long __mo_argc = 0; static unsigned char** __mo_argv = 0;");
+        line("#define argv(i) ((unsigned char*)__mo_argv[(long)(i)])");
+        line("static void panic(const unsigned char* m){ long mn=0; while(m[mn]) mn++; mo_syscall(MO_WRITE_, 2, (long)m, mn, 0, 0, 0); if(__mjn>0){ __mje=2; longjmp(__mjb[__mjn],1); } mo_syscall(MO_EXIT_, 1, 0, 0, 0, 0, 0); }");
+        line("static long long mo_oob(long long i, long long n){ if(i<0){ i+=n; } if(i<0||i>=n){ if(__mjn>0){ __mje=1; longjmp(__mjb[__mjn],1); } mo_syscall(MO_WRITE_, 2, (long)\"index out of bounds\\n\", 19, 0, 0, 0); mo_syscall(MO_EXIT_, 1, 0, 0, 0, 0, 0); } return i; }");
+            line("static void assert_(long c, const unsigned char* m){ if(c) return; long mn=0; while(m[mn]) mn++; mo_syscall(MO_WRITE_, 2, (long)m, mn, 0, 0, 0); if(__mjn>0){ __mje=2; longjmp(__mjb[__mjn],1); } mo_syscall(MO_EXIT_, 1, 0, 0, 0, 0, 0); }");
         emit_fs_print();
         return 0;
     }
@@ -6980,12 +7884,14 @@ fn fs_header() -> i64 {
         line("}");
         line("#define MO_WRITE_ 64");
         line("#define MO_EXIT_  93");
+        line("#include <setjmp.h>");
+        line("static jmp_buf __mjb[8]; static long long __mjn = 0; static long long __mje = 0;");
         # exit：libc 风格程序直接调 exit(code) —— freestanding 无 libc。
         # 必须在 mo_syscall 定义之后（否则隐式声明冲突）。
         line("static void __attribute__((noreturn)) mo_exit(long c){ mo_syscall(94,c,0,0,0,0,0); for(;;){} }");
-        line("static void assert_(long c, const unsigned char* m){ if(c) return; long mn=0; while(m[mn]) mn++; mo_syscall(MO_WRITE_, 2, (long)m, mn, 0, 0, 0); mo_syscall(MO_EXIT_, 1, 0, 0, 0, 0, 0); }");
-        line("static void panic(const unsigned char* m){ long mn=0; while(m[mn]) mn++; mo_syscall(MO_WRITE_, 2, (long)m, mn, 0, 0, 0); mo_syscall(MO_EXIT_, 1, 0, 0, 0, 0, 0); }");
-        line("static long long mo_oob(long long i, long long n){ if(i<0){ i+=n; } if(i<0||i>=n){ mo_syscall(MO_WRITE_, 2, (long)\"index out of bounds\\n\", 19, 0, 0, 0); mo_syscall(MO_EXIT_, 1, 0, 0, 0, 0, 0); } return i; }");
+        line("static void assert_(long c, const unsigned char* m){ if(c) return; long mn=0; while(m[mn]) mn++; mo_syscall(MO_WRITE_, 2, (long)m, mn, 0, 0, 0); if(__mjn>0){ __mje=2; longjmp(__mjb[__mjn],1); } mo_syscall(MO_EXIT_, 1, 0, 0, 0, 0, 0); }");
+        line("static void panic(const unsigned char* m){ long mn=0; while(m[mn]) mn++; mo_syscall(MO_WRITE_, 2, (long)m, mn, 0, 0, 0); if(__mjn>0){ __mje=2; longjmp(__mjb[__mjn],1); } mo_syscall(MO_EXIT_, 1, 0, 0, 0, 0, 0); }");
+        line("static long long mo_oob(long long i, long long n){ if(i<0){ i+=n; } if(i<0||i>=n){ if(__mjn>0){ __mje=1; longjmp(__mjb[__mjn],1); } mo_syscall(MO_WRITE_, 2, (long)\"index out of bounds\\n\", 19, 0, 0, 0); mo_syscall(MO_EXIT_, 1, 0, 0, 0, 0, 0); } return i; }");
         emit_fs_print();
         return 0;
     }
@@ -7004,6 +7910,14 @@ fn fs_header() -> i64 {
     line("}");
     line("#define MO_WRITE_ 64");
     line("#define MO_EXIT_  93");
+    # v1.1216: riscv64 头补齐 mo_oob/panic/assert_（此前整个头漏发，
+    # 数组越界检查照常引用 mo_oob → 链接失败 —— 用户自评测 v1.1210.0 缺陷①）
+    line("static void __attribute__((noreturn)) mo_exit(long c){ mo_syscall(94,c,0,0,0,0,0); for(;;){} }");
+    line("#include <setjmp.h>");
+    line("static jmp_buf __mjb[8]; static long long __mjn = 0; static long long __mje = 0;");
+    line("static void assert_(long c, const unsigned char* m){ if(c) return; long mn=0; while(m[mn]) mn++; mo_syscall(MO_WRITE_, 2, (long)m, mn, 0, 0, 0); if(__mjn>0){ __mje=2; longjmp(__mjb[__mjn],1); } mo_syscall(MO_EXIT_, 1, 0, 0, 0, 0, 0); }");
+    line("static void panic(const unsigned char* m){ long mn=0; while(m[mn]) mn++; mo_syscall(MO_WRITE_, 2, (long)m, mn, 0, 0, 0); if(__mjn>0){ __mje=2; longjmp(__mjb[__mjn],1); } mo_syscall(MO_EXIT_, 1, 0, 0, 0, 0, 0); }");
+    line("static long long mo_oob(long long i, long long n){ if(i<0){ i+=n; } if(i<0||i>=n){ if(__mjn>0){ __mje=1; longjmp(__mjb[__mjn],1); } mo_syscall(MO_WRITE_, 2, (long)\"index out of bounds\\n\", 19, 0, 0, 0); mo_syscall(MO_EXIT_, 1, 0, 0, 0, 0, 0); } return i; }");
         emit_fs_print();
     return 0;
 }
@@ -7266,7 +8180,7 @@ fn kern_header() -> i64 {
     line("  while(i) vga_putc(b[--i]);");
     line("}");
     line("static void exit(long c){ (void)c; cli(); for(;;) hlt(); }");
-    line("static long argc(void){ return 0; }");
+    line("static long argc(void){ return __mo_argc; }");
     line("static unsigned char* argv(long i){ (void)i; return (unsigned char*)0; }");
     line("static void heap_init(void){ }");
     # 内核里没有标准库，字符串函数得自己给。
@@ -7356,7 +8270,7 @@ fn kern_header_aarch64() -> i64 {
     line("}");
     line("/* 裸机没有退出目标：打印完就停机 */");
     line("static void exit(long c){ (void)c; cli(); for(;;) wfi_(); }");
-    line("static long argc(void){ return 0; }");
+    line("static long argc(void){ return __mo_argc; }");
     line("static unsigned char* argv(long i){ (void)i; return (unsigned char*)0; }");
     line("static void heap_init(void){ }");
     line("static long streq(const unsigned char* a, const unsigned char* b){");
@@ -7496,7 +8410,7 @@ fn uefi_header() -> i64 {
     line("  uefi_puts(o);");
     line("}");
     line("static void exit(long c){ (void)c; for(;;){} }");
-    line("static long argc(void){ return 0; }");
+    line("static long argc(void){ return __mo_argc; }");
     line("static unsigned char* argv(long i){ (void)i; return (unsigned char*)0; }");
     line("static void heap_init(void){ }");
     emit_mem_macros();
@@ -7594,9 +8508,18 @@ fn emit_header() -> i64 {
         line("static double f64(long long v){ return (double)v; }");
         # v1.1176: panic 内建对齐（moc v1.1175）
         line("#include <stdlib.h>");
-        line("static void panic(const char* m){ fprintf(stderr, \"%s\", m); exit(1); }");
-        line("static long long mo_oob(long long i, long long n){ if(i<0){ i+=n; } if(i<0||i>=n){ fprintf(stderr, \"index out of bounds\\n\"); exit(1);} return i; }");
-        line("static void assert_(long c, const char* m){ if(!c){ fprintf(stderr, \"%s\", m); exit(1);} }");
+        line("#include <setjmp.h>");
+        line("static jmp_buf __mjb[8]; static long long __mjn = 0; static long long __mje = 0;");
+        line("static long long __mo_argc = 0; static unsigned char** __mo_argv = 0;");
+        line("#define argv(i) ((unsigned char*)__mo_argv[(long)(i)])");
+        line("static long argc(void){ return (long)__mo_argc; }");
+        line("static void panic(const char* m){ fprintf(stderr, \"%s\", m); if(__mjn>0){ __mje=2; longjmp(__mjb[__mjn],1); } exit(1); }");
+        line("static long long mo_oob(long long i, long long n){ if(i<0){ i+=n; } if(i<0||i>=n){ if(__mjn>0){ __mje=1; longjmp(__mjb[__mjn],1); } fprintf(stderr, \"index out of bounds\\n\"); exit(1);} return i; }");
+        line("static long long mo_arr_has(unsigned char* a, long long n, long long v){ long long i; for(i=0;i<n;i++){ if(((long long*)a)[i]==v) return 1; } return 0; }");
+        line("static long long mo_arr_has2(double* a, long long n, double v){ long long i; for(i=0;i<n;i++){ if(a[i]==v) return 1; } return 0; }");
+        line("static long long mo_arr_hasb(unsigned char* a, long long n, long long v){ long long i; for(i=0;i<n;i++){ if(a[i]==v) return 1; } return 0; }");
+        line("static long long mo_arr_hass(unsigned char** a, long long n, unsigned char* v){ long long i; for(i=0;i<n;i++){ if(strcmp((char*)a[i],(char*)v)==0) return 1; } return 0; }");
+        line("static void assert_(long c, const char* m){ if(!c){ fprintf(stderr, \"%s\", m); if(__mjn>0){ __mje=2; longjmp(__mjb[__mjn],1); } exit(1);} }");
         line("static long long mo_main(void);");
         return 0;
     }
@@ -7891,6 +8814,16 @@ fn emit_footer() -> i64 {
                         line("  asm volatile(\"addi 2, 2, .TOC.-_start@l\");");
                         line("  asm volatile(\"b mo_start\");");
                     } else {
+                        # v1.1216: riscv64 _start 补 gp 初始化（psABI 要求）。
+                        # 此前 gp=0 → gcc 的 addi rd,gp,off 全部算出负地址，
+                        # 小全局可读写、大缓冲（超 ±2048）改绝对寻址碰巧能用，
+                        # 静默出错且 rc=0 —— 用户自评测 v1.1210.0 缺陷②。
+                        # .option norelax 必需：否则 linker relaxation 会把
+                        # la gp 重写成对 gp 自身的 mv（死循环依赖）。
+                        line("  asm volatile(\".option push\");");
+                        line("  asm volatile(\".option norelax\");");
+                        line("  asm volatile(\"la gp, __global_pointer$\");");
+                        line("  asm volatile(\".option pop\");");
                         line("  asm volatile(\"ld t0, 0(sp)\");");
                         line("  asm volatile(\"addi t1, sp, 8\");");
                         line("  asm volatile(\"la t2, MO_ARGC\");");
@@ -7906,9 +8839,7 @@ fn emit_footer() -> i64 {
         return 0;
     }
     if is_c_like() == 1 {
-        line("int main(int argc, char** argv){");
-        line("  return (int)mo_main();");
-        line("}");
+        line("int main(int argc, char** argv){ __mo_argc=argc; __mo_argv=(unsigned char**)argv; return (int)mo_main(); }");
         return 0;
     }
     if TGT == T_JS {
@@ -8621,12 +9552,17 @@ fn emit_match(isexpr: i64) -> i64 {
     # v1.1205: struct 主体 → struct X_t __mv = (expr);（模式访问字段）；标量主体 → long long
     let msv: i64 = 0;
     let tagmv: i64 = 0;   # v1.1207: tagged enum 主体 → 数字/区间臂比较 __mv.tag
-    if cur_k() == 1 && clsv_find(cur_s()) != 0 {
+    let menm13: i64 = 0;
+    if cur_k() == 1 {
+        let meq13: i64 = 0;
+        while meq13 < NENUMN { if streq(cur_s(), ENUMN[meq13]) == 1 { menm13 = 1; } meq13 = meq13 + 1; }
+    }
+    if cur_k() == 1 && (menm13 == 1 || clsv_find(cur_s()) != 0) {
         msv = 1;
         # v1.1206: tagged enum 主体 → Shape_t __mv（无 struct tag）
-        if ev_struct_ty(clsv_find(cur_s())) == 1 {
+        if menm13 == 1 || ev_struct_ty(clsv_find(cur_s())) == 1 {
             tagmv = 1;
-            outs(clsv_find(cur_s()));
+            if menm13 == 1 { outs(cur_s()); } else { outs(clsv_find(cur_s())); }
             outs("_t __mv = (");
         } else {
         outs("struct ");
