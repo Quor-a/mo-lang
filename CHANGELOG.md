@@ -11447,3 +11447,12 @@ mo2x uic component DSL 展开 + 版本号规范：
 - argc()/argv() 内建（329）；全局 struct 字面量初始化（274）
 - 🔴 riscv64 双缺陷修复（用户自评测 v1.1210.0）：①cfs-riscv64 头补 mo_oob/panic/assert_/setjmp 全套（此前漏发→链接失败）②_start 补 gp 初始化（.option norelax + la gp, __global_pointer$）——修复 gp=0 导致 ±2048 范围全局静默读写错乱；aarch64 头补 setjmp.h；argv 宏移至声明后
 - 门禁 514/0; 批测 GENFAIL 88→34（可修项清零，余为已知不修类）
+
+
+## v1.1216.0
+- 🔴 三个静默错误根因修复：①clsv 全局表跨函数泄漏（局部 struct 变量名泄漏他函数 → `if b == 0` 发 `if (0)` 死代码）→ emit_block_body 基线保存/恢复；②一元 `~` 运算符 lexer 静默丢弃（OPS 表无 '~' → `u = ~v` 发 `u = v`）→ OPS[33]="~" + emit_unary 分支；③srand/rand 与 libc 撞名 → C 头 #define 改名 mo_srand/mo_rand
+- interface 方法动态分派接入 C 后端（93）：`a.area()` → vt 间接调用（原仅 freestanding 生效）
+- component suffix 属性解析+num 渲染（128）；prefix 值渲染补全（127）
+- 批测修复：str 链式 scat_cat 嵌套（130）、+= str 守门（35/48/52 回归）、局部 str 字面量副本 [64]/len+64（263_jsonx 自伤回归）、len(ptr)=strlen、0x 字面量直发、超小浮点 0.0 口径（127）
+- 批测 gcc 加 -latomic（116_mopkg/260_aioclient）
+- 门禁 514/0; 批测 GENFAIL 34→24（可修项清零；余 netx 22+89+90 已知类）

@@ -404,7 +404,8 @@ fn ops_init() -> i64 {
     OPS[0] = "<<="; OPS[1] = ">>="; OPS[2] = "=>"; OPS[3] = "=="; OPS[4] = "!="; OPS[5] = "<="; OPS[6] = ">="; OPS[7] = "&&="; OPS[8] = "||="; OPS[9] = "&&"; OPS[10] = "||"; OPS[11] = "<<";
     OPS[12] = ">>"; OPS[13] = "+="; OPS[14] = "-="; OPS[15] = "*="; OPS[16] = "/="; OPS[17] = "%="; OPS[18] = "&="; OPS[19] = "|="; OPS[20] = "^="; OPS[21] = "+"; OPS[22] = "-"; OPS[23] = "*";
     OPS[24] = "/"; OPS[25] = "%"; OPS[26] = "&"; OPS[27] = "|"; OPS[28] = "^"; OPS[29] = "="; OPS[30] = "<"; OPS[31] = ">"; OPS[32] = "!";
-    NOPS = 33;
+    OPS[33] = "~";   # v1.1216: 一元按位反（126_utf8 SWAR；此前 lexer 静默丢弃 → u=v）
+    NOPS = 34;
     return 0;
 }
 
@@ -615,7 +616,19 @@ fn tokenize() -> i64 {
                         nd = nd + 1;
                     }
                     if nd == 0 { return err("0x 后缺少十六进制数字"); }
-                    utoa(v, &LEXB, 10);
+                    # 🔴 utoa 对 i64::MIN（0x8000000000000000 回绕为负）输出 "-"+空
+                    # （0-v 仍为负 → while v>0 空循环）→ 产物 `(long long)(-)` 语法错。
+                    # 特例直写完整十进制（C 字面量 -9223372036854775808 合法）。
+                    if v == (0 - 9223372036854775807 - 1) {
+                        store8(&LEXB + 0, 45);   # '-'
+                        let q2: i64 = 1;
+                        let mstr: i64 = "9223372036854775808";
+                        while load8(mstr + (q2 - 1)) != 0 {
+                            store8(&LEXB + q2, load8(mstr + (q2 - 1)));
+                            q2 = q2 + 1;
+                        }
+                        store8(&LEXB + q2, 0);
+                    } else { utoa(v, &LEXB, 10); }
                     add_tok(2, &LEXB);
                 } else {
                 let n: i64 = 0;
@@ -1033,6 +1046,8 @@ var CFDBUF: [1024] byte = 0;   # v1.1213: component default 字符串缓冲（�
 var CFHV: [16] i64 = 0;   # v1.1213: component on_hover 回调名
 var CFFM: [16] i64 = 0;   # v1.1213: component fmt（1=hex）
 var CFPP: [16] i64 = 0;   # v1.1213: component prefix 标志
+var CFPFBUF: [1024] byte = 0;   # v1.1216: component prefix 字符串值（每字段 64B，128）
+var CFSUBUF: [1024] byte = 0;   # v1.1216: component suffix 字符串值（每字段 64B，128）
 var CFCB: [16] i64 = 0;   # v1.1213: component 字段 on_click 回调名
 
 fn nm_hash(nm: i64) -> i64 {
@@ -1103,6 +1118,26 @@ fn emit_primary() -> i64 {
         return 0;
     }
     if cur_k() == 2 {
+        # v1.1216: 超小浮点字面量复刻 moc 口径——有效数字在小数点后第 27 位起
+        # （<1e-26）时 5^k 放不进 i64，moc 返回 0.0（127 已知限制）。
+        let dstr: i64 = &POOL + TS[TI];
+        let dlen: i64 = 0;
+        while load8(dstr + dlen) != 0 { dlen = dlen + 1; }
+        let ddotpos: i64 = 0 - 1;
+        let dq3: i64 = 0;
+        while dq3 < dlen {
+            if load8(dstr + dq3) == 46 { ddotpos = dq3; break; }
+            dq3 = dq3 + 1;
+        }
+        if ddotpos >= 0 {
+            let dq4: i64 = ddotpos + 1;
+            let hit: i64 = 0 - 1;
+            while dq4 < dlen {
+                if load8(dstr + dq4) != 48 { hit = dq4 - ddotpos; dq4 = dlen; break; }
+                dq4 = dq4 + 1;
+            }
+            if hit >= 27 { outs("0.0"); TI = TI + 1; return 0; }
+        }
         # v1.1196: 移位左操作数字面量加 LL —— C 里 `1 << 63` 是 int 移位 UB，
         # mo 语义是 i64 wrap（lib/cms.mo cm_shr 的 (1 << (64-n))-1 实测坑：147_cbfcu）
         if peek_op("<<") == 1 { outs(cur_s()); outs("LL"); }
@@ -2048,8 +2083,7 @@ fn emit_postfix() -> i64 {
                 TI = TI + 1;
                 if is_op("(") == 1 {
                     let ty: i64 = clsv_ty(onm);
-                    let fi2: i64 = -1;
-                    if TGT == T_FS { fi2 = iface_find(ty); }
+                    let fi2: i64 = iface_find(ty);   # v1.1216: C 系也走接口动态分派（93；原仅 T_FS）
                     if fi2 >= 0 {
                         # 接口方法调用：a.area() → ((long long(*)(void*))((void**)a.vt)[IDX])(a.obj, args...)
                         TI = TI + 1;   # '('
@@ -2302,6 +2336,12 @@ fn emit_unary() -> i64 {
         else {
             if is_gen() == 1 { outs(G_NOT); } else { outs("!"); }
         }
+        return emit_unary();
+    }
+    # v1.1216: 一元 ~ 按位反（126_utf8 SWAR；~v 之前被静默吞掉 → u=v）
+    if accept_op("~") == 1 {
+        if is_c_like() == 1 { outs("~"); }
+        else { return err("一元 ~ 仅在 C 系后端支持"); }
         return emit_unary();
     }
     if accept_op("&") == 1 {
@@ -2793,20 +2833,42 @@ fn emit_prec(minp: i64) -> i64 {
             }
             nx131 = j131 + 1;
         }
-        if nx131 < NT && TK[nx131] == 5 && streq(&POOL + TS[nx131], "+") == 1 {
+        if lstr == 1 && nx131 < NT && TK[nx131] == 5 && streq(&POOL + TS[nx131], "+") == 1 {
             let sv131: i64 = nx131 + 1;
             if sv131 < NT {
                 let rstr: i64 = 0;
                 if TK[sv131] == 3 { rstr = 1; }
                 if TK[sv131] == 1 && strv_find(&POOL + TS[sv131]) == 1 { rstr = 1; }
                 if rstr == 1 {
-                    outs("scat_cat(");
+                    # v1.1216: 链式 a + b + "ghi" → scat_cat(scat_cat(a,b),"ghi")。
+                    # 预扫数链项数 nk → 发 nk-1 层 "scat_cat(" → 逐项 项,项),项)…
+                    let cnt2: i64 = 1;
+                    let w0: i64 = nx131;
+                    while w0 < NT && TK[w0] == 5 && streq(&POOL + TS[w0], "+") == 1 {
+                        let n0: i64 = w0 + 1;
+                        let r0: i64 = 0;
+                        if n0 < NT && TK[n0] == 3 { r0 = 1; }
+                        if n0 < NT && TK[n0] == 1 && strv_find(&POOL + TS[n0]) == 1 { r0 = 1; }
+                        if n0 < NT && TK[n0] == 1 && fsg_find(&POOL + TS[n0]) >= 0 && FSGR[fsg_find(&POOL + TS[n0])] == 1 { r0 = 1; }
+                        if r0 == 0 { break; }
+                        cnt2 = cnt2 + 1;
+                        w0 = n0 + 1;
+                    }
+                    let lc: i64 = 1;
+                    while lc < cnt2 { outs("scat_cat("); lc = lc + 1; }
                     emit_unary();
                     outs(", ");
                     TI = sv131;
-                    emit_unary();
-                    outs(")");
-                    TI = sv131 + 1;
+                    let closed: i64 = 1;
+                    while closed < cnt2 {
+                        emit_unary();
+                        outs(")");
+                        closed = closed + 1;
+                        if closed < cnt2 {
+                            outs(", ");   # TI 已停在 '+'，再 +1 到下一项
+                            TI = TI + 1;
+                        }
+                    }
                     return 0;
                 }
             }
@@ -3438,6 +3500,28 @@ fn emit_multi_assign() -> i64 {
             return 0;
         }
         TI = tgst[0];
+        # v1.1216: str += str 拼接（130_scat）—— 指针 += 是地址加法（段错误/静默错串）。
+        # LHS str 变量 + RHS str → strcat(LHS, RHS)。必须在 emit_lvalue 前拦截（否则 LHS 已发）。
+        if is_c_like() == 1 && strv_find(&POOL + TS[tgst[0]]) == 1 {
+            let pk13: i64 = tgst[0] + 1;
+            if pk13 < NT && TK[pk13] == 5 && streq(&POOL + TS[pk13], "+=") == 1 {
+                let rv13: i64 = 0;
+                if pk13 + 1 < NT && TK[pk13 + 1] == 3 { rv13 = 1; }
+                if pk13 + 1 < NT && TK[pk13 + 1] == 1 && strv_find(&POOL + TS[pk13 + 1]) == 1 { rv13 = 1; }
+                if rv13 == 1 {
+                let lv13: i64 = &POOL + TS[tgst[0]];
+                TI = pk13 + 1;
+                outs("strcat_((unsigned char*)");
+                outs(lv13);
+                outs(", (unsigned char*)");
+                emit_expr();
+                outs(")");
+                expect_op(";");
+                semi();
+                return 0;
+                }
+            }
+        }
         emit_lvalue();
         let t: i64 = cur_s();
         TI = TI + 1;
@@ -4821,6 +4905,9 @@ fn emit_stmts() -> i64 {
 
 fn emit_block_body() -> i64 {
     NDEF = 0;   # v1.1207: 函数级 defer 表
+    # v1.1216: clsv 局部作用域隔离（90_arena_leak：main 的 let b: Arena 泄漏到
+    # assert.mo to_i(b: i64) 的 `if b == 0` → struct 无 eq 重载 → 发 (0)）
+    let clsvbase: i64 = NCLSV;
     expect_op("{");
     if TGT == T_PY {
         IND = 0;
@@ -4845,6 +4932,7 @@ fn emit_block_body() -> i64 {
         }
     }
     NDEF = 0;
+    NCLSV = clsvbase;   # v1.1216: 恢复 clsv 局部条目（跨函数污染隔离）
     if TGT == T_PY { IND = 0; } else { line("}"); }
     return 0;
 }
@@ -4927,12 +5015,29 @@ fn emit_local() -> i64 {
     if is_c_like() == 1 {
         let isarr: i64 = 0;
         if is_op("[") == 1 { isarr = 1; }
+        let purelit: i64 = 0;
         if isarr == 0 && is_c_like() == 1 && TK[TI] == 1 && TK[TI + 1] == 5 && TK[TI + 2] == 3 {
+            # v1.1216: 纯字面量守门——字面量后必须紧跟 ';'（否则是 "" + "x" 型表达式，130_scat）
+            if TI + 3 < NT && TK[TI + 3] == 5 && streq(&POOL + TS[TI + 3], ";") == 1 { purelit = 1; }
+        }
+        if purelit == 1 {
             # v1.1195: 局部 str 字面量 init → 可写 static 副本（07_memory：store64 进字面量）
             LWSEQ = LWSEQ + 1;
             outs("static unsigned char __mlit_");
             outi(LWSEQ);
-            outs("[] = ");
+            # v1.1216: 短串定长 64 副本（t += "cd" 型 in-place strcat 有写余量）；
+            # 长串按原长度+64（超 initializer 会截断/编译错——263_jsonx 73B doc）
+            let ml13: i64 = 0;
+            {
+                let mp: i64 = &POOL + TS[TI + 2];
+                let mq: i64 = 0;
+                while load8(mp + mq) != 0 { mq = mq + 1; }
+                ml13 = mq;
+            }
+            outs("[");
+            if ml13 < 60 { outi(64); }
+            else { outi(ml13 + 64); }
+            outs("] = ");
             out_cstr(&POOL + TS[TI + 2]);
             outs(";");
             nl();
@@ -4941,8 +5046,8 @@ fn emit_local() -> i64 {
             outs(" ");
             outs(nm);
             if streq(&POOL + TS[TI - 3], "str") == 1 { strv_add(nm); }
-            if LASTTY == 0 || streq(LASTTY, "i64") == 1 { outs(" = (long long)(unsigned char*)__mlit_"); }
-            else { outs(" = (unsigned char*)__mlit_"); }
+            if streq(&POOL + TS[TI - 3], "str") == 1 || streq(&POOL + TS[TI - 3], "ptr") == 1 { outs(" = (unsigned char*)__mlit_"); }
+            else { outs(" = (long long)(unsigned char*)__mlit_"); }
             outi(LWSEQ);
             outs(";");
             nl();
@@ -5186,8 +5291,8 @@ fn emit_global() -> i64 {
             outs(" ");
             outs(nm);
             if streq(&POOL + TS[TI - 3], "str") == 1 { strv_add(nm); }
-            if LASTTY == 0 || streq(LASTTY, "i64") == 1 { outs(" = (long long)(unsigned char*)__mlit_"); }
-            else { outs(" = (unsigned char*)__mlit_"); }
+            if streq(&POOL + TS[TI - 3], "str") == 1 || streq(&POOL + TS[TI - 3], "ptr") == 1 { outs(" = (unsigned char*)__mlit_"); }
+            else { outs(" = (long long)(unsigned char*)__mlit_"); }
             outi(LWSEQ);
             outs(";");
             nl();
@@ -6751,6 +6856,30 @@ fn emit_component(cnm: i64, nrows: i64, csep: i64, CFN: ptr, CFK: ptr, CFW: ptr,
             outs("} else { uc_text(cx, y, "); outs(cnm); outs("_"); outs(fl); outs(", UC_YELLOW, bg); }"); nl();
             outs("{ long long p = "); outi(fw); outs(" - tv; long long j = 0;"); nl();
             outs("while (j < p) { uc_set(cx + tv + j, y, 32, fg, bg); j++; } } }"); nl();
+        } else if fk == 1 {
+            # v1.1216: num 值渲染 + prefix/suffix（128_suffix："75kg"）
+            outs("{ unsigned char* nb = "); outs(cnm); outs("_buf; long long nz = 0;"); nl();
+            outs("while (nz < 64) { "); outs(cnm); outs("_buf[nz] = 0; nz++; }"); nl();
+            outs("str_itoa_base(nb, "); outs(cnm); outs("_"); outs(fl); outs(", 10);"); nl();
+            outs("uc_text(cx, y, nb, UC_YELLOW, bg);"); nl();
+            outs("long long nlen = strlen_(nb);"); nl();
+            # v1.1216: prefix/suffix 直接发字符串常量（值来自 mo2x 侧缓冲）
+            outs("{ long long npre = strlen_(");
+            out_cstr(&CFPFBUF + fi * 64);
+            outs("); long long np = 0;");
+            nl();
+            outs("while (np < npre) { uc_set(cx + nlen + np, y, ");
+            out_cstr(&CFPFBUF + fi * 64);
+            outs("[np], UC_YELLOW, bg); np++; }");
+            nl();
+            outs("long long nsuf = strlen_(");
+            out_cstr(&CFSUBUF + fi * 64);
+            outs("); long long ns = 0;");
+            nl();
+            outs("while (ns < nsuf) { uc_set(cx + nlen + npre + ns, y, ");
+            out_cstr(&CFSUBUF + fi * 64);
+            outs("[ns], UC_YELLOW, bg); ns++; } } }");
+            nl();
         } else if fk == 8 {
             outs("{ unsigned char* pb = "); outs(cnm); outs("_buf; long long pz = 0;"); nl();
             outs("while (pz < 64) { "); outs(cnm); outs("_buf[pz] = 0; pz++; }"); nl();
@@ -7517,10 +7646,25 @@ fn pass_file(i: i64, kind: i64) -> i64 {
                                 if accept_kw("hex") == 1 { tffm = 1; }
                                 else { if cur_k() == 1 { TI = TI + 1; } }
                             }
-                            # v1.1213: prefix "str"（127）
+                            # v1.1213: prefix "str"（127）；v1.1216: 存值 CFPFBUF
                             let tfpf: i64 = 0;
                             if accept_kw("prefix") == 1 {
-                                if cur_k() == 3 { tfpf = 1; TI = TI + 1; }
+                                if cur_k() == 3 {
+                                    tfpf = 1;
+                                    let pfq: i64 = 0;
+                                    while pfq < 63 { let pfc: i64 = load8(&POOL + TS[TI] + pfq); if pfc == 0 { break; } CFPFBUF[CNF * 64 + pfq] = pfc; pfq = pfq + 1; }
+                                    CFPFBUF[CNF * 64 + pfq] = 0;
+                                    TI = TI + 1;
+                                }
+                            }
+                            # v1.1216: suffix "str"（128）—— 值存 CFSUBUF
+                            if accept_kw("suffix") == 1 {
+                                if cur_k() == 3 {
+                                    let sfq: i64 = 0;
+                                    while sfq < 63 { let sfc: i64 = load8(&POOL + TS[TI] + sfq); if sfc == 0 { break; } CFSUBUF[CNF * 64 + sfq] = sfc; sfq = sfq + 1; }
+                                    CFSUBUF[CNF * 64 + sfq] = 0;
+                                    TI = TI + 1;
+                                }
                             }
                             accept_kw("hidden");
                             if accept_kw("align") == 1 {
@@ -8509,6 +8653,10 @@ fn emit_header() -> i64 {
         # v1.1176: panic 内建对齐（moc v1.1175）
         line("#include <stdlib.h>");
         line("#include <setjmp.h>");
+        # v1.1216: mo 的 random.mo 定义 srand/rand 与 libc 撞名（126/63/64/65
+        # conflicting types）—— include 后统一改名，mo 定义与调用都走 mo_ 前缀。
+        line("#define srand mo_srand");
+        line("#define rand mo_rand");
         line("static jmp_buf __mjb[8]; static long long __mjn = 0; static long long __mje = 0;");
         line("static long long __mo_argc = 0; static unsigned char** __mo_argv = 0;");
         line("#define argv(i) ((unsigned char*)__mo_argv[(long)(i)])");
