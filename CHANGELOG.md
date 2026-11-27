@@ -11488,3 +11488,17 @@ mo2x uic component DSL 展开 + 版本号规范：
 - 语义放行项（mo 惯用法）：i64/ptr←str 字面量（str 字面量=数据段地址）、str←ptr/&x/函数返回值。
 - 类型检查对编译器自举与 mo2x 重建零误伤（mo2x 重建字节级一致）。
 - 批测 459 项 GENFAIL 0 / mismatch 1（321 已知）；门禁 514/0。
+
+
+## v1.1222.0
+- **标准库密码学套件（五个新库，全部 RFC 权威向量验证）**：
+  - `lib/sha512.mo`：SHA-512（FIPS 180-4，80 轮、大端 IO、单/双块 padding；RFC 四向量）。
+  - `lib/sha256.mo`：SHA-256（FIPS 180-4，64 轮；空/abc/448bit + 55/57/64/111B 块边界全对 hashlib）。32 位算法定式：lshr=无符号除法、shl=乘法、rotr=lshr|shl（mo `>>` 为 sar 禁用）。
+  - `lib/hmac.mo`：HMAC-SHA512（RFC 4231 TC1~6，SHA-512 block=128）+ HMAC-SHA256 + `hmac_hex` + `mac_verify`（恒时比较防时序侧信道）。
+  - `lib/ed25519.mo`：Ed25519 完整实现（RFC 8032）——fe25519 域层（big.mo 通用大数路线，init 自动 heap_init 兜底）、curve25519 点运算（extended XYZT）、ed_pubkey、ed_sign、ed_verify（S<l 检查、点解码 sqrt(-1)/parity、[S]B=R+[k]A）。签名/验证/公钥与 cryptography 权威逐字节一致；篡改消息/签名/公钥三类拒绝。
+  - `lib/hkdf.mo`：HKDF-SHA256（RFC 5869 TC1~3）。
+- 🔴 域层深坑：sqrt(-1)=2^((p-1)/4)（(-1)^((p-1)/4) 恒=p-1，因指数为奇数）；标量三定律：r/k=SHA512 完整 64B mod l、a=clamp 不 mod p、标量乘禁 fe_mul。
+- 🔴 HMAC inner 缓冲必须 ≥ block+msg（两轮越界栈写事故定式）。
+- 新增 tests/365~371（7 文件）；tests/pty/main.mo 修复（hmac_hex/mac_verify 落地）。
+- 能力边界更新：非对称签名（Ed25519）+ 密钥派生（HKDF）补齐——TLS 类协议原语全链就位。
+- 指标：门禁 **521/0**（514→521）；C 批测 GENFAIL 0 / mismatch 1（321 已知）；cfs 双架构全绿维持。
