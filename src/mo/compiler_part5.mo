@@ -1,7 +1,3 @@
-
-# ==========================================================================
-#  语句
-# ==========================================================================
 # v1.1060: struct 字段默认值表 —— SDV[si*64+fi] 值, SDH[si*64+fi] 存在标志。
 # 必须定义在所有使用点（parse_let/parse_struct）之前。
 var SDV: [16384] i64 = 0;
@@ -1658,6 +1654,7 @@ fn parse_let() -> i64 {
         dbg_var(scratch2(), bo, dcln, ty_bool());
         if accept("=") == 1 {
             parse_expr();
+            if ty_kind(R_ETY) == 10 || ty_kind(R_ETY) == 2 || ty_kind(R_ETY) == 3 { return err_at2("type mismatch: cannot initialize bool from this value", gv(K_LINE), gv(K_COL)); }
             expect(";");
             g_store_local(bo);
             return 0;
@@ -1676,6 +1673,7 @@ fn parse_let() -> i64 {
         # 再 expect 就把它当成必须是 f64 —— 非 f64 声明全报语法错误。
         if accept("=") == 1 {
             parse_expr();
+            if ty_kind(R_ETY) == 10 || ty_kind(R_ETY) == 2 || ty_kind(R_ETY) == 3 { return err_at2("type mismatch: cannot initialize f64 from this value", gv(K_LINE), gv(K_COL)); }
             expect(";");
             g_store_local(fo);
             return 0;
@@ -1908,6 +1906,7 @@ fn parse_let() -> i64 {
                 store64(heap + O_STY + ida * 8, ty_array(et, n));
                 dbg_var(scratch2(), off, dcln, ty_array(et, n));
                 parse_expr();
+                if ty_kind(R_ETY) == 10 { return err_at2("type mismatch: cannot initialize array from str", gv(K_LINE), gv(K_COL)); }
                 expect(";");
                 g_push_rax();                     # 自带 spill；源地址入栈
                 g_lea_local(off);                 # rax = 目的（新数组槽）—— g_copy_words 约定 rax=目的游标 rsi=源
@@ -2139,6 +2138,12 @@ fn parse_let() -> i64 {
     # v1.1102: match 右值走通用 parse_expr（primary 集成），无特判（旧特判
     # 遇 `let b: i64 = match …} + 1;` 之类后续运算符会 syntax error）。
     parse_expr();
+    # v1.1221: 显式类型 vs 右值明确错配 → 报错
+    # str 即地址语义：str ← ptr/&x/数值地址 惯用法放行；只挡明确数值/bool/struct 错配
+    if ty_kind(vt) == 10 && (ty_kind(R_ETY) == 7 || ty_kind(R_ETY) == 2) { return err_at2("type mismatch: cannot initialize str from bool/struct value", gv(K_LINE), gv(K_COL)); }
+    # str 字面量求值即数据段地址：i64/ptr ← str 字面量是合法惯用法（07_memory），放行。
+    if ty_kind(vt) != 10 && ty_kind(R_ETY) == 10 && ty_kind(vt) != 0 && ty_kind(vt) != 4 { return err_at2("type mismatch: cannot initialize numeric/bool/struct from str value", gv(K_LINE), gv(K_COL)); }
+    if ty_kind(vt) == 2 && ty_kind(R_ETY) != 2 { return err_at2("type mismatch: struct initializer type mismatch", gv(K_LINE), gv(K_COL)); }
     expect(";");
     let off: i64 = gv(K_CUROFF);
     sv(K_CUROFF, off - 8);

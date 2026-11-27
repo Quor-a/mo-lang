@@ -11481,3 +11481,10 @@ mo2x uic component DSL 展开 + 版本号规范：
 - 🔴 setjmp 根因修复：cfs 前导 <setjmp.h> 在 glibc 下重定向 _setjmp/__longjmp_chk → -nostdlib 链接失败；改 __builtin_setjmp/__builtin_longjmp（jmp_buf void*[8]）。手写汇编版三架构 segv 实证不可用。
 - x86 cfs 分支：删重复 __mo_argc/__mo_argv（redefinition）+删 #define argv(i)（宏吞 argv 函数定义）。
 - 指标：门禁 514/0；C 批测 GENFAIL 0；cfs-riscv64 与 cfs-aarch64 全量 459 双双 GENFAIL 0 / LINKFAIL 0（此前 59/20）。
+
+
+## v1.1221.0
+- moc 诊断质量：`let` 显式类型与初始化值明确错配时报错（str←bool/struct、数值/bool/struct←str、bool/f64←str/struct/array、数组←str）——此前全部静默接受。
+- 语义放行项（mo 惯用法）：i64/ptr←str 字面量（str 字面量=数据段地址）、str←ptr/&x/函数返回值。
+- 类型检查对编译器自举与 mo2x 重建零误伤（mo2x 重建字节级一致）。
+- 批测 459 项 GENFAIL 0 / mismatch 1（321 已知）；门禁 514/0。

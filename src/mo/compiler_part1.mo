@@ -846,4 +846,4 @@ fn cprop_clear(s: i64) -> i64 {
     if s < 0 || s >= 2048 { return 0; }
     store8(heap + O_CPROP + s * 16, 0);
     return 0;
-}
+}var RETB: i64 = 0;    # v1.1089: 数组返回暂存区（解决 1079 悬垂）
