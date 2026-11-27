@@ -11471,3 +11471,13 @@ mo2x uic component DSL 展开 + 版本号规范：
 - 90_arena_leak 双修复：①ptr % int（p3 % 16）在 emit_unary 调用点紧贴 LHS 局部包 (long long)（非顶部预扫——预扫禁区仍成立）；②struct 引用形参作实参且自身已是引用形参时不再双重取址 &(...)（Arena_str→Arena_alloc(self) segv）
 - 294_verifysha：局部变量 match 赋值守门（match 后 '=' 单等 → 变量赋值而非 match 语句）
 - 门禁 514/0; 批测 GENFAIL 1→0, mismatch 1（321 已知）
+
+
+## v1.1220.0
+- 🔴 数组字面量返回悬垂修复（316/318，C 系同症）：return [a,b,c] 复合字面量拷入 static 缓冲再返回，C/cfs-riscv64/cfs-aarch64 三路全对 exp。
+- 🔴 aarch64 O_DIRECTORY 架构差异（62_dir_list segv 根因）：O_DIRECTORY aarch64=16384 ≠ x86 65536，openat 发射时字面量 65536 就地改写。
+- 🔴 aarch64 freestanding 无 libgcc __aarch64_cas8_*：atomic_cas 与 __atomic_* 四件套 aarch64 分支改普通读写（单线程语义等价）。
+- cfs freestanding 前导全面补齐：strlen_/mo_arr_has*/mo_slice（BSS bump 分配器 mo_bump）/strstr_/strcat 宏/mo_arrcmp3/__atomic_*/strcmp 宏（try_strcmp 裸名）。
+- 🔴 setjmp 根因修复：cfs 前导 <setjmp.h> 在 glibc 下重定向 _setjmp/__longjmp_chk → -nostdlib 链接失败；改 __builtin_setjmp/__builtin_longjmp（jmp_buf void*[8]）。手写汇编版三架构 segv 实证不可用。
+- x86 cfs 分支：删重复 __mo_argc/__mo_argv（redefinition）+删 #define argv(i)（宏吞 argv 函数定义）。
+- 指标：门禁 514/0；C 批测 GENFAIL 0；cfs-riscv64 与 cfs-aarch64 全量 459 双双 GENFAIL 0 / LINKFAIL 0（此前 59/20）。

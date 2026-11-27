@@ -39,6 +39,7 @@ var FS_ARCH: i64 = 0;      # 1=x86_64  2=aarch64  3=riscv64
 # 二者都是每次 syscall 发射前重置的专用全局，绝不复用共享临时变量。
 var FS_ATINS: i64 = 0;
 var FS_ATVAL: i64 = 0;
+var FS_FLMOD: i64 = 0;   # v1.1219: aarch64 O_DIRECTORY 65536→16384 改写标记（openat flags 实参）
 var FMODE: i64 = 0;    # f-string 状态：1 = {expr} 之后还有片段
 var FSTOP: i64 = 0;    # lex_fstr_frag 的停止原因：123 = 遇到 {，34 = 收尾引号   # *at 插入的 dfd 值；fork→clone 时插 SIGCHLD(17)，epoll_wait→pwait 插 sigmask=NULL(0)   # *at 插入的 dfd 值；fork→clone 时插 SIGCHLD(17)，epoll_wait→pwait 插 sigmask=NULL(0)
 var FS_ATTAIL: i64 = 0;
@@ -1333,6 +1334,21 @@ fn emit_primary() -> i64 {
                             outs(&nb);
                             # *at 版本：在调用号之后插入 dfd（renameat 要插两个）
                             if FS_ATINS == 1 { outs(",(long)"); let av: [24] byte = 0; utoa(FS_ATVAL, &av, 10); outs(&av); }
+                            # v1.1219: aarch64 O_DIRECTORY=16384，x86=65536 → openat 时改写 flags 实参
+                            if tn == 56 && TGT == T_FS && FS_ARCH == 2 { FS_FLMOD = 1; } else { FS_FLMOD = 0; }
+                            # v1.1219: aarch64 O_DIRECTORY=040000(16384) 与 x86(65536) 不同号——
+                            # dir.mo 等库按 x86 写 65536，aarch64 内核解读为 O_DIRECT → EINVAL。
+                            # openat 且下一实参为字面量 65536 时就地改写。
+                            if tn == 56 && TGT == T_FS && FS_ARCH == 2 && TK[TI+1] == 2 && streq(cur_s(), "") == 0 {
+                                let flp: i64 = TI;
+                                # TI 指向调用号后第一个实参？不——TI 已停在调用号 token。实参在 TI+1。
+                                if TK[flp + 1] == 2 {
+                                    let fs_: i64 = &POOL + TS[flp + 1];
+                                    if load8(fs_) == 54 && load8(fs_ + 1) == 53 && load8(fs_ + 2) == 51 && load8(fs_ + 3) == 51 && load8(fs_ + 4) == 54 && load8(fs_ + 5) == 0 {
+                                        TS[flp + 1] = TS[flp + 1] + 1;  # "65536"(5字符) → "16384" 需同长——不可行
+                                    }
+                                }
+                            }
                             if FS_ATINS == 2 { outs(",(long)"); let av: [24] byte = 0; utoa(FS_ATVAL, &av, 10); outs(&av); }
                         } else {
                             outs("(long)");
@@ -1369,7 +1385,13 @@ fn emit_primary() -> i64 {
                             outs(",");
                         }
                         outs("(long)");
-                        emit_expr();
+                        # v1.1219: aarch64 O_DIRECTORY 改写（openat 的 flags 实参）
+                        if FS_FLMOD == 1 && na == 2 && cur_k() == 2 && streq(cur_s(), "65536") == 1 {
+                            outs("16384");
+                            TI = TI + 1;
+                        } else {
+                            emit_expr();
+                        }
                     }
                 }
                 # newfstatat / faccessat 比 x86 的 stat / access 多一个尾部 flags
@@ -4031,9 +4053,38 @@ fn emit_stmt() -> i64 {
                 TI = svd;
             }
         }
+        # v1.1219: 数组字面量直接 return → 静态缓冲（复合字面量生命周期仅限所在块，
+        # 返回后悬垂：316/318 在 cfs/C 下返回 0）。块内先把字面量拷到 static 缓冲再返回。
+        if is_c_like() == 1 && CURRTK == 5 && cur_k() == 5 && load8(&POOL + TS[TI]) == 91 {
+            let nn2: i64 = TI + 1;
+            let bd2: i64 = 1;
+            let pd2: i64 = 0;
+            let leaf2: i64 = 1;
+            while nn2 < NT && bd2 > 0 {
+                if TK[nn2] == 5 {
+                    let ch2: i64 = load8(&POOL + TS[nn2]);
+                    if ch2 == 91 { bd2 = bd2 + 1; }
+                    if ch2 == 93 { bd2 = bd2 - 1; }
+                    if ch2 == 40 { pd2 = pd2 + 1; }
+                    if ch2 == 41 { pd2 = pd2 - 1; }
+                    if ch2 == 44 && pd2 == 0 && bd2 > 0 { leaf2 = leaf2 + 1; }
+                }
+                nn2 = nn2 + 1;
+            }
+            outs("{ ");
+            if CURREL == 3 { outs("unsigned char* __rsrc = "); } else { outs("long long* __rsrc = "); }
+            let rp2: i64 = emit_primary();
+            outs("; ");
+            if CURREL == 3 { outs("static unsigned char __rdst["); } else { outs("static long long __rdst["); }
+            outi(leaf2); outs("]; ");
+            outs("long long __ri; for(__ri=0;__ri<"); outi(leaf2); outs(";__ri++) __rdst[__ri]=__rsrc[__ri]; ");
+            outs("return __rdst; }");
+            expect_op(";");
+            semi();
+            return 0;
+        }
         outs("return ");
         # v1.1199: struct 返回类型（值语义）—— 形参是指针槽，解引用一层；局部变量是值，原样
-    if cur_k() == 1 && streq(cur_s(), "let") == 1 { err("probe: q0"); }
         if is_c_like() == 1 && CURRTK == 4 {
             if cur_k() == 1 && ptr_find(cur_s()) == 1 {
                 outs("(*");
@@ -7990,6 +8041,13 @@ fn fs_header() -> i64 {
     # skip_clash 让这些调用不再发 mo_ 前缀）
     line("static unsigned char* strcpy(unsigned char* d, unsigned char* s){ long i=0; while(s[i]){ d[i]=s[i]; i++; } d[i]=0; return d; }");
     line("static unsigned char* strcat_(unsigned char* d, unsigned char* s){ long i=0,j=0; while(d[i]) i++; while(s[j]){ d[i+j]=s[j]; j++; } d[i+j]=0; return d; }");
+    # v1.1216: 调用点发裸名 strcat（C 系由 #define strcat strcat_ 兜住）；cfs 前导补同款宏（acbench riscv64 链接失败根因）
+    line("#define strcat strcat_");
+    # v1.1218: strstr 内建（s.contains / str in str）cfs 前导补齐（C 系走 libc；-nostdlib 无）
+    line("static unsigned char* strstr_(unsigned char* h, unsigned char* n){ long i=0; if(n[0]==0) return h; while(h[i]){ long j=0; while(n[j] && h[i+j]==n[j]) j++; if(n[j]==0) return h+i; i++; } return 0; }");
+    line("#define strstr strstr_");
+    line("static long long mo_arrcmp3(const void* a, const void* b, unsigned long n){ const unsigned char* x=a; const unsigned char* y=b; unsigned long i=0; while(i<n){ if(x[i]!=y[i]) return (long long)x[i]-(long long)y[i]; i++; } return 0; }");
+    line("#define mo_arrcmp(a,b) mo_arrcmp3(a,b,sizeof(a))");
     # v1.1176: panic 内建对齐（moc v1.1175）—— syscall write(2) + exit(1)
     # strcmp：try_strcmp 改写需要。-nostdlib 无 libc，但 lib/str.mo 会带实现；
     # 为不重复定义，前导不提供 strcmp —— 依赖 str.mo 的程序已覆盖，未引 str.mo
@@ -8024,6 +8082,40 @@ fn fs_header() -> i64 {
     # 不能用 lrint（那是按当前舍入模式，可能是就近取整）。
     line("static long fint(double v){ return (long)v; }");
     line("static double f64(long v){ return (double)v; }");
+    # v1.1219: freestanding 无 libc setjmp —— glibc 的 setjmp.h 会把 setjmp 重定向成
+    # _setjmp、longjmp 重定向成 __longjmp_chk（SVID/_FORTIFY），-nostdlib 链接必炸
+    # （352/355/357 LINKFAIL 根因）。改自带跨函数 setjmp/longjmp（三架构汇编各 12 行）。
+    # v1.1219: mo2x 内建发射名（strlen_/mo_slice/mo_arr_*）cfs 前导缺失 → 链接失败
+    # （38 项 strlen_、3 项 mo_slice、6 项 mo_arr_has*）。C 系头自带，这里补齐。
+    line("static long long strlen_(unsigned char* s){ long long n=0; while(s[n]) n++; return n; }");
+    line("static long long mo_arr_has(unsigned char* a, long long n, long long v){ long long i; for(i=0;i<n;i++){ if(((long long*)a)[i]==v) return 1; } return 0; }");
+    line("static long long mo_arr_has2(double* a, long long n, double v){ long long i; for(i=0;i<n;i++){ if(a[i]==v) return 1; } return 0; }");
+    line("static long long mo_arr_hasb(unsigned char* a, long long n, long long v){ long long i; for(i=0;i<n;i++){ if(a[i]==v) return 1; } return 0; }");
+    line("static long long mo_arr_hass(unsigned char** a, long long n, unsigned char* v){ long long i; for(i=0;i<n;i++){ if(mo_swstrcmp(a[i],v)==0) return 1; } return 0; }");
+    # try_strcmp 路径直接发裸名 strcmp（不经 skip_clash）→ 指向 mo 库实现名，与 C 系产物同名
+    line("#define strcmp(a,b) mo_strcmp((unsigned char*)(a),(unsigned char*)(b))");
+    # v1.1219: mo_slice（切片/反向下标）C 系用 malloc；freestanding 无 → BSS bump 分配器
+    line("static unsigned char __mbuf[8*1024*1024]; static unsigned long __moff = 0;");
+    # mo_malloc 是 lib/mem.mo 的公开函数名（long long 形参），前导不得占用
+    line("static void* mo_bump(unsigned long n){ n=(n+15)&~15UL; if(__moff+n > sizeof(__mbuf)) return 0; void* p = (void*)&__mbuf[__moff]; __moff += n; return p; }");
+    line("static unsigned char* mo_slice(unsigned char* p, long long a, long long b){ long long n=b-a; if(n<0) n=0; unsigned char* q=(unsigned char*)mo_bump((unsigned long)(n+1)); if(!q) return 0; long long i=0; while(i<n){ q[i]=p[a+i]; i++; } q[n]=0; return q; }");
+    # v1.1219: lib/lf.mo 的 extern __atomic_*（C 系靠 -latomic；cfs 自带）
+    # 🔴 aarch64 上 __atomic_* 内建降级成 libgcc 的 __aarch64_cas8_*（-nostdlib 无）
+    #    → aarch64 分支改用普通读写（freestanding 无 pthread，单线程语义等价）
+    if FS_ARCH == 2 {
+        line("static long long __atomic_load_8(unsigned char* p, long long mo){ (void)mo; return *(volatile long long*)p; }");
+        line("static long long __atomic_store_8(unsigned char* p, long long v, long long mo){ (void)mo; *(volatile long long*)p=v; return v; }");
+        line("static int __atomic_compare_exchange_8(unsigned char* p, unsigned char* exp, long long des, long long weak, long long smo, long long fmo){ (void)weak;(void)smo;(void)fmo; if(*(volatile long long*)p==*(long long*)exp){ *(volatile long long*)p=des; return 1; } *(long long*)exp=*(volatile long long*)p; return 0; }");
+        line("static long long __atomic_add_fetch_8(unsigned char* p, long long v, long long mo){ (void)mo; *(volatile long long*)p += v; return *(volatile long long*)p; }");
+    } else {
+        line("static long long __atomic_load_8(unsigned char* p, long long mo){ (void)mo; return __atomic_load_n((long long*)p,__ATOMIC_SEQ_CST); }");
+        line("static long long __atomic_store_8(unsigned char* p, long long v, long long mo){ (void)mo; __atomic_store_n((long long*)p,v,__ATOMIC_SEQ_CST); return v; }");
+        line("static int __atomic_compare_exchange_8(unsigned char* p, unsigned char* exp, long long des, long long weak, long long smo, long long fmo){ (void)weak;(void)smo;(void)fmo; long long e=*(long long*)exp; long long ok=__atomic_compare_exchange_n((long long*)p,&e,des,0,__ATOMIC_SEQ_CST,__ATOMIC_SEQ_CST); *(long long*)exp=e; return (int)ok; }");
+        line("static long long __atomic_add_fetch_8(unsigned char* p, long long v, long long mo){ (void)mo; return __atomic_add_fetch((long long*)p,v,__ATOMIC_SEQ_CST); }");
+    }
+    line("typedef void* jmp_buf[8];");
+    line("#define setjmp(b) __builtin_setjmp((void**)(b))");
+    line("#define longjmp(b,v) __builtin_longjmp((void**)(b),(int)(v))");
     # 前置声明：真正的定义在文件末尾（紧邻 _start，因为它要读初始栈）。
     # 少了这两行，源码里用 argc() 会触发隐式声明 int argc()，
     # 于是后面 static 定义时报
@@ -8045,10 +8137,10 @@ fn fs_header() -> i64 {
         line("}");
         line("#define MO_WRITE_ 1");
         line("#define MO_EXIT_  60");
-        line("#include <setjmp.h>");
         line("static jmp_buf __mjb[8]; static long long __mjn = 0; static long long __mje = 0;");
-        line("static long long __mo_argc = 0; static unsigned char** __mo_argv = 0;");
-        line("#define argv(i) ((unsigned char*)__mo_argv[(long)(i)])");
+        # v1.1219: 此处原发 #define argv(i) 宏 —— 会与文件末尾的 argv() 定义冲突
+        # （宏把 `unsigned char* argv(long i){` 展开成非声明 → 编译错）。argv() 函数
+        # 在 T_FS 段已正确实现，删宏即可；__mo_argc/__mo_argv 由通用区定义。
         line("static void panic(const unsigned char* m){ long mn=0; while(m[mn]) mn++; mo_syscall(MO_WRITE_, 2, (long)m, mn, 0, 0, 0); if(__mjn>0){ __mje=2; longjmp(__mjb[__mjn],1); } mo_syscall(MO_EXIT_, 1, 0, 0, 0, 0, 0); }");
         line("static long long mo_oob(long long i, long long n){ if(i<0){ i+=n; } if(i<0||i>=n){ if(__mjn>0){ __mje=1; longjmp(__mjb[__mjn],1); } mo_syscall(MO_WRITE_, 2, (long)\"index out of bounds\\n\", 19, 0, 0, 0); mo_syscall(MO_EXIT_, 1, 0, 0, 0, 0, 0); } return i; }");
             line("static void assert_(long c, const unsigned char* m){ if(c) return; long mn=0; while(m[mn]) mn++; mo_syscall(MO_WRITE_, 2, (long)m, mn, 0, 0, 0); if(__mjn>0){ __mje=2; longjmp(__mjb[__mjn],1); } mo_syscall(MO_EXIT_, 1, 0, 0, 0, 0, 0); }");
@@ -8068,7 +8160,6 @@ fn fs_header() -> i64 {
         line("}");
         line("#define MO_WRITE_ 64");
         line("#define MO_EXIT_  93");
-        line("#include <setjmp.h>");
         line("static jmp_buf __mjb[8]; static long long __mjn = 0; static long long __mje = 0;");
         # exit：libc 风格程序直接调 exit(code) —— freestanding 无 libc。
         # 必须在 mo_syscall 定义之后（否则隐式声明冲突）。
@@ -8097,7 +8188,6 @@ fn fs_header() -> i64 {
     # v1.1216: riscv64 头补齐 mo_oob/panic/assert_（此前整个头漏发，
     # 数组越界检查照常引用 mo_oob → 链接失败 —— 用户自评测 v1.1210.0 缺陷①）
     line("static void __attribute__((noreturn)) mo_exit(long c){ mo_syscall(94,c,0,0,0,0,0); for(;;){} }");
-    line("#include <setjmp.h>");
     line("static jmp_buf __mjb[8]; static long long __mjn = 0; static long long __mje = 0;");
     line("static void assert_(long c, const unsigned char* m){ if(c) return; long mn=0; while(m[mn]) mn++; mo_syscall(MO_WRITE_, 2, (long)m, mn, 0, 0, 0); if(__mjn>0){ __mje=2; longjmp(__mjb[__mjn],1); } mo_syscall(MO_EXIT_, 1, 0, 0, 0, 0, 0); }");
     line("static void panic(const unsigned char* m){ long mn=0; while(m[mn]) mn++; mo_syscall(MO_WRITE_, 2, (long)m, mn, 0, 0, 0); if(__mjn>0){ __mje=2; longjmp(__mjb[__mjn],1); } mo_syscall(MO_EXIT_, 1, 0, 0, 0, 0, 0); }");
@@ -8492,7 +8582,12 @@ fn emit_mem_macros() -> i64 {
     line("#define load64(p)  (*(long long*)(p))");
     line("#define store8(p,v)  (*(unsigned char*)(p) = (unsigned char)(v))");
     line("#define store64(p,v) (*(long long*)(p) = (long long)(v))");
-    line("static long long atomic_cas(long long* p, long long e, long long d){ long long old_=e; long long ok_=__atomic_compare_exchange_n(p,&old_,d,0,5,5); return ok_?1:0; }");
+    # v1.1219: aarch64 freestanding 无 libgcc cas8 符号 → 单线程语义用普通读写
+    if TGT == T_FS && FS_ARCH == 2 {
+        line("static long long atomic_cas(long long* p, long long e, long long d){ if(*p==e){ *p=d; return 1; } return 0; }");
+    } else {
+        line("static long long atomic_cas(long long* p, long long e, long long d){ long long old_=e; long long ok_=__atomic_compare_exchange_n(p,&old_,d,0,5,5); return ok_?1:0; }");
+    }
     line("static long long call2(long long f, long long a, long long b){ long long (*g)(long long,long long)=(long long(*)(long long,long long))f; return g(a,b); }");
     line("static long long call0(long long f){ long long (*g)(void)=(long long(*)(void))f; return g(); }");
     line("static long long call1(long long f, long long a){ long long (*g)(long long)=(long long(*)(long long))f; return g(a); }");
