@@ -14,11 +14,11 @@ var pt: [64] byte = 0;
 
 fn main() -> i64 {
     # --- SHA-256：空串与 "abc" 的标准向量 ---
-    sha256_hex("", 0, &d);
+    cr_sha256_hex("", 0, &d);
     if streq(&d, "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855") == 0 {
         return 1;
     }
-    sha256_hex("abc", 3, &d);
+    cr_sha256_hex("abc", 3, &d);
     if streq(&d, "ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad") == 0 {
         return 2;
     }
@@ -28,7 +28,7 @@ fn main() -> i64 {
     while i < 199 { store8(&big + i, 97 + (i & 15)); i = i + 1; }
     store8(&big + 199, 0);
     # 只校验长度，说明它跨了两个 512 位块且没崩
-    if sha256(&big, 199, &d) != 32 { return 3; }
+    if cr_sha256(&big, 199, &d) != 32 { return 3; }
 
     # --- CRC32("hello world") = 0x0D4A1185 ---
     # 0x0D4A1185 = 222957957

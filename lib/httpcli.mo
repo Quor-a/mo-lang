@@ -21,7 +21,7 @@ var HC_CP: i64 = 0;
 var HC_IP: i64 = 0;
 var HC_SCI: i64 = 0;
 
-fn http_status(hb: i64) -> i64 {
+fn hc_status(hb: i64) -> i64 {
     HC_SCI = strstr(hb, " ");
     if HC_SCI < 0 { return 0 - 1; }
     HC_SCI = HC_SCI + 1;
@@ -71,7 +71,7 @@ fn tcp_http_req_port(method: ptr, path: ptr, host: ptr, port: i64, body: ptr, bl
         HC_HE = strstr(&HC_RB, "\r\n\r\n");
     }
     if HC_HE < 0 { tcp_close(fd); return 0 - 3; }
-    if status != 0 { store64(status, http_status(&HC_RB)); }
+    if status != 0 { store64(status, hc_status(&HC_RB)); }
     HC_CL = 0;
     HC_DP = strstr(&HC_RB, "Content-Length: ");
     if HC_DP >= 0 {
@@ -311,7 +311,7 @@ fn tcp_http_ka_read(ki: i64, port: i64, buf: i64, bufsize: i64, status: ptr) -> 
         HC_HE = strstr(&HC_RB, "\r\n\r\n");
     }
     if HC_HE < 0 { return 0 - 3; }
-    if status != 0 { store64(status, http_status(&HC_RB)); }
+    if status != 0 { store64(status, hc_status(&HC_RB)); }
     HC_CL = 0;
     HC_DP = strstr(&HC_RB, "Content-Length: ");
     if HC_DP >= 0 {
@@ -369,7 +369,7 @@ fn tcp_http_ka_head(ki: i64, status: ptr) -> i64 {
         HC_HE = strstr(&HC_RB, "\r\n\r\n");
     }
     if HC_HE < 0 { return 0 - 3; }
-    if status != 0 { store64(status, http_status(&HC_RB)); }
+    if status != 0 { store64(status, hc_status(&HC_RB)); }
     return 0;
 }
 
@@ -455,7 +455,7 @@ fn tcp_http_req_raw(method: ptr, path: ptr, host: ptr, port: i64, body: ptr, ble
             store8(&HC_RB + HC_GOT, 0);
         }
     }
-    if status != 0 { store64(status, http_status(&HC_RB)); }
+    if status != 0 { store64(status, hc_status(&HC_RB)); }
     tcp_close(fd);
     let cp: i64 = 0;
     while cp < HC_GOT && cp < bufsize - 1 {

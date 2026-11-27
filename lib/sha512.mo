@@ -64,18 +64,18 @@ var H5: i64 = 0x9b05688c2b3e6c1f;
 var H6: i64 = 0x1f83d9abfb41bd6b;
 var H7: i64 = 0x5be0cd19137e2179;
 
-var W: [80] i64 = 0;
+var S512_W: [80] i64 = 0;
 
 fn sha512_block(p: i64) -> i64 {
     let i: i64 = 0;
     while i < 16 {
-        W[i] = bigend(p + i * 8);
+        S512_W[i] = bigend(p + i * 8);
         i = i + 1;
     }
     while i < 80 {
-        let s0: i64 = rotr(W[i-15], 1) ^ rotr(W[i-15], 8) ^ lshr(W[i-15], 7);
-        let s1: i64 = rotr(W[i-2], 19) ^ rotr(W[i-2], 61) ^ lshr(W[i-2], 6);
-        W[i] = W[i-16] + s0 + W[i-7] + s1;
+        let s0: i64 = rotr(S512_W[i-15], 1) ^ rotr(S512_W[i-15], 8) ^ lshr(S512_W[i-15], 7);
+        let s1: i64 = rotr(S512_W[i-2], 19) ^ rotr(S512_W[i-2], 61) ^ lshr(S512_W[i-2], 6);
+        S512_W[i] = S512_W[i-16] + s0 + S512_W[i-7] + s1;
         i = i + 1;
     }
     let a: i64 = H0; let b: i64 = H1; let c: i64 = H2; let d: i64 = H3;
@@ -84,7 +84,7 @@ fn sha512_block(p: i64) -> i64 {
     while t < 80 {
         let S1: i64 = rotr(e, 14) ^ rotr(e, 18) ^ rotr(e, 41);
         let ch: i64 = (e & f) ^ ((~e) & g);
-        let temp1: i64 = h + S1 + ch + K[t] + W[t];
+        let temp1: i64 = h + S1 + ch + K[t] + S512_W[t];
         let S0: i64 = rotr(a, 28) ^ rotr(a, 34) ^ rotr(a, 39);
         let maj: i64 = (a & b) ^ (a & c) ^ (b & c);
         let temp2: i64 = S0 + maj;

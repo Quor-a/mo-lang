@@ -87,7 +87,7 @@ var HS_HE: i64 = 0;
 var HS_R: i64 = 0;
 var HS_CL: i64 = 0;
 var HS_DP: i64 = 0;
-var HS_RESP: [32768] byte = 0;
+var HSR_RESP: [32768] byte = 0;
 var HS_PI: i64 = 0;
 var HS_MI: i64 = 0;
 var HS_C: i64 = 0;
@@ -101,7 +101,7 @@ var HS_H2: i64 = 0;
 var HS_L2: i64 = 0;
 var HS_PARAM_K: [64] byte = 0;   # 参数名
 
-# handler: fn(req_hdr_end_ptr_unused, body_ptr) -> i64 返回 body 长度;HS_RESP 前部状态行+头由框架拼
+# handler: fn(req_hdr_end_ptr_unused, body_ptr) -> i64 返回 body 长度;HSR_RESP 前部状态行+头由框架拼
 var HS_HFN: i64 = 0;
 
 fn http_route(method: ptr, path: ptr, fnidx: i64) -> i64 {
@@ -179,47 +179,47 @@ fn http_make_resp(code: i64, text: ptr, ctype: ptr, body: ptr, blen: i64) -> i64
                     let rn: i64 = fread(rfd, &HS_GZB, 16384);
                     fclose(rfd);
                     if rn > 0 && rn < blen {
-                        strcpy(&HS_RESP, "HTTP/1.1 ");
-                        strcat_i64(&HS_RESP, code);
-                        strcat(&HS_RESP, " ");
-                        strcat(&HS_RESP, text);
-                        strcat(&HS_RESP, "\r\nContent-Type: ");
-                        strcat(&HS_RESP, ctype);
-                        strcat(&HS_RESP, "\r\nContent-Encoding: gzip\r\nContent-Length: ");
-                        strcat_i64(&HS_RESP, rn);
-                        strcat(&HS_RESP, "\r\nConnection: close\r\nX-Content-Type-Options: nosniff\r\nReferrer-Policy: no-referrer\r\nContent-Security-Policy: default-src 'self'\r\n");
+                        strcpy(&HSR_RESP, "HTTP/1.1 ");
+                        strcat_i64(&HSR_RESP, code);
+                        strcat(&HSR_RESP, " ");
+                        strcat(&HSR_RESP, text);
+                        strcat(&HSR_RESP, "\r\nContent-Type: ");
+                        strcat(&HSR_RESP, ctype);
+                        strcat(&HSR_RESP, "\r\nContent-Encoding: gzip\r\nContent-Length: ");
+                        strcat_i64(&HSR_RESP, rn);
+                        strcat(&HSR_RESP, "\r\nConnection: close\r\nX-Content-Type-Options: nosniff\r\nReferrer-Policy: no-referrer\r\nContent-Security-Policy: default-src 'self'\r\n");
                         if strlen(&HS_XHDR) > 0 {
-                            strcat(&HS_RESP, &HS_XHDR);
-                            strcat(&HS_RESP, "\r\n");
+                            strcat(&HSR_RESP, &HS_XHDR);
+                            strcat(&HSR_RESP, "\r\n");
                         }
-                        strcat(&HS_RESP, "\r\n");
-                        memcpy(&HS_RESP + strlen(&HS_RESP), &HS_GZB, rn);
-                        return strlen(&HS_RESP) + rn;
+                        strcat(&HSR_RESP, "\r\n");
+                        memcpy(&HSR_RESP + strlen(&HSR_RESP), &HS_GZB, rn);
+                        return strlen(&HSR_RESP) + rn;
                     }
                 }
             }
         }
     }
-    strcpy(&HS_RESP, "HTTP/1.1 ");
-    strcat_i64(&HS_RESP, code);
-    strcat(&HS_RESP, " ");
-    strcat(&HS_RESP, text);
-    strcat(&HS_RESP, "\r\nContent-Type: ");
-    strcat(&HS_RESP, ctype);
-    strcat(&HS_RESP, "\r\nContent-Length: ");
-    strcat_i64(&HS_RESP, blen);
-    strcat(&HS_RESP, "\r\nServer: mo-httpsrv");
-    strcat(&HS_RESP, "\r\nDate: ");
+    strcpy(&HSR_RESP, "HTTP/1.1 ");
+    strcat_i64(&HSR_RESP, code);
+    strcat(&HSR_RESP, " ");
+    strcat(&HSR_RESP, text);
+    strcat(&HSR_RESP, "\r\nContent-Type: ");
+    strcat(&HSR_RESP, ctype);
+    strcat(&HSR_RESP, "\r\nContent-Length: ");
+    strcat_i64(&HSR_RESP, blen);
+    strcat(&HSR_RESP, "\r\nServer: mo-httpsrv");
+    strcat(&HSR_RESP, "\r\nDate: ");
     http_date_rfc1123();
-    strcat(&HS_RESP, &HS_DATEB);
-    strcat(&HS_RESP, "\r\nConnection: close\r\nX-Content-Type-Options: nosniff\r\nReferrer-Policy: no-referrer\r\nContent-Security-Policy: default-src 'self'\r\n");
+    strcat(&HSR_RESP, &HS_DATEB);
+    strcat(&HSR_RESP, "\r\nConnection: close\r\nX-Content-Type-Options: nosniff\r\nReferrer-Policy: no-referrer\r\nContent-Security-Policy: default-src 'self'\r\n");
     if strlen(&HS_XHDR) > 0 {
-        strcat(&HS_RESP, &HS_XHDR);
-        strcat(&HS_RESP, "\r\n");
+        strcat(&HSR_RESP, &HS_XHDR);
+        strcat(&HSR_RESP, "\r\n");
     }
-    strcat(&HS_RESP, "\r\n");
-    memcpy(&HS_RESP + strlen(&HS_RESP), body, blen);
-    return strlen(&HS_RESP) + blen;
+    strcat(&HSR_RESP, "\r\n");
+    memcpy(&HSR_RESP + strlen(&HSR_RESP), body, blen);
+    return strlen(&HSR_RESP) + blen;
 }
 
 # handler 收到：写 HS_KV，返回 blen —— 由 call2 调
@@ -303,34 +303,34 @@ fn http_make_resp_etag(code: i64, text: ptr, ctype: ptr, body: ptr, blen: i64) -
     http_etag(body, blen);
     if strstr(&HS_REQ, "If-None-Match: ") >= 0 && strstr(&HS_REQ, &HS_ET) >= 0 {
         # v1.260:304 必须回带 ETag 头(规范);无 body
-        strcpy(&HS_RESP, "HTTP/1.1 304 Not Modified\r\nContent-Type: ");
-        strcat(&HS_RESP, ctype);
-        strcat(&HS_RESP, "\r\nETag: ");
-        strcat(&HS_RESP, &HS_ET);
-        strcat(&HS_RESP, "\r\nContent-Length: 0\r\nServer: mo-httpsrv\r\nDate: ");
+        strcpy(&HSR_RESP, "HTTP/1.1 304 Not Modified\r\nContent-Type: ");
+        strcat(&HSR_RESP, ctype);
+        strcat(&HSR_RESP, "\r\nETag: ");
+        strcat(&HSR_RESP, &HS_ET);
+        strcat(&HSR_RESP, "\r\nContent-Length: 0\r\nServer: mo-httpsrv\r\nDate: ");
     http_date_rfc1123();
-    strcat(&HS_RESP, &HS_DATEB);
-    strcat(&HS_RESP, "\r\nConnection: close\r\n\r\n");
-        return strlen(&HS_RESP);
+    strcat(&HSR_RESP, &HS_DATEB);
+    strcat(&HSR_RESP, "\r\nConnection: close\r\n\r\n");
+        return strlen(&HSR_RESP);
     }
-    strcpy(&HS_RESP, "HTTP/1.1 ");
-    strcat_i64(&HS_RESP, code);
-    strcat(&HS_RESP, " ");
-    strcat(&HS_RESP, text);
-    strcat(&HS_RESP, "\r\nContent-Type: ");
-    strcat(&HS_RESP, ctype);
-    strcat(&HS_RESP, "\r\nETag: ");
-    strcat(&HS_RESP, &HS_ET);
-    strcat(&HS_RESP, "\r\nContent-Length: ");
-    strcat_i64(&HS_RESP, blen);
-    strcat(&HS_RESP, "\r\nConnection: close\r\n");
+    strcpy(&HSR_RESP, "HTTP/1.1 ");
+    strcat_i64(&HSR_RESP, code);
+    strcat(&HSR_RESP, " ");
+    strcat(&HSR_RESP, text);
+    strcat(&HSR_RESP, "\r\nContent-Type: ");
+    strcat(&HSR_RESP, ctype);
+    strcat(&HSR_RESP, "\r\nETag: ");
+    strcat(&HSR_RESP, &HS_ET);
+    strcat(&HSR_RESP, "\r\nContent-Length: ");
+    strcat_i64(&HSR_RESP, blen);
+    strcat(&HSR_RESP, "\r\nConnection: close\r\n");
     if strlen(&HS_XHDR) > 0 {
-        strcat(&HS_RESP, &HS_XHDR);
-        strcat(&HS_RESP, "\r\n");
+        strcat(&HSR_RESP, &HS_XHDR);
+        strcat(&HSR_RESP, "\r\n");
     }
-    strcat(&HS_RESP, "\r\n");
-    memcpy(&HS_RESP + strlen(&HS_RESP), body, blen);
-    return strlen(&HS_RESP) + blen;
+    strcat(&HSR_RESP, "\r\n");
+    memcpy(&HSR_RESP + strlen(&HSR_RESP), body, blen);
+    return strlen(&HSR_RESP) + blen;
 }
 
 
@@ -410,7 +410,7 @@ fn http_serve_conn(fd: i64) -> i64 {
     # v1.259:body 大小上限——超限 413 拒收(防 16K 池越界)
     if HS_BLEN > HS_MAXBODY {
         HS_R = http_make_resp(413, "Payload Too Large", "text/plain", "413", 3);
-        tcp_send_all(fd, &HS_RESP, HS_R);
+        tcp_send_all(fd, &HSR_RESP, HS_R);
         return 0;
     }
     # v1.296:提取 Host 头(供 RSS/链接用)
@@ -435,7 +435,7 @@ fn http_serve_conn(fd: i64) -> i64 {
     if HS_MW != 0 {
         if call0(HS_MW) != 0 {
             HS_R = http_make_resp(403, "Forbidden", "text/plain", "403", 3);
-            tcp_send_all(fd, &HS_RESP, HS_R);
+            tcp_send_all(fd, &HSR_RESP, HS_R);
             tcp_close(fd);
             return HS_R;
         }
@@ -501,10 +501,10 @@ fn http_serve_conn(fd: i64) -> i64 {
     }
     if HS_ISHEAD == 1 {
         # 掐 body:找 \r\n\r\n 后截断(响应头里有 CL,HEAD 无 body)
-        HS_R = strstr(&HS_RESP, "\r\n\r\n");
-        if HS_R >= 0 { HS_R = HS_R + 4; tcp_send_all(fd, &HS_RESP, HS_R); tcp_close(fd); return HS_R; }
+        HS_R = strstr(&HSR_RESP, "\r\n\r\n");
+        if HS_R >= 0 { HS_R = HS_R + 4; tcp_send_all(fd, &HSR_RESP, HS_R); tcp_close(fd); return HS_R; }
     }
-    tcp_send_all(fd, &HS_RESP, HS_R);
+    tcp_send_all(fd, &HSR_RESP, HS_R);
     tcp_close(fd);
     return HS_R;
 }

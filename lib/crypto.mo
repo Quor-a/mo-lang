@@ -109,7 +109,7 @@ var CR_ST: [16] i64 = 0;
 var CR_X: [16] i64 = 0;
 var CR_KS: [64] byte = 0;
 
-fn sha256(msg: i64, n: i64, out: i64) -> i64 {
+fn cr_sha256(msg: i64, n: i64, out: i64) -> i64 {
     k256_init();
     let h0: i64 = 1779033703; let h1: i64 = 3144134277;
     let h2: i64 = 1013904242; let h3: i64 = 2773480762;
@@ -209,8 +209,8 @@ fn hex_of(src: i64, n: i64, dst: i64) -> i64 {
 }
 
 # sha256_hex(msg, n, dst)：一步得到十六进制串
-fn sha256_hex(msg: i64, n: i64, dst: i64) -> i64 {
-    sha256(msg, n, &CR_D);
+fn cr_sha256_hex(msg: i64, n: i64, dst: i64) -> i64 {
+    cr_sha256(msg, n, &CR_D);
     return hex_of(&CR_D, 32, dst);
 }
 

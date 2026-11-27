@@ -24,7 +24,7 @@ fn h_up(u: i64, a: i64) -> i64 {
         }
         if lc >= 2 { return http_make_resp(507, "Insufficient Storage", "text/plain", "quota", 5); }
     }
-    sha256_hex(&HS_BODY, HS_BLEN, &T_SHA);
+    cr_sha256_hex(&HS_BODY, HS_BLEN, &T_SHA);
     strcpy(&T_BUF, "");
     strcat(&T_BUF, "pk299 ");
     strcat(&T_BUF, &T_SHA);

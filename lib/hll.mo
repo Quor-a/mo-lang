@@ -37,7 +37,7 @@
 #   合并          (A ∪ B) 的 sketch = 逐桶 max        （损失与单次估计同阶）
 #
 # ── ⚠️ 调用方禁令 ──────────────────────────────────────────
-#   HI / HJ / HT / HW / HR / HU / HV / HN 是本库内部的循环变量，
+#   HI / HJ / HT / HW / HR / HU / HV / HLL_HN 是本库内部的循环变量，
 #   调用方**绝不能拿它们当自己的循环变量** —— 一次 hll_add 就会改掉它们，
 #   外层循环当场退出，症状是"只加了一个元素"，**不报错**。
 #   本项目已在 HDC(v1.108)、SDM(v1.110)、LSH(v1.137) 栽过同一类跟头。
@@ -80,7 +80,7 @@ var HW: i64 = 0;
 var HR: i64 = 0;
 var HU: i64 = 0;
 var HV: i64 = 0;
-var HN: i64 = 0;
+var HLL_HN: i64 = 0;
 
 # ── 逻辑右移 ───────────────────────────────────────────────
 # ⚠️ 墨语言的 >> 是**算术**右移（sar），符号位会复制。
@@ -250,11 +250,11 @@ fn hll_raw(s: i64) -> f64 {
     hll_bind(s);
     let m: i64 = HLLMI;
     let sum: f64 = 0.0;
-    HN = 1;
-    while HN <= m {
-        let e: i64 = HLLP[s + HN];
+    HLL_HN = 1;
+    while HLL_HN <= m {
+        let e: i64 = HLLP[s + HLL_HN];
         sum = sum + fm_ldexp(1.0, 0 - e);
-        HN = HN + 1;
+        HLL_HN = HLL_HN + 1;
     }
     let a: f64 = hll_alpha(m);
     let est: f64 = a * f64(m) * f64(m) / sum;

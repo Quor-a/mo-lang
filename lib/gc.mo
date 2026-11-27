@@ -37,10 +37,10 @@ import "io.mo";
 extern fn setjmp(p: ptr) -> i32;
 
 var DLO: i64 = 268435456;      # 0x10000000 数据段起始（裸产物与 molink 一致）
-var GROW: i64 = 262144;        # 每次向内核申请的量
+var GC_GROW: i64 = 262144;        # 每次向内核申请的量
 
-var HB: i64 = 0;               # 第一个块头
-var HP: i64 = 0;               # 当前 brk
+var GC_HB: i64 = 0;               # 第一个块头
+var GC_HP: i64 = 0;               # 当前 brk
 var DHI: i64 = 0;              # 数据段结束（= gc_init 时的 brk）
 var SB: i64 = 0;               # 栈底（gc_init 记录的近似值）
 
@@ -59,12 +59,12 @@ var GRECL: i64 = 0;            # 上次 collect 回收的数据字节数
 var BLK_MAX: i64 = 65536;
 
 # ── 块访问 ──────────────────────────────────────────────────
-fn blk_size(p: i64) -> i64 { return load64(p); }
+fn GC_blk_size(p: i64) -> i64 { return load64(p); }
 fn blk_flags(p: i64) -> i64 { return load64(p + 8); }
-fn blk_data(p: i64) -> i64 { return p + 16; }
+fn GC_blk_data(p: i64) -> i64 { return p + 16; }
 fn blk_isused(p: i64) -> i64 { return blk_flags(p) & 1; }
 fn blk_ismark(p: i64) -> i64 { return (blk_flags(p) >> 1) & 1; }
-fn blk_next(p: i64) -> i64 { return p + 16 + blk_size(p); }
+fn GC_blk_next(p: i64) -> i64 { return p + 16 + GC_blk_size(p); }
 
 fn blk_setused(p: i64) -> i64 {
     store64(p + 8, blk_flags(p) | 1);
@@ -93,17 +93,17 @@ fn gc_init() -> i64 {
     DHI = gc_range_of(DLO);         # 数据段上界
     if SB == 0 { GCERR = 4; return -1; }
     if DHI == 0 { GCERR = 4; return -1; }
-    HB = syscall(12, 0, 0, 0, 0, 0, 0);
-    HP = HB;
-    gc_grow(GROW);
-    store64(HB, GROW - 16);
-    store64(HB + 8, 0);
+    GC_HB = syscall(12, 0, 0, 0, 0, 0, 0);
+    GC_HP = GC_HB;
+    gc_grow(GC_GROW);
+    store64(GC_HB, GC_GROW - 16);
+    store64(GC_HB + 8, 0);
     GNBLK = 1;
     GNALLOC = 0;
     GNCOL = 0;
     GRECL = 0;
     GCERR = 0;
-    return HB;
+    return GC_HB;
 }
 
 # 读 /proc/self/maps 求"地址 a 所属映射区间的上界"。
@@ -164,23 +164,23 @@ fn gc_range_of(a: i64) -> i64 {
 }
 
 fn gc_grow(n: i64) -> i64 {
-    let r: i64 = syscall(12, HP + n, 0, 0, 0, 0, 0);
+    let r: i64 = syscall(12, GC_HP + n, 0, 0, 0, 0, 0);
     if r < 0 { return -1; }
-    HP = HP + n;
+    GC_HP = GC_HP + n;
     return 0;
 }
 
 # ── 分配：first-fit + 块分裂 ────────────────────────────────
-fn find_free(n: i64) -> i64 {
-    let p: i64 = HB;
+fn GC_find_free(n: i64) -> i64 {
+    let p: i64 = GC_HB;
     let guard: i64 = 0;
-    while p < HP {
+    while p < GC_HP {
         guard = guard + 1;
         if guard > BLK_MAX { return 0; }
         if blk_isused(p) == 0 {
-            if blk_size(p) >= n { return p; }
+            if GC_blk_size(p) >= n { return p; }
         }
-        let nx: i64 = blk_next(p);
+        let nx: i64 = GC_blk_next(p);
         if nx <= p { return 0; }
         p = nx;
     }
@@ -188,7 +188,7 @@ fn find_free(n: i64) -> i64 {
 }
 
 fn blk_split(p: i64, n: i64) -> i64 {
-    let rest: i64 = blk_size(p) - n;
+    let rest: i64 = GC_blk_size(p) - n;
     if rest >= 32 {
         store64(p, n);
         let q: i64 = p + 16 + n;
@@ -202,34 +202,34 @@ fn blk_split(p: i64, n: i64) -> i64 {
 fn gc_alloc(n: i64) -> i64 {
     let want: i64 = align16(n);
     if want < 16 { want = 16; }
-    let p: i64 = find_free(want);
+    let p: i64 = GC_find_free(want);
     if p == 0 {
-        gc_grow(GROW);
-        store64(HP - GROW, GROW - 16);
-        store64(HP - GROW + 8, 0);
+        gc_grow(GC_GROW);
+        store64(GC_HP - GC_GROW, GC_GROW - 16);
+        store64(GC_HP - GC_GROW + 8, 0);
         GNBLK = GNBLK + 1;
         gc_coalesce_all();
-        p = find_free(want);
+        p = GC_find_free(want);
         if p == 0 { GCERR = 1; return 0; }
     }
     blk_split(p, want);
     blk_setused(p);
     GNALLOC = GNALLOC + 1;
-    return blk_data(p);
+    return GC_blk_data(p);
 }
 
 # 把新增长的区域并入前一个空闲块（否则分裂会产生两个相邻空闲块）
 fn gc_coalesce_all() -> i64 {
-    let p: i64 = HB;
+    let p: i64 = GC_HB;
     let guard: i64 = 0;
-    while p < HP {
+    while p < GC_HP {
         guard = guard + 1;
         if guard > BLK_MAX { return 0; }
-        let nx: i64 = blk_next(p);
-        if nx >= HP { return 0; }
+        let nx: i64 = GC_blk_next(p);
+        if nx >= GC_HP { return 0; }
         if blk_isused(p) == 0 {
             if blk_isused(nx) == 0 {
-                store64(p, blk_size(p) + 16 + blk_size(nx));
+                store64(p, GC_blk_size(p) + 16 + GC_blk_size(nx));
                 GNBLK = GNBLK - 1;
                 return 0;
             }
@@ -243,17 +243,17 @@ fn gc_coalesce_all() -> i64 {
 # 线性遍历定位"包含 v 的块"，因此**内部指针也能保活整块**。
 # 代价 O(块数)，本库明确接受（换二分需要维护块索引，块会分裂合并）。
 fn blk_of(v: i64) -> i64 {
-    if v < HB { return 0; }
-    if v >= HP { return 0; }
-    let p: i64 = HB;
+    if v < GC_HB { return 0; }
+    if v >= GC_HP { return 0; }
+    let p: i64 = GC_HB;
     let guard: i64 = 0;
-    while p < HP {
+    while p < GC_HP {
         guard = guard + 1;
         if guard > BLK_MAX { return 0; }
         if v >= p {
-            if v < p + 16 + blk_size(p) { return p; }
+            if v < p + 16 + GC_blk_size(p) { return p; }
         }
-        let nx: i64 = blk_next(p);
+        let nx: i64 = GC_blk_next(p);
         if nx <= p { return 0; }
         p = nx;
     }
@@ -301,7 +301,7 @@ fn scan_range(lo: i64, hi: i64) -> i64 {
 fn gc_propagate() -> i64 {
     let p: i64 = ms_pop();
     while p != 0 {
-        if blk_isused(p) == 1 { scan_range(blk_data(p), blk_data(p) + blk_size(p)); }
+        if blk_isused(p) == 1 { scan_range(GC_blk_data(p), GC_blk_data(p) + GC_blk_size(p)); }
         if GCERR == 2 { return -1; }
         p = ms_pop();
     }
@@ -310,19 +310,19 @@ fn gc_propagate() -> i64 {
 
 # ── 清除 ────────────────────────────────────────────────────
 fn gc_sweep() -> i64 {
-    let p: i64 = HB;
+    let p: i64 = GC_HB;
     let rec: i64 = 0;
     let guard: i64 = 0;
-    while p < HP {
+    while p < GC_HP {
         guard = guard + 1;
         if guard > BLK_MAX { return rec; }
         if blk_isused(p) == 1 {
             if blk_ismark(p) == 0 {
-                rec = rec + blk_size(p);
+                rec = rec + GC_blk_size(p);
                 blk_setfree(p);
             }
         }
-        let nx: i64 = blk_next(p);
+        let nx: i64 = GC_blk_next(p);
         if nx <= p { return rec; }
         p = nx;
     }
@@ -330,13 +330,13 @@ fn gc_sweep() -> i64 {
 }
 
 fn gc_clear_marks() -> i64 {
-    let p: i64 = HB;
+    let p: i64 = GC_HB;
     let guard: i64 = 0;
-    while p < HP {
+    while p < GC_HP {
         guard = guard + 1;
         if guard > BLK_MAX { return 0; }
         blk_clrmark(p);
-        let nx: i64 = blk_next(p);
+        let nx: i64 = GC_blk_next(p);
         if nx <= p { return 0; }
         p = nx;
     }
@@ -345,14 +345,14 @@ fn gc_clear_marks() -> i64 {
 
 # ── 统计 ────────────────────────────────────────────────────
 fn gc_live_blocks() -> i64 {
-    let p: i64 = HB;
+    let p: i64 = GC_HB;
     let n: i64 = 0;
     let guard: i64 = 0;
-    while p < HP {
+    while p < GC_HP {
         guard = guard + 1;
         if guard > BLK_MAX { return n; }
         if blk_isused(p) == 1 { n = n + 1; }
-        let nx: i64 = blk_next(p);
+        let nx: i64 = GC_blk_next(p);
         if nx <= p { return n; }
         p = nx;
     }
@@ -360,21 +360,21 @@ fn gc_live_blocks() -> i64 {
 }
 
 fn gc_live_bytes() -> i64 {
-    let p: i64 = HB;
+    let p: i64 = GC_HB;
     let n: i64 = 0;
     let guard: i64 = 0;
-    while p < HP {
+    while p < GC_HP {
         guard = guard + 1;
         if guard > BLK_MAX { return n; }
-        if blk_isused(p) == 1 { n = n + blk_size(p); }
-        let nx: i64 = blk_next(p);
+        if blk_isused(p) == 1 { n = n + GC_blk_size(p); }
+        let nx: i64 = GC_blk_next(p);
         if nx <= p { return n; }
         p = nx;
     }
     return n;
 }
 
-fn gc_heap_bytes() -> i64 { return HP - HB; }
+fn gc_heap_bytes() -> i64 { return GC_HP - GC_HB; }
 
 # p 指向的块是否还在使用（用于量化"误保留"）
 fn gc_is_live(p: i64) -> i64 {

@@ -40,7 +40,7 @@
 #   合并        (A ∪ B) 的 filter = 逐位 OR（假阳率不劣于插入 A∪B 的 filter）
 #
 # ── ⚠️ 调用方禁令 ──────────────────────────────────────────
-#   BI / BW / BB / BX / BV / BA / BB2 是本库内部的循环/临时变量，
+#   BLOOM_BI / BW / BB / BX / BV / BA / BB2 是本库内部的循环/临时变量，
 #   调用方**绝不能拿它们当自己的循环变量** —— 一次 bloom_add 就会改掉它们，
 #   外层循环当场退出，症状是"只加了一个元素"，**不报错**。
 #   本项目已在 HDC(v1.108)、SDM(v1.110)、LSH(v1.137)、HLL(v1.138) 栽过同一类跟头。
@@ -68,7 +68,7 @@ var BLBAD: i64 = 0;     # 参数非法（m 非 2 的幂 / k ≤ 0）
 var BLNB: i64 = 0;      # 最近一次 bloom_count 的置位数
 
 # ── 专用循环/临时变量 ──────────────────────────────────────
-var BI: i64 = 0;
+var BLOOM_BI: i64 = 0;
 var BW: i64 = 0;
 var BB: i64 = 0;
 var BX: i64 = 0;
@@ -159,16 +159,16 @@ fn bloom_add(h: i64, x: i64) -> i64 {
     let base: i64 = h + 3;
     let h1v: i64 = bl_h1(x);
     let h2v: i64 = bl_h2(x);
-    BI = 0;
+    BLOOM_BI = 0;
     BX = 0;
     BW = 0;
     BB = 0;
-    while BI < k {
-        BX = (h1v + BI * h2v) & (m - 1);
+    while BLOOM_BI < k {
+        BX = (h1v + BLOOM_BI * h2v) & (m - 1);
         BW = BX / 64;
         BB = BX - BW * 64;
         BLMP[base + BW] = BLMP[base + BW] | (1 << BB);
-        BI = BI + 1;
+        BLOOM_BI = BLOOM_BI + 1;
     }
     return 0;
 }
@@ -182,16 +182,16 @@ fn bloom_has(h: i64, x: i64) -> i64 {
     let base: i64 = h + 3;
     let h1v: i64 = bl_h1(x);
     let h2v: i64 = bl_h2(x);
-    BI = 0;
+    BLOOM_BI = 0;
     BX = 0;
     BW = 0;
     BB = 0;
-    while BI < k {
-        BX = (h1v + BI * h2v) & (m - 1);
+    while BLOOM_BI < k {
+        BX = (h1v + BLOOM_BI * h2v) & (m - 1);
         BW = BX / 64;
         BB = BX - BW * 64;
         if (BLMP[base + BW] & (1 << BB)) == 0 { return 0; }
-        BI = BI + 1;
+        BLOOM_BI = BLOOM_BI + 1;
     }
     return 1;
 }
@@ -200,10 +200,10 @@ fn bloom_has(h: i64, x: i64) -> i64 {
 fn bloom_clear(h: i64) -> i64 {
     let words: i64 = BLMP[h + 2];
     let base: i64 = h + 3;
-    BI = 0;
-    while BI < words {
-        BLMP[base + BI] = 0;
-        BI = BI + 1;
+    BLOOM_BI = 0;
+    while BLOOM_BI < words {
+        BLMP[base + BLOOM_BI] = 0;
+        BLOOM_BI = BLOOM_BI + 1;
     }
     return 0;
 }
@@ -216,10 +216,10 @@ fn bloom_merge(dst: i64, src: i64) -> i64 {
     let words: i64 = BLMP[dst + 2];
     let bd: i64 = dst + 3;
     let bs: i64 = src + 3;
-    BI = 0;
-    while BI < words {
-        BLMP[bd + BI] = BLMP[bd + BI] | BLMP[bs + BI];
-        BI = BI + 1;
+    BLOOM_BI = 0;
+    while BLOOM_BI < words {
+        BLMP[bd + BLOOM_BI] = BLMP[bd + BLOOM_BI] | BLMP[bs + BLOOM_BI];
+        BLOOM_BI = BLOOM_BI + 1;
     }
     return 0;
 }
@@ -239,10 +239,10 @@ fn bloom_count(h: i64) -> i64 {
     let words: i64 = BLMP[h + 2];
     let base: i64 = h + 3;
     BA = 0;
-    BI = 0;
-    while BI < words {
-        BA = BA + bl_pc(BLMP[base + BI]);
-        BI = BI + 1;
+    BLOOM_BI = 0;
+    while BLOOM_BI < words {
+        BA = BA + bl_pc(BLMP[base + BLOOM_BI]);
+        BLOOM_BI = BLOOM_BI + 1;
     }
     BLNB = BA;
     return BA;

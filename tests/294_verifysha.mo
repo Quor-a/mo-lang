@@ -44,7 +44,7 @@ fn h_up(u: i64, a: i64) -> i64 {
             fclose(fd);
         }
     }
-    sha256_hex(&HS_BODY, HS_BLEN, &T_SHA);
+    cr_sha256_hex(&HS_BODY, HS_BLEN, &T_SHA);
     strcpy(&T_BUF, "");
     strcat(&T_BUF, "pk294 ");
     strcat(&T_BUF, &HS_HVAL);
@@ -99,7 +99,7 @@ fn main() -> i64 {
         i = i + 1;
     }
     if lines != 1 { print("s6:"); print_i64(lines); print("\n"); exit(1); }
-    sha256_hex(&T_BODY, 2048, &T_SHA);
+    cr_sha256_hex(&T_BODY, 2048, &T_SHA);
     if strstr(&T_IDX, &T_SHA) < 0 { print("s7\n"); exit(1); }
     print("VSHA_OK\n");
     return 0;

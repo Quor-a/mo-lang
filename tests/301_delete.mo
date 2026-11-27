@@ -11,7 +11,7 @@ var T_IDX: [8192] byte = 0;
 var T_SHA: [80] byte = 0;
 
 fn h_up(u: i64, a: i64) -> i64 {
-    sha256_hex(&HS_BODY, HS_BLEN, &T_SHA);
+    cr_sha256_hex(&HS_BODY, HS_BLEN, &T_SHA);
     strcpy(&T_IDX, "");
     strcat(&T_IDX, "pk301 1.0.0 ");
     strcat(&T_IDX, &T_SHA);

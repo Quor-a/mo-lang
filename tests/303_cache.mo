@@ -14,7 +14,7 @@ fn main() -> i64 {
         store8(&C_BUF + i, 65 + (i % 26));
         i = i + 1;
     }
-    sha256_hex(&C_BUF, 1234, &C_SHA);
+    cr_sha256_hex(&C_BUF, 1234, &C_SHA);
     # ② 写缓存文件(模拟 pkg_http_dep 缓存写入)+ tgz 副本
     let fd: i64 = fopen("/tmp/t303cache.sha", 577, 438);
     if fd < 0 { print("c1\n"); exit(1); }
@@ -28,7 +28,7 @@ fn main() -> i64 {
     if fd < 0 { print("c2\n"); exit(1); }
     let n: i64 = fread(fd, &C_BUF, 65000);
     fclose(fd);
-    sha256_hex(&C_BUF, n, &C_BUF);
+    cr_sha256_hex(&C_BUF, n, &C_BUF);
     fd = fopen("/tmp/t303cache.sha", 0, 0);
     let m: i64 = fread(fd, &C_SHA, 78);
     fclose(fd);

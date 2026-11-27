@@ -62,7 +62,7 @@ var PKG_NBI: i64 = 0;
 var QN: [64] i64 = 0;          # 包名
 var QU: [64] i64 = 0;          # git url
 var QR: [64] i64 = 0;          # ref
-var QV: [64] i64 = 0;          # 版本约束
+var MPK_QV: [64] i64 = 0;          # 版本约束
 var QP: [64] i64 = 0;          # path（本地目录依赖；空 = 无）
 var QF: [64] i64 = 0;          # file（.mo.tar.gz 依赖；空 = 无）
 var QSH: [64] i64 = 0;         # v1.257：每包 sha256 字符串槽（qsave 句柄）
@@ -77,7 +77,7 @@ var QN_N: i64 = 0;
 var QPOOL: [16384] byte = 0;   # 队列字符串池（不用堆）
 var QPI: i64 = 0;
 var QPATH: [512] byte = 0;
-var QBUF: [2048] byte = 0;
+var MPK_QBUF: [2048] byte = 0;
 var QBUF2: [512] byte = 0;
 var QVER: [256] byte = 0;
 var QCM: [256] byte = 0;
@@ -968,7 +968,7 @@ fn pkg_cmd_verify() -> i64 {
                         let rv: i64 = fread(fdv, &VF_BUF, 65000);
                         fclose(fdv);
                         if rv > 0 {
-                            sha256_hex(&VF_BUF, rv, &VF_SHA);
+                            cr_sha256_hex(&VF_BUF, rv, &VF_SHA);
                             if strstr(&VF_LSHA, &VF_SHA) < 0 {
                                 print("✗ sha 复核不符: ");
                                 print(&VF_NAME);
@@ -1269,7 +1269,7 @@ fn pkg_cmd_sha(fil: ptr) -> i64 {
     fclose(fd);
     if n < 0 { n = 0; }
     let hb: [96] byte = 0;
-    let hl: i64 = sha256_hex(&HX_BUF, n, &hb);
+    let hl: i64 = cr_sha256_hex(&HX_BUF, n, &hb);
     store8(&hb + hl, 0);
     print("sha256  ");
     print(fil);
@@ -1648,23 +1648,23 @@ fn pkg_install(nm: ptr, url: ptr, ref: ptr, want: ptr, path: ptr, fil: ptr) -> i
             return 0 - 1;
         }
         # tar 中间文件放 .deps/ 下；chdir 后相对路径失效，先转绝对
-        strcpy(&QBUF, &PKG_DEP);
-        strcat(&QBUF, "/");
-        strcat(&QBUF, nm);
-        strcat(&QBUF, ".tar");
-        strcpy(&PKG_VAL, &QBUF);
-        pkg_abspath(&PKG_VAL, &QBUF);
-        if gunzip_file(&QBUF2, &QBUF) != 0 {
+        strcpy(&MPK_QBUF, &PKG_DEP);
+        strcat(&MPK_QBUF, "/");
+        strcat(&MPK_QBUF, nm);
+        strcat(&MPK_QBUF, ".tar");
+        strcpy(&PKG_VAL, &MPK_QBUF);
+        pkg_abspath(&PKG_VAL, &MPK_QBUF);
+        if gunzip_file(&QBUF2, &MPK_QBUF) != 0 {
             print("✗ gunzip 失败: ");
             print(fil);
             print_nl();
             return 0 - 1;
         }
         sh_chdir(&PKG_P);
-        rc = tar_unpack(&QBUF);
+        rc = tar_unpack(&MPK_QBUF);
         sh_chdir("..");
         sh_chdir("..");
-        syscall(87, &QBUF, 0, 0, 0, 0, 0);   # 清理中间 tar
+        syscall(87, &MPK_QBUF, 0, 0, 0, 0, 0);   # 清理中间 tar
         if rc < 0 {
             print("✗ tar 解包失败: ");
             print(fil);
@@ -1886,35 +1886,35 @@ fn pkg_write_lock() -> i64 {
         if pkg_load_toml(&QBUF2) >= 0 {
             pkg_pkg_field(&PKG_TXT, "version", &QVER);
         }
-        strcpy(&QBUF, &PKG_DEP);
-        strcat(&QBUF, "/");
-        strcat(&QBUF, QN[i]);
+        strcpy(&MPK_QBUF, &PKG_DEP);
+        strcat(&MPK_QBUF, "/");
+        strcat(&MPK_QBUF, QN[i]);
         store8(&QCM, 0);
-        pkg_commit(&QBUF, &QCM);
-        strcpy(&QBUF, "[[package]]\nname = \"");
-        strcat(&QBUF, QN[i]);
-        strcat(&QBUF, "\"\nversion = \"");
-        strcat(&QBUF, &QVER);
-        strcat(&QBUF, "\"\ngit = \"");
-        strcat(&QBUF, QU[i]);
+        pkg_commit(&MPK_QBUF, &QCM);
+        strcpy(&MPK_QBUF, "[[package]]\nname = \"");
+        strcat(&MPK_QBUF, QN[i]);
+        strcat(&MPK_QBUF, "\"\nversion = \"");
+        strcat(&MPK_QBUF, &QVER);
+        strcat(&MPK_QBUF, "\"\ngit = \"");
+        strcat(&MPK_QBUF, QU[i]);
         if QF[i] > 0 {
-            strcat(&QBUF, "\"\nfile = \"");
-            strcat(&QBUF, QF[i]);
+            strcat(&MPK_QBUF, "\"\nfile = \"");
+            strcat(&MPK_QBUF, QF[i]);
         }
         if strlen(QP[i]) > 0 {
-            strcat(&QBUF, "\"\npath = \"");
-            strcat(&QBUF, QP[i]);
+            strcat(&MPK_QBUF, "\"\npath = \"");
+            strcat(&MPK_QBUF, QP[i]);
         }
-        strcat(&QBUF, "\"\nref = \"");
-        strcat(&QBUF, QR[i]);
-        strcat(&QBUF, "\"\ncommit = \"");
-        strcat(&QBUF, &QCM);
+        strcat(&MPK_QBUF, "\"\nref = \"");
+        strcat(&MPK_QBUF, QR[i]);
+        strcat(&MPK_QBUF, "\"\ncommit = \"");
+        strcat(&MPK_QBUF, &QCM);
         if QF[i] > 0 && QSH[i] > 0 {
-            strcat(&QBUF, "\"\nsha256 = \"");
-            strcat(&QBUF, QSH[i]);
+            strcat(&MPK_QBUF, "\"\nsha256 = \"");
+            strcat(&MPK_QBUF, QSH[i]);
         }
-        strcat(&QBUF, "\"\n\n");
-        fwrite(fd, &QBUF, strlen(&QBUF));
+        strcat(&MPK_QBUF, "\"\n\n");
+        fwrite(fd, &MPK_QBUF, strlen(&MPK_QBUF));
         i = i + 1;
     }
     fclose(fd);
@@ -1957,7 +1957,7 @@ fn pkg_cmd_fetch() -> i64 {
             print("\n");
         }
         if PKG_FORCE == 1 || pkg_have(nm) == 0 {
-            if pkg_install(nm, QU[i], QR[i], QV[i], QP[i], QF[i]) < 0 { return 1; }
+            if pkg_install(nm, QU[i], QR[i], MPK_QV[i], QP[i], QF[i]) < 0 { return 1; }
         }
         # 装好后再扫它自己的 mo.toml；新发现的名字追加到队列尾，
         # 循环条件 i < QN_N 会自然把它们也走一遍 —— 这就是递归。
@@ -2001,7 +2001,7 @@ fn pkg_queue_add(nm: ptr, url: ptr, ref: ptr, ver: ptr, path: ptr, fil: ptr) -> 
     QN[QN_N] = qsave(nm);
     QU[QN_N] = qsave(url);
     QR[QN_N] = qsave(ref);
-    QV[QN_N] = qsave(ver);
+    MPK_QV[QN_N] = qsave(ver);
     QP[QN_N] = qsave(path);
     QF[QN_N] = qsave(fil);
     QN_N = QN_N + 1;
@@ -2074,19 +2074,19 @@ fn pkg_cmd_remove(nm: ptr) -> i64 {
                 # 新段开始：先把上一段（未标记删除的）落盘
                 if skip == 0 {
                     if seg == 1 {
-                        fwrite(fd, &QBUF, strlen(&QBUF));
+                        fwrite(fd, &MPK_QBUF, strlen(&MPK_QBUF));
                     }
                 }
                 seg = 1;
                 skip = 0;
-                strcpy(&QBUF, &PKG_LN);
-                strcat(&QBUF, "\n");
+                strcpy(&MPK_QBUF, &PKG_LN);
+                strcat(&MPK_QBUF, "\n");
                 # 继续缓冲本段直到下一个段头
                 continue;
             }
             if seg == 1 {
-                strcat(&QBUF, &PKG_LN);
-                strcat(&QBUF, "\n");
+                strcat(&MPK_QBUF, &PKG_LN);
+                strcat(&MPK_QBUF, "\n");
                 if str_starts_with(&PKG_LN, "name = ") == 1 {
                     if strstr(&PKG_LN, nm) > 0 {
                         skip = 1;
@@ -2101,7 +2101,7 @@ fn pkg_cmd_remove(nm: ptr) -> i64 {
         # 最后一段
         if seg == 1 {
             if skip == 0 {
-                fwrite(fd, &QBUF, strlen(&QBUF));
+                fwrite(fd, &MPK_QBUF, strlen(&MPK_QBUF));
             }
         }
         fclose(fd);
@@ -2185,7 +2185,7 @@ fn pkg_walk(dir: ptr, rel: ptr) -> i64 {
         strcat(&QBUF2, "/mo.toml");
         if list_dir(&PKG_P, &sub, 0) >= 0 {
             # 目录：递归（注意 sub 会被内层覆盖，先保存当前名）
-            strcpy(&QBUF, sub[i]);
+            strcpy(&MPK_QBUF, sub[i]);
             pkg_walk(&PKG_P, &PKG_VAL);
         } else {
             if PKG_FN < 256 {
@@ -2882,7 +2882,7 @@ fn pkg_http_dep(fil: ptr, nm: ptr) -> i64 {
             let crn: i64 = fread(cfd, &HG_RESP, 65000);
             fclose(cfd);
             if crn > 0 {
-                sha256_hex(&HG_RESP, crn, &HG_LSHA);
+                cr_sha256_hex(&HG_RESP, crn, &HG_LSHA);
                 if strstr(&HG_SHA, &HG_LSHA) == 0 {
                     store64(&PKG_CMD, "cp");
                     store64(&PKG_CMD + 8, &HG_CTGZ);
@@ -2935,7 +2935,7 @@ fn pkg_http_dep(fil: ptr, nm: ptr) -> i64 {
                     let rn: i64 = fread(fd0, &HG_RESP, 65000);
                     fclose(fd0);
                     if rn > 0 {
-                        sha256_hex(&HG_RESP, rn, &HG_LSHA);
+                        cr_sha256_hex(&HG_RESP, rn, &HG_LSHA);
                         if strstr(&HG_SHA, &HG_LSHA) < 0 {
                             print("✗ sha256 校验失败: 期望 ");
                             print(&HG_SHA);
@@ -3111,7 +3111,7 @@ fn pkg_http_put_tok(url: ptr, file: ptr, name: ptr, ver: ptr, tok: ptr) -> i64 {
         return 0 - 6;
     }
     # v1.256：远端 sha256 校验——GET /search?kw=<name> 拿 index 行,比对本地 sha256
-    sha256_hex(&HP_BODY, sz, &HP_SHA);
+    cr_sha256_hex(&HP_BODY, sz, &HP_SHA);
     strcpy(&HP_Q, "/search?kw=");
     strcat(&HP_Q, name);
     let sn: i64 = tcp_http_req_port("GET", &HP_Q, &HP_HOST, port, 0, 0, &HP_BUF, 4000, &st);
@@ -3124,7 +3124,7 @@ fn pkg_http_put_tok(url: ptr, file: ptr, name: ptr, ver: ptr, tok: ptr) -> i64 {
 
 # 远程 search：GET /search?kw=，打印响应体（v1.204.0）
 var HS_URL: [768] byte = 0;
-var HS_RESP: [32768] byte = 0;
+var MPK_HS_RESP: [32768] byte = 0;
 
 var SR_CACHE: [256] byte = 0;
 
@@ -3150,7 +3150,7 @@ fn pkg_search_remote(kw: ptr, base: ptr) -> i64 {
     }
     let fd: i64 = fopen("/tmp/mopkg-search.out", 0, 0);
     if fd < 0 { return 1; }
-    let n: i64 = syscall(0, fd, &HS_RESP, 32000, 0, 0, 0);
+    let n: i64 = syscall(0, fd, &MPK_HS_RESP, 32000, 0, 0, 0);
     fclose(fd);
     if n <= 0 {
         print("（无匹配）\n");
@@ -3160,33 +3160,33 @@ fn pkg_search_remote(kw: ptr, base: ptr) -> i64 {
     let lp: i64 = 0;
     while lp < n {
         let le: i64 = lp;
-        while le < n && load8(&HS_RESP + le) != 10 { le = le + 1; }
+        while le < n && load8(&MPK_HS_RESP + le) != 10 { le = le + 1; }
         if le > lp {
             # 找第 2、3 空格
             let s1: i64 = lp;
-            while s1 < le && load8(&HS_RESP + s1) != 32 { s1 = s1 + 1; }
+            while s1 < le && load8(&MPK_HS_RESP + s1) != 32 { s1 = s1 + 1; }
             let s2: i64 = s1 + 1;
-            while s2 < le && load8(&HS_RESP + s2) != 32 { s2 = s2 + 1; }
+            while s2 < le && load8(&MPK_HS_RESP + s2) != 32 { s2 = s2 + 1; }
             if s2 < le {
-                store8(&HS_RESP + le, 0);
+                store8(&MPK_HS_RESP + le, 0);
                 # v1.275:列切分 name=[lp,s1) ver=[s1+1,s2) sha=[s2+1,s3) 时间戳忽略
                 let s3: i64 = s2 + 1;
-                while s3 < le && load8(&HS_RESP + s3) != 32 { s3 = s3 + 1; }
-                store8(&HS_RESP + s3, 0);
-                store8(&HS_RESP + s2, 0);
-                store8(&HS_RESP + s1, 0);
-                print(&HS_RESP + lp);
+                while s3 < le && load8(&MPK_HS_RESP + s3) != 32 { s3 = s3 + 1; }
+                store8(&MPK_HS_RESP + s3, 0);
+                store8(&MPK_HS_RESP + s2, 0);
+                store8(&MPK_HS_RESP + s1, 0);
+                print(&MPK_HS_RESP + lp);
                 print("  ");
-                print(&HS_RESP + lp + s1 + 1);
+                print(&MPK_HS_RESP + lp + s1 + 1);
                 print("  ");
-                print(&HS_RESP + lp + s2 + 1);
+                print(&MPK_HS_RESP + lp + s2 + 1);
                 let sha_len: i64 = s3 - s2 - 1;
                 print("  (");
                 print_i64(sha_len);
                 print(" hex)");
                 # v1.280:缓存状态
                 strcpy(&SR_CACHE, "/tmp/mopkg_cache/");
-                strcat(&SR_CACHE, &HS_RESP + lp);
+                strcat(&SR_CACHE, &MPK_HS_RESP + lp);
                 strcat(&SR_CACHE, ".tgz");
                 let cfd: i64 = fopen(&SR_CACHE, 0, 0);
                 if cfd >= 0 {
@@ -3195,8 +3195,8 @@ fn pkg_search_remote(kw: ptr, base: ptr) -> i64 {
                 }
                 print_nl();
             } else {
-                store8(&HS_RESP + le, 0);
-                print(&HS_RESP + lp);
+                store8(&MPK_HS_RESP + le, 0);
+                print(&MPK_HS_RESP + lp);
                 print_nl();
             }
         }
@@ -3306,7 +3306,7 @@ fn pkg_dispatch(cmd: ptr) -> i64 {
                         print(" MB\n");
                     }
                     let pnb: [64] byte = 0;
-                    sha256_hex(&PKG_PUB_SHA, pn, &pnb);
+                    cr_sha256_hex(&PKG_PUB_SHA, pn, &pnb);
                     store8(&pnb + 16, 0);
                     print("  sha256: ");
                     print(&pnb);

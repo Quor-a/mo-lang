@@ -11490,6 +11490,12 @@ mo2x uic component DSL 展开 + 版本号规范：
 - 批测 459 项 GENFAIL 0 / mismatch 1（321 已知）；门禁 514/0。
 
 
+## v1.1223.0 (2026-11-27)
+
+- lib/hkdf.mo: HKDF-SHA512 variant (RFC 5869), tests/372.
+- stdlib symbol clash cleanup: legacy crypto.mo sha256 -> cr_sha256; all cross-lib duplicate globals/fns prefixed (GC_/HEAP_/BIT_/BLOOM_/HLL_/HSR_/DNS_/MPK_/QD_); http_status split into hc_status/aio_status. Any two libs are now co-importable.
+- Gate 522/0; cfs-riscv64 + cfs-aarch64 full-suite GENFAIL 0 / LINKFAIL 0 (sole mismatch 321 = known mo2x/moc constant negative-index divergence, both archs consistent).
+
 ## v1.1222.0
 - **标准库密码学套件（五个新库，全部 RFC 权威向量验证）**：
   - `lib/sha512.mo`：SHA-512（FIPS 180-4，80 轮、大端 IO、单/双块 padding；RFC 四向量）。

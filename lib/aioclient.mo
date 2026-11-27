@@ -271,7 +271,7 @@ var AH2_N: i64 = 0;
 var AH2_SCI: i64 = 0;
 
 # 状态行 "HTTP/1.1 200 OK" → 200；无 → -1
-fn http_status(hb: i64) -> i64 {
+fn aio_status(hb: i64) -> i64 {
     AH2_SCI = strstr(hb, " ");
     if AH2_SCI < 0 { return 0 - 1; }
     AH2_SCI = AH2_SCI + 1;
@@ -391,7 +391,7 @@ fn aio_http_req(method: ptr, path: ptr, body: ptr, blen: i64, buf: i64, bufsize:
     }
     let he2: i64 = http_recv_resp(AH2_FD, hbs);
     if he2 < 0 { aio_close(AH2_FD); return he2; }
-    if status != 0 { store64(status, http_status(aio_rx(hbs))); }
+    if status != 0 { store64(status, aio_status(aio_rx(hbs))); }
     let b2: i64 = http_body_len(AH2_FD, hbs, he2, AH2_GOT);
     if b2 < 0 { aio_close(AH2_FD); return b2; }
     AH2_CP = 0;

@@ -40,9 +40,9 @@ fn main() -> i64 {
     # ③ 对 token → 201
     b = tcp_http_post_gzip("/up/f.bin?token=tok292", "127.0.0.1", 18934, &T_BODY, 7, &T_BUF, 65536, &T_STAT);
     if T_STAT != 201 { print("a3:"); print_i64(T_STAT); print("\n"); exit(1); }
-    # ④ sha256 已知向量:sha256("abc") = ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad
+    # ④ sha256 已知向量:cr_sha256("abc") = ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad
     strcpy(&T_BODY, "abc");
-    sha256_hex(&T_BODY, 3, &T_SHA);
+    cr_sha256_hex(&T_BODY, 3, &T_SHA);
     if strstr(&T_SHA, "ba7816bf") != 0 { print("s1:"); print(&T_SHA); print("\n"); exit(1); }
     print("AUTH_OK\n");
     return 0;

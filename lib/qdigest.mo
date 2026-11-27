@@ -27,7 +27,7 @@
 #   两者对同一条流给出的是互补的两个数，互不替代。
 #
 # ── ⚠️ 调用方禁令 ──────────────────────────────────────────
-#   QI / QJ / QK / QV / QW 是本库内部的循环/临时变量，
+#   QI / QJ / QK / QD_QV / QW 是本库内部的循环/临时变量，
 #   调用方**绝不能拿它们当自己的循环变量** —— 一次 qd_add 就改掉它们，
 #   外层循环当场退出，症状是"只加了一个元素"，**不报错**。
 #   本项目已在 HDC(v1.108)、SDM(v1.110)、LSH(v1.137)、HLL(v1.138)、
@@ -62,7 +62,7 @@ var QDNNZ: i64 = 0;     # 上一次 qd_size 统计到的非空节点数（诊断
 var QI: i64 = 0;
 var QJ: i64 = 0;
 var QK: i64 = 0;
-var QV: i64 = 0;
+var QD_QV: i64 = 0;
 var QW: i64 = 0;
 
 # 查询用的计数排序暂存：索引 = 右端点（1..σ）
@@ -122,25 +122,25 @@ fn qd_add(h: i64, v: i64) -> i64 {
 
 # ── 计数总和（**永远等于 N**，压缩只是把计数上移，不丢）────
 fn qd_total(h: i64) -> i64 {
-    QV = 0;
+    QD_QV = 0;
     QI = 1;
     while QI <= 8191 {
-        QV = QV + QDP[h + 2 + QI];
+        QD_QV = QD_QV + QDP[h + 2 + QI];
         QI = QI + 1;
     }
-    return QV;
+    return QD_QV;
 }
 
 # ── 非空节点数（压缩的效果就看它）─────────────────────────
 fn qd_size(h: i64) -> i64 {
-    QV = 0;
+    QD_QV = 0;
     QI = 1;
     while QI <= 8191 {
-        if QDP[h + 2 + QI] != 0 { QV = QV + 1; }
+        if QDP[h + 2 + QI] != 0 { QD_QV = QD_QV + 1; }
         QI = QI + 1;
     }
-    QDNNZ = QV;
-    return QV;
+    QDNNZ = QD_QV;
+    return QD_QV;
 }
 
 # ── 压缩 ───────────────────────────────────────────────────
@@ -153,11 +153,11 @@ fn qd_compress(h: i64, k: i64) -> i64 {
     # ⚠️ 循环体内不声明 let（墨语言会累积栈帧），临时量一律用库级变量
     QI = QD_SIG - 1;
     while QI >= 1 {
-        QV = QDP[h + 2 + QI * 2];
+        QD_QV = QDP[h + 2 + QI * 2];
         QW = QDP[h + 2 + QI * 2 + 1];
         QK = QDP[h + 2 + QI];
-        if QK + QV + QW <= k {
-            QDP[h + 2 + QI] = QK + QV + QW;
+        if QK + QD_QV + QW <= k {
+            QDP[h + 2 + QI] = QK + QD_QV + QW;
             QDP[h + 2 + QI * 2] = 0;
             QDP[h + 2 + QI * 2 + 1] = 0;
         }
@@ -186,18 +186,18 @@ fn qd_query(h: i64, phi_ppm: i64) -> i64 {
     }
     QI = 1;
     while QI <= 8191 {
-        QV = QDP[h + 2 + QI];
-        if QV != 0 {
+        QD_QV = QDP[h + 2 + QI];
+        if QD_QV != 0 {
             QW = qd_hi(QI);
-            QHB[QW] = QHB[QW] + QV;
+            QHB[QW] = QHB[QW] + QD_QV;
         }
         QI = QI + 1;
     }
-    QV = 0;
+    QD_QV = 0;
     QI = 1;
     while QI <= QD_SIG {
-        QV = QV + QHB[QI];
-        if QV >= r { return QI; }
+        QD_QV = QD_QV + QHB[QI];
+        if QD_QV >= r { return QI; }
         QI = QI + 1;
     }
     return QD_SIG;

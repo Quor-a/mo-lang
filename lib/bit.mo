@@ -36,7 +36,7 @@
 #      （与 CMS 的 Conservative Update 相反：CU 用掉了线性性）
 #
 # ── ⚠️ 调用方禁令 ──────────────────────────────────────────
-#   BI / BJ / BS / BD / BK / BP / BQ / BL / BR / BH / BG / BM
+#   BIT_BI / BJ / BS / BD / BK / BP / BQ / BL / BR / BH / BG / BM
 #   是本库内部的循环/临时变量。调用方**绝不能拿它们当自己的循环变量**
 #   —— 一次 bit_add 就改掉它们，外层循环当场退出，
 #   症状是"只处理了第一个元素"，**不报错**。
@@ -68,7 +68,7 @@ var BITSTP: i64 = 0;      # 上一次 bit_lower 的二分步数（结构性断�
 var BITMOV: i64 = 0;      # 上一次操作的访存次数（诊断用）
 
 # ── 内部临时变量（调用方禁用，见文件头禁令）────────────────
-var BI: i64 = 0;
+var BIT_BI: i64 = 0;
 var BJ: i64 = 0;
 var BS: i64 = 0;
 var BD: i64 = 0;
@@ -99,10 +99,10 @@ fn bit_new(n: i64) -> i64 {
     if BITFREE + 1 + n > 70000 { BITOV = BITOV + 1; return 0 - 1; }
     let h: i64 = BITFREE;
     BITPOOL[h] = n;
-    BI = 1;
-    while BI <= n {
-        BITPOOL[h + BI] = 0;
-        BI = BI + 1;
+    BIT_BI = 1;
+    while BIT_BI <= n {
+        BITPOOL[h + BIT_BI] = 0;
+        BIT_BI = BIT_BI + 1;
     }
     BITFREE = BITFREE + 1 + n;
     return h;
@@ -114,10 +114,10 @@ fn bit_n(h: i64) -> i64 {
 
 fn bit_clear(h: i64) -> i64 {
     let n: i64 = BITPOOL[h];
-    BI = 1;
-    while BI <= n {
-        BITPOOL[h + BI] = 0;
-        BI = BI + 1;
+    BIT_BI = 1;
+    while BIT_BI <= n {
+        BITPOOL[h + BIT_BI] = 0;
+        BIT_BI = BIT_BI + 1;
     }
     return 0;
 }
@@ -186,14 +186,14 @@ fn bit_total(h: i64) -> i64 {
 fn bit_build(h: i64, src: i64, n: i64) -> i64 {
     if n != BITPOOL[h] { BITBAD = BITBAD + 1; return 0 - 1; }
     bit_clear(h);
-    BI = 1;
-    while BI <= n {
-        BITPOOL[h + BI] = BITPOOL[h + BI] + load64(src + BI * 8);
-        BJ = BI + lowbit(BI);
+    BIT_BI = 1;
+    while BIT_BI <= n {
+        BITPOOL[h + BIT_BI] = BITPOOL[h + BIT_BI] + load64(src + BIT_BI * 8);
+        BJ = BIT_BI + lowbit(BIT_BI);
         if BJ <= n {
-            BITPOOL[h + BJ] = BITPOOL[h + BJ] + BITPOOL[h + BI];
+            BITPOOL[h + BJ] = BITPOOL[h + BJ] + BITPOOL[h + BIT_BI];
         }
-        BI = BI + 1;
+        BIT_BI = BIT_BI + 1;
     }
     return 0;
 }
@@ -233,10 +233,10 @@ fn bit_merge(a: i64, b: i64) -> i64 {
     let na: i64 = BITPOOL[a];
     let nb: i64 = BITPOOL[b];
     if na != nb { BITBAD = BITBAD + 1; return 0 - 1; }
-    BI = 1;
-    while BI <= na {
-        BITPOOL[a + BI] = BITPOOL[a + BI] + BITPOOL[b + BI];
-        BI = BI + 1;
+    BIT_BI = 1;
+    while BIT_BI <= na {
+        BITPOOL[a + BIT_BI] = BITPOOL[a + BIT_BI] + BITPOOL[b + BIT_BI];
+        BIT_BI = BIT_BI + 1;
     }
     return 0;
 }
@@ -246,10 +246,10 @@ fn bit_sub(a: i64, b: i64) -> i64 {
     let na: i64 = BITPOOL[a];
     let nb: i64 = BITPOOL[b];
     if na != nb { BITBAD = BITBAD + 1; return 0 - 1; }
-    BI = 1;
-    while BI <= na {
-        BITPOOL[a + BI] = BITPOOL[a + BI] - BITPOOL[b + BI];
-        BI = BI + 1;
+    BIT_BI = 1;
+    while BIT_BI <= na {
+        BITPOOL[a + BIT_BI] = BITPOOL[a + BIT_BI] - BITPOOL[b + BIT_BI];
+        BIT_BI = BIT_BI + 1;
     }
     return 0;
 }
@@ -260,10 +260,10 @@ fn bit_diff(a: i64, b: i64) -> i64 {
     let nb: i64 = BITPOOL[b];
     if na != nb { BITBAD = BITBAD + 1; return 0 - 1; }
     BM = 0;
-    BI = 1;
-    while BI <= na {
-        if BITPOOL[a + BI] != BITPOOL[b + BI] { BM = BM + 1; }
-        BI = BI + 1;
+    BIT_BI = 1;
+    while BIT_BI <= na {
+        if BITPOOL[a + BIT_BI] != BITPOOL[b + BIT_BI] { BM = BM + 1; }
+        BIT_BI = BIT_BI + 1;
     }
     return BM;
 }
