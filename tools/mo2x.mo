@@ -1141,7 +1141,7 @@ fn emit_primary() -> i64 {
         }
         # v1.1196: 移位左操作数字面量加 LL —— C 里 `1 << 63` 是 int 移位 UB，
         # mo 语义是 i64 wrap（lib/cms.mo cm_shr 的 (1 << (64-n))-1 实测坑：147_cbfcu）
-        if peek_op("<<") == 1 { outs(cur_s()); outs("LL"); }
+        if peek_op("<<") == 1 || peek_op(">>") == 1 { outs(cur_s()); outs("LL"); }
         else { outs(cur_s()); }
         TI = TI + 1;
         return 0;
@@ -8575,7 +8575,7 @@ fn kern_header_aarch64() -> i64 {
 
 fn emit_mem_macros() -> i64 {
     line("static unsigned char* MF_P;  /* f-string 拼接游标（sfmt 用） */");
-    line("#define load8(p)   (*(unsigned char*)(p))");
+    line("#define load8(p)   ((long long)(*(unsigned char*)(p)))");
     # 🔴 v1.1161: 一律用 long long —— Windows x86_64 是 LLP64，long 只有 32 位。
     # 用 long 的 load64/store64 在 Windows 上读写 4 字节（内存踩坏），
     # call0..3 把 64 位函数指针截断成 32 位（直接崩）。
@@ -8801,7 +8801,7 @@ fn emit_header() -> i64 {
         line("static long long mo_arr_has(unsigned char* a, long long n, long long v){ long long i; for(i=0;i<n;i++){ if(((long long*)a)[i]==v) return 1; } return 0; }");
         line("static long long mo_arr_has2(double* a, long long n, double v){ long long i; for(i=0;i<n;i++){ if(a[i]==v) return 1; } return 0; }");
         line("static long long mo_arr_hasb(unsigned char* a, long long n, long long v){ long long i; for(i=0;i<n;i++){ if(a[i]==v) return 1; } return 0; }");
-        line("static long long mo_arr_hass(unsigned char** a, long long n, unsigned char* v){ long long i; for(i=0;i<n;i++){ if(strcmp((char*)a[i],(char*)v)==0) return 1; } return 0; }");
+        line("static long long mo_arr_hass(unsigned char** a, long long n, unsigned char* v){ long long i; for(i=0;i<n;i++){ if(mo_swstrcmp((unsigned char*)a[i],(unsigned char*)v)==0) return 1; } return 0; }");
         line("static void assert_(long c, const char* m){ if(!c){ fprintf(stderr, \"%s\", m); if(__mjn>0){ __mje=2; longjmp(__mjb[__mjn],1); } exit(1);} }");
         line("static long long mo_main(void);");
         return 0;

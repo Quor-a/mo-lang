@@ -11508,3 +11508,14 @@ mo2x uic component DSL 展开 + 版本号规范：
 - 新增 tests/365~371（7 文件）；tests/pty/main.mo 修复（hmac_hex/mac_verify 落地）。
 - 能力边界更新：非对称签名（Ed25519）+ 密钥派生（HKDF）补齐——TLS 类协议原语全链就位。
 - 指标：门禁 **521/0**（514→521）；C 批测 GENFAIL 0 / mismatch 1（321 已知）；cfs 双架构全绿维持。
+
+## v1.1224.0 —— 对称密码栈：AES / ChaCha20 / Poly1305 / AEAD + mo2x load8 修复
+
+- `lib/aes.mo`：AES-128/256 完整实现（FIPS-197）——密钥扩展、block 加解密、ECB、CTR（SP800-38A 权威向量，cryptography 双向对齐）。
+- `lib/chacha20.mo`：ChaCha20（RFC 8439）——byte-buffer 全状态实现，2.3.2/2.4.2 全向量。
+- `lib/poly1305.mo`：Poly1305（RFC 8439 2.5.2）——big.mo 通用大数路线，divmod 序列化。
+- `lib/aead.mo`：AEAD_CHACHA20_POLY1305（RFC 8439 2.6.2/2.8.2 全向量）——poly keygen + 加密认证 + 解密验证，与 cryptography 逐字节一致。
+- 🔴 mo2x 修复：load8 宏加 `(long long)` cast——C 移位 promotion：`unsigned char << 24` 左操作数只提升 int，高字节 ≥0x80 时 int 溢出成负 → 算术右移污染（`<<NLL` 后缀无效，C11 6.5.7）。修复后 mo2x 全量批测零回归。
+- 新增 tests/373~376。
+- 指标：门禁 **526/0**；mo2x C 批测 471 项 GENFAIL 0 / mismatch 1（321 已知）；cfs 双架构 374~376 全 PASS。
+- 能力边界更新：对称密码（AES + ChaCha20-Poly1305 AEAD）+ 非对称（Ed25519）+ 哈希/HMAC/HKDF 全链就位。
